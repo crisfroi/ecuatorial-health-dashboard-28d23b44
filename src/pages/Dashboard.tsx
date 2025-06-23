@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,6 +14,7 @@ import MinisterialPanel from '@/components/dashboard/MinisterialPanel';
 import AIChat from '@/components/dashboard/AIChat';
 import HospitalIncidents from '@/components/dashboard/HospitalIncidents';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
+import RenewalAlerts from '@/components/dashboard/RenewalAlerts';
 
 const Dashboard = () => {
   const [selectedProfessional, setSelectedProfessional] = useState(null);
@@ -125,10 +125,14 @@ const Dashboard = () => {
 
           <TabsContent value="overview" className="space-y-6">
             <DashboardFilters />
-            <StatsCards />
+            <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
+            
+            {/* Alertas de Renovación */}
+            <RenewalAlerts onNavigateToProfessionals={handleNavigateToProfessionals} />
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => handleNavigateToProfessionals({ type: 'tendencia', value: 'mensual' })}>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <TrendingUp className="w-5 h-5 text-guinea-teal" />
@@ -148,7 +152,8 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => handleNavigateToProfessionals({ type: 'profesion', value: 'todas' })}>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Users className="w-5 h-5 text-guinea-teal" />

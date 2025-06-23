@@ -2,7 +2,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, UserCheck, Clock, TrendingUp } from 'lucide-react';
 
-const StatsCards = () => {
+interface StatsCardsProps {
+  onNavigateToProfessionals?: (filters: any) => void;
+}
+
+const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
   const stats = [
     {
       title: 'Total Registros',
@@ -10,7 +14,8 @@ const StatsCards = () => {
       change: '+12%',
       icon: Users,
       color: 'text-blue-600',
-      bgColor: 'bg-blue-100'
+      bgColor: 'bg-blue-100',
+      filter: { type: 'all' }
     },
     {
       title: 'Aprobados',
@@ -18,7 +23,8 @@ const StatsCards = () => {
       change: '+5.2%',
       icon: UserCheck,
       color: 'text-green-600',
-      bgColor: 'bg-green-100'
+      bgColor: 'bg-green-100',
+      filter: { type: 'estado', value: 'Aprobado' }
     },
     {
       title: 'Pendientes',
@@ -26,7 +32,8 @@ const StatsCards = () => {
       change: '-8%',
       icon: Clock,
       color: 'text-orange-600',
-      bgColor: 'bg-orange-100'
+      bgColor: 'bg-orange-100',
+      filter: { type: 'estado', value: 'Pendiente' }
     },
     {
       title: 'Mujeres',
@@ -34,14 +41,25 @@ const StatsCards = () => {
       change: '+2.1%',
       icon: TrendingUp,
       color: 'text-purple-600',
-      bgColor: 'bg-purple-100'
+      bgColor: 'bg-purple-100',
+      filter: { type: 'sexo', value: 'F' }
     }
   ];
+
+  const handleCardClick = (filter: any) => {
+    if (onNavigateToProfessionals) {
+      onNavigateToProfessionals(filter);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {stats.map((stat, index) => (
-        <Card key={index} className="hover:shadow-md transition-shadow">
+        <Card 
+          key={index} 
+          className="hover:shadow-md transition-shadow cursor-pointer hover:scale-105 transform transition-transform"
+          onClick={() => handleCardClick(stat.filter)}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
               {stat.title}

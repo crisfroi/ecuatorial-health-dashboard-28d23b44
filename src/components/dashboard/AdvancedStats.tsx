@@ -27,8 +27,8 @@ const AdvancedStats = () => {
   ];
 
   const sectorData = [
-    { name: 'Público', value: 72.4, color: '#10b981' },
-    { name: 'Privado', value: 27.6, color: '#f59e0b' }
+    { name: 'Público', value: 72.4, fill: '#10b981' },
+    { name: 'Privado', value: 27.6, fill: '#f59e0b' }
   ];
 
   const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
@@ -129,7 +129,7 @@ const AdvancedStats = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <RadialBarChart innerRadius="30%" outerRadius="90%" data={sectorData}>
-                <RadialBar dataKey="value" cornerRadius={10} fill={(entry: any) => entry.color} />
+                <RadialBar dataKey="value" cornerRadius={10} />
                 <Tooltip />
               </RadialBarChart>
             </ResponsiveContainer>

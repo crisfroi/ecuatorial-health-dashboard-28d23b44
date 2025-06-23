@@ -1,13 +1,17 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, RadialBarChart, RadialBar } from 'recharts';
-import { MapPin, Users, TrendingUp, Activity, Calendar, Filter } from 'lucide-react';
+import { MapPin, Users, TrendingUp, Activity, Calendar, Filter, Eye, ArrowRight } from 'lucide-react';
 
-const AdvancedStats = () => {
+interface AdvancedStatsProps {
+  onNavigateToProfessionals?: (filters: any) => void;
+}
+
+const AdvancedStats = ({ onNavigateToProfessionals }: AdvancedStatsProps) => {
   const [selectedYear, setSelectedYear] = useState('2024');
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedSpecialty, setSelectedSpecialty] = useState('all');
@@ -90,6 +94,17 @@ const AdvancedStats = () => {
     }
     
     setFilteredData(newFilteredData);
+  };
+
+  const handleNavigateToProfessionals = (filterData: any, filterType: string) => {
+    if (onNavigateToProfessionals) {
+      const filters = {
+        type: filterType,
+        value: filterData[Object.keys(filterData)[0]], // primer valor del objeto
+        data: filterData
+      };
+      onNavigateToProfessionals(filters);
+    }
   };
 
   const getTableData = () => {
@@ -180,20 +195,36 @@ const AdvancedStats = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <MapPin className="w-5 h-5 text-blue-600" />
-              <span>Distribución por Provincia</span>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <MapPin className="w-5 h-5 text-blue-600" />
+                <span>Distribución por Provincia</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleNavigateToProfessionals({ filter: 'provincia' }, 'provincia')}
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                Ver Todos
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={provinceData} onClick={(data) => handleChartClick(data.activePayload?.[0]?.payload, 'provincia')}>
+              <BarChart data={provinceData} onClick={(data) => {
+                const payload = data.activePayload?.[0]?.payload;
+                if (payload) {
+                  handleChartClick(payload, 'provincia');
+                  handleNavigateToProfessionals(payload, 'provincia');
+                }
+              }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="provincia" />
                 <YAxis />
-                <Tooltip />
+                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.1)' }} />
                 <Bar dataKey="publico" stackId="a" fill="#10b981" name="Sector Público" />
                 <Bar dataKey="privado" stackId="a" fill="#f59e0b" name="Sector Privado" />
               </BarChart>
@@ -201,60 +232,108 @@ const AdvancedStats = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Activity className="w-5 h-5 text-green-600" />
-              <span>Distribución por Distrito Sanitario</span>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Activity className="w-5 h-5 text-green-600" />
+                <span>Distribución por Distrito Sanitario</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleNavigateToProfessionals({ filter: 'distrito' }, 'distrito')}
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                Ver Todos
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={districtData} onClick={(data) => handleChartClick(data.activePayload?.[0]?.payload, 'distrito')}>
+              <BarChart data={districtData} onClick={(data) => {
+                const payload = data.activePayload?.[0]?.payload;
+                if (payload) {
+                  handleChartClick(payload, 'distrito');
+                  handleNavigateToProfessionals(payload, 'distrito');
+                }
+              }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="distrito" angle={-45} textAnchor="end" height={80} />
                 <YAxis />
-                <Tooltip />
+                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.1)' }} />
                 <Bar dataKey="profesionales" fill="hsl(var(--guinea-teal))" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Users className="w-5 h-5 text-purple-600" />
-              <span>Distribución por Edad</span>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Users className="w-5 h-5 text-purple-600" />
+                <span>Distribución por Edad</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleNavigateToProfessionals({ filter: 'edad' }, 'edad')}
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                Ver Todos
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={ageData} onClick={(data) => handleChartClick(data.activePayload?.[0]?.payload, 'edad')}>
+              <BarChart data={ageData} onClick={(data) => {
+                const payload = data.activePayload?.[0]?.payload;
+                if (payload) {
+                  handleChartClick(payload, 'edad');
+                  handleNavigateToProfessionals(payload, 'edad');
+                }
+              }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="rango" />
                 <YAxis />
-                <Tooltip />
+                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.1)' }} />
                 <Bar dataKey="cantidad" fill="#8b5cf6" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <TrendingUp className="w-5 h-5 text-orange-600" />
-              <span>Distribución por Especialidad</span>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="w-5 h-5 text-orange-600" />
+                <span>Distribución por Especialidad</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleNavigateToProfessionals({ filter: 'especialidad' }, 'especialidad')}
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                Ver Todos
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={specialtyData} onClick={(data) => handleChartClick(data.activePayload?.[0]?.payload, 'especialidad')}>
+              <BarChart data={specialtyData} onClick={(data) => {
+                const payload = data.activePayload?.[0]?.payload;
+                if (payload) {
+                  handleChartClick(payload, 'especialidad');
+                  handleNavigateToProfessionals(payload, 'especialidad');
+                }
+              }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="especialidad" angle={-45} textAnchor="end" height={80} />
                 <YAxis />
-                <Tooltip />
+                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.1)' }} />
                 <Bar dataKey="publico" stackId="a" fill="#10b981" name="Sector Público" />
                 <Bar dataKey="privado" stackId="a" fill="#f59e0b" name="Sector Privado" />
               </BarChart>
@@ -262,7 +341,7 @@ const AdvancedStats = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <TrendingUp className="w-5 h-5 text-green-600" />
@@ -290,7 +369,7 @@ const AdvancedStats = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Activity className="w-5 h-5 text-orange-600" />
@@ -308,7 +387,7 @@ const AdvancedStats = () => {
         </Card>
       </div>
 
-      {/* Tabla Interactiva */}
+      {/* Tabla Interactiva Mejorada */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -316,9 +395,19 @@ const AdvancedStats = () => {
               <Filter className="w-5 h-5 text-guinea-teal" />
               <span>Datos Detallados - {activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}</span>
             </CardTitle>
-            <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
-              {getTableData().length} registros
-            </Badge>
+            <div className="flex items-center space-x-2">
+              <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
+                {getTableData().length} registros
+              </Badge>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleNavigateToProfessionals({ filter: activeFilter }, activeFilter)}
+              >
+                <ArrowRight className="w-4 h-4 mr-1" />
+                Ver Profesionales
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -333,6 +422,7 @@ const AdvancedStats = () => {
                       <TableHead>Sector Público</TableHead>
                       <TableHead>Sector Privado</TableHead>
                       <TableHead>Distrito Sanitario</TableHead>
+                      <TableHead>Acciones</TableHead>
                     </>
                   )}
                   {activeFilter === 'distrito' && (
@@ -342,6 +432,7 @@ const AdvancedStats = () => {
                       <TableHead>Médicos</TableHead>
                       <TableHead>Enfermería</TableHead>
                       <TableHead>Farmacia</TableHead>
+                      <TableHead>Acciones</TableHead>
                     </>
                   )}
                   {activeFilter === 'edad' && (
@@ -350,6 +441,7 @@ const AdvancedStats = () => {
                       <TableHead>Total</TableHead>
                       <TableHead>Hombres</TableHead>
                       <TableHead>Mujeres</TableHead>
+                      <TableHead>Acciones</TableHead>
                     </>
                   )}
                   {activeFilter === 'especialidad' && (
@@ -358,13 +450,14 @@ const AdvancedStats = () => {
                       <TableHead>Total</TableHead>
                       <TableHead>Sector Público</TableHead>
                       <TableHead>Sector Privado</TableHead>
+                      <TableHead>Acciones</TableHead>
                     </>
                   )}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {getTableData().map((item, index) => (
-                  <TableRow key={index}>
+                  <TableRow key={index} className="hover:bg-gray-50">
                     {activeFilter === 'provincia' && (
                       <>
                         <TableCell className="font-medium">{item.provincia}</TableCell>
@@ -372,6 +465,15 @@ const AdvancedStats = () => {
                         <TableCell>{item.publico}</TableCell>
                         <TableCell>{item.privado}</TableCell>
                         <TableCell>{item.distrito}</TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleNavigateToProfessionals(item, 'provincia')}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
                       </>
                     )}
                     {activeFilter === 'distrito' && (
@@ -381,6 +483,15 @@ const AdvancedStats = () => {
                         <TableCell>{item.medicos}</TableCell>
                         <TableCell>{item.enfermeria}</TableCell>
                         <TableCell>{item.farmacia}</TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleNavigateToProfessionals(item, 'distrito')}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
                       </>
                     )}
                     {activeFilter === 'edad' && (
@@ -389,6 +500,15 @@ const AdvancedStats = () => {
                         <TableCell>{item.cantidad}</TableCell>
                         <TableCell>{item.genero_m}</TableCell>
                         <TableCell>{item.genero_f}</TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleNavigateToProfessionals(item, 'edad')}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
                       </>
                     )}
                     {activeFilter === 'especialidad' && (
@@ -397,6 +517,15 @@ const AdvancedStats = () => {
                         <TableCell>{item.cantidad}</TableCell>
                         <TableCell>{item.publico}</TableCell>
                         <TableCell>{item.privado}</TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleNavigateToProfessionals(item, 'especialidad')}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
                       </>
                     )}
                   </TableRow>
@@ -407,7 +536,7 @@ const AdvancedStats = () => {
         </CardContent>
       </Card>
 
-      {/* Resumen por Distritos Sanitarios */}
+      {/* Resumen por Distritos Sanitarios Mejorado */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -418,9 +547,14 @@ const AdvancedStats = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {districtData.map((distrito) => (
-              <div key={distrito.distrito} className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                   onClick={() => handleChartClick(distrito, 'distrito')}>
-                <h3 className="font-bold text-sm mb-2 text-guinea-dark-teal">{distrito.distrito}</h3>
+              <div key={distrito.distrito} className="border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer group"
+                   onClick={() => handleNavigateToProfessionals(distrito, 'distrito')}>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-bold text-sm text-guinea-dark-teal group-hover:text-guinea-teal transition-colors">
+                    {distrito.distrito}
+                  </h3>
+                  <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-guinea-teal transition-colors" />
+                </div>
                 <p className="text-2xl font-bold text-guinea-teal">{distrito.profesionales}</p>
                 <p className="text-xs text-gray-600 mb-2">profesionales totales</p>
                 <div className="space-y-1 text-xs">

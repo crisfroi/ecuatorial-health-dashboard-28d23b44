@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Users, UserCheck, Clock, FileText, TrendingUp, Activity, MessageCircle, AlertTriangle } from 'lucide-react';
+import { Users, UserCheck, Clock, FileText, TrendingUp, Activity, MessageCircle, AlertTriangle, Settings } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import DashboardFilters from '@/components/dashboard/DashboardFilters';
 import StatsCards from '@/components/dashboard/StatsCards';
@@ -14,11 +14,24 @@ import AdvancedStats from '@/components/dashboard/AdvancedStats';
 import MinisterialPanel from '@/components/dashboard/MinisterialPanel';
 import AIChat from '@/components/dashboard/AIChat';
 import HospitalIncidents from '@/components/dashboard/HospitalIncidents';
+import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 
 const Dashboard = () => {
   const [selectedProfessional, setSelectedProfessional] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [userRole, setUserRole] = useState('administrador'); // administrador, comite, visualizador
+  const [appliedFilters, setAppliedFilters] = useState(null);
+
+  // Función para manejar navegación desde estadísticas a profesionales
+  const handleNavigateToProfessionals = (filters: any) => {
+    setAppliedFilters(filters);
+    setActiveTab('professionals');
+  };
+
+  // Función para limpiar filtros aplicados
+  const handleClearFilters = () => {
+    setAppliedFilters(null);
+  };
 
   // Datos simulados - en producción vendrían de Airtable
   const monthlyData = [
@@ -71,7 +84,7 @@ const Dashboard = () => {
 
       <div className="p-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:grid-cols-8">
+          <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:grid-cols-9">
             <TabsTrigger value="overview" className="flex items-center space-x-2">
               <Activity className="w-4 h-4" />
               <span>Panel Principal</span>
@@ -96,6 +109,12 @@ const Dashboard = () => {
               <AlertTriangle className="w-4 h-4" />
               <span>Incidencias</span>
             </TabsTrigger>
+            {userRole === 'administrador' && (
+              <TabsTrigger value="user-management" className="flex items-center space-x-2">
+                <Settings className="w-4 h-4" />
+                <span>Usuarios</span>
+              </TabsTrigger>
+            )}
             {(userRole === 'administrador' || userRole === 'comite') && (
               <TabsTrigger value="ministerial" className="flex items-center space-x-2">
                 <UserCheck className="w-4 h-4" />
@@ -159,11 +178,13 @@ const Dashboard = () => {
             <ProfessionalsTable 
               onSelectProfessional={setSelectedProfessional}
               userRole={userRole}
+              appliedFilters={appliedFilters}
+              onClearFilters={handleClearFilters}
             />
           </TabsContent>
 
           <TabsContent value="stats">
-            <AdvancedStats />
+            <AdvancedStats onNavigateToProfessionals={handleNavigateToProfessionals} />
           </TabsContent>
 
           <TabsContent value="ai-chat">
@@ -173,6 +194,12 @@ const Dashboard = () => {
           <TabsContent value="incidents">
             <HospitalIncidents />
           </TabsContent>
+
+          {userRole === 'administrador' && (
+            <TabsContent value="user-management">
+              <UserRoleManagement />
+            </TabsContent>
+          )}
 
           {(userRole === 'administrador' || userRole === 'comite') && (
             <TabsContent value="ministerial">

@@ -59,9 +59,20 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
 
   const handleViewAll = () => {
     if (onNavigateToProfessionals) {
+      console.log('Navigating to renewals');
       onNavigateToProfessionals({
-        type: 'renovacion',
+        type: 'renewal',
         value: 'proxima'
+      });
+    }
+  };
+
+  const handleViewProfessional = (professional: any) => {
+    if (onNavigateToProfessionals) {
+      console.log('Navigating to specific professional:', professional.nombre);
+      onNavigateToProfessionals({
+        type: 'search',
+        value: professional.nombre
       });
     }
   };
@@ -87,7 +98,11 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
       <CardContent>
         <div className="space-y-4">
           {renewalAlerts.map((alert) => (
-            <Alert key={alert.id} className={getPriorityColor(alert.prioridad)}>
+            <Alert 
+              key={alert.id} 
+              className={`${getPriorityColor(alert.prioridad)} cursor-pointer hover:shadow-md transition-shadow`}
+              onClick={() => handleViewProfessional(alert)}
+            >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
@@ -122,7 +137,15 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
                   <Button variant="outline" size="sm" className="text-xs">
                     Notificar
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-xs">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewProfessional(alert);
+                    }}
+                  >
                     Ver Detalle
                   </Button>
                 </div>

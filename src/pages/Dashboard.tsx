@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,9 +22,11 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [userRole, setUserRole] = useState('administrador'); // administrador, comite, visualizador
   const [appliedFilters, setAppliedFilters] = useState(null);
+  const [dashboardFilters, setDashboardFilters] = useState({});
 
   // Función para manejar navegación desde estadísticas a profesionales
   const handleNavigateToProfessionals = (filters: any) => {
+    console.log('Dashboard: Navigating with filters:', filters);
     setAppliedFilters(filters);
     setActiveTab('professionals');
   };
@@ -31,6 +34,16 @@ const Dashboard = () => {
   // Función para limpiar filtros aplicados
   const handleClearFilters = () => {
     setAppliedFilters(null);
+    setDashboardFilters({});
+  };
+
+  // Función para manejar filtros del dashboard principal
+  const handleDashboardFiltersChange = (filters: any) => {
+    console.log('Dashboard: Filters changed:', filters);
+    setDashboardFilters(filters);
+    if (activeTab === 'professionals') {
+      // Si estamos en la vista de profesionales, aplicar filtros inmediatamente
+    }
   };
 
   // Datos simulados - en producción vendrían de Airtable
@@ -50,6 +63,22 @@ const Dashboard = () => {
     { profesion: 'Laboratorio', cantidad: 45 },
     { profesion: 'Radiología', cantidad: 32 }
   ];
+
+  // Función para manejar clicks en gráficas
+  const handleChartClick = (data: any, chartType: string) => {
+    console.log('Chart clicked:', chartType, data);
+    if (chartType === 'monthly') {
+      handleNavigateToProfessionals({
+        type: 'month',
+        value: data.mes
+      });
+    } else if (chartType === 'profession') {
+      handleNavigateToProfessionals({
+        type: 'profession',
+        value: data.profesion
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -124,15 +153,17 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <DashboardFilters />
+            <DashboardFilters 
+              onFiltersChange={handleDashboardFiltersChange}
+              activeFilters={dashboardFilters}
+            />
             <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
             
             {/* Alertas de Renovación */}
             <RenewalAlerts onNavigateToProfessionals={handleNavigateToProfessionals} />
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => handleNavigateToProfessionals({ type: 'tendencia', value: 'mensual' })}>
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <TrendingUp className="w-5 h-5 text-guinea-teal" />
@@ -141,7 +172,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={monthlyData}>
+                    <LineChart data={monthlyData} onClick={(data) => handleChartClick(data, 'monthly')}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="mes" />
                       <YAxis />
@@ -152,8 +183,7 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => handleNavigateToProfessionals({ type: 'profesion', value: 'todas' })}>
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Users className="w-5 h-5 text-guinea-teal" />
@@ -162,7 +192,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={professionData}>
+                    <BarChart data={professionData} onClick={(data) => handleChartClick(data, 'profession')}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="profesion" />
                       <YAxis />
@@ -185,6 +215,7 @@ const Dashboard = () => {
               userRole={userRole}
               appliedFilters={appliedFilters}
               onClearFilters={handleClearFilters}
+              dashboardFilters={dashboardFilters}
             />
           </TabsContent>
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,14 +12,22 @@ interface ProfessionalsTableProps {
   userRole: string;
   appliedFilters?: any;
   onClearFilters?: () => void;
+  dashboardFilters?: any;
 }
 
-const ProfessionalsTable = ({ onSelectProfessional, userRole, appliedFilters, onClearFilters }: ProfessionalsTableProps) => {
+const ProfessionalsTable = ({ 
+  onSelectProfessional, 
+  userRole, 
+  appliedFilters, 
+  onClearFilters,
+  dashboardFilters 
+}: ProfessionalsTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('todos');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [provinceFilter, setProvinceFilter] = useState('todos');
   const [districtFilter, setDistrictFilter] = useState('todos');
+  const [genderFilter, setGenderFilter] = useState('todos');
 
   const professionals = [
     {
@@ -36,7 +43,11 @@ const ProfessionalsTable = ({ onSelectProfessional, userRole, appliedFilters, on
       estado: 'Aprobado',
       fechaRevision: '2024-01-20',
       codigoBarras: 'EQG001234567',
-      sector: 'Público'
+      sector: 'Público',
+      telefono: '+240 222 123 456',
+      documentoIdentidad: '12345678A',
+      fechaValidezCarnet: '2024-12-20',
+      cooperacionInternacional: false
     },
     {
       id: 2,
@@ -51,7 +62,11 @@ const ProfessionalsTable = ({ onSelectProfessional, userRole, appliedFilters, on
       estado: 'Pendiente',
       fechaRevision: null,
       codigoBarras: 'EQG001234568',
-      sector: 'Público'
+      sector: 'Público',
+      telefono: '+240 222 234 567',
+      documentoIdentidad: '87654321B',
+      fechaValidezCarnet: '2024-11-15',
+      cooperacionInternacional: false
     },
     {
       id: 3,
@@ -66,7 +81,11 @@ const ProfessionalsTable = ({ onSelectProfessional, userRole, appliedFilters, on
       estado: 'Aprobado',
       fechaRevision: '2024-01-18',
       codigoBarras: 'EQG001234569',
-      sector: 'Privado'
+      sector: 'Privado',
+      telefono: '+240 222 345 678',
+      documentoIdentidad: '13579246C',
+      fechaValidezCarnet: '2024-10-30',
+      cooperacionInternacional: false
     },
     {
       id: 4,
@@ -81,7 +100,11 @@ const ProfessionalsTable = ({ onSelectProfessional, userRole, appliedFilters, on
       estado: 'Aprobado',
       fechaRevision: '2024-02-10',
       codigoBarras: 'EQG001234570',
-      sector: 'Público'
+      sector: 'Público',
+      telefono: '+240 222 456 789',
+      documentoIdentidad: '24681357D',
+      fechaValidezCarnet: '2025-02-10',
+      cooperacionInternacional: false
     },
     {
       id: 5,
@@ -96,33 +119,55 @@ const ProfessionalsTable = ({ onSelectProfessional, userRole, appliedFilters, on
       estado: 'Aprobado',
       fechaRevision: '2024-03-05',
       codigoBarras: 'EQG001234571',
-      sector: 'Público'
+      sector: 'Público',
+      telefono: '+240 222 567 890',
+      documentoIdentidad: '97531864E',
+      fechaValidezCarnet: '2025-03-05',
+      cooperacionInternacional: false
     }
   ];
 
-  // Aplicar filtros desde estadísticas
+  // Aplicar filtros desde estadísticas o dashboard
   useEffect(() => {
     if (appliedFilters) {
-      const { type, data } = appliedFilters;
+      const { type, value } = appliedFilters;
+      
+      console.log('Applying filters:', appliedFilters);
       
       switch (type) {
-        case 'provincia':
-          setProvinceFilter(data.provincia || 'todos');
+        case 'status':
+          setStatusFilter(value || 'todos');
           break;
-        case 'distrito':
-          setDistrictFilter(data.distrito || 'todos');
+        case 'gender':
+          setGenderFilter(value || 'todos');
           break;
-        case 'especialidad':
-          setCategoryFilter(data.especialidad || 'todos');
+        case 'province':
+          setProvinceFilter(value || 'todos');
           break;
-        case 'edad':
-          // Para edad podríamos implementar un filtro específico
+        case 'district':
+          setDistrictFilter(value || 'todos');
+          break;
+        case 'profession':
+          setCategoryFilter(value || 'todos');
+          break;
+        case 'all':
+          // Show all professionals
           break;
         default:
           break;
       }
     }
   }, [appliedFilters]);
+
+  // Aplicar filtros del dashboard
+  useEffect(() => {
+    if (dashboardFilters) {
+      if (dashboardFilters.search) setSearchTerm(dashboardFilters.search);
+      if (dashboardFilters.provincia) setProvinceFilter(dashboardFilters.provincia);
+      if (dashboardFilters.distrito) setDistrictFilter(dashboardFilters.distrito);
+      if (dashboardFilters.genero) setGenderFilter(dashboardFilters.genero);
+    }
+  }, [dashboardFilters]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -144,13 +189,15 @@ const ProfessionalsTable = ({ onSelectProfessional, userRole, appliedFilters, on
   const filteredProfessionals = professionals.filter(professional => {
     const matchesSearch = professional.nombreCompleto.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          professional.profesion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         professional.centroTrabajo.toLowerCase().includes(searchTerm.toLowerCase());
+                         professional.centroTrabajo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         professional.codigoBarras.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'todos' || professional.profesion === categoryFilter;
     const matchesStatus = statusFilter === 'todos' || professional.estado === statusFilter;
     const matchesProvince = provinceFilter === 'todos' || professional.provincia === provinceFilter;
     const matchesDistrict = districtFilter === 'todos' || professional.distrito === districtFilter;
+    const matchesGender = genderFilter === 'todos' || professional.sexo === genderFilter;
     
-    return matchesSearch && matchesCategory && matchesStatus && matchesProvince && matchesDistrict;
+    return matchesSearch && matchesCategory && matchesStatus && matchesProvince && matchesDistrict && matchesGender;
   });
 
   const clearAllFilters = () => {
@@ -159,13 +206,15 @@ const ProfessionalsTable = ({ onSelectProfessional, userRole, appliedFilters, on
     setStatusFilter('todos');
     setProvinceFilter('todos');
     setDistrictFilter('todos');
+    setGenderFilter('todos');
     if (onClearFilters) {
       onClearFilters();
     }
   };
 
   const hasActiveFilters = searchTerm || categoryFilter !== 'todos' || statusFilter !== 'todos' || 
-                          provinceFilter !== 'todos' || districtFilter !== 'todos' || appliedFilters;
+                          provinceFilter !== 'todos' || districtFilter !== 'todos' || 
+                          genderFilter !== 'todos' || appliedFilters;
 
   return (
     <div className="space-y-6">
@@ -178,7 +227,7 @@ const ProfessionalsTable = ({ onSelectProfessional, userRole, appliedFilters, on
             </CardTitle>
             {appliedFilters && (
               <Badge variant="outline" className="bg-guinea-light-teal text-guinea-dark-teal">
-                Filtrado por: {appliedFilters.type}
+                Filtrado por: {appliedFilters.type} - {appliedFilters.value}
               </Badge>
             )}
           </div>
@@ -190,7 +239,7 @@ const ProfessionalsTable = ({ onSelectProfessional, userRole, appliedFilters, on
               <div className="relative flex-1 min-w-64">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input
-                  placeholder="Buscar por nombre, profesión o centro..."
+                  placeholder="Buscar por nombre, profesión, centro o código..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -252,6 +301,17 @@ const ProfessionalsTable = ({ onSelectProfessional, userRole, appliedFilters, on
                   <SelectItem value="Rechazado">Rechazado</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Select value={genderFilter} onValueChange={setGenderFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Género" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="M">Masculino</SelectItem>
+                  <SelectItem value="F">Femenino</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Botones de acción */}
@@ -297,7 +357,7 @@ const ProfessionalsTable = ({ onSelectProfessional, userRole, appliedFilters, on
                       <div>
                         <div>{professional.nombreCompleto}</div>
                         <div className="text-sm text-gray-500">
-                          {professional.sexo} • {professional.edad} años
+                          {professional.sexo} • {professional.edad} años • {professional.telefono}
                         </div>
                       </div>
                     </TableCell>

@@ -24,7 +24,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
       icon: UserCheck,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
-      filter: { type: 'estado', value: 'Aprobado' }
+      filter: { type: 'status', value: 'Aprobado' }
     },
     {
       title: 'Pendientes',
@@ -33,7 +33,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
       icon: Clock,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
-      filter: { type: 'estado', value: 'Pendiente' }
+      filter: { type: 'status', value: 'Pendiente' }
     },
     {
       title: 'Mujeres',
@@ -42,12 +42,13 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
       icon: TrendingUp,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
-      filter: { type: 'sexo', value: 'F' }
+      filter: { type: 'gender', value: 'F' }
     }
   ];
 
   const handleCardClick = (filter: any) => {
     if (onNavigateToProfessionals) {
+      console.log('Navigating with filter:', filter);
       onNavigateToProfessionals(filter);
     }
   };

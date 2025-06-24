@@ -13,19 +13,21 @@ interface DashboardFiltersProps {
 
 const DashboardFilters = ({ onFiltersChange, activeFilters }: DashboardFiltersProps) => {
   const [searchTerm, setSearchTerm] = useState(activeFilters?.search || '');
-  const [provincia, setProvincia] = useState(activeFilters?.provincia || '');
-  const [distrito, setDistrito] = useState(activeFilters?.distrito || '');
-  const [genero, setGenero] = useState(activeFilters?.genero || '');
-  const [anoGraduacion, setAnoGraduacion] = useState(activeFilters?.anoGraduacion || '');
+  const [provincia, setProvincia] = useState(activeFilters?.provincia || 'todos');
+  const [distrito, setDistrito] = useState(activeFilters?.distrito || 'todos');
+  const [genero, setGenero] = useState(activeFilters?.genero || 'todos');
+  const [anoGraduacion, setAnoGraduacion] = useState(activeFilters?.anoGraduacion || 'todos');
 
   const handleFilterChange = () => {
     const filters = {
       search: searchTerm,
-      provincia,
-      distrito,
-      genero,
-      anoGraduacion
+      provincia: provincia === 'todos' ? '' : provincia,
+      distrito: distrito === 'todos' ? '' : distrito,
+      genero: genero === 'todos' ? '' : genero,
+      anoGraduacion: anoGraduacion === 'todos' ? '' : anoGraduacion
     };
+    
+    console.log('Dashboard filters changing:', filters);
     
     if (onFiltersChange) {
       onFiltersChange(filters);
@@ -34,17 +36,19 @@ const DashboardFilters = ({ onFiltersChange, activeFilters }: DashboardFiltersPr
 
   const clearFilters = () => {
     setSearchTerm('');
-    setProvincia('');
-    setDistrito('');
-    setGenero('');
-    setAnoGraduacion('');
+    setProvincia('todos');
+    setDistrito('todos');
+    setGenero('todos');
+    setAnoGraduacion('todos');
+    
+    console.log('Clearing all filters');
     
     if (onFiltersChange) {
       onFiltersChange({});
     }
   };
 
-  const hasActiveFilters = searchTerm || provincia || distrito || genero || anoGraduacion;
+  const hasActiveFilters = searchTerm || provincia !== 'todos' || distrito !== 'todos' || genero !== 'todos' || anoGraduacion !== 'todos';
 
   return (
     <Card>
@@ -63,7 +67,7 @@ const DashboardFilters = ({ onFiltersChange, activeFilters }: DashboardFiltersPr
               <SelectValue placeholder="Provincia" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas las provincias</SelectItem>
+              <SelectItem value="todos">Todas las provincias</SelectItem>
               <SelectItem value="Malabo">Malabo</SelectItem>
               <SelectItem value="Bata">Bata</SelectItem>
               <SelectItem value="Ebebiyín">Ebebiyín</SelectItem>
@@ -80,7 +84,7 @@ const DashboardFilters = ({ onFiltersChange, activeFilters }: DashboardFiltersPr
               <SelectValue placeholder="Distrito Sanitario" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos los distritos</SelectItem>
+              <SelectItem value="todos">Todos los distritos</SelectItem>
               <SelectItem value="Distrito Malabo Norte">Distrito Malabo Norte</SelectItem>
               <SelectItem value="Distrito Malabo Sur">Distrito Malabo Sur</SelectItem>
               <SelectItem value="Distrito Bata Centro">Distrito Bata Centro</SelectItem>
@@ -99,7 +103,7 @@ const DashboardFilters = ({ onFiltersChange, activeFilters }: DashboardFiltersPr
               <SelectValue placeholder="Género" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="todos">Todos</SelectItem>
               <SelectItem value="M">Masculino</SelectItem>
               <SelectItem value="F">Femenino</SelectItem>
             </SelectContent>
@@ -113,7 +117,7 @@ const DashboardFilters = ({ onFiltersChange, activeFilters }: DashboardFiltersPr
               <SelectValue placeholder="Año Graduación" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos los años</SelectItem>
+              <SelectItem value="todos">Todos los años</SelectItem>
               <SelectItem value="2024">2024</SelectItem>
               <SelectItem value="2023">2023</SelectItem>
               <SelectItem value="2022">2022</SelectItem>

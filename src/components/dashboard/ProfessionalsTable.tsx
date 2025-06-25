@@ -26,11 +26,11 @@ const ProfessionalsTable = ({
 }: ProfessionalsTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
-    area_profesional: '',
-    estado_solicitud: '',
-    provincia: '',
-    genero: '',
-    tipo_sector: ''
+    area_profesional: 'todos',
+    estado_solicitud: 'todos',
+    provincia: 'todos',
+    genero: 'todos',
+    tipo_sector: 'todos'
   });
 
   // Combinar filtros aplicados desde el dashboard con filtros locales
@@ -40,7 +40,15 @@ const ProfessionalsTable = ({
     ...appliedFilters
   };
 
-  const { data: profesionales = [], isLoading, error } = useProfesionales(combinedFilters);
+  // Convertir "todos" a empty string para la query
+  const queryFilters = Object.fromEntries(
+    Object.entries(combinedFilters).map(([key, value]) => [
+      key, 
+      value === 'todos' ? '' : value
+    ])
+  );
+
+  const { data: profesionales = [], isLoading, error } = useProfesionales(queryFilters);
 
   // Aplicar filtro de búsqueda local
   const filteredProfesionales = profesionales.filter(prof =>
@@ -58,11 +66,11 @@ const ProfessionalsTable = ({
   const handleClearAllFilters = () => {
     setSearchTerm('');
     setFilters({
-      area_profesional: '',
-      estado_solicitud: '',
-      provincia: '',
-      genero: '',
-      tipo_sector: ''
+      area_profesional: 'todos',
+      estado_solicitud: 'todos',
+      provincia: 'todos',
+      genero: 'todos',
+      tipo_sector: 'todos'
     });
     if (onClearFilters) {
       onClearFilters();
@@ -120,7 +128,7 @@ const ProfessionalsTable = ({
   return (
     <div className="space-y-6">
       {/* Filtros aplicados */}
-      {(appliedFilters || Object.values(combinedFilters).some(v => v)) && (
+      {(appliedFilters || Object.values(combinedFilters).some(v => v && v !== 'todos')) && (
         <Card className="border-guinea-teal">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -141,10 +149,10 @@ const ProfessionalsTable = ({
           <CardContent className="pt-0">
             <div className="flex flex-wrap gap-2">
               {Object.entries(combinedFilters).map(([key, value]) => {
-                if (!value) return null;
+                if (!value || value === 'todos') return null;
                 return (
                   <Badge key={key} variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
-                    {key.replace('_', ' ')}: {value}
+                    {key.replace('_', ' ')}: {String(value)}
                   </Badge>
                 );
               })}
@@ -178,7 +186,7 @@ const ProfessionalsTable = ({
                     <SelectValue placeholder="Área" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas las áreas</SelectItem>
+                    <SelectItem value="todos">Todas las áreas</SelectItem>
                     <SelectItem value="MEDICINA GENERAL">Medicina General</SelectItem>
                     <SelectItem value="ENFERMERÍA">Enfermería</SelectItem>
                     <SelectItem value="FARMACIA">Farmacia</SelectItem>
@@ -195,7 +203,7 @@ const ProfessionalsTable = ({
                     <SelectValue placeholder="Estado" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="Aprobado">Aprobado</SelectItem>
                     <SelectItem value="Pendiente">Pendiente</SelectItem>
                     <SelectItem value="Rechazado">Rechazado</SelectItem>

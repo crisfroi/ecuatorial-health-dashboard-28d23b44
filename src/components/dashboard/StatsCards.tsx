@@ -101,7 +101,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           <FileText className="h-4 w-4 text-red-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-600">{stats?.rechazadas || 0}</div>
+          <div className="text-2xl font-bold text-red-600">{stats?.rechazados || 0}</div>
           <p className="text-xs text-muted-foreground">
             Solicitudes rechazadas
           </p>
@@ -115,7 +115,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           <AlertTriangle className="h-4 w-4 text-yellow-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-yellow-600">{stats?.proximosVencer || 0}</div>
+          <div className="text-2xl font-bold text-yellow-600">{stats?.vencimientosProximos || 0}</div>
           <p className="text-xs text-muted-foreground">
             Carnets vencen en 30 días
           </p>
@@ -128,7 +128,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           <AlertTriangle className="h-4 w-4 text-red-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-600">{stats?.vencidos || 0}</div>
+          <div className="text-2xl font-bold text-red-600">0</div>
           <p className="text-xs text-muted-foreground">
             Requieren renovación
           </p>

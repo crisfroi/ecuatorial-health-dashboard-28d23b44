@@ -1,8 +1,7 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Users, UserCheck, Clock, FileText, AlertTriangle, TrendingUp } from 'lucide-react';
-import { useEstadisticasProfesionales } from '@/hooks/useProfesionales';
+import { useEstadisticasProfesionales } from '@/hooks/useEstadisticas';
 
 interface StatsCardsProps {
   onNavigateToProfessionals: (filters: any) => void;
@@ -108,7 +107,6 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
         </CardContent>
       </Card>
 
-      {/* Tarjetas adicionales para alertas */}
       <Card className="cursor-pointer hover:shadow-lg transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Próximos a Vencer</CardTitle>
@@ -135,7 +133,6 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
         </CardContent>
       </Card>
 
-      {/* Mostrar distribución por área más grande */}
       <Card className="md:col-span-2 cursor-pointer hover:shadow-lg transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Distribución por Área</CardTitle>

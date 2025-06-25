@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, X, Eye, Edit, Download } from 'lucide-react';
+import { Search, Filter, X, Eye, Edit, Download, Save, Cancel } from 'lucide-react';
 import { useProfesionales, type Profesional } from '@/hooks/useProfesionales';
+import { useActualizarProfesional } from '@/hooks/useProfesionalesMutations';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProfessionalsTableProps {
   onSelectProfessional: (professional: any) => void;
@@ -25,6 +27,7 @@ const ProfessionalsTable = ({
   dashboardFilters 
 }: ProfessionalsTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingStates, setEditingStates] = useState<Record<string, string>>({});
   const [filters, setFilters] = useState({
     area_profesional: 'todos',
     estado_solicitud: 'todos',
@@ -32,6 +35,9 @@ const ProfessionalsTable = ({
     genero: 'todos',
     tipo_sector: 'todos'
   });
+
+  const { toast } = useToast();
+  const updateProfessional = useActualizarProfesional();
 
   // Combinar filtros aplicados desde el dashboard con filtros locales
   const combinedFilters = {
@@ -75,6 +81,56 @@ const ProfessionalsTable = ({
     if (onClearFilters) {
       onClearFilters();
     }
+  };
+
+  const handleEditState = (professionalId: string, currentState: string) => {
+    setEditingStates(prev => ({
+      ...prev,
+      [professionalId]: currentState
+    }));
+  };
+
+  const handleSaveState = async (professionalId: string) => {
+    const newState = editingStates[professionalId];
+    if (!newState) return;
+
+    try {
+      await updateProfessional.mutateAsync({
+        id: professionalId,
+        updates: {
+          estado_solicitud: newState,
+          fecha_revision: newState !== 'Pendiente' ? new Date().toISOString().split('T')[0] : null,
+          fecha_aprobacion: newState === 'Aprobado' ? new Date().toISOString().split('T')[0] : null
+        }
+      });
+
+      toast({
+        title: "Estado actualizado",
+        description: `El estado del profesional ha sido actualizado a ${newState}`,
+        variant: "default",
+      });
+
+      setEditingStates(prev => {
+        const newStates = { ...prev };
+        delete newStates[professionalId];
+        return newStates;
+      });
+    } catch (error) {
+      console.error('Error updating professional state:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado del profesional",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelEdit = (professionalId: string) => {
+    setEditingStates(prev => {
+      const newStates = { ...prev };
+      delete newStates[professionalId];
+      return newStates;
+    });
   };
 
   const getEstadoBadge = (estado: string) => {
@@ -254,9 +310,59 @@ const ProfessionalsTable = ({
                         {profesional.numero_carnet_profesional || 'Pendiente'}
                       </TableCell>
                       <TableCell>
-                        <Badge className={getEstadoBadge(profesional.estado_solicitud || 'Pendiente')}>
-                          {profesional.estado_solicitud || 'Pendiente'}
-                        </Badge>
+                        {editingStates[profesional.id] !== undefined ? (
+                          <div className="flex items-center space-x-2">
+                            <Select
+                              value={editingStates[profesional.id]}
+                              onValueChange={(value) => setEditingStates(prev => ({
+                                ...prev,
+                                [profesional.id]: value
+                              }))}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Pendiente">Pendiente</SelectItem>
+                                <SelectItem value="Revisando">Revisando</SelectItem>
+                                <SelectItem value="Aprobado">Aprobado</SelectItem>
+                                <SelectItem value="Rechazado">Rechazado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleSaveState(profesional.id)}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <Save className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleCancelEdit(profesional.id)}
+                              className="text-gray-600 hover:text-gray-700"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <Badge className={getEstadoBadge(profesional.estado_solicitud || 'Pendiente')}>
+                              {profesional.estado_solicitud || 'Pendiente'}
+                            </Badge>
+                            {(userRole === 'administrador' || userRole === 'comite') && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditState(profesional.id, profesional.estado_solicitud || 'Pendiente')}
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>{profesional.provincia || 'N/A'}</TableCell>
                       <TableCell>{formatDate(profesional.created_at)}</TableCell>
@@ -269,15 +375,6 @@ const ProfessionalsTable = ({
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
-                          {(userRole === 'administrador' || userRole === 'comite') && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => console.log('Editar:', profesional.id)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          )}
                         </div>
                       </TableCell>
                     </TableRow>

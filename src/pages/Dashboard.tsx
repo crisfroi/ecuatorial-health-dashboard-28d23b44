@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
@@ -14,7 +13,7 @@ import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 import MinisterialPanel from '@/components/dashboard/MinisterialPanel';
 import ProfessionalDetail from '@/components/dashboard/ProfessionalDetail';
 import TestDataButton from '@/components/TestDataButton';
-import { useEstadisticasProfesionales } from '@/hooks/useEstadisticas';
+import { useEstadisticasAvanzadas } from '@/hooks/useEstadisticas';
 
 const Dashboard = () => {
   const [userRole, setUserRole] = useState('administrador');
@@ -22,7 +21,7 @@ const Dashboard = () => {
   const [dashboardFilters, setDashboardFilters] = useState({});
   const [activeTab, setActiveTab] = useState('overview');
 
-  const { data: stats } = useEstadisticasProfesionales();
+  const { data: stats } = useEstadisticasAvanzadas();
 
   const handleSelectProfessional = (professional: any) => {
     setSelectedProfessional(professional);
@@ -38,10 +37,12 @@ const Dashboard = () => {
     console.log('Dashboard: Chart clicked:', data, chartType);
     let filters = {};
     
-    if (chartType === 'profession') {
-      filters = { area_profesional: data.profesion };
+    if (chartType === 'area_profesional') {
+      filters = { area_profesional: data.area };
     } else if (chartType === 'provincia') {
       filters = { provincia: data.provincia };
+    } else if (chartType === 'estado_solicitud') {
+      filters = { estado_solicitud: data.estado };
     }
     
     handleNavigateToProfessionals(filters);
@@ -84,11 +85,7 @@ const Dashboard = () => {
           
           <TabsContent value="overview" className="space-y-6">
             <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
-            <DashboardCharts 
-              professionData={professionData}
-              provinciaData={provinciaData}
-              onChartClick={handleChartClick}
-            />
+            <DashboardCharts onChartClick={handleChartClick} />
           </TabsContent>
 
           <TabsContent value="requests">

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
@@ -63,8 +64,7 @@ const Dashboard = () => {
     return (
       <ProfessionalDetail 
         professional={selectedProfessional}
-        onBack={() => setSelectedProfessional(null)}
-        userRole={userRole}
+        onClose={() => setSelectedProfessional(null)}
       />
     );
   }

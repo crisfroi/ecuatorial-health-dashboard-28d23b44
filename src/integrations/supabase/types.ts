@@ -14,7 +14,7 @@ export type Database = {
           año_graduacion: number | null
           año_inicio_paro: number | null
           apellidos: string | null
-          area_profesional: string
+          area_profesional: string | null
           autonumerico_interno: number | null
           brigada_cooperacion: string | null
           categoria_centro: string | null
@@ -84,7 +84,7 @@ export type Database = {
           año_graduacion?: number | null
           año_inicio_paro?: number | null
           apellidos?: string | null
-          area_profesional: string
+          area_profesional?: string | null
           autonumerico_interno?: number | null
           brigada_cooperacion?: string | null
           categoria_centro?: string | null
@@ -154,7 +154,7 @@ export type Database = {
           año_graduacion?: number | null
           año_inicio_paro?: number | null
           apellidos?: string | null
-          area_profesional?: string
+          area_profesional?: string | null
           autonumerico_interno?: number | null
           brigada_cooperacion?: string | null
           categoria_centro?: string | null

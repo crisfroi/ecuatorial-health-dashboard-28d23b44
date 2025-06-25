@@ -1,11 +1,13 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Search, Download, Eye, Filter, X } from 'lucide-react';
+import { Search, Filter, X, Eye, Edit, Download } from 'lucide-react';
+import { useProfesionales, type Profesional } from '@/hooks/useProfesionales';
 
 interface ProfessionalsTableProps {
   onSelectProfessional: (professional: any) => void;
@@ -23,389 +25,258 @@ const ProfessionalsTable = ({
   dashboardFilters 
 }: ProfessionalsTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('todos');
-  const [statusFilter, setStatusFilter] = useState('todos');
-  const [provinceFilter, setProvinceFilter] = useState('todos');
-  const [districtFilter, setDistrictFilter] = useState('todos');
-  const [genderFilter, setGenderFilter] = useState('todos');
+  const [filters, setFilters] = useState({
+    area_profesional: '',
+    estado_solicitud: '',
+    provincia: '',
+    genero: '',
+    tipo_sector: ''
+  });
 
-  const professionals = [
-    {
-      id: 1,
-      nombreCompleto: 'Dr. María José Nsue Ela',
-      nacionalidad: 'Ecuatoguineana',
-      edad: 34,
-      sexo: 'F',
-      profesion: 'Médico General',
-      centroTrabajo: 'Hospital Regional de Malabo',
-      distrito: 'Distrito Malabo Norte',
-      provincia: 'Malabo',
-      estado: 'Aprobado',
-      fechaRevision: '2024-01-20',
-      codigoBarras: 'EQG001234567',
-      sector: 'Público',
-      telefono: '+240 222 123 456',
-      documentoIdentidad: '12345678A',
-      fechaValidezCarnet: '2024-12-20',
-      cooperacionInternacional: false
-    },
-    {
-      id: 2,
-      nombreCompleto: 'Enfermera Carmen Obiang Nguema',
-      nacionalidad: 'Ecuatoguineana',
-      edad: 28,
-      sexo: 'F',
-      profesion: 'Enfermería',
-      centroTrabajo: 'Centro de Salud de Bata',
-      distrito: 'Distrito Bata Centro',
-      provincia: 'Bata',
-      estado: 'Pendiente',
-      fechaRevision: null,
-      codigoBarras: 'EQG001234568',
-      sector: 'Público',
-      telefono: '+240 222 234 567',
-      documentoIdentidad: '87654321B',
-      fechaValidezCarnet: '2024-11-15',
-      cooperacionInternacional: false
-    },
-    {
-      id: 3,
-      nombreCompleto: 'Farm. José Antonio Mba',
-      nacionalidad: 'Ecuatoguineana',
-      edad: 42,
-      sexo: 'M',
-      profesion: 'Farmacia',
-      centroTrabajo: 'Farmacia Central',
-      distrito: 'Distrito Malabo Norte',
-      provincia: 'Malabo',
-      estado: 'Aprobado',
-      fechaRevision: '2024-01-18',
-      codigoBarras: 'EQG001234569',
-      sector: 'Privado',
-      telefono: '+240 222 345 678',
-      documentoIdentidad: '13579246C',
-      fechaValidezCarnet: '2024-10-30',
-      cooperacionInternacional: false
-    },
-    {
-      id: 4,
-      nombreCompleto: 'Dr. Pedro Ondo Bile',
-      nacionalidad: 'Ecuatoguineana',
-      edad: 38,
-      sexo: 'M',
-      profesion: 'Médico General',
-      centroTrabajo: 'Hospital de Ebebiyín',
-      distrito: 'Distrito Ebebiyín',
-      provincia: 'Ebebiyín',
-      estado: 'Aprobado',
-      fechaRevision: '2024-02-10',
-      codigoBarras: 'EQG001234570',
-      sector: 'Público',
-      telefono: '+240 222 456 789',
-      documentoIdentidad: '24681357D',
-      fechaValidezCarnet: '2025-02-10',
-      cooperacionInternacional: false
-    },
-    {
-      id: 5,
-      nombreCompleto: 'Enfermera Ana Nguema Esono',
-      nacionalidad: 'Ecuatoguineana',
-      edad: 31,
-      sexo: 'F',
-      profesion: 'Enfermería',
-      centroTrabajo: 'Centro de Salud Mongomo',
-      distrito: 'Distrito Mongomo',
-      provincia: 'Mongomo',
-      estado: 'Aprobado',
-      fechaRevision: '2024-03-05',
-      codigoBarras: 'EQG001234571',
-      sector: 'Público',
-      telefono: '+240 222 567 890',
-      documentoIdentidad: '97531864E',
-      fechaValidezCarnet: '2025-03-05',
-      cooperacionInternacional: false
-    }
-  ];
+  // Combinar filtros aplicados desde el dashboard con filtros locales
+  const combinedFilters = {
+    ...filters,
+    ...dashboardFilters,
+    ...appliedFilters
+  };
 
-  // Aplicar filtros desde estadísticas o dashboard
+  const { data: profesionales = [], isLoading, error } = useProfesionales(combinedFilters);
+
+  // Aplicar filtro de búsqueda local
+  const filteredProfesionales = profesionales.filter(prof =>
+    prof.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    prof.area_profesional?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    prof.numero_carnet_profesional?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   useEffect(() => {
     if (appliedFilters) {
-      const { type, value } = appliedFilters;
-      
-      console.log('Applying filters:', appliedFilters);
-      
-      switch (type) {
-        case 'status':
-          setStatusFilter(value || 'todos');
-          break;
-        case 'gender':
-          setGenderFilter(value || 'todos');
-          break;
-        case 'province':
-          setProvinceFilter(value || 'todos');
-          break;
-        case 'district':
-          setDistrictFilter(value || 'todos');
-          break;
-        case 'profession':
-          setCategoryFilter(value || 'todos');
-          break;
-        case 'all':
-          // Show all professionals
-          break;
-        default:
-          break;
-      }
+      console.log('ProfessionalsTable: Applied filters received:', appliedFilters);
     }
   }, [appliedFilters]);
 
-  // Aplicar filtros del dashboard
-  useEffect(() => {
-    if (dashboardFilters) {
-      if (dashboardFilters.search) setSearchTerm(dashboardFilters.search);
-      if (dashboardFilters.provincia) setProvinceFilter(dashboardFilters.provincia);
-      if (dashboardFilters.distrito) setDistrictFilter(dashboardFilters.distrito);
-      if (dashboardFilters.genero) setGenderFilter(dashboardFilters.genero);
-    }
-  }, [dashboardFilters]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Aprobado':
-        return 'bg-green-100 text-green-800';
-      case 'Pendiente':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Rechazado':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getSectorColor = (sector: string) => {
-    return sector === 'Público' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800';
-  };
-
-  const filteredProfessionals = professionals.filter(professional => {
-    const matchesSearch = professional.nombreCompleto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         professional.profesion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         professional.centroTrabajo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         professional.codigoBarras.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'todos' || professional.profesion === categoryFilter;
-    const matchesStatus = statusFilter === 'todos' || professional.estado === statusFilter;
-    const matchesProvince = provinceFilter === 'todos' || professional.provincia === provinceFilter;
-    const matchesDistrict = districtFilter === 'todos' || professional.distrito === districtFilter;
-    const matchesGender = genderFilter === 'todos' || professional.sexo === genderFilter;
-    
-    return matchesSearch && matchesCategory && matchesStatus && matchesProvince && matchesDistrict && matchesGender;
-  });
-
-  const clearAllFilters = () => {
+  const handleClearAllFilters = () => {
     setSearchTerm('');
-    setCategoryFilter('todos');
-    setStatusFilter('todos');
-    setProvinceFilter('todos');
-    setDistrictFilter('todos');
-    setGenderFilter('todos');
+    setFilters({
+      area_profesional: '',
+      estado_solicitud: '',
+      provincia: '',
+      genero: '',
+      tipo_sector: ''
+    });
     if (onClearFilters) {
       onClearFilters();
     }
   };
 
-  const hasActiveFilters = searchTerm || categoryFilter !== 'todos' || statusFilter !== 'todos' || 
-                          provinceFilter !== 'todos' || districtFilter !== 'todos' || 
-                          genderFilter !== 'todos' || appliedFilters;
+  const getEstadoBadge = (estado: string) => {
+    const variants: Record<string, string> = {
+      'Aprobado': 'bg-green-100 text-green-800',
+      'Pendiente': 'bg-yellow-100 text-yellow-800',
+      'Rechazado': 'bg-red-100 text-red-800',
+      'Revisando': 'bg-blue-100 text-blue-800'
+    };
+    return variants[estado] || 'bg-gray-100 text-gray-800';
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('es-ES');
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Cargando profesionales...</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-12 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-red-600">Error al cargar los datos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-500">Error: {error.message}</p>
+          <p className="text-sm text-gray-600 mt-2">
+            Verifica que la tabla esté creada correctamente en Supabase.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {/* Filtros aplicados */}
+      {(appliedFilters || Object.values(combinedFilters).some(v => v)) && (
+        <Card className="border-guinea-teal">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-guinea-teal">
+                Filtros Aplicados
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearAllFilters}
+                className="text-guinea-teal hover:text-guinea-dark-teal"
+              >
+                <X className="w-4 h-4 mr-1" />
+                Limpiar Filtros
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(combinedFilters).map(([key, value]) => {
+                if (!value) return null;
+                return (
+                  <Badge key={key} variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
+                    {key.replace('_', ' ')}: {value}
+                  </Badge>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <CardTitle className="flex items-center space-x-2">
-              <Users className="w-5 h-5 text-blue-600" />
-              <span>Registro de Profesionales Sanitarios</span>
+              <span>Profesionales Sanitarios</span>
+              <Badge variant="outline">{filteredProfesionales.length}</Badge>
             </CardTitle>
-            {appliedFilters && (
-              <Badge variant="outline" className="bg-guinea-light-teal text-guinea-dark-teal">
-                Filtrado por: {appliedFilters.type} - {appliedFilters.value}
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Filtros superiores */}
-            <div className="flex flex-wrap gap-4">
-              <div className="relative flex-1 min-w-64">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Buscar por nombre, profesión, centro o código..."
+                  placeholder="Buscar profesional..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 w-full sm:w-64"
                 />
               </div>
               
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Categoría profesional" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todas las categorías</SelectItem>
-                  <SelectItem value="Médico General">Médico General</SelectItem>
-                  <SelectItem value="Enfermería">Enfermería</SelectItem>
-                  <SelectItem value="Farmacia">Farmacia</SelectItem>
-                  <SelectItem value="Laboratorio">Laboratorio</SelectItem>
-                  <SelectItem value="Radiología">Radiología</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={filters.area_profesional} onValueChange={(value) => setFilters({...filters, area_profesional: value})}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Área" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todas las áreas</SelectItem>
+                    <SelectItem value="MEDICINA GENERAL">Medicina General</SelectItem>
+                    <SelectItem value="ENFERMERÍA">Enfermería</SelectItem>
+                    <SelectItem value="FARMACIA">Farmacia</SelectItem>
+                    <SelectItem value="LABORATORIO">Laboratorio</SelectItem>
+                    <SelectItem value="RADIOLOGÍA">Radiología</SelectItem>
+                    <SelectItem value="ODONTOLOGÍA">Odontología</SelectItem>
+                    <SelectItem value="NUTRICIÓN">Nutrición</SelectItem>
+                    <SelectItem value="ESPECIALIDAD">Especialidad</SelectItem>
+                  </SelectContent>
+                </Select>
 
-              <Select value={provinceFilter} onValueChange={setProvinceFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Provincia" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todas</SelectItem>
-                  <SelectItem value="Malabo">Malabo</SelectItem>
-                  <SelectItem value="Bata">Bata</SelectItem>
-                  <SelectItem value="Ebebiyín">Ebebiyín</SelectItem>
-                  <SelectItem value="Mongomo">Mongomo</SelectItem>
-                  <SelectItem value="Evinayong">Evinayong</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={districtFilter} onValueChange={setDistrictFilter}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Distrito" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos los distritos</SelectItem>
-                  <SelectItem value="Distrito Malabo Norte">Distrito Malabo Norte</SelectItem>
-                  <SelectItem value="Distrito Malabo Sur">Distrito Malabo Sur</SelectItem>
-                  <SelectItem value="Distrito Bata Centro">Distrito Bata Centro</SelectItem>
-                  <SelectItem value="Distrito Bata Este">Distrito Bata Este</SelectItem>
-                  <SelectItem value="Distrito Ebebiyín">Distrito Ebebiyín</SelectItem>
-                  <SelectItem value="Distrito Mongomo">Distrito Mongomo</SelectItem>
-                  <SelectItem value="Distrito Evinayong">Distrito Evinayong</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="Aprobado">Aprobado</SelectItem>
-                  <SelectItem value="Pendiente">Pendiente</SelectItem>
-                  <SelectItem value="Rechazado">Rechazado</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={genderFilter} onValueChange={setGenderFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Género" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="M">Masculino</SelectItem>
-                  <SelectItem value="F">Femenino</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Botones de acción */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                {hasActiveFilters && (
-                  <Button variant="outline" size="sm" onClick={clearAllFilters}>
-                    <X className="w-4 h-4 mr-1" />
-                    Limpiar Filtros
-                  </Button>
-                )}
-                <Badge variant="secondary">
-                  {filteredProfessionals.length} de {professionals.length} profesionales
-                </Badge>
+                <Select value={filters.estado_solicitud} onValueChange={(value) => setFilters({...filters, estado_solicitud: value})}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="Aprobado">Aprobado</SelectItem>
+                    <SelectItem value="Pendiente">Pendiente</SelectItem>
+                    <SelectItem value="Rechazado">Rechazado</SelectItem>
+                    <SelectItem value="Revisando">Revisando</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              
-              <Button variant="outline">
-                <Download className="w-4 h-4 mr-2" />
-                Exportar Excel
-              </Button>
             </div>
           </div>
-
-          {/* Tabla */}
-          <div className="mt-6">
+        </CardHeader>
+        
+        <CardContent>
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre Completo</TableHead>
-                  <TableHead>Profesión</TableHead>
-                  <TableHead>Centro de Trabajo</TableHead>
-                  <TableHead>Distrito</TableHead>
-                  <TableHead>Provincia</TableHead>
-                  <TableHead>Sector</TableHead>
+                  <TableHead>Área Profesional</TableHead>
+                  <TableHead>Carnet</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead>Provincia</TableHead>
+                  <TableHead>Fecha Registro</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProfessionals.map((professional) => (
-                  <TableRow key={professional.id} className="hover:bg-gray-50">
-                    <TableCell className="font-medium">
-                      <div>
-                        <div>{professional.nombreCompleto}</div>
-                        <div className="text-sm text-gray-500">
-                          {professional.sexo} • {professional.edad} años • {professional.telefono}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{professional.profesion}</TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div>{professional.centroTrabajo}</div>
-                        <div className="text-gray-500">{professional.codigoBarras}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{professional.distrito}</TableCell>
-                    <TableCell>{professional.provincia}</TableCell>
-                    <TableCell>
-                      <Badge className={getSectorColor(professional.sector)}>
-                        {professional.sector}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(professional.estado)}>
-                        {professional.estado}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => onSelectProfessional(professional)}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Ver Detalle
-                      </Button>
+                {filteredProfesionales.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                      {profesionales.length === 0 
+                        ? "No hay profesionales registrados aún"
+                        : "No se encontraron profesionales con los filtros aplicados"
+                      }
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredProfesionales.map((profesional) => (
+                    <TableRow key={profesional.id}>
+                      <TableCell className="font-medium">
+                        {profesional.nombre_completo}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {profesional.area_profesional}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {profesional.numero_carnet_profesional || 'Pendiente'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getEstadoBadge(profesional.estado_solicitud || 'Pendiente')}>
+                          {profesional.estado_solicitud || 'Pendiente'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{profesional.provincia || 'N/A'}</TableCell>
+                      <TableCell>{formatDate(profesional.created_at)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onSelectProfessional(profesional)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          {(userRole === 'administrador' || userRole === 'comite') && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => console.log('Editar:', profesional.id)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
-
-            {filteredProfessionals.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No se encontraron profesionales con los criterios seleccionados</p>
-                {hasActiveFilters && (
-                  <Button variant="outline" className="mt-2" onClick={clearAllFilters}>
-                    Limpiar filtros
-                  </Button>
-                )}
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

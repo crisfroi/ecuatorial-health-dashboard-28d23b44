@@ -1,82 +1,164 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, UserCheck, Clock, TrendingUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Users, UserCheck, Clock, FileText, AlertTriangle, TrendingUp } from 'lucide-react';
+import { useEstadisticasProfesionales } from '@/hooks/useProfesionales';
 
 interface StatsCardsProps {
-  onNavigateToProfessionals?: (filters: any) => void;
+  onNavigateToProfessionals: (filters: any) => void;
 }
 
 const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
-  const stats = [
-    {
-      title: 'Total Registros',
-      value: '1,247',
-      change: '+12%',
-      icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
-      filter: { type: 'all' }
-    },
-    {
-      title: 'Aprobados',
-      value: '89.2%',
-      change: '+5.2%',
-      icon: UserCheck,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-      filter: { type: 'status', value: 'Aprobado' }
-    },
-    {
-      title: 'Pendientes',
-      value: '127',
-      change: '-8%',
-      icon: Clock,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
-      filter: { type: 'status', value: 'Pendiente' }
-    },
-    {
-      title: 'Mujeres',
-      value: '58.3%',
-      change: '+2.1%',
-      icon: TrendingUp,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
-      filter: { type: 'gender', value: 'F' }
-    }
-  ];
+  const { data: stats, isLoading, error } = useEstadisticasProfesionales();
 
-  const handleCardClick = (filter: any) => {
-    if (onNavigateToProfessionals) {
-      console.log('Navigating with filter:', filter);
-      onNavigateToProfessionals(filter);
-    }
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader className="pb-2">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-full"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-red-500 p-4">
+        Error al cargar las estadísticas: {error.message}
+      </div>
+    );
+  }
+
+  const handleCardClick = (filters: any) => {
+    console.log('StatsCards: Navigating with filters:', filters);
+    onNavigateToProfessionals(filters);
   };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {stats.map((stat, index) => (
-        <Card 
-          key={index} 
-          className="hover:shadow-md transition-shadow cursor-pointer hover:scale-105 transform transition-transform"
-          onClick={() => handleCardClick(stat.filter)}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              {stat.title}
-            </CardTitle>
-            <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-              <stat.icon className={`w-4 h-4 ${stat.color}`} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-            <p className="text-xs text-gray-600 mt-1">
-              <span className="text-green-600">{stat.change}</span> vs mes anterior
-            </p>
-          </CardContent>
-        </Card>
-      ))}
+      <Card 
+        className="cursor-pointer hover:shadow-lg transition-shadow"
+        onClick={() => handleCardClick({})}
+      >
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Profesionales</CardTitle>
+          <Users className="h-4 w-4 text-guinea-teal" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-guinea-teal">{stats?.total || 0}</div>
+          <p className="text-xs text-muted-foreground">
+            Profesionales registrados
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card 
+        className="cursor-pointer hover:shadow-lg transition-shadow"
+        onClick={() => handleCardClick({ estado_solicitud: 'Aprobado' })}
+      >
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Aprobados</CardTitle>
+          <UserCheck className="h-4 w-4 text-green-600" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-green-600">{stats?.aprobados || 0}</div>
+          <p className="text-xs text-muted-foreground">
+            Solicitudes aprobadas
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card 
+        className="cursor-pointer hover:shadow-lg transition-shadow"
+        onClick={() => handleCardClick({ estado_solicitud: 'Pendiente' })}
+      >
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
+          <Clock className="h-4 w-4 text-orange-600" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-orange-600">{stats?.pendientes || 0}</div>
+          <p className="text-xs text-muted-foreground">
+            En proceso de revisión
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card 
+        className="cursor-pointer hover:shadow-lg transition-shadow"
+        onClick={() => handleCardClick({ estado_solicitud: 'Rechazado' })}
+      >
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Rechazadas</CardTitle>
+          <FileText className="h-4 w-4 text-red-600" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-red-600">{stats?.rechazadas || 0}</div>
+          <p className="text-xs text-muted-foreground">
+            Solicitudes rechazadas
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Tarjetas adicionales para alertas */}
+      <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Próximos a Vencer</CardTitle>
+          <AlertTriangle className="h-4 w-4 text-yellow-600" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-yellow-600">{stats?.proximosVencer || 0}</div>
+          <p className="text-xs text-muted-foreground">
+            Carnets vencen en 30 días
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Carnets Vencidos</CardTitle>
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-red-600">{stats?.vencidos || 0}</div>
+          <p className="text-xs text-muted-foreground">
+            Requieren renovación
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Mostrar distribución por área más grande */}
+      <Card className="md:col-span-2 cursor-pointer hover:shadow-lg transition-shadow">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Distribución por Área</CardTitle>
+          <TrendingUp className="h-4 w-4 text-guinea-teal" />
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {stats?.porArea && Object.entries(stats.porArea).map(([area, cantidad]) => (
+              <Badge 
+                key={area} 
+                variant="secondary"
+                className="cursor-pointer hover:bg-guinea-light-teal"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCardClick({ area_profesional: area });
+                }}
+              >
+                {area}: {cantidad as number}
+              </Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

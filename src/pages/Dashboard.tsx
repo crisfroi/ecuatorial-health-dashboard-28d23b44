@@ -16,6 +16,7 @@ import AIChat from '@/components/dashboard/AIChat';
 import HospitalIncidents from '@/components/dashboard/HospitalIncidents';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 import RenewalAlerts from '@/components/dashboard/RenewalAlerts';
+import { useEstadisticasProfesionales } from '@/hooks/useProfesionales';
 
 const Dashboard = () => {
   const [selectedProfessional, setSelectedProfessional] = useState(null);
@@ -23,6 +24,8 @@ const Dashboard = () => {
   const [userRole, setUserRole] = useState('administrador'); // administrador, comite, visualizador
   const [appliedFilters, setAppliedFilters] = useState(null);
   const [dashboardFilters, setDashboardFilters] = useState({});
+
+  const { data: stats } = useEstadisticasProfesionales();
 
   // Función para manejar navegación desde estadísticas a profesionales
   const handleNavigateToProfessionals = (filters: any) => {
@@ -46,36 +49,27 @@ const Dashboard = () => {
     }
   };
 
-  // Datos simulados - en producción vendrían de Airtable
-  const monthlyData = [
-    { mes: 'Ene', solicitudes: 45 },
-    { mes: 'Feb', solicitudes: 52 },
-    { mes: 'Mar', solicitudes: 48 },
-    { mes: 'Abr', solicitudes: 61 },
-    { mes: 'May', solicitudes: 55 },
-    { mes: 'Jun', solicitudes: 67 }
-  ];
+  // Preparar datos para gráficas
+  const professionData = stats?.porArea ? Object.entries(stats.porArea).map(([profesion, cantidad]) => ({
+    profesion,
+    cantidad: cantidad as number
+  })) : [];
 
-  const professionData = [
-    { profesion: 'Médicos', cantidad: 156 },
-    { profesion: 'Enfermería', cantidad: 243 },
-    { profesion: 'Farmacia', cantidad: 87 },
-    { profesion: 'Laboratorio', cantidad: 45 },
-    { profesion: 'Radiología', cantidad: 32 }
-  ];
+  const provinciaData = stats?.porProvincia ? Object.entries(stats.porProvincia).map(([provincia, cantidad]) => ({
+    provincia,
+    cantidad: cantidad as number
+  })) : [];
 
   // Función para manejar clicks en gráficas
   const handleChartClick = (data: any, chartType: string) => {
     console.log('Chart clicked:', chartType, data);
-    if (chartType === 'monthly') {
+    if (chartType === 'profession') {
       handleNavigateToProfessionals({
-        type: 'month',
-        value: data.mes
+        area_profesional: data.profesion
       });
-    } else if (chartType === 'profession') {
+    } else if (chartType === 'provincia') {
       handleNavigateToProfessionals({
-        type: 'profession',
-        value: data.profesion
+        provincia: data.provincia
       });
     }
   };
@@ -166,19 +160,30 @@ const Dashboard = () => {
               <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <TrendingUp className="w-5 h-5 text-guinea-teal" />
-                    <span>Evolución de Solicitudes</span>
+                    <Users className="w-5 h-5 text-guinea-teal" />
+                    <span>Profesionales por Área</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={monthlyData} onClick={(data) => handleChartClick(data, 'monthly')}>
+                    <BarChart data={professionData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
+                      <XAxis 
+                        dataKey="profesion" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                        fontSize={12}
+                      />
                       <YAxis />
                       <Tooltip />
-                      <Line type="monotone" dataKey="solicitudes" stroke="hsl(var(--guinea-teal))" strokeWidth={2} />
-                    </LineChart>
+                      <Bar 
+                        dataKey="cantidad" 
+                        fill="hsl(var(--guinea-teal))" 
+                        onClick={(data) => handleChartClick(data, 'profession')}
+                        className="cursor-pointer"
+                      />
+                    </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
@@ -186,19 +191,31 @@ const Dashboard = () => {
               <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <Users className="w-5 h-5 text-guinea-teal" />
-                    <span>Profesionales por Área</span>
+                    <TrendingUp className="w-5 h-5 text-guinea-teal" />
+                    <span>Distribución por Provincia</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={professionData} onClick={(data) => handleChartClick(data, 'profession')}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="profesion" />
-                      <YAxis />
+                    <PieChart>
+                      <Pie
+                        data={provinciaData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ provincia, cantidad }) => `${provincia}: ${cantidad}`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="cantidad"
+                        onClick={(data) => handleChartClick(data, 'provincia')}
+                        className="cursor-pointer"
+                      >
+                        {provinciaData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={`hsl(${index * 45}, 70%, 60%)`} />
+                        ))}
+                      </Pie>
                       <Tooltip />
-                      <Bar dataKey="cantidad" fill="hsl(var(--guinea-teal))" />
-                    </BarChart>
+                    </PieChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>

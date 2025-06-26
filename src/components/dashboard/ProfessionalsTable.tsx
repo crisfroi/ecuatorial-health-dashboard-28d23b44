@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, X, Eye, Edit, Download, Save, Cancel } from 'lucide-react';
+import { Search, Filter, X, Eye, Edit, Download, Save } from 'lucide-react';
 import { useProfesionales, type Profesional } from '@/hooks/useProfesionales';
 import { useActualizarProfesional } from '@/hooks/useProfesionalesMutations';
 import { useToast } from '@/hooks/use-toast';

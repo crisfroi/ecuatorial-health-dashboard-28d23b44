@@ -13,7 +13,7 @@ import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 import MinisterialPanel from '@/components/dashboard/MinisterialPanel';
 import ProfessionalDetail from '@/components/dashboard/ProfessionalDetail';
 import TestDataButton from '@/components/TestDataButton';
-import { useEstadisticasAvanzadas } from '@/hooks/useEstadisticas';
+import { useEstadisticasAvanzadas } from '@/hooks/useEstadisticasAvanzadas';
 
 const Dashboard = () => {
   const [userRole, setUserRole] = useState('administrador');

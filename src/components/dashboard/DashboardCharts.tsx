@@ -114,7 +114,7 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
               <Tooltip />
               <Bar 
                 dataKey="cantidad" 
-                fill={(entry) => entry.color}
+                fill="#22c55e"
                 onClick={(data) => onChartClick(data, 'estado_solicitud')}
                 className="cursor-pointer"
               />

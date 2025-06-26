@@ -1,12 +1,12 @@
 
 import { useState } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
+import DashboardTabs from '@/components/dashboard/DashboardTabs';
 import StatsCards from '@/components/dashboard/StatsCards';
 import DashboardCharts from '@/components/dashboard/DashboardCharts';
 import ProfessionalsTable from '@/components/dashboard/ProfessionalsTable';
+import HealthCenters from '@/components/dashboard/HealthCenters';
 import RequestsPanel from '@/components/dashboard/RequestsPanel';
 import AdvancedStats from '@/components/dashboard/AdvancedStats';
 import AIChat from '@/components/dashboard/AIChat';
@@ -60,77 +60,76 @@ const Dashboard = () => {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen bg-gray-50 flex w-full">
-        <DashboardSidebar 
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          userRole={userRole}
-        />
-        
-        <SidebarInset className="flex-1">
-          <div className="flex flex-col min-h-screen">
-            <header className="h-16 bg-white border-b flex items-center px-6">
-              <SidebarTrigger className="mr-4" />
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex flex-col min-h-screen">
+        <header className="bg-white border-b">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
               <DashboardHeader userRole={userRole} />
-              <div className="ml-auto">
-                <TestDataButton />
-              </div>
-            </header>
-            
-            <main className="flex-1 p-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsContent value="overview" className="space-y-6">
-                  <div>
-                    <h2 className="text-3xl font-bold text-gray-900 mb-6">Panel Principal</h2>
-                    <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
-                    <div className="mt-6">
-                      <DashboardCharts onChartClick={handleChartClick} />
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="requests">
-                  <RequestsPanel userRole={userRole} />
-                </TabsContent>
-
-                <TabsContent value="professionals">
-                  <ProfessionalsTable 
-                    onSelectProfessional={handleSelectProfessional}
-                    userRole={userRole}
-                    dashboardFilters={dashboardFilters}
-                  />
-                </TabsContent>
-
-                <TabsContent value="stats">
-                  <AdvancedStats onNavigateToProfessionals={handleNavigateToProfessionals} />
-                </TabsContent>
-
-                <TabsContent value="ai-chat">
-                  <AIChat />
-                </TabsContent>
-
-                <TabsContent value="incidents">
-                  <HospitalIncidents />
-                </TabsContent>
-
-                {userRole === 'administrador' && (
-                  <TabsContent value="user-management">
-                    <UserRoleManagement />
-                  </TabsContent>
-                )}
-
-                {(userRole === 'administrador' || userRole === 'comite') && (
-                  <TabsContent value="ministerial">
-                    <MinisterialPanel />
-                  </TabsContent>
-                )}
-              </Tabs>
-            </main>
+              <TestDataButton />
+            </div>
           </div>
-        </SidebarInset>
+          <DashboardTabs 
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            userRole={userRole}
+          />
+        </header>
+        
+        <main className="flex-1 p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsContent value="overview" className="space-y-6">
+              <div>
+                <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
+                <div className="mt-6">
+                  <DashboardCharts onChartClick={handleChartClick} />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="requests">
+              <RequestsPanel userRole={userRole} />
+            </TabsContent>
+
+            <TabsContent value="professionals">
+              <ProfessionalsTable 
+                onSelectProfessional={handleSelectProfessional}
+                userRole={userRole}
+                dashboardFilters={dashboardFilters}
+              />
+            </TabsContent>
+
+            <TabsContent value="health-centers">
+              <HealthCenters userRole={userRole} />
+            </TabsContent>
+
+            <TabsContent value="stats">
+              <AdvancedStats onNavigateToProfessionals={handleNavigateToProfessionals} />
+            </TabsContent>
+
+            <TabsContent value="ai-chat">
+              <AIChat />
+            </TabsContent>
+
+            <TabsContent value="incidents">
+              <HospitalIncidents />
+            </TabsContent>
+
+            {userRole === 'administrador' && (
+              <TabsContent value="user-management">
+                <UserRoleManagement />
+              </TabsContent>
+            )}
+
+            {(userRole === 'administrador' || userRole === 'comite') && (
+              <TabsContent value="ministerial">
+                <MinisterialPanel />
+              </TabsContent>
+            )}
+          </Tabs>
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
 

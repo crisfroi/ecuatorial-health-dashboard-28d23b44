@@ -32,6 +32,7 @@ export type Database = {
           especialidad: string | null
           estado_solicitud: string | null
           estado_trabajo: string | null
+          fecha_alta: string | null
           fecha_aprobacion: string | null
           fecha_aprobacion_carnet: string | null
           fecha_nacimiento: string | null
@@ -42,6 +43,7 @@ export type Database = {
           genero: string | null
           gentilicio: string | null
           id: string
+          id_profesional_unico: string | null
           institucion_1: string | null
           institucion_2: string | null
           lugar_trabajo: string | null
@@ -50,6 +52,7 @@ export type Database = {
           nacionalidad: string | null
           nombre: string | null
           nombre_completo: string
+          numero_autonumerico_correlativo: number | null
           numero_carnet_profesional: string | null
           numero_correlativo: number | null
           numero_dip: string | null
@@ -102,6 +105,7 @@ export type Database = {
           especialidad?: string | null
           estado_solicitud?: string | null
           estado_trabajo?: string | null
+          fecha_alta?: string | null
           fecha_aprobacion?: string | null
           fecha_aprobacion_carnet?: string | null
           fecha_nacimiento?: string | null
@@ -112,6 +116,7 @@ export type Database = {
           genero?: string | null
           gentilicio?: string | null
           id?: string
+          id_profesional_unico?: string | null
           institucion_1?: string | null
           institucion_2?: string | null
           lugar_trabajo?: string | null
@@ -120,6 +125,7 @@ export type Database = {
           nacionalidad?: string | null
           nombre?: string | null
           nombre_completo: string
+          numero_autonumerico_correlativo?: number | null
           numero_carnet_profesional?: string | null
           numero_correlativo?: number | null
           numero_dip?: string | null
@@ -172,6 +178,7 @@ export type Database = {
           especialidad?: string | null
           estado_solicitud?: string | null
           estado_trabajo?: string | null
+          fecha_alta?: string | null
           fecha_aprobacion?: string | null
           fecha_aprobacion_carnet?: string | null
           fecha_nacimiento?: string | null
@@ -182,6 +189,7 @@ export type Database = {
           genero?: string | null
           gentilicio?: string | null
           id?: string
+          id_profesional_unico?: string | null
           institucion_1?: string | null
           institucion_2?: string | null
           lugar_trabajo?: string | null
@@ -190,6 +198,7 @@ export type Database = {
           nacionalidad?: string | null
           nombre?: string | null
           nombre_completo?: string
+          numero_autonumerico_correlativo?: number | null
           numero_carnet_profesional?: string | null
           numero_correlativo?: number | null
           numero_dip?: string | null

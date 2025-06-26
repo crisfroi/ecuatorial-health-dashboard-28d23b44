@@ -1,51 +1,47 @@
 
-import { TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Activity, FileText, Users, TrendingUp, MessageCircle, AlertTriangle, Settings, UserCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Activity, FileText, Users, TrendingUp, MessageCircle, AlertTriangle, Settings, UserCheck, Building2 } from 'lucide-react';
 
 interface DashboardTabsProps {
+  activeTab: string;
+  onTabChange: (tab: string) => void;
   userRole: string;
 }
 
-const DashboardTabs = ({ userRole }: DashboardTabsProps) => {
+const DashboardTabs = ({ activeTab, onTabChange, userRole }: DashboardTabsProps) => {
+  const tabs = [
+    { id: 'overview', label: 'Panel Principal', icon: Activity },
+    { id: 'requests', label: 'Solicitudes', icon: FileText },
+    { id: 'professionals', label: 'Profesionales', icon: Users },
+    { id: 'health-centers', label: 'Centros de Salud', icon: Building2 },
+    { id: 'stats', label: 'Estadísticas', icon: TrendingUp },
+    { id: 'ai-chat', label: 'Análisis IA', icon: MessageCircle },
+    { id: 'incidents', label: 'Incidencias', icon: AlertTriangle },
+    ...(userRole === 'administrador' ? [
+      { id: 'user-management', label: 'Usuarios', icon: Settings }
+    ] : []),
+    ...((userRole === 'administrador' || userRole === 'comite') ? [
+      { id: 'ministerial', label: 'Panel Ministerial', icon: UserCheck }
+    ] : [])
+  ];
+
   return (
-    <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:grid-cols-9">
-      <TabsTrigger value="overview" className="flex items-center space-x-2">
-        <Activity className="w-4 h-4" />
-        <span>Panel Principal</span>
-      </TabsTrigger>
-      <TabsTrigger value="requests" className="flex items-center space-x-2">
-        <FileText className="w-4 h-4" />
-        <span>Solicitudes</span>
-      </TabsTrigger>
-      <TabsTrigger value="professionals" className="flex items-center space-x-2">
-        <Users className="w-4 h-4" />
-        <span>Profesionales</span>
-      </TabsTrigger>
-      <TabsTrigger value="stats" className="flex items-center space-x-2">
-        <TrendingUp className="w-4 h-4" />
-        <span>Estadísticas</span>
-      </TabsTrigger>
-      <TabsTrigger value="ai-chat" className="flex items-center space-x-2">
-        <MessageCircle className="w-4 h-4" />
-        <span>Análisis IA</span>
-      </TabsTrigger>
-      <TabsTrigger value="incidents" className="flex items-center space-x-2">
-        <AlertTriangle className="w-4 h-4" />
-        <span>Incidencias</span>
-      </TabsTrigger>
-      {userRole === 'administrador' && (
-        <TabsTrigger value="user-management" className="flex items-center space-x-2">
-          <Settings className="w-4 h-4" />
-          <span>Usuarios</span>
-        </TabsTrigger>
-      )}
-      {(userRole === 'administrador' || userRole === 'comite') && (
-        <TabsTrigger value="ministerial" className="flex items-center space-x-2">
-          <UserCheck className="w-4 h-4" />
-          <span>Panel Ministerial</span>
-        </TabsTrigger>
-      )}
-    </TabsList>
+    <div className="flex flex-wrap gap-2 mb-6 p-4 bg-white rounded-lg shadow-sm border">
+      {tabs.map((tab) => {
+        const Icon = tab.icon;
+        return (
+          <Button
+            key={tab.id}
+            variant={activeTab === tab.id ? "default" : "ghost"}
+            onClick={() => onTabChange(tab.id)}
+            className="flex items-center space-x-2 h-10"
+          >
+            <Icon className="w-4 h-4" />
+            <span className="hidden sm:inline">{tab.label}</span>
+          </Button>
+        );
+      })}
+    </div>
   );
 };
 

@@ -1,137 +1,158 @@
 
-import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Filter, Search, Download, X } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Filter, X } from 'lucide-react';
 
-interface DashboardFiltersProps {
-  onFiltersChange?: (filters: any) => void;
-  activeFilters?: any;
+interface Filtros {
+  area_profesional?: string;
+  estado_solicitud?: string;
+  provincia?: string;
+  genero?: string;
+  tipo_sector?: string;
+  distrito?: string;
+  anoGraduacion?: string;
 }
 
-const DashboardFilters = ({ onFiltersChange, activeFilters }: DashboardFiltersProps) => {
-  const [searchTerm, setSearchTerm] = useState(activeFilters?.search || '');
-  const [provincia, setProvincia] = useState(activeFilters?.provincia || 'todos');
-  const [distrito, setDistrito] = useState(activeFilters?.distrito || 'todos');
-  const [genero, setGenero] = useState(activeFilters?.genero || 'todos');
-  const [anoGraduacion, setAnoGraduacion] = useState(activeFilters?.anoGraduacion || 'todos');
+interface DashboardFiltersProps {
+  filters: Filtros;
+  onFiltersChange: (filters: Filtros) => void;
+  onClearFilters: () => void;
+}
 
-  const handleFilterChange = () => {
-    const filters = {
-      search: searchTerm,
-      provincia: provincia === 'todos' ? '' : provincia,
-      distrito: distrito === 'todos' ? '' : distrito,
-      genero: genero === 'todos' ? '' : genero,
-      anoGraduacion: anoGraduacion === 'todos' ? '' : anoGraduacion
-    };
-    
-    console.log('Dashboard filters changing:', filters);
-    
-    if (onFiltersChange) {
-      onFiltersChange(filters);
-    }
+const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: DashboardFiltersProps) => {
+  const updateFilter = (key: keyof Filtros, value: string) => {
+    onFiltersChange({
+      ...filters,
+      [key]: value === 'todos' ? undefined : value
+    });
   };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-    setProvincia('todos');
-    setDistrito('todos');
-    setGenero('todos');
-    setAnoGraduacion('todos');
-    
-    console.log('Clearing all filters');
-    
-    if (onFiltersChange) {
-      onFiltersChange({
-        search: '',
-        provincia: '',
-        distrito: '',
-        genero: '',
-        anoGraduacion: ''
-      });
-    }
-  };
-
-  const hasActiveFilters = searchTerm || provincia !== 'todos' || distrito !== 'todos' || genero !== 'todos' || anoGraduacion !== 'todos';
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex items-center space-x-2 text-sm font-medium text-gray-700">
-            <Filter className="w-4 h-4" />
-            <span>Filtros:</span>
+    <Card className="mb-6">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Filter className="w-5 h-5" />
+            <span>Filtros de Búsqueda</span>
           </div>
-          
-          <div className="flex flex-col space-y-1">
-            <label className="text-xs font-medium text-gray-600">Provincia</label>
-            <Select value={provincia} onValueChange={(value) => {
-              setProvincia(value);
-              setTimeout(handleFilterChange, 100);
-            }}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Provincia" />
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={onClearFilters}
+            className="flex items-center space-x-1"
+          >
+            <X className="w-4 h-4" />
+            <span>Limpiar</span>
+          </Button>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Área Profesional</label>
+            <Select value={filters.area_profesional || 'todos'} onValueChange={(value) => updateFilter('area_profesional', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todas las áreas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas las áreas</SelectItem>
+                <SelectItem value="Medicina">Medicina</SelectItem>
+                <SelectItem value="Enfermería">Enfermería</SelectItem>
+                <SelectItem value="Farmacia">Farmacia</SelectItem>
+                <SelectItem value="Laboratorio">Laboratorio</SelectItem>
+                <SelectItem value="Odontología">Odontología</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Estado de Solicitud</label>
+            <Select value={filters.estado_solicitud || 'todos'} onValueChange={(value) => updateFilter('estado_solicitud', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los estados" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los estados</SelectItem>
+                <SelectItem value="Pendiente">Pendiente</SelectItem>
+                <SelectItem value="Aprobado">Aprobado</SelectItem>
+                <SelectItem value="Rechazado">Rechazado</SelectItem>
+                <SelectItem value="Revisando">Revisando</SelectItem>
+                <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Provincia</label>
+            <Select value={filters.provincia || 'todos'} onValueChange={(value) => updateFilter('provincia', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todas las provincias" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todas las provincias</SelectItem>
-                <SelectItem value="Malabo">Malabo</SelectItem>
-                <SelectItem value="Bata">Bata</SelectItem>
-                <SelectItem value="Ebebiyín">Ebebiyín</SelectItem>
-                <SelectItem value="Mongomo">Mongomo</SelectItem>
-                <SelectItem value="Evinayong">Evinayong</SelectItem>
+                <SelectItem value="Conakry">Conakry</SelectItem>
+                <SelectItem value="Kindia">Kindia</SelectItem>
+                <SelectItem value="Boké">Boké</SelectItem>
+                <SelectItem value="Labé">Labé</SelectItem>
+                <SelectItem value="Faranah">Faranah</SelectItem>
+                <SelectItem value="Kankan">Kankan</SelectItem>
+                <SelectItem value="Nzérékoré">Nzérékoré</SelectItem>
+                <SelectItem value="Mamou">Mamou</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="flex flex-col space-y-1">
-            <label className="text-xs font-medium text-gray-600">Distrito Sanitario</label>
-            <Select value={distrito} onValueChange={(value) => {
-              setDistrito(value);
-              setTimeout(handleFilterChange, 100);
-            }}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Distrito" />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Género</label>
+            <Select value={filters.genero || 'todos'} onValueChange={(value) => updateFilter('genero', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los géneros" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los géneros</SelectItem>
+                <SelectItem value="MASCULINO">Masculino</SelectItem>
+                <SelectItem value="FEMENINO">Femenino</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Tipo de Sector</label>
+            <Select value={filters.tipo_sector || 'todos'} onValueChange={(value) => updateFilter('tipo_sector', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los sectores" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los sectores</SelectItem>
+                <SelectItem value="Público">Público</SelectItem>
+                <SelectItem value="Privado">Privado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Distrito</label>
+            <Select value={filters.distrito || 'todos'} onValueChange={(value) => updateFilter('distrito', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los distritos" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los distritos</SelectItem>
-                <SelectItem value="Distrito Malabo Norte">Distrito Malabo Norte</SelectItem>
-                <SelectItem value="Distrito Malabo Sur">Distrito Malabo Sur</SelectItem>
-                <SelectItem value="Distrito Bata Centro">Distrito Bata Centro</SelectItem>
-                <SelectItem value="Distrito Bata Este">Distrito Bata Este</SelectItem>
-                <SelectItem value="Distrito Ebebiyín">Distrito Ebebiyín</SelectItem>
-                <SelectItem value="Distrito Mongomo">Distrito Mongomo</SelectItem>
-                <SelectItem value="Distrito Evinayong">Distrito Evinayong</SelectItem>
+                <SelectItem value="Kaloum">Kaloum</SelectItem>
+                <SelectItem value="Dixinn">Dixinn</SelectItem>
+                <SelectItem value="Matam">Matam</SelectItem>
+                <SelectItem value="Matoto">Matoto</SelectItem>
+                <SelectItem value="Ratoma">Ratoma</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="flex flex-col space-y-1">
-            <label className="text-xs font-medium text-gray-600">Género</label>
-            <Select value={genero} onValueChange={(value) => {
-              setGenero(value);
-              setTimeout(handleFilterChange, 100);
-            }}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Género" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="M">Masculino</SelectItem>
-                <SelectItem value="F">Femenino</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex flex-col space-y-1">
-            <label className="text-xs font-medium text-gray-600">Año Graduación</label>
-            <Select value={anoGraduacion} onValueChange={(value) => {
-              setAnoGraduacion(value);
-              setTimeout(handleFilterChange, 100);
-            }}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Año" />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Año de Graduación</label>
+            <Select value={filters.anoGraduacion || 'todos'} onValueChange={(value) => updateFilter('anoGraduacion', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los años" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los años</SelectItem>
@@ -140,42 +161,8 @@ const DashboardFilters = ({ onFiltersChange, activeFilters }: DashboardFiltersPr
                 <SelectItem value="2022">2022</SelectItem>
                 <SelectItem value="2021">2021</SelectItem>
                 <SelectItem value="2020">2020</SelectItem>
-                <SelectItem value="2019">2019</SelectItem>
-                <SelectItem value="2018">2018</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="flex items-center space-x-2 ml-auto">
-            <div className="flex flex-col space-y-1">
-              <label className="text-xs font-medium text-gray-600">Buscar</label>
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input 
-                  placeholder="Buscar profesional..." 
-                  className="pl-10 w-64" 
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setTimeout(handleFilterChange, 300);
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-end space-x-2">
-            {hasActiveFilters && (
-              <Button variant="outline" size="sm" onClick={clearFilters}>
-                <X className="w-4 h-4 mr-1" />
-                Limpiar
-              </Button>
-            )}
-            
-            <Button variant="outline" size="sm">
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
-            </Button>
           </div>
         </div>
       </CardContent>

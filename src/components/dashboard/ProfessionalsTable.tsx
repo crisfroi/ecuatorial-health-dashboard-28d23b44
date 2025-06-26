@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, X, Eye, Edit, Download, Save } from 'lucide-react';
+import { Search, Filter, X, Eye, Edit, Save } from 'lucide-react';
 import { useProfesionales, type Profesional } from '@/hooks/useProfesionales';
 import { useActualizarProfesional } from '@/hooks/useProfesionalesMutations';
 import { useToast } from '@/hooks/use-toast';
@@ -70,6 +70,7 @@ const ProfessionalsTable = ({
   }, [appliedFilters]);
 
   const handleClearAllFilters = () => {
+    console.log('Clearing all filters...');
     setSearchTerm('');
     setFilters({
       area_profesional: 'todos',
@@ -81,6 +82,8 @@ const ProfessionalsTable = ({
     if (onClearFilters) {
       onClearFilters();
     }
+    // Force re-render to update the view
+    window.location.reload();
   };
 
   const handleEditState = (professionalId: string, currentState: string) => {
@@ -138,7 +141,8 @@ const ProfessionalsTable = ({
       'Aprobado': 'bg-green-100 text-green-800',
       'Pendiente': 'bg-yellow-100 text-yellow-800',
       'Rechazado': 'bg-red-100 text-red-800',
-      'Revisando': 'bg-blue-100 text-blue-800'
+      'Revisando': 'bg-blue-100 text-blue-800',
+      'Pendiente de Firma': 'bg-orange-100 text-orange-800'
     };
     return variants[estado] || 'bg-gray-100 text-gray-800';
   };
@@ -264,6 +268,7 @@ const ProfessionalsTable = ({
                     <SelectItem value="Pendiente">Pendiente</SelectItem>
                     <SelectItem value="Rechazado">Rechazado</SelectItem>
                     <SelectItem value="Revisando">Revisando</SelectItem>
+                    <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -325,6 +330,7 @@ const ProfessionalsTable = ({
                               <SelectContent>
                                 <SelectItem value="Pendiente">Pendiente</SelectItem>
                                 <SelectItem value="Revisando">Revisando</SelectItem>
+                                <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
                                 <SelectItem value="Aprobado">Aprobado</SelectItem>
                                 <SelectItem value="Rechazado">Rechazado</SelectItem>
                               </SelectContent>

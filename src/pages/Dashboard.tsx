@@ -60,9 +60,9 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gray-50">
       <div className="flex flex-col min-h-screen">
-        <header className="bg-white border-b shadow-sm">
+        <header className="bg-white border-b">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
               <DashboardHeader userRole={userRole} />
@@ -79,9 +79,11 @@ const Dashboard = () => {
         <main className="flex-1 p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsContent value="overview" className="space-y-6">
-              <div className="space-y-8">
+              <div>
                 <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
-                <DashboardCharts onChartClick={handleChartClick} />
+                <div className="mt-6">
+                  <DashboardCharts onChartClick={handleChartClick} />
+                </div>
               </div>
             </TabsContent>
 

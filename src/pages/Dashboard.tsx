@@ -1,7 +1,9 @@
+
 import { useState } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import DashboardTabs from '@/components/dashboard/DashboardTabs';
+import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import StatsCards from '@/components/dashboard/StatsCards';
 import DashboardCharts from '@/components/dashboard/DashboardCharts';
 import ProfessionalsTable from '@/components/dashboard/ProfessionalsTable';
@@ -48,19 +50,6 @@ const Dashboard = () => {
     handleNavigateToProfessionals(filters);
   };
 
-  // Preparar datos para los gráficos
-  const professionData = stats?.porArea ? 
-    Object.entries(stats.porArea).map(([profesion, cantidad]) => ({
-      profesion,
-      cantidad: cantidad as number
-    })) : [];
-
-  const provinciaData = stats?.porProvincia ? 
-    Object.entries(stats.porProvincia).map(([provincia, cantidad]) => ({
-      provincia,
-      cantidad: cantidad as number
-    })) : [];
-
   if (selectedProfessional) {
     return (
       <ProfessionalDetail 
@@ -71,61 +60,77 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <DashboardHeader userRole={userRole} />
-      
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold text-gray-900">Panel de Control</h2>
-          <TestDataButton />
-        </div>
+    <SidebarProvider>
+      <div className="min-h-screen bg-gray-50 flex w-full">
+        <DashboardSidebar 
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          userRole={userRole}
+        />
+        
+        <SidebarInset className="flex-1">
+          <div className="flex flex-col min-h-screen">
+            <header className="h-16 bg-white border-b flex items-center px-6">
+              <SidebarTrigger className="mr-4" />
+              <DashboardHeader userRole={userRole} />
+              <div className="ml-auto">
+                <TestDataButton />
+              </div>
+            </header>
+            
+            <main className="flex-1 p-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                <TabsContent value="overview" className="space-y-6">
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-900 mb-6">Panel Principal</h2>
+                    <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
+                    <div className="mt-6">
+                      <DashboardCharts onChartClick={handleChartClick} />
+                    </div>
+                  </div>
+                </TabsContent>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <DashboardTabs userRole={userRole} />
-          
-          <TabsContent value="overview" className="space-y-6">
-            <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
-            <DashboardCharts onChartClick={handleChartClick} />
-          </TabsContent>
+                <TabsContent value="requests">
+                  <RequestsPanel userRole={userRole} />
+                </TabsContent>
 
-          <TabsContent value="requests">
-            <RequestsPanel userRole={userRole} />
-          </TabsContent>
+                <TabsContent value="professionals">
+                  <ProfessionalsTable 
+                    onSelectProfessional={handleSelectProfessional}
+                    userRole={userRole}
+                    dashboardFilters={dashboardFilters}
+                  />
+                </TabsContent>
 
-          <TabsContent value="professionals">
-            <ProfessionalsTable 
-              onSelectProfessional={handleSelectProfessional}
-              userRole={userRole}
-              dashboardFilters={dashboardFilters}
-            />
-          </TabsContent>
+                <TabsContent value="stats">
+                  <AdvancedStats onNavigateToProfessionals={handleNavigateToProfessionals} />
+                </TabsContent>
 
-          <TabsContent value="stats">
-            <AdvancedStats onNavigateToProfessionals={handleNavigateToProfessionals} />
-          </TabsContent>
+                <TabsContent value="ai-chat">
+                  <AIChat />
+                </TabsContent>
 
-          <TabsContent value="ai-chat">
-            <AIChat />
-          </TabsContent>
+                <TabsContent value="incidents">
+                  <HospitalIncidents />
+                </TabsContent>
 
-          <TabsContent value="incidents">
-            <HospitalIncidents />
-          </TabsContent>
+                {userRole === 'administrador' && (
+                  <TabsContent value="user-management">
+                    <UserRoleManagement />
+                  </TabsContent>
+                )}
 
-          {userRole === 'administrador' && (
-            <TabsContent value="user-management">
-              <UserRoleManagement />
-            </TabsContent>
-          )}
-
-          {(userRole === 'administrador' || userRole === 'comite') && (
-            <TabsContent value="ministerial">
-              <MinisterialPanel />
-            </TabsContent>
-          )}
-        </Tabs>
+                {(userRole === 'administrador' || userRole === 'comite') && (
+                  <TabsContent value="ministerial">
+                    <MinisterialPanel />
+                  </TabsContent>
+                )}
+              </Tabs>
+            </main>
+          </div>
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 

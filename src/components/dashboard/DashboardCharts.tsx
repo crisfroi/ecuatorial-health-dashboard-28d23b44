@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, TrendingUp, BarChart3, PieChart } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { useEstadisticasAvanzadas } from '@/hooks/useEstadisticasAvanzadas';
+import ChartActions from './ChartActions';
 
 interface DashboardChartsProps {
   onChartClick: (data: any, chartType: string) => void;
@@ -41,26 +42,28 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={stats?.datosGraficoAreas || []}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="area" 
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                fontSize={12}
-              />
-              <YAxis />
-              <Tooltip />
-              <Bar 
-                dataKey="cantidad" 
-                fill="hsl(var(--guinea-teal))" 
-                onClick={(data) => onChartClick(data, 'area_profesional')}
-                className="cursor-pointer"
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <ChartActions title="Profesionales por Área">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={stats?.datosGraficoAreas || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="area" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  fontSize={12}
+                />
+                <YAxis />
+                <Tooltip />
+                <Bar 
+                  dataKey="cantidad" 
+                  fill="hsl(var(--guinea-teal))" 
+                  onClick={(data) => onChartClick(data, 'area_profesional')}
+                  className="cursor-pointer"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartActions>
         </CardContent>
       </Card>
 
@@ -73,27 +76,29 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <RechartsPieChart>
-              <Pie
-                data={stats?.datosGraficoProvincias || []}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ provincia, cantidad }) => `${provincia}: ${cantidad}`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="cantidad"
-                onClick={(data) => onChartClick(data, 'provincia')}
-                className="cursor-pointer"
-              >
-                {(stats?.datosGraficoProvincias || []).map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </RechartsPieChart>
-          </ResponsiveContainer>
+          <ChartActions title="Distribución por Provincia">
+            <ResponsiveContainer width="100%" height={300}>
+              <RechartsPieChart>
+                <Pie
+                  data={stats?.datosGraficoProvincias || []}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ provincia, cantidad }) => `${provincia}: ${cantidad}`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="cantidad"
+                  onClick={(data) => onChartClick(data, 'provincia')}
+                  className="cursor-pointer"
+                >
+                  {(stats?.datosGraficoProvincias || []).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </RechartsPieChart>
+            </ResponsiveContainer>
+          </ChartActions>
         </CardContent>
       </Card>
 
@@ -106,20 +111,22 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={stats?.datosGraficoEstados || []}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="estado" />
-              <YAxis />
-              <Tooltip />
-              <Bar 
-                dataKey="cantidad" 
-                fill="#22c55e"
-                onClick={(data) => onChartClick(data, 'estado_solicitud')}
-                className="cursor-pointer"
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <ChartActions title="Estados de Solicitud">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={stats?.datosGraficoEstados || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="estado" />
+                <YAxis />
+                <Tooltip />
+                <Bar 
+                  dataKey="cantidad" 
+                  fill="#22c55e"
+                  onClick={(data) => onChartClick(data, 'estado_solicitud')}
+                  className="cursor-pointer"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartActions>
         </CardContent>
       </Card>
 
@@ -132,21 +139,23 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={stats?.tendenciasMensuales || []}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="mes" />
-              <YAxis />
-              <Tooltip />
-              <Line 
-                type="monotone" 
-                dataKey="registros" 
-                stroke="hsl(var(--guinea-teal))" 
-                strokeWidth={2}
-                dot={{ fill: "hsl(var(--guinea-teal))" }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <ChartActions title="Tendencia de Registros">
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={stats?.tendenciasMensuales || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis />
+                <Tooltip />
+                <Line 
+                  type="monotone" 
+                  dataKey="registros" 
+                  stroke="hsl(var(--guinea-teal))" 
+                  strokeWidth={2}
+                  dot={{ fill: "hsl(var(--guinea-teal))" }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartActions>
         </CardContent>
       </Card>
     </div>

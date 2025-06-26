@@ -44,7 +44,13 @@ const DashboardFilters = ({ onFiltersChange, activeFilters }: DashboardFiltersPr
     console.log('Clearing all filters');
     
     if (onFiltersChange) {
-      onFiltersChange({});
+      onFiltersChange({
+        search: '',
+        provincia: '',
+        distrito: '',
+        genero: '',
+        anoGraduacion: ''
+      });
     }
   };
 
@@ -53,95 +59,112 @@ const DashboardFilters = ({ onFiltersChange, activeFilters }: DashboardFiltersPr
   return (
     <Card>
       <CardContent className="p-4">
-        <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex flex-wrap gap-4 items-end">
           <div className="flex items-center space-x-2 text-sm font-medium text-gray-700">
             <Filter className="w-4 h-4" />
             <span>Filtros:</span>
           </div>
           
-          <Select value={provincia} onValueChange={(value) => {
-            setProvincia(value);
-            setTimeout(handleFilterChange, 100);
-          }}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Provincia" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todas las provincias</SelectItem>
-              <SelectItem value="Malabo">Malabo</SelectItem>
-              <SelectItem value="Bata">Bata</SelectItem>
-              <SelectItem value="Ebebiyín">Ebebiyín</SelectItem>
-              <SelectItem value="Mongomo">Mongomo</SelectItem>
-              <SelectItem value="Evinayong">Evinayong</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col space-y-1">
+            <label className="text-xs font-medium text-gray-600">Provincia</label>
+            <Select value={provincia} onValueChange={(value) => {
+              setProvincia(value);
+              setTimeout(handleFilterChange, 100);
+            }}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Provincia" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas las provincias</SelectItem>
+                <SelectItem value="Malabo">Malabo</SelectItem>
+                <SelectItem value="Bata">Bata</SelectItem>
+                <SelectItem value="Ebebiyín">Ebebiyín</SelectItem>
+                <SelectItem value="Mongomo">Mongomo</SelectItem>
+                <SelectItem value="Evinayong">Evinayong</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Select value={distrito} onValueChange={(value) => {
-            setDistrito(value);
-            setTimeout(handleFilterChange, 100);
-          }}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Distrito Sanitario" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los distritos</SelectItem>
-              <SelectItem value="Distrito Malabo Norte">Distrito Malabo Norte</SelectItem>
-              <SelectItem value="Distrito Malabo Sur">Distrito Malabo Sur</SelectItem>
-              <SelectItem value="Distrito Bata Centro">Distrito Bata Centro</SelectItem>
-              <SelectItem value="Distrito Bata Este">Distrito Bata Este</SelectItem>
-              <SelectItem value="Distrito Ebebiyín">Distrito Ebebiyín</SelectItem>
-              <SelectItem value="Distrito Mongomo">Distrito Mongomo</SelectItem>
-              <SelectItem value="Distrito Evinayong">Distrito Evinayong</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col space-y-1">
+            <label className="text-xs font-medium text-gray-600">Distrito Sanitario</label>
+            <Select value={distrito} onValueChange={(value) => {
+              setDistrito(value);
+              setTimeout(handleFilterChange, 100);
+            }}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Distrito" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los distritos</SelectItem>
+                <SelectItem value="Distrito Malabo Norte">Distrito Malabo Norte</SelectItem>
+                <SelectItem value="Distrito Malabo Sur">Distrito Malabo Sur</SelectItem>
+                <SelectItem value="Distrito Bata Centro">Distrito Bata Centro</SelectItem>
+                <SelectItem value="Distrito Bata Este">Distrito Bata Este</SelectItem>
+                <SelectItem value="Distrito Ebebiyín">Distrito Ebebiyín</SelectItem>
+                <SelectItem value="Distrito Mongomo">Distrito Mongomo</SelectItem>
+                <SelectItem value="Distrito Evinayong">Distrito Evinayong</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Select value={genero} onValueChange={(value) => {
-            setGenero(value);
-            setTimeout(handleFilterChange, 100);
-          }}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Género" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="M">Masculino</SelectItem>
-              <SelectItem value="F">Femenino</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col space-y-1">
+            <label className="text-xs font-medium text-gray-600">Género</label>
+            <Select value={genero} onValueChange={(value) => {
+              setGenero(value);
+              setTimeout(handleFilterChange, 100);
+            }}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Género" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="M">Masculino</SelectItem>
+                <SelectItem value="F">Femenino</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Select value={anoGraduacion} onValueChange={(value) => {
-            setAnoGraduacion(value);
-            setTimeout(handleFilterChange, 100);
-          }}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Año Graduación" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los años</SelectItem>
-              <SelectItem value="2024">2024</SelectItem>
-              <SelectItem value="2023">2023</SelectItem>
-              <SelectItem value="2022">2022</SelectItem>
-              <SelectItem value="2021">2021</SelectItem>
-              <SelectItem value="2020">2020</SelectItem>
-              <SelectItem value="2019">2019</SelectItem>
-              <SelectItem value="2018">2018</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col space-y-1">
+            <label className="text-xs font-medium text-gray-600">Año Graduación</label>
+            <Select value={anoGraduacion} onValueChange={(value) => {
+              setAnoGraduacion(value);
+              setTimeout(handleFilterChange, 100);
+            }}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Año" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los años</SelectItem>
+                <SelectItem value="2024">2024</SelectItem>
+                <SelectItem value="2023">2023</SelectItem>
+                <SelectItem value="2022">2022</SelectItem>
+                <SelectItem value="2021">2021</SelectItem>
+                <SelectItem value="2020">2020</SelectItem>
+                <SelectItem value="2019">2019</SelectItem>
+                <SelectItem value="2018">2018</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="flex items-center space-x-2 ml-auto">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <Input 
-                placeholder="Buscar profesional..." 
-                className="pl-10 w-64" 
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setTimeout(handleFilterChange, 300);
-                }}
-              />
+            <div className="flex flex-col space-y-1">
+              <label className="text-xs font-medium text-gray-600">Buscar</label>
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input 
+                  placeholder="Buscar profesional..." 
+                  className="pl-10 w-64" 
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setTimeout(handleFilterChange, 300);
+                  }}
+                />
+              </div>
             </div>
-            
+          </div>
+          
+          <div className="flex items-end space-x-2">
             {hasActiveFilters && (
               <Button variant="outline" size="sm" onClick={clearFilters}>
                 <X className="w-4 h-4 mr-1" />

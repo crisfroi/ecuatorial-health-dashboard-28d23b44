@@ -168,7 +168,7 @@ const ProfileSettings = ({
               </div>
               <div>
                 <h4 className="font-medium text-guinea-dark-teal">Soporte Técnico</h4>
-                <p className="text-gray-600">soporterenaprosa@serme.com</p>
+                <p className="text-gray-600">soporterenaprosa@sermed.com</p>
               </div>
             </div>
           </CardContent>

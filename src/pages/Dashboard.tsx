@@ -16,7 +16,7 @@ import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 import MinisterialPanel from '@/components/dashboard/MinisterialPanel';
 import ProfessionalDetail from '@/components/dashboard/ProfessionalDetail';
 import TestDataButton from '@/components/TestDataButton';
-import { useEstadisticasAvanzadas } from '@/hooks/useEstadisticasAvanzadas';
+import { useEstadisticasReales } from '@/hooks/useEstadisticasReales';
 
 const Dashboard = () => {
   const { userRole } = useAuth();
@@ -24,7 +24,7 @@ const Dashboard = () => {
   const [dashboardFilters, setDashboardFilters] = useState({});
   const [activeTab, setActiveTab] = useState('overview');
 
-  const { data: stats } = useEstadisticasAvanzadas();
+  const { data: stats } = useEstadisticasReales();
 
   const handleSelectProfessional = (professional: any) => {
     setSelectedProfessional(professional);
@@ -112,6 +112,12 @@ const Dashboard = () => {
               </TabsContent>
             )}
 
+            {currentRole === 'hospital' && (
+              <TabsContent value="incidents">
+                <HospitalIncidents />
+              </TabsContent>
+            )}
+
             <TabsContent value="stats">
               <AdvancedStats onNavigateToProfessionals={handleNavigateToProfessionals} />
             </TabsContent>
@@ -119,12 +125,6 @@ const Dashboard = () => {
             <TabsContent value="ai-chat">
               <AIChat />
             </TabsContent>
-
-            {currentRole === 'hospital' && (
-              <TabsContent value="incidents">
-                <HospitalIncidents />
-              </TabsContent>
-            )}
 
             {currentRole === 'administrador' && (
               <TabsContent value="user-management">

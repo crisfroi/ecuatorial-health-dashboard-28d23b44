@@ -30,6 +30,65 @@ export type Database = {
         }
         Relationships: []
       }
+      incidencias_hospitalarias: {
+        Row: {
+          created_at: string | null
+          descripcion: string | null
+          estado: string | null
+          fecha_incidencia: string | null
+          fecha_resolucion: string | null
+          gravedad: string | null
+          id: string
+          id_profesional: string | null
+          notas_resolucion: string | null
+          reportado_por: string | null
+          resuelto_por: string | null
+          tipo_incidencia: string | null
+          titulo_incidencia: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descripcion?: string | null
+          estado?: string | null
+          fecha_incidencia?: string | null
+          fecha_resolucion?: string | null
+          gravedad?: string | null
+          id?: string
+          id_profesional?: string | null
+          notas_resolucion?: string | null
+          reportado_por?: string | null
+          resuelto_por?: string | null
+          tipo_incidencia?: string | null
+          titulo_incidencia: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descripcion?: string | null
+          estado?: string | null
+          fecha_incidencia?: string | null
+          fecha_resolucion?: string | null
+          gravedad?: string | null
+          id?: string
+          id_profesional?: string | null
+          notas_resolucion?: string | null
+          reportado_por?: string | null
+          resuelto_por?: string | null
+          tipo_incidencia?: string | null
+          titulo_incidencia?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidencias_hospitalarias_id_profesional_fkey"
+            columns: ["id_profesional"]
+            isOneToOne: false
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nacionalidades_gentilicios: {
         Row: {
           gentilicio_femenino: string | null
@@ -109,6 +168,7 @@ export type Database = {
           fecha_alta: string | null
           fecha_aprobacion: string | null
           fecha_aprobacion_carnet: string | null
+          fecha_creacion_solicitud: string | null
           fecha_nacimiento: string | null
           fecha_revision: string | null
           fecha_solicitud: string | null
@@ -128,6 +188,7 @@ export type Database = {
           nombre: string | null
           nombre_centro: string | null
           nombre_completo: string
+          notas_revision: string | null
           numero_autonumerico_correlativo: number | null
           numero_carnet_profesional: string | null
           numero_correlativo: number | null
@@ -144,6 +205,7 @@ export type Database = {
           provincia: string | null
           puesto_responsabilidad: string | null
           referencia_articulo_genero: string | null
+          revisor_solicitud: string | null
           telefono: string | null
           tipo_cooperacion: string | null
           tipo_documento: string | null
@@ -157,6 +219,7 @@ export type Database = {
           tratamiento_genero: string | null
           ultima_modificacion_por: string | null
           updated_at: string | null
+          urgencia_solicitud: string | null
           url_carta_resolucion: string | null
           url_codigo_barras: string | null
           url_pdf: string | null
@@ -186,6 +249,7 @@ export type Database = {
           fecha_alta?: string | null
           fecha_aprobacion?: string | null
           fecha_aprobacion_carnet?: string | null
+          fecha_creacion_solicitud?: string | null
           fecha_nacimiento?: string | null
           fecha_revision?: string | null
           fecha_solicitud?: string | null
@@ -205,6 +269,7 @@ export type Database = {
           nombre?: string | null
           nombre_centro?: string | null
           nombre_completo: string
+          notas_revision?: string | null
           numero_autonumerico_correlativo?: number | null
           numero_carnet_profesional?: string | null
           numero_correlativo?: number | null
@@ -221,6 +286,7 @@ export type Database = {
           provincia?: string | null
           puesto_responsabilidad?: string | null
           referencia_articulo_genero?: string | null
+          revisor_solicitud?: string | null
           telefono?: string | null
           tipo_cooperacion?: string | null
           tipo_documento?: string | null
@@ -234,6 +300,7 @@ export type Database = {
           tratamiento_genero?: string | null
           ultima_modificacion_por?: string | null
           updated_at?: string | null
+          urgencia_solicitud?: string | null
           url_carta_resolucion?: string | null
           url_codigo_barras?: string | null
           url_pdf?: string | null
@@ -263,6 +330,7 @@ export type Database = {
           fecha_alta?: string | null
           fecha_aprobacion?: string | null
           fecha_aprobacion_carnet?: string | null
+          fecha_creacion_solicitud?: string | null
           fecha_nacimiento?: string | null
           fecha_revision?: string | null
           fecha_solicitud?: string | null
@@ -282,6 +350,7 @@ export type Database = {
           nombre?: string | null
           nombre_centro?: string | null
           nombre_completo?: string
+          notas_revision?: string | null
           numero_autonumerico_correlativo?: number | null
           numero_carnet_profesional?: string | null
           numero_correlativo?: number | null
@@ -298,6 +367,7 @@ export type Database = {
           provincia?: string | null
           puesto_responsabilidad?: string | null
           referencia_articulo_genero?: string | null
+          revisor_solicitud?: string | null
           telefono?: string | null
           tipo_cooperacion?: string | null
           tipo_documento?: string | null
@@ -311,6 +381,7 @@ export type Database = {
           tratamiento_genero?: string | null
           ultima_modificacion_por?: string | null
           updated_at?: string | null
+          urgencia_solicitud?: string | null
           url_carta_resolucion?: string | null
           url_codigo_barras?: string | null
           url_pdf?: string | null

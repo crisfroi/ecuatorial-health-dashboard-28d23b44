@@ -27,9 +27,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Aquí puedes obtener el rol del usuario desde tu base de datos
-          // Por ahora, asignamos un rol por defecto
-          setUserRole('administrador'); // Temporal
+          // Obtener el rol desde los metadatos del usuario
+          const role = session.user.user_metadata?.role || 'visualizer';
+          setUserRole(role);
         } else {
           setUserRole(null);
         }
@@ -44,7 +44,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        setUserRole('administrador'); // Temporal
+        const role = session.user.user_metadata?.role || 'visualizer';
+        setUserRole(role);
       }
       
       setIsLoading(false);

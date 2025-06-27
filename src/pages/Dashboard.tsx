@@ -60,20 +60,22 @@ const Dashboard = () => {
     );
   }
 
+  const currentRole = userRole || 'visualizer';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-guinea-light-teal/10 via-white to-guinea-teal/5">
       <div className="flex flex-col min-h-screen">
         <header className="bg-white border-b shadow-sm">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
-              <DashboardHeader userRole={userRole || 'usuario'} />
+              <DashboardHeader userRole={currentRole} />
               <TestDataButton />
             </div>
           </div>
           <DashboardTabs 
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            userRole={userRole || 'usuario'}
+            userRole={currentRole}
           />
         </header>
         
@@ -88,21 +90,27 @@ const Dashboard = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="requests">
-              <RequestsPanel userRole={userRole || 'usuario'} />
-            </TabsContent>
+            {currentRole === 'administrador' && (
+              <TabsContent value="requests">
+                <RequestsPanel userRole={currentRole} />
+              </TabsContent>
+            )}
 
-            <TabsContent value="professionals">
-              <ProfessionalsTable 
-                onSelectProfessional={handleSelectProfessional}
-                userRole={userRole || 'usuario'}
-                dashboardFilters={dashboardFilters}
-              />
-            </TabsContent>
+            {(currentRole === 'administrador' || currentRole === 'visualizer') && (
+              <TabsContent value="professionals">
+                <ProfessionalsTable 
+                  onSelectProfessional={handleSelectProfessional}
+                  userRole={currentRole}
+                  dashboardFilters={dashboardFilters}
+                />
+              </TabsContent>
+            )}
 
-            <TabsContent value="health-centers">
-              <HealthCenters userRole={userRole || 'usuario'} />
-            </TabsContent>
+            {(currentRole === 'administrador' || currentRole === 'visualizer') && (
+              <TabsContent value="health-centers">
+                <HealthCenters userRole={currentRole} />
+              </TabsContent>
+            )}
 
             <TabsContent value="stats">
               <AdvancedStats onNavigateToProfessionals={handleNavigateToProfessionals} />
@@ -112,17 +120,19 @@ const Dashboard = () => {
               <AIChat />
             </TabsContent>
 
-            <TabsContent value="incidents">
-              <HospitalIncidents />
-            </TabsContent>
+            {currentRole === 'hospital' && (
+              <TabsContent value="incidents">
+                <HospitalIncidents />
+              </TabsContent>
+            )}
 
-            {userRole === 'administrador' && (
+            {currentRole === 'administrador' && (
               <TabsContent value="user-management">
                 <UserRoleManagement />
               </TabsContent>
             )}
 
-            {(userRole === 'administrador' || userRole === 'comite') && (
+            {(currentRole === 'administrador' || currentRole === 'comite') && (
               <TabsContent value="ministerial">
                 <MinisterialPanel />
               </TabsContent>

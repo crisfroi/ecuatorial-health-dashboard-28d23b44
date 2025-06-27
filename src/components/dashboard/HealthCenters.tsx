@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -37,7 +36,7 @@ const HealthCenters = ({ userRole }: HealthCentersProps) => {
 
   // Agrupar profesionales por centro de salud
   const healthCenters = profesionales.reduce((acc, prof) => {
-    const centerName = prof.lugar_trabajo || 'Centro no especificado';
+    const centerName = prof.nombre_centro || 'Centro no especificado';
     const key = `${centerName}-${prof.categoria_centro || 'Sin categoría'}`;
     
     if (!acc[key]) {
@@ -261,7 +260,12 @@ const HealthCenters = ({ userRole }: HealthCentersProps) => {
             </div>
             
             <div className="flex items-end">
-              <Button variant="outline" onClick={clearFilters} className="w-full">
+              <Button variant="outline" onClick={() => setFilters({
+                categoria: 'todos',
+                genero: 'todos',
+                especialidad: 'todos',
+                area_profesional: 'todos'
+              })} className="w-full">
                 Limpiar Filtros
               </Button>
             </div>

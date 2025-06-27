@@ -2,9 +2,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, User, FileText, MapPin, Calendar, GraduationCap, Building } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import html2canvas from 'html2canvas';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { User, GraduationCap, Building, MapPin, Calendar, FileText, X, Download, Phone, CreditCard, AlertTriangle, Globe } from 'lucide-react';
 
 interface ProfessionalDetailProps {
   professional: any;
@@ -12,294 +13,283 @@ interface ProfessionalDetailProps {
 }
 
 const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) => {
-  const { toast } = useToast();
+  if (!professional) return null;
 
-  const downloadAsImage = async () => {
-    try {
-      const element = document.getElementById('professional-detail-card');
-      if (!element) return;
+  // Función para calcular días hasta renovación
+  const calculateDaysUntilRenewal = (validityDate: string) => {
+    const today = new Date();
+    const validity = new Date(validityDate);
+    const diffTime = validity.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
 
-      const canvas = await html2canvas(element, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false
-      });
+  // Datos simulados mejorados
+  const professionalData = {
+    ...professional,
+    telefono: '+240 222 123 456',
+    documentoId: professional.nacionalidad === 'Guinea Ecuatorial' ? '12345678A' : 'P12345678',
+    tipoDocumento: professional.nacionalidad === 'Guinea Ecuatorial' ? 'DNI' : 'Pasaporte',
+    fechaValidezCarnet: '2024-12-15',
+    esBrigadaMedica: professional.nacionalidad !== 'Guinea Ecuatorial' ? true : false,
+    tipoCooperacion: professional.nacionalidad !== 'Guinea Ecuatorial' ? 'Brigada Médica Cubana' : null,
+    numeroCarnetProfesional: 'PROF-2024-001234'
+  };
 
-      const link = document.createElement('a');
-      link.download = `profesional-${professional.nombre_completo?.replace(/\s+/g, '-')}-${Date.now()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+  const daysUntilRenewal = calculateDaysUntilRenewal(professionalData.fechaValidezCarnet);
+  const isRenewalSoon = daysUntilRenewal <= 30;
 
-      toast({
-        title: "Imagen descargada",
-        description: "Los detalles del profesional se han descargado como imagen",
-        variant: "default",
-      });
-    } catch (error) {
-      console.error('Error downloading image:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo descargar la imagen",
-        variant: "destructive",
-      });
+  const formaciones = [
+    {
+      titulo: 'Licenciatura en Medicina',
+      año: '2018',
+      tipo: 'Pregrado',
+      institucion: 'Universidad Nacional de Guinea Ecuatorial'
+    },
+    {
+      titulo: 'Especialización en Medicina Interna',
+      año: '2020',
+      tipo: 'Postgrado',
+      institucion: 'Hospital Universitario de Barcelona'
     }
-  };
-
-  const getEstadoBadge = (estado: string) => {
-    const variants: Record<string, string> = {
-      'Aprobado': 'bg-green-100 text-green-800',
-      'Pendiente': 'bg-yellow-100 text-yellow-800',
-      'Rechazado': 'bg-red-100 text-red-800',
-      'Revisando': 'bg-blue-100 text-blue-800',
-      'Pendiente de Firma': 'bg-orange-100 text-orange-800'
-    };
-    return variants[estado] || 'bg-gray-100 text-gray-800';
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('es-ES');
-  };
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Button variant="outline" onClick={onClose} className="flex items-center space-x-2">
-          <ArrowLeft className="w-4 h-4" />
-          <span>Volver</span>
-        </Button>
-        <Button onClick={downloadAsImage} className="flex items-center space-x-2">
-          <Download className="w-4 h-4" />
-          <span>Descargar como Imagen</span>
-        </Button>
-      </div>
+    <Dialog open={!!professional} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between">
+            <span className="flex items-center space-x-2">
+              <User className="w-5 h-5 text-blue-600" />
+              <span>Perfil Profesional Detallado</span>
+            </span>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
 
-      <Card id="professional-detail-card" className="max-w-4xl mx-auto">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <User className="w-8 h-8" />
-              <div>
-                <CardTitle className="text-2xl">{professional.nombre_completo}</CardTitle>
-                <p className="text-blue-100">{professional.area_profesional}</p>
-              </div>
-            </div>
-            <Badge className={getEstadoBadge(professional.estado_solicitud || 'Pendiente')}>
-              {professional.estado_solicitud || 'Pendiente'}
-            </Badge>
-          </div>
-        </CardHeader>
+        {/* Alerta de renovación próxima */}
+        {isRenewalSoon && (
+          <Alert className="border-orange-200 bg-orange-50">
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800">
+              <strong>Renovación próxima:</strong> El carnet profesional vence en {daysUntilRenewal} días ({professionalData.fechaValidezCarnet})
+            </AlertDescription>
+          </Alert>
+        )}
 
-        <CardContent className="p-6 space-y-6">
-          {/* Información Personal */}
-          <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Columna izquierda: Datos personales y foto */}
+          <div className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-lg">
-                  <User className="w-5 h-5" />
-                  <span>Información Personal</span>
+                <CardTitle className="text-lg">Datos Personales</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-center mb-4">
+                  <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center">
+                    <User className="w-16 h-16 text-gray-400" />
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Nombre completo:</span>
+                    <p className="font-medium">{professionalData.nombreCompleto}</p>
+                  </div>
+                  
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Nacionalidad:</span>
+                    <div className="flex items-center space-x-2">
+                      <Globe className="w-4 h-4 text-gray-500" />
+                      <p>{professionalData.nacionalidad}</p>
+                      {professionalData.esBrigadaMedica && (
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                          {professionalData.tipoCooperacion}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">{professionalData.tipoDocumento}:</span>
+                    <div className="flex items-center space-x-2">
+                      <CreditCard className="w-4 h-4 text-gray-500" />
+                      <p className="font-mono">{professionalData.documentoId}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Teléfono:</span>
+                    <div className="flex items-center space-x-2">
+                      <Phone className="w-4 h-4 text-gray-500" />
+                      <p>{professionalData.telefono}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Edad:</span>
+                    <p>{professionalData.edad} años</p>
+                  </div>
+                  
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Sexo:</span>
+                    <p>{professionalData.sexo === 'M' ? 'Masculino' : 'Femenino'}</p>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="text-center">
+                  <div className="inline-block bg-gray-100 p-4 rounded-lg">
+                    <div className="font-mono text-sm">{professional.codigoBarras}</div>
+                    <div className="text-xs text-gray-600 mt-1">Código de barras único</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Columna central: Formación y trabajo */}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <GraduationCap className="w-5 h-5 text-green-600" />
+                  <span>Formación Académica</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {formaciones.map((formacion, index) => (
+                  <div key={index} className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium">{formacion.titulo}</h4>
+                      <Badge variant="secondary">{formacion.tipo}</Badge>
+                    </div>
+                    <p className="text-sm text-gray-600">{formacion.institucion}</p>
+                    <p className="text-sm text-gray-500">Año: {formacion.año}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Building className="w-5 h-5 text-purple-600" />
+                  <span>Centro de Trabajo</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Nombre</p>
-                    <p className="text-sm">{professional.nombre || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Apellidos</p>
-                    <p className="text-sm">{professional.apellidos || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Género</p>
-                    <p className="text-sm">{professional.genero || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Edad</p>
-                    <p className="text-sm">{professional.edad || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Nacionalidad</p>
-                    <p className="text-sm">{professional.nacionalidad || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Teléfono</p>
-                    <p className="text-sm">{professional.telefono || 'N/A'}</p>
-                  </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-600">Institución:</span>
+                  <p className="font-medium">{professionalData.centroTrabajo}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Domicilio</p>
-                  <p className="text-sm">{professional.domicilio || 'N/A'}</p>
+                  <span className="text-sm font-medium text-gray-600">Profesión:</span>
+                  <p>{professionalData.profesion}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MapPin className="w-4 h-4 text-gray-500" />
+                  <span>{professionalData.distrito}, {professionalData.provincia}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Columna derecha: Estado y documentos */}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <CreditCard className="w-5 h-5 text-blue-600" />
+                  <span>Carnet Profesional</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center">
+                  <p className="text-sm font-medium text-gray-600 mb-1">Número de Carnet</p>
+                  <p className="font-mono text-lg font-bold text-blue-600">{professionalData.numeroCarnetProfesional}</p>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Fecha de validez:</span>
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <p className={`font-medium ${isRenewalSoon ? 'text-orange-600' : 'text-green-600'}`}>
+                        {professionalData.fechaValidezCarnet}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Días hasta renovación:</span>
+                    <p className={`font-bold ${isRenewalSoon ? 'text-orange-600' : 'text-green-600'}`}>
+                      {daysUntilRenewal} días
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-lg">
-                  <FileText className="w-5 h-5" />
-                  <span>Documentación</span>
+                <CardTitle className="flex items-center space-x-2">
+                  <FileText className="w-5 h-5 text-orange-600" />
+                  <span>Estado de Solicitud</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Número de DIP</p>
-                  <p className="text-sm">{professional.numero_dip || 'N/A'}</p>
+              <CardContent className="space-y-4">
+                <div className="text-center">
+                  <Badge className={`text-lg px-4 py-2 ${
+                    professionalData.estado === 'Aprobado' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {professionalData.estado}
+                  </Badge>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Número de Pasaporte</p>
-                  <p className="text-sm">{professional.numero_pasaporte || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Carnet Profesional</p>
-                  <p className="text-sm font-mono">{professional.numero_carnet_profesional || 'Pendiente'}</p>
-                </div>
-                {professional.id_profesional_unico && (
+                
+                <div className="space-y-2">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">ID Profesional Único</p>
-                    <p className="text-sm font-mono bg-blue-50 px-2 py-1 rounded">{professional.id_profesional_unico}</p>
+                    <span className="text-sm font-medium text-gray-600">Fecha de revisión:</span>
+                    <p>{professionalData.fechaRevision || 'Pendiente'}</p>
                   </div>
-                )}
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Estado final:</span>
+                    <p>{professionalData.estado}</p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <h4 className="font-medium">Documentos</h4>
+                  <Button variant="outline" className="w-full justify-start">
+                    <Download className="w-4 h-4 mr-2" />
+                    Carnet Profesional (PDF)
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start">
+                    <Download className="w-4 h-4 mr-2" />
+                    Ficha de Solicitud (PDF)
+                  </Button>
+                  {professionalData.estado === 'Aprobado' && (
+                    <Button variant="outline" className="w-full justify-start">
+                      <Download className="w-4 h-4 mr-2" />
+                      Carta de Resolución (PDF)
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
-
-          {/* Información Profesional */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-lg">
-                <Building className="w-5 h-5" />
-                <span>Información Profesional</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Área Profesional</p>
-                  <p className="text-sm">{professional.area_profesional || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Especialidad</p>
-                  <p className="text-sm">{professional.especialidad || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Puesto</p>
-                  <p className="text-sm">{professional.puesto_responsabilidad || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Lugar de Trabajo</p>
-                  <p className="text-sm">{professional.lugar_trabajo || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Tipo de Sector</p>
-                  <p className="text-sm">{professional.tipo_sector || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Categoría Centro</p>
-                  <p className="text-sm">{professional.categoria_centro || 'N/A'}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Ubicación */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-lg">
-                <MapPin className="w-5 h-5" />
-                <span>Ubicación</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Provincia</p>
-                  <p className="text-sm">{professional.provincia || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Distrito</p>
-                  <p className="text-sm">{professional.distrito || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Distrito Sanitario</p>
-                  <p className="text-sm">{professional.distrito_sanitario || 'N/A'}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Formación */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-lg">
-                <GraduationCap className="w-5 h-5" />
-                <span>Formación Académica</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Año de Graduación</p>
-                <p className="text-sm">{professional.año_graduacion || 'N/A'}</p>
-              </div>
-              
-              {professional.titulacion_especifica_1 && (
-                <div className="border-l-4 border-blue-500 pl-4">
-                  <h4 className="font-medium text-sm text-gray-800">Formación Principal</h4>
-                  <p className="text-sm"><strong>Titulación:</strong> {professional.titulacion_especifica_1}</p>
-                  <p className="text-sm"><strong>Institución:</strong> {professional.institucion_1 || 'N/A'}</p>
-                  <p className="text-sm"><strong>Período:</strong> {professional.periodo_formacion_1 || 'N/A'}</p>
-                  <p className="text-sm"><strong>País:</strong> {professional.pais_formacion_1 || 'N/A'}</p>
-                </div>
-              )}
-              
-              {professional.titulacion_especifica_2 && (
-                <div className="border-l-4 border-green-500 pl-4">
-                  <h4 className="font-medium text-sm text-gray-800">Formación Adicional</h4>
-                  <p className="text-sm"><strong>Titulación:</strong> {professional.titulacion_especifica_2}</p>
-                  <p className="text-sm"><strong>Institución:</strong> {professional.institucion_2 || 'N/A'}</p>
-                  <p className="text-sm"><strong>Período:</strong> {professional.periodo_formacion_2 || 'N/A'}</p>
-                  <p className="text-sm"><strong>País:</strong> {professional.pais_formacion_2 || 'N/A'}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Fechas Importantes */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-lg">
-                <Calendar className="w-5 h-5" />
-                <span>Fechas Importantes</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Fecha de Solicitud</p>
-                  <p className="text-sm">{formatDate(professional.fecha_solicitud)}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Fecha de Revisión</p>
-                  <p className="text-sm">{formatDate(professional.fecha_revision)}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Fecha de Aprobación</p>
-                  <p className="text-sm">{formatDate(professional.fecha_aprobacion)}</p>
-                </div>
-                {professional.fecha_validez_carnet && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Validez del Carnet</p>
-                    <p className="text-sm">{formatDate(professional.fecha_validez_carnet)}</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

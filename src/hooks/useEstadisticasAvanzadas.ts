@@ -25,37 +25,36 @@ export function useEstadisticasAvanzadas() {
       const pendientes = profesionales.filter(p => p.estado_solicitud === 'Pendiente').length;
       const rechazados = profesionales.filter(p => p.estado_solicitud === 'Rechazado').length;
       const revisando = profesionales.filter(p => p.estado_solicitud === 'Revisando').length;
-      const pendientesFirma = profesionales.filter(p => p.estado_solicitud === 'Pendiente de Firma').length;
       
-      // Estadísticas por área profesional (usar datos reales)
+      // Estadísticas por área profesional
       const porArea = profesionales.reduce((acc, prof) => {
         const area = prof.area_profesional || 'Sin especificar';
         acc[area] = (acc[area] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
-      // Estadísticas por provincia (usar datos reales)
+      // Estadísticas por provincia
       const porProvincia = profesionales.reduce((acc, prof) => {
         const provincia = prof.provincia || 'Sin especificar';
         acc[provincia] = (acc[provincia] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
-      // Estadísticas por género (usar datos reales)
+      // Estadísticas por género
       const porGenero = profesionales.reduce((acc, prof) => {
         const genero = prof.genero || 'Sin especificar';
         acc[genero] = (acc[genero] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
-      // Estadísticas por tipo de sector (usar datos reales)
+      // Estadísticas por tipo de sector
       const porTipoSector = profesionales.reduce((acc, prof) => {
         const sector = prof.tipo_sector || 'Sin especificar';
         acc[sector] = (acc[sector] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
-      // Estadísticas por distrito (usar datos reales)
+      // Estadísticas por distrito
       const porDistrito = profesionales.reduce((acc, prof) => {
         const distrito = prof.distrito || 'Sin especificar';
         acc[distrito] = (acc[distrito] || 0) + 1;
@@ -80,7 +79,7 @@ export function useEstadisticasAvanzadas() {
         return fechaVencimiento < hoy;
       }).length;
 
-      // Estadísticas por año de graduación (usar datos reales)
+      // Estadísticas por año de graduación
       const porAnoGraduacion = profesionales.reduce((acc, prof) => {
         if (prof.año_graduacion) {
           const ano = prof.año_graduacion.toString();
@@ -89,7 +88,7 @@ export function useEstadisticasAvanzadas() {
         return acc;
       }, {} as Record<string, number>);
 
-      // Tendencias mensuales (últimos 12 meses) - usar datos reales
+      // Tendencias mensuales (últimos 12 meses)
       const tendenciasMensuales = [];
       for (let i = 11; i >= 0; i--) {
         const fecha = new Date();
@@ -116,7 +115,6 @@ export function useEstadisticasAvanzadas() {
         pendientes,
         rechazados,
         revisando,
-        pendientesFirma,
         vencimientosProximos,
         carnetVencidos,
         
@@ -140,23 +138,18 @@ export function useEstadisticasAvanzadas() {
           { estado: 'Aprobado', cantidad: aprobados, color: '#22c55e' },
           { estado: 'Pendiente', cantidad: pendientes, color: '#f59e0b' },
           { estado: 'Rechazado', cantidad: rechazados, color: '#ef4444' },
-          { estado: 'Revisando', cantidad: revisando, color: '#3b82f6' },
-          { estado: 'Pendiente de Firma', cantidad: pendientesFirma, color: '#f97316' }
-        ].filter(item => item.cantidad > 0),
+          { estado: 'Revisando', cantidad: revisando, color: '#3b82f6' }
+        ],
         
-        datosGraficoAreas: Object.entries(porArea)
-          .filter(([area, cantidad]) => area !== 'Sin especificar' || cantidad > 0)
-          .map(([area, cantidad]) => ({
-            area,
-            cantidad: cantidad as number
-          })),
+        datosGraficoAreas: Object.entries(porArea).map(([area, cantidad]) => ({
+          area,
+          cantidad: cantidad as number
+        })),
         
-        datosGraficoProvincias: Object.entries(porProvincia)
-          .filter(([provincia, cantidad]) => provincia !== 'Sin especificar' || cantidad > 0)
-          .map(([provincia, cantidad]) => ({
-            provincia,
-            cantidad: cantidad as number
-          }))
+        datosGraficoProvincias: Object.entries(porProvincia).map(([provincia, cantidad]) => ({
+          provincia,
+          cantidad: cantidad as number
+        }))
       };
 
       console.log('Estadísticas avanzadas calculadas:', estadisticas);

@@ -2,8 +2,6 @@
 import { Button } from '@/components/ui/button';
 import { Expand, Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
-import html2canvas from 'html2canvas';
 
 interface ChartActionsProps {
   title: string;
@@ -12,51 +10,19 @@ interface ChartActionsProps {
 }
 
 const ChartActions = ({ title, children, onDownload }: ChartActionsProps) => {
-  const { toast } = useToast();
-
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (onDownload) {
       onDownload();
     } else {
-      try {
-        // Find the chart container
-        const chartElement = document.querySelector('.recharts-wrapper') as HTMLElement;
-        if (!chartElement) {
-          toast({
-            title: "Error",
-            description: "No se pudo encontrar el gráfico para descargar",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        const canvas = await html2canvas(chartElement, {
-          backgroundColor: '#ffffff',
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          width: chartElement.offsetWidth,
-          height: chartElement.offsetHeight
-        });
-
+      // Default download functionality
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Create a simple download of the chart
         const link = document.createElement('a');
-        link.download = `${title.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
-        link.href = canvas.toDataURL('image/png', 1.0);
+        link.download = `${title.toLowerCase().replace(/\s+/g, '-')}-chart.png`;
+        link.href = canvas.toDataURL();
         link.click();
-
-        toast({
-          title: "Gráfico descargado",
-          description: "El gráfico se ha descargado correctamente",
-          variant: "default",
-        });
-      } catch (error) {
-        console.error('Error downloading chart:', error);
-        toast({
-          title: "Error",
-          description: "No se pudo descargar el gráfico",
-          variant: "destructive",
-        });
       }
     }
   };

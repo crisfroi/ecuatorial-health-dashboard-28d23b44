@@ -141,10 +141,10 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
                 
                 <Separator />
                 
-                <div className="text-center">
+                 <div className="image">
                   <div className="inline-block bg-gray-100 p-4 rounded-lg">
-                    <div className="font-mono text-sm">{professional.codigoBarras}</div>
-                    <div className="text-xs text-gray-600 mt-1">Código de barras único</div>
+                    <div src={`https://barcodeapi.org/api/128/${professionalData.idProfesionalUnico}`}
+                    <div alt="text-xs text-gray-600 mt-1">Código de barras único</div>
                   </div>
                 </div>
               </CardContent>

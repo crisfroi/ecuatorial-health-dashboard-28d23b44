@@ -3,21 +3,23 @@ import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageCircle, Send, Bot, User, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, Bot, User, Loader2, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useEstadisticasReales } from '@/hooks/useEstadisticasReales';
 
 interface Message {
   id: string;
   content: string;
   sender: 'user' | 'ai';
   timestamp: Date;
+  isExternal?: boolean;
 }
 
 const AIChat = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: '¡Hola! Soy tu asistente de IA especializado en el sistema RENAPROSA. Puedo ayudarte con consultas sobre profesionales sanitarios, estadísticas, procesos administrativos y más. ¿En qué puedo ayudarte hoy?',
+      content: 'Hola, soy tu asistente especializado en el sistema RENAPROSA. Puedo ayudarte con información sobre profesionales sanitarios, estadísticas del sistema, procesos administrativos y también consultar información externa cuando sea necesario. ¿En qué puedo ayudarte?',
       sender: 'ai',
       timestamp: new Date()
     }
@@ -26,6 +28,7 @@ const AIChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { data: stats } = useEstadisticasReales();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -50,28 +53,28 @@ const AIChat = () => {
     setIsLoading(true);
 
     try {
-      // Simulamos una respuesta de IA inteligente basada en el contexto
-      const response = await generateAIResponse(inputMessage);
+      const response = await generateIntelligentResponse(inputMessage);
       
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: response,
+        content: response.content,
         sender: 'ai',
-        timestamp: new Date()
+        timestamp: new Date(),
+        isExternal: response.isExternal
       };
 
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('Error al generar respuesta:', error);
       toast({
-        title: "Error en la IA",
+        title: "Error en la consulta",
         description: "No pude procesar tu consulta. Inténtalo de nuevo.",
         variant: "destructive",
       });
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'Disculpa, hubo un error al procesar tu consulta. Por favor, intenta reformular tu pregunta o inténtalo más tarde.',
+        content: 'Disculpa, hubo un error al procesar tu consulta. Por favor, intenta reformular tu pregunta.',
         sender: 'ai',
         timestamp: new Date()
       };
@@ -82,124 +85,127 @@ const AIChat = () => {
     }
   };
 
-  const generateAIResponse = async (question: string): Promise<string> => {
-    // Simulamos un delay de procesamiento
+  const generateIntelligentResponse = async (question: string): Promise<{content: string, isExternal: boolean}> => {
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
     const lowerQuestion = question.toLowerCase();
     
-    // Respuestas contextuales basadas en palabras clave
-    if (lowerQuestion.includes('estadística') || lowerQuestion.includes('estadisticas')) {
-      return `Sobre estadísticas del sistema RENAPROSA:
+    // Verificar si necesita información externa
+    const needsExternalInfo = lowerQuestion.includes('actualidad') || 
+                             lowerQuestion.includes('noticias') || 
+                             lowerQuestion.includes('mundial') || 
+                             lowerQuestion.includes('internacional') ||
+                             lowerQuestion.includes('covid') ||
+                             lowerQuestion.includes('pandemia') ||
+                             lowerQuestion.includes('oms') ||
+                             lowerQuestion.includes('política sanitaria');
 
-📊 **Datos principales:**
-- Total de profesionales registrados
-- Distribución por áreas profesionales
-- Estados de solicitudes (Pendiente, Aprobado, Rechazado, Revisando)
-- Distribución geográfica por provincias y distritos
-
-🔍 **Puedes consultar:**
-- Tendencias de registro mensual
-- Tasas de aprobación por área
-- Vencimientos de carnets próximos
-- Comparativas entre sectores público/privado
-
-¿Qué aspecto específico te interesa analizar?`;
+    if (needsExternalInfo) {
+      return {
+        content: generateExternalResponse(question),
+        isExternal: true
+      };
     }
 
-    if (lowerQuestion.includes('profesional') || lowerQuestion.includes('médico') || lowerQuestion.includes('enfermero')) {
-      return `Sobre gestión de profesionales sanitarios:
-
-👨‍⚕️ **Información disponible:**
-- Registro completo de profesionales
-- Áreas: Medicina General, Enfermería, Farmacia, Laboratorio, etc.
-- Estados de solicitudes y procesos de aprobación
-- Información de centros de trabajo y ubicaciones
-
-📋 **Procesos:**
-- Solicitud de registro
-- Revisión y aprobación
-- Emisión de carnets profesionales
-- Renovaciones y actualizaciones
-
-¿Necesitas información sobre algún profesional específico o proceso en particular?`;
+    // Respuestas basadas en datos del sistema
+    if (lowerQuestion.includes('estadística') || lowerQuestion.includes('cuántos') || lowerQuestion.includes('total')) {
+      return {
+        content: generateStatsResponse(),
+        isExternal: false
+      };
     }
 
-    if (lowerQuestion.includes('centro') || lowerQuestion.includes('hospital') || lowerQuestion.includes('clínica')) {
-      return `Sobre centros de salud en el sistema:
+    if (lowerQuestion.includes('profesional') || lowerQuestion.includes('médico') || lowerQuestion.includes('doctor')) {
+      return {
+        content: `Actualmente tenemos ${stats?.total || 0} profesionales sanitarios registrados en RENAPROSA. De estos, ${stats?.aprobados || 0} están aprobados y ${stats?.pendientes || 0} están pendientes de revisión.
 
-🏥 **Tipos de centros:**
-- Hospitales públicos y privados
-- Centros de salud primaria
-- Clínicas especializadas
-- Laboratorios y centros diagnósticos
+**Distribución por áreas principales:**
+${Object.entries(stats?.porArea || {}).slice(0, 5).map(([area, cantidad]) => `• ${area}: ${cantidad} profesionales`).join('\n')}
 
-📍 **Información disponible:**
-- Ubicación por distritos sanitarios
-- Personal asignado por centro
-- Categorización de servicios
-- Distribución geográfica
-
-¿Buscas información sobre algún centro específico o zona geográfica?`;
+¿Te interesa información específica sobre algún área profesional o distrito sanitario?`,
+        isExternal: false
+      };
     }
 
-    if (lowerQuestion.includes('carnet') || lowerQuestion.includes('renovar') || lowerQuestion.includes('vencimiento')) {
-      return `Sobre carnets profesionales:
+    if (lowerQuestion.includes('distrito') || lowerQuestion.includes('provincia') || lowerQuestion.includes('ubicación')) {
+      const distritos = Object.entries(stats?.porDistrito || {}).slice(0, 5);
+      return {
+        content: `**Distribución por distritos sanitarios:**
 
-🆔 **Gestión de carnets:**
-- Emisión para profesionales aprobados
-- Fechas de validez y vencimientos
-- Procesos de renovación
-- Seguimiento de estados
+${distritos.map(([distrito, cantidad]) => `📍 **${distrito}**: ${cantidad} profesionales`).join('\n')}
 
-⚠️ **Alertas importantes:**
-- Carnets próximos a vencer (30 días)
-- Carnets vencidos que requieren renovación
-- Notificaciones automáticas
-
-¿Necesitas verificar el estado de algún carnet específico?`;
+Los distritos con mayor concentración de profesionales son los centros urbanos principales. ¿Necesitas información específica sobre algún distrito?`,
+        isExternal: false
+      };
     }
 
-    if (lowerQuestion.includes('ayuda') || lowerQuestion.includes('help')) {
-      return `¡Estoy aquí para ayudarte! Puedo asistirte con:
+    if (lowerQuestion.includes('estado') || lowerQuestion.includes('solicitud') || lowerQuestion.includes('proceso')) {
+      return {
+        content: `**Estado actual de las solicitudes en RENAPROSA:**
 
-🔍 **Consultas sobre:**
-- Estadísticas y reportes del sistema
-- Información de profesionales sanitarios
-- Estados de solicitudes y procesos
-- Centros de salud y ubicaciones
-- Carnets profesionales y vencimientos
+✅ **Aprobadas**: ${stats?.aprobados || 0} solicitudes
+⏳ **Pendientes**: ${stats?.pendientes || 0} solicitudes  
+🔄 **En revisión**: ${stats?.revisando || 0} solicitudes
+❌ **Rechazadas**: ${stats?.rechazados || 0} solicitudes
 
-📊 **Análisis de datos:**
-- Tendencias de registro
-- Distribuciones geográficas
-- Comparativas por áreas profesionales
-- Alertas y notificaciones
-
-💡 **Ejemplos de consultas:**
-- "¿Cuántos médicos están registrados?"
-- "Muéstrame las estadísticas por provincia"
-- "¿Qué carnets vencen próximamente?"
-
-¿Qué te gustaría saber específicamente?`;
+La tasa de aprobación actual es del ${stats?.tasaAprobacion || 0}%. ¿Necesitas detalles sobre algún proceso específico?`,
+        isExternal: false
+      };
     }
 
-    // Respuesta genérica inteligente
-    return `Entiendo tu consulta sobre "${question}". 
+    // Respuesta conversacional general
+    return {
+      content: generateConversationalResponse(question),
+      isExternal: false
+    };
+  };
 
-En el sistema RENAPROSA puedo ayudarte con información sobre:
-- Profesionales sanitarios y sus datos
-- Estadísticas y análisis de datos  
-- Procesos administrativos y estados
-- Centros de salud y ubicaciones
-- Carnets profesionales y vencimientos
+  const generateStatsResponse = () => {
+    return `**Resumen estadístico actual de RENAPROSA:**
 
-¿Podrías ser más específico sobre qué información necesitas? Por ejemplo:
-- ¿Buscas datos estadísticos?
-- ¿Información sobre un profesional específico?
-- ¿Detalles sobre procesos administrativos?
+📊 **Totales generales:**
+• Profesionales registrados: ${stats?.total || 0}
+• Solicitudes aprobadas: ${stats?.aprobados || 0}
+• Solicitudes pendientes: ${stats?.pendientes || 0}
 
-Así podré darte una respuesta más precisa y útil.`;
+🏥 **Por sectores:**
+${Object.entries(stats?.porTipoSector || {}).map(([sector, cantidad]) => `• ${sector}: ${cantidad} profesionales`).join('\n')}
+
+👨‍⚕️ **Áreas más representadas:**
+${Object.entries(stats?.porArea || {}).slice(0, 3).map(([area, cantidad]) => `• ${area}: ${cantidad} profesionales`).join('\n')}
+
+¿Te gustaría profundizar en algún aspecto específico de estas estadísticas?`;
+  };
+
+  const generateExternalResponse = (question: string) => {
+    return `🌐 **Consulta externa requerida**
+
+Para responder tu pregunta sobre "${question}", necesitaría acceder a información actualizada externa. Actualmente puedo ayudarte mejor con:
+
+• **Datos del sistema RENAPROSA** (estadísticas, profesionales, procesos)
+• **Información sanitaria de Guinea Ecuatorial** 
+• **Consultas sobre el registro profesional**
+
+Sin embargo, puedo sugerir que para información sanitaria internacional actualizada consultes:
+- Organización Mundial de la Salud (WHO/OMS)
+- Ministerio de Sanidad nacional
+- Fuentes oficiales de salud pública
+
+¿Hay algo específico del sistema RENAPROSA con lo que pueda ayudarte?`;
+  };
+
+  const generateConversationalResponse = (question: string) => {
+    const responses = [
+      `Entiendo tu consulta. En el contexto del sistema RENAPROSA, puedo ayudarte con información sobre nuestros ${stats?.total || 0} profesionales registrados. ¿Hay algo específico que te interese saber?`,
+      
+      `Es una buena pregunta. Basándome en los datos actuales del sistema, tenemos información detallada sobre profesionales sanitarios, sus especialidades y ubicaciones. ¿Qué aspecto te gustaría explorar?`,
+      
+      `Te entiendo perfectamente. El sistema RENAPROSA maneja información completa sobre el registro profesional sanitario. ¿Necesitas datos sobre algún área específica o proceso administrativo?`,
+      
+      `Interesante consulta. Con los datos que tengo del sistema, puedo proporcionarte información actualizada sobre estadísticas, distribuciones geográficas y estados de solicitudes. ¿Qué información sería más útil para ti?`
+    ];
+    
+    return responses[Math.floor(Math.random() * responses.length)];
   };
 
   const formatTime = (timestamp: Date) => {
@@ -215,19 +221,18 @@ Así podré darte una respuesta más precisa y útil.`;
         <CardHeader className="bg-gradient-to-r from-guinea-teal to-guinea-dark-teal text-white">
           <CardTitle className="flex items-center space-x-2">
             <MessageCircle className="w-5 h-5" />
-            <span>IA Asistente RENAPROSA</span>
+            <span>Asistente Inteligente RENAPROSA</span>
           </CardTitle>
         </CardHeader>
         
         <CardContent className="flex-1 flex flex-col p-0">
-          {/* Área de mensajes */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`flex items-start space-x-2 max-w-[80%] ${
+                <div className={`flex items-start space-x-2 max-w-[85%] ${
                   message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''
                 }`}>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
@@ -238,13 +243,21 @@ Así podré darte una respuesta más precisa y útil.`;
                     {message.sender === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                   </div>
                   
-                  <div className={`rounded-lg p-3 ${
+                  <div className={`rounded-lg p-4 ${
                     message.sender === 'user'
                       ? 'bg-guinea-teal text-white'
                       : 'bg-gray-100 text-gray-800'
                   }`}>
-                    <div className="whitespace-pre-wrap text-sm">{message.content}</div>
-                    <div className={`text-xs mt-1 ${
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                      {message.content}
+                    </div>
+                    {message.isExternal && (
+                      <div className="flex items-center space-x-1 mt-2 text-xs opacity-70">
+                        <Globe className="w-3 h-3" />
+                        <span>Consulta externa</span>
+                      </div>
+                    )}
+                    <div className={`text-xs mt-2 ${
                       message.sender === 'user' ? 'text-guinea-light-teal' : 'text-gray-500'
                     }`}>
                       {formatTime(message.timestamp)}
@@ -260,10 +273,10 @@ Así podré darte una respuesta más precisa y útil.`;
                   <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center">
                     <Bot className="w-4 h-4" />
                   </div>
-                  <div className="bg-gray-100 text-gray-800 rounded-lg p-3">
+                  <div className="bg-gray-100 text-gray-800 rounded-lg p-4">
                     <div className="flex items-center space-x-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="text-sm">Pensando...</span>
+                      <span className="text-sm">Analizando tu consulta...</span>
                     </div>
                   </div>
                 </div>
@@ -273,13 +286,12 @@ Así podré darte una respuesta más precisa y útil.`;
             <div ref={messagesEndRef} />
           </div>
           
-          {/* Área de entrada */}
           <div className="border-t p-4">
             <div className="flex space-x-2">
               <Input
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Escribe tu consulta sobre RENAPROSA..."
+                placeholder="Pregúntame sobre RENAPROSA, estadísticas, profesionales..."
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();

@@ -15,7 +15,7 @@ import HospitalIncidents from '@/components/dashboard/HospitalIncidents';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 import MinisterialPanel from '@/components/dashboard/MinisterialPanel';
 import ProfessionalDetail from '@/components/dashboard/ProfessionalDetail';
-import TestDataButton from '@/components/TestDataButton';
+import ProfileSettings from '@/components/dashboard/ProfileSettings';
 import { useEstadisticasReales } from '@/hooks/useEstadisticasReales';
 
 const Dashboard = () => {
@@ -23,6 +23,7 @@ const Dashboard = () => {
   const [selectedProfessional, setSelectedProfessional] = useState(null);
   const [dashboardFilters, setDashboardFilters] = useState({});
   const [activeTab, setActiveTab] = useState('overview');
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
 
   const { data: stats } = useEstadisticasReales();
 
@@ -60,6 +61,12 @@ const Dashboard = () => {
     );
   }
 
+  if (showProfileSettings) {
+    return (
+      <ProfileSettings onClose={() => setShowProfileSettings(false)} />
+    );
+  }
+
   const currentRole = userRole || 'visualizer';
 
   return (
@@ -68,8 +75,10 @@ const Dashboard = () => {
         <header className="bg-white border-b shadow-sm">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
-              <DashboardHeader userRole={currentRole} />
-              <TestDataButton />
+              <DashboardHeader 
+                userRole={currentRole} 
+                onProfileClick={() => setShowProfileSettings(true)}
+              />
             </div>
           </div>
           <DashboardTabs 
@@ -112,9 +121,9 @@ const Dashboard = () => {
               </TabsContent>
             )}
 
-            {currentRole === 'hospital' && (
+            {(currentRole === 'administrador' || currentRole === 'hospital') && (
               <TabsContent value="incidents">
-                <HospitalIncidents />
+                <HospitalIncidents userRole={currentRole} />
               </TabsContent>
             )}
 

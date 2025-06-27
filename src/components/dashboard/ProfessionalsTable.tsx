@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, X, Eye, Edit, Download, Save } from 'lucide-react';
+import { Search, Filter, X, Eye, Edit, Save } from 'lucide-react';
 import { useProfesionales, type Profesional } from '@/hooks/useProfesionales';
 import { useActualizarProfesional } from '@/hooks/useProfesionalesMutations';
 import { useToast } from '@/hooks/use-toast';
@@ -30,7 +31,7 @@ const ProfessionalsTable = ({
   const [filters, setFilters] = useState({
     area_profesional: 'todos',
     estado_solicitud: 'todos',
-    provincia: 'todos',
+    distrito_sanitario: 'todos',
     genero: 'todos',
     tipo_sector: 'todos'
   });
@@ -59,7 +60,8 @@ const ProfessionalsTable = ({
   const filteredProfesionales = profesionales.filter(prof =>
     prof.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     prof.area_profesional?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prof.numero_carnet_profesional?.toLowerCase().includes(searchTerm.toLowerCase())
+    prof.numero_carnet_profesional?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    prof.id_profesional_unico?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   useEffect(() => {
@@ -73,11 +75,10 @@ const ProfessionalsTable = ({
     setFilters({
       area_profesional: 'todos',
       estado_solicitud: 'todos',
-      provincia: 'todos',
+      distrito_sanitario: 'todos',
       genero: 'todos',
       tipo_sector: 'todos'
     });
-    // NO llamar a onClearFilters para evitar redirección
   };
 
   const handleEditState = (professionalId: string, currentState: string) => {
@@ -276,10 +277,10 @@ const ProfessionalsTable = ({
               <TableHeader>
                 <TableRow className="bg-guinea-light-teal/30">
                   <TableHead className="text-guinea-dark-teal font-semibold">Nombre Completo</TableHead>
+                  <TableHead className="text-guinea-dark-teal font-semibold">Código Expediente</TableHead>
                   <TableHead className="text-guinea-dark-teal font-semibold">Área Profesional</TableHead>
-                  <TableHead className="text-guinea-dark-teal font-semibold">Carnet</TableHead>
                   <TableHead className="text-guinea-dark-teal font-semibold">Estado</TableHead>
-                  <TableHead className="text-guinea-dark-teal font-semibold">Provincia</TableHead>
+                  <TableHead className="text-guinea-dark-teal font-semibold">Distrito Sanitario</TableHead>
                   <TableHead className="text-guinea-dark-teal font-semibold">Fecha Registro</TableHead>
                   <TableHead className="text-guinea-dark-teal font-semibold">Acciones</TableHead>
                 </TableRow>
@@ -300,13 +301,13 @@ const ProfessionalsTable = ({
                       <TableCell className="font-medium text-guinea-dark-teal">
                         {profesional.nombre_completo}
                       </TableCell>
+                      <TableCell className="font-mono text-sm text-guinea-dark-teal">
+                        {profesional.id_profesional_unico || profesional.codigo_expediente || 'Pendiente'}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="border-guinea-teal text-guinea-teal hover:bg-guinea-teal hover:text-white transition-colors duration-200">
                           {profesional.area_profesional}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm text-guinea-dark-teal">
-                        {profesional.numero_carnet_profesional || 'Pendiente'}
                       </TableCell>
                       <TableCell>
                         {editingStates[profesional.id] !== undefined ? (
@@ -363,7 +364,7 @@ const ProfessionalsTable = ({
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="text-guinea-dark-teal">{profesional.provincia || 'N/A'}</TableCell>
+                      <TableCell className="text-guinea-dark-teal">{profesional.distrito_sanitario || 'N/A'}</TableCell>
                       <TableCell className="text-guinea-dark-teal">{formatDate(profesional.created_at)}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">

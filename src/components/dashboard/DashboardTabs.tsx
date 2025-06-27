@@ -13,7 +13,7 @@ const DashboardTabs = ({ activeTab, onTabChange, userRole }: DashboardTabsProps)
     { id: 'requests', label: 'Gestión de Solicitudes', roles: ['administrador'] },
     { id: 'professionals', label: 'Profesionales', roles: ['administrador', 'visualizer'] },
     { id: 'health-centers', label: 'Centros de Salud', roles: ['administrador', 'visualizer'] },
-    { id: 'incidents', label: 'Incidencias', roles: ['hospital'] },
+    { id: 'incidents', label: 'Incidencias', roles: ['administrador', 'hospital'] },
     { id: 'stats', label: 'Estadísticas', roles: ['administrador', 'visualizer', 'hospital', 'comite'] },
     { id: 'ai-chat', label: 'IA Asistente', roles: ['administrador', 'visualizer', 'hospital', 'comite'] },
     { id: 'user-management', label: 'Gestión de Usuarios', roles: ['administrador'] },

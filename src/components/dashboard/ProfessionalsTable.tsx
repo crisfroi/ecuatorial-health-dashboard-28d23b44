@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -78,9 +77,7 @@ const ProfessionalsTable = ({
       genero: 'todos',
       tipo_sector: 'todos'
     });
-    if (onClearFilters) {
-      onClearFilters();
-    }
+    // NO llamar a onClearFilters para evitar redirección
   };
 
   const handleEditState = (professionalId: string, currentState: string) => {
@@ -135,12 +132,12 @@ const ProfessionalsTable = ({
 
   const getEstadoBadge = (estado: string) => {
     const variants: Record<string, string> = {
-      'Aprobado': 'bg-green-100 text-green-800',
-      'Pendiente': 'bg-yellow-100 text-yellow-800',
-      'Rechazado': 'bg-red-100 text-red-800',
-      'Revisando': 'bg-blue-100 text-blue-800'
+      'Aprobado': 'bg-green-100 text-green-800 hover:bg-green-200 transition-colors',
+      'Pendiente': 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors',
+      'Rechazado': 'bg-red-100 text-red-800 hover:bg-red-200 transition-colors',
+      'Revisando': 'bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors'
     };
-    return variants[estado] || 'bg-gray-100 text-gray-800';
+    return variants[estado] || 'bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors';
   };
 
   const formatDate = (dateString?: string) => {
@@ -150,14 +147,14 @@ const ProfessionalsTable = ({
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
         <CardHeader>
-          <CardTitle>Cargando profesionales...</CardTitle>
+          <CardTitle className="text-guinea-teal">Cargando profesionales...</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-12 bg-gray-200 rounded"></div>
+              <div key={i} className="h-12 bg-gradient-to-r from-guinea-light-teal to-gray-200 rounded-lg"></div>
             ))}
           </div>
         </CardContent>
@@ -167,7 +164,7 @@ const ProfessionalsTable = ({
 
   if (error) {
     return (
-      <Card>
+      <Card className="shadow-lg border-red-200">
         <CardHeader>
           <CardTitle className="text-red-600">Error al cargar los datos</CardTitle>
         </CardHeader>
@@ -185,7 +182,7 @@ const ProfessionalsTable = ({
     <div className="space-y-6">
       {/* Filtros aplicados */}
       {(appliedFilters || Object.values(combinedFilters).some(v => v && v !== 'todos')) && (
-        <Card className="border-guinea-teal">
+        <Card className="border-guinea-teal shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-guinea-teal">
@@ -195,7 +192,7 @@ const ProfessionalsTable = ({
                 variant="ghost"
                 size="sm"
                 onClick={handleClearAllFilters}
-                className="text-guinea-teal hover:text-guinea-dark-teal"
+                className="text-guinea-teal hover:text-guinea-dark-teal hover:bg-guinea-light-teal/20 transition-all duration-200"
               >
                 <X className="w-4 h-4 mr-1" />
                 Limpiar Filtros
@@ -207,7 +204,7 @@ const ProfessionalsTable = ({
               {Object.entries(combinedFilters).map(([key, value]) => {
                 if (!value || value === 'todos') return null;
                 return (
-                  <Badge key={key} variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
+                  <Badge key={key} variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal hover:bg-guinea-teal hover:text-white transition-colors duration-200">
                     {key.replace('_', ' ')}: {String(value)}
                   </Badge>
                 );
@@ -217,12 +214,14 @@ const ProfessionalsTable = ({
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
+      <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <CardHeader className="bg-gradient-to-r from-guinea-teal to-guinea-dark-teal text-white rounded-t-lg">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <CardTitle className="flex items-center space-x-2">
               <span>Profesionales Sanitarios</span>
-              <Badge variant="outline">{filteredProfesionales.length}</Badge>
+              <Badge variant="secondary" className="bg-white text-guinea-teal">
+                {filteredProfesionales.length}
+              </Badge>
             </CardTitle>
             
             <div className="flex flex-col sm:flex-row gap-3">
@@ -232,13 +231,13 @@ const ProfessionalsTable = ({
                   placeholder="Buscar profesional..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full sm:w-64"
+                  className="pl-10 w-full sm:w-64 bg-white/90 backdrop-blur-sm border-white/20 focus:border-white focus:ring-white/30"
                 />
               </div>
               
               <div className="flex gap-2">
                 <Select value={filters.area_profesional} onValueChange={(value) => setFilters({...filters, area_profesional: value})}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-40 bg-white/90 backdrop-blur-sm border-white/20">
                     <SelectValue placeholder="Área" />
                   </SelectTrigger>
                   <SelectContent>
@@ -255,7 +254,7 @@ const ProfessionalsTable = ({
                 </Select>
 
                 <Select value={filters.estado_solicitud} onValueChange={(value) => setFilters({...filters, estado_solicitud: value})}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-32 bg-white/90 backdrop-blur-sm border-white/20">
                     <SelectValue placeholder="Estado" />
                   </SelectTrigger>
                   <SelectContent>
@@ -271,18 +270,18 @@ const ProfessionalsTable = ({
           </div>
         </CardHeader>
         
-        <CardContent>
-          <div className="rounded-md border overflow-x-auto">
+        <CardContent className="p-0">
+          <div className="rounded-b-lg overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre Completo</TableHead>
-                  <TableHead>Área Profesional</TableHead>
-                  <TableHead>Carnet</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Provincia</TableHead>
-                  <TableHead>Fecha Registro</TableHead>
-                  <TableHead>Acciones</TableHead>
+                <TableRow className="bg-guinea-light-teal/30">
+                  <TableHead className="text-guinea-dark-teal font-semibold">Nombre Completo</TableHead>
+                  <TableHead className="text-guinea-dark-teal font-semibold">Área Profesional</TableHead>
+                  <TableHead className="text-guinea-dark-teal font-semibold">Carnet</TableHead>
+                  <TableHead className="text-guinea-dark-teal font-semibold">Estado</TableHead>
+                  <TableHead className="text-guinea-dark-teal font-semibold">Provincia</TableHead>
+                  <TableHead className="text-guinea-dark-teal font-semibold">Fecha Registro</TableHead>
+                  <TableHead className="text-guinea-dark-teal font-semibold">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -297,16 +296,16 @@ const ProfessionalsTable = ({
                   </TableRow>
                 ) : (
                   filteredProfesionales.map((profesional) => (
-                    <TableRow key={profesional.id}>
-                      <TableCell className="font-medium">
+                    <TableRow key={profesional.id} className="hover:bg-guinea-light-teal/10 transition-colors duration-200">
+                      <TableCell className="font-medium text-guinea-dark-teal">
                         {profesional.nombre_completo}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">
+                        <Badge variant="outline" className="border-guinea-teal text-guinea-teal hover:bg-guinea-teal hover:text-white transition-colors duration-200">
                           {profesional.area_profesional}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">
+                      <TableCell className="font-mono text-sm text-guinea-dark-teal">
                         {profesional.numero_carnet_profesional || 'Pendiente'}
                       </TableCell>
                       <TableCell>
@@ -333,7 +332,7 @@ const ProfessionalsTable = ({
                               size="sm"
                               variant="ghost"
                               onClick={() => handleSaveState(profesional.id)}
-                              className="text-green-600 hover:text-green-700"
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50 transition-colors duration-200"
                             >
                               <Save className="w-4 h-4" />
                             </Button>
@@ -341,7 +340,7 @@ const ProfessionalsTable = ({
                               size="sm"
                               variant="ghost"
                               onClick={() => handleCancelEdit(profesional.id)}
-                              className="text-gray-600 hover:text-gray-700"
+                              className="text-gray-600 hover:text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                             >
                               <X className="w-4 h-4" />
                             </Button>
@@ -356,7 +355,7 @@ const ProfessionalsTable = ({
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => handleEditState(profesional.id, profesional.estado_solicitud || 'Pendiente')}
-                                className="text-blue-600 hover:text-blue-700"
+                                className="text-guinea-teal hover:text-guinea-dark-teal hover:bg-guinea-light-teal/20 transition-colors duration-200"
                               >
                                 <Edit className="w-3 h-3" />
                               </Button>
@@ -364,14 +363,15 @@ const ProfessionalsTable = ({
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>{profesional.provincia || 'N/A'}</TableCell>
-                      <TableCell>{formatDate(profesional.created_at)}</TableCell>
+                      <TableCell className="text-guinea-dark-teal">{profesional.provincia || 'N/A'}</TableCell>
+                      <TableCell className="text-guinea-dark-teal">{formatDate(profesional.created_at)}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => onSelectProfessional(profesional)}
+                            className="text-guinea-teal hover:text-guinea-dark-teal hover:bg-guinea-light-teal/20 transition-colors duration-200"
                           >
                             <Eye className="w-4 h-4" />
                           </Button>

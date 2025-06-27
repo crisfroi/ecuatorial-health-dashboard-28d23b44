@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { useAuth } from '@/hooks/useAuth';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import DashboardTabs from '@/components/dashboard/DashboardTabs';
 import StatsCards from '@/components/dashboard/StatsCards';
@@ -18,7 +19,7 @@ import TestDataButton from '@/components/TestDataButton';
 import { useEstadisticasAvanzadas } from '@/hooks/useEstadisticasAvanzadas';
 
 const Dashboard = () => {
-  const [userRole, setUserRole] = useState('administrador');
+  const { userRole } = useAuth();
   const [selectedProfessional, setSelectedProfessional] = useState(null);
   const [dashboardFilters, setDashboardFilters] = useState({});
   const [activeTab, setActiveTab] = useState('overview');
@@ -60,19 +61,19 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-guinea-light-teal/10 via-white to-guinea-teal/5">
       <div className="flex flex-col min-h-screen">
-        <header className="bg-white border-b">
+        <header className="bg-white border-b shadow-sm">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
-              <DashboardHeader userRole={userRole} />
+              <DashboardHeader userRole={userRole || 'usuario'} />
               <TestDataButton />
             </div>
           </div>
           <DashboardTabs 
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            userRole={userRole}
+            userRole={userRole || 'usuario'}
           />
         </header>
         
@@ -88,19 +89,19 @@ const Dashboard = () => {
             </TabsContent>
 
             <TabsContent value="requests">
-              <RequestsPanel userRole={userRole} />
+              <RequestsPanel userRole={userRole || 'usuario'} />
             </TabsContent>
 
             <TabsContent value="professionals">
               <ProfessionalsTable 
                 onSelectProfessional={handleSelectProfessional}
-                userRole={userRole}
+                userRole={userRole || 'usuario'}
                 dashboardFilters={dashboardFilters}
               />
             </TabsContent>
 
             <TabsContent value="health-centers">
-              <HealthCenters userRole={userRole} />
+              <HealthCenters userRole={userRole || 'usuario'} />
             </TabsContent>
 
             <TabsContent value="stats">

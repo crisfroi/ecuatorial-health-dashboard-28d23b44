@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,45 +9,48 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-
 interface ProfileSettingsProps {
   onClose: () => void;
 }
-
-const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
-  const { user, userRole } = useAuth();
-  const { toast } = useToast();
+const ProfileSettings = ({
+  onClose
+}: ProfileSettingsProps) => {
+  const {
+    user,
+    userRole
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-
   const handleLogout = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signOut();
+      const {
+        error
+      } = await supabase.auth.signOut();
       if (error) throw error;
-      
       toast({
         title: "Sesión cerrada",
-        description: "Has cerrado sesión exitosamente",
+        description: "Has cerrado sesión exitosamente"
       });
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       toast({
         title: "Error",
         description: "No se pudo cerrar la sesión",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
-
   const getUserInitials = () => {
     if (user?.email) {
       return user.email.substring(0, 2).toUpperCase();
     }
     return 'US';
   };
-
   const getRoleDisplayName = (role: string) => {
     const roleNames = {
       'administrador': 'Administrador',
@@ -58,16 +60,10 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
     };
     return roleNames[role] || role;
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-guinea-light-teal/10 via-white to-guinea-teal/5 p-6">
+  return <div className="min-h-screen bg-gradient-to-br from-guinea-light-teal/10 via-white to-guinea-teal/5 p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={onClose}
-            className="flex items-center space-x-2"
-          >
+          <Button variant="ghost" onClick={onClose} className="flex items-center space-x-2 text-base">
             <ArrowLeft className="w-4 h-4" />
             <span>Volver al Dashboard</span>
           </Button>
@@ -103,33 +99,17 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Correo Electrónico</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={user?.email || ''}
-                    disabled
-                    className="bg-gray-50"
-                  />
+                  <Input id="email" type="email" value={user?.email || ''} disabled className="bg-gray-50" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Rol del Sistema</Label>
-                  <Input
-                    id="role"
-                    value={getRoleDisplayName(userRole || 'usuario')}
-                    disabled
-                    className="bg-gray-50"
-                  />
+                  <Input id="role" value={getRoleDisplayName(userRole || 'usuario')} disabled className="bg-gray-50" />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="created">Fecha de Registro</Label>
-                <Input
-                  id="created"
-                  value={user?.created_at ? new Date(user.created_at).toLocaleDateString('es-ES') : 'No disponible'}
-                  disabled
-                  className="bg-gray-50"
-                />
+                <Input id="created" value={user?.created_at ? new Date(user.created_at).toLocaleDateString('es-ES') : 'No disponible'} disabled className="bg-gray-50" />
               </div>
             </CardContent>
           </Card>
@@ -163,12 +143,7 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
 
               <Separator />
 
-              <Button
-                variant="destructive"
-                onClick={handleLogout}
-                disabled={isLoading}
-                className="w-full flex items-center space-x-2"
-              >
+              <Button variant="destructive" onClick={handleLogout} disabled={isLoading} className="w-full flex items-center space-x-2">
                 <LogOut className="w-4 h-4" />
                 <span>{isLoading ? 'Cerrando sesión...' : 'Cerrar Sesión'}</span>
               </Button>
@@ -189,18 +164,16 @@ const ProfileSettings = ({ onClose }: ProfileSettingsProps) => {
               </div>
               <div>
                 <h4 className="font-medium text-guinea-dark-teal">Última Actualización</h4>
-                <p className="text-gray-600">Enero 2024</p>
+                <p className="text-gray-600">Junio 2025</p>
               </div>
               <div>
                 <h4 className="font-medium text-guinea-dark-teal">Soporte Técnico</h4>
-                <p className="text-gray-600">soporte@renaprosa.gq</p>
+                <p className="text-gray-600">soporterenaprosa@serme.com</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default ProfileSettings;

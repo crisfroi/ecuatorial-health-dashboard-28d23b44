@@ -1,11 +1,16 @@
 
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface DashboardHeaderProps {
   userRole: string;
 }
 
 const DashboardHeader = ({ userRole }: DashboardHeaderProps) => {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -25,6 +30,13 @@ const DashboardHeader = ({ userRole }: DashboardHeaderProps) => {
           </div>
         </div>
         <div className="flex items-center space-x-4">
+          <Button
+            onClick={() => navigate('/register')}
+            className="bg-guinea-teal hover:bg-guinea-dark-teal"
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Registrar Profesional
+          </Button>
           <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
             {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
           </Badge>

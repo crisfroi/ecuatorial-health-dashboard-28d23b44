@@ -64,12 +64,20 @@ const ProfessionalsTable = ({
   );
 
   useEffect(() => {
-    if (appliedFilters) {
-      console.log('ProfessionalsTable: Applied filters received:', appliedFilters);
+    if (dashboardFilters) {
+      console.log('ProfessionalsTable: Dashboard filters received:', dashboardFilters);
+      // Actualizar filtros locales con los del dashboard
+      setFilters(prev => ({
+        ...prev,
+        ...Object.fromEntries(
+          Object.entries(dashboardFilters).map(([key, value]) => [key, value || 'todos'])
+        )
+      }));
     }
-  }, [appliedFilters]);
+  }, [dashboardFilters]);
 
   const handleClearAllFilters = () => {
+    console.log('Clearing all filters');
     setSearchTerm('');
     setFilters({
       area_profesional: 'todos',
@@ -148,6 +156,11 @@ const ProfessionalsTable = ({
     return new Date(dateString).toLocaleDateString('es-ES');
   };
 
+  // Verificar si hay filtros activos
+  const hasActiveFilters = searchTerm || 
+    Object.values(combinedFilters).some(value => value && value !== 'todos') ||
+    Object.values(filters).some(value => value && value !== 'todos');
+
   if (isLoading) {
     return (
       <Card>
@@ -184,7 +197,7 @@ const ProfessionalsTable = ({
   return (
     <div className="space-y-6">
       {/* Filtros aplicados */}
-      {(appliedFilters || Object.values(combinedFilters).some(v => v && v !== 'todos')) && (
+      {hasActiveFilters && (
         <Card className="border-guinea-teal">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -195,7 +208,7 @@ const ProfessionalsTable = ({
                 variant="ghost"
                 size="sm"
                 onClick={handleClearAllFilters}
-                className="text-guinea-teal hover:text-guinea-dark-teal"
+                className="text-guinea-teal hover:text-guinea-dark-teal hover:bg-guinea-light-teal"
               >
                 <X className="w-4 h-4 mr-1" />
                 Limpiar Filtros
@@ -204,6 +217,11 @@ const ProfessionalsTable = ({
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex flex-wrap gap-2">
+              {searchTerm && (
+                <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
+                  búsqueda: {searchTerm}
+                </Badge>
+              )}
               {Object.entries(combinedFilters).map(([key, value]) => {
                 if (!value || value === 'todos') return null;
                 return (

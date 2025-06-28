@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -87,6 +86,12 @@ const ProfessionalRegistrationForm = () => {
 
   const onSubmit = async (data: FormData) => {
     try {
+      // Asegurar que nombre_completo está presente
+      if (!data.nombre_completo) {
+        toast.error('El nombre completo es requerido');
+        return;
+      }
+
       // Determinar el número de documento según lo que esté lleno
       let numero_documento = '';
       let tipo_documento = '';
@@ -100,7 +105,28 @@ const ProfessionalRegistrationForm = () => {
       }
 
       const professionalData = {
-        ...data,
+        nombre_completo: data.nombre_completo, // Explicitly include required field
+        fecha_nacimiento: data.fecha_nacimiento,
+        genero: data.genero,
+        nacionalidad: data.nacionalidad,
+        numero_dip: data.numero_dip,
+        numero_pasaporte: data.numero_pasaporte,
+        telefono: data.telefono,
+        domicilio: data.domicilio,
+        provincia: data.provincia,
+        distrito: data.distrito,
+        distrito_sanitario: data.distrito_sanitario,
+        area_profesional: data.area_profesional,
+        especialidad: data.especialidad,
+        titulacion_especifica_1: data.titulacion_especifica_1,
+        institucion_1: data.institucion_1,
+        año_graduacion: data.año_graduacion,
+        nombre_centro: data.nombre_centro,
+        categoria_centro: data.categoria_centro,
+        tipo_sector: data.tipo_sector,
+        puesto_responsabilidad: data.puesto_responsabilidad,
+        pertenece_brigada_medica: data.pertenece_brigada_medica,
+        tipo_cooperacion: data.tipo_cooperacion,
         numero_documento,
         tipo_documento,
         estado_solicitud: 'Pendiente',

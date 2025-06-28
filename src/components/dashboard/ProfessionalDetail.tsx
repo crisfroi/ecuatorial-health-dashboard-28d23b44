@@ -53,17 +53,19 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
   };
 
   // Función para descargar como PNG
-  const downloadAsPNG = () => {
+  const downloadAsPNG = async () => {
     const element = document.getElementById('professional-detail-content');
     if (element) {
-      import('html2canvas').then((html2canvas) => {
-        html2canvas.default(element).then((canvas) => {
-          const link = document.createElement('a');
-          link.download = `perfil-${professional.nombre_completo}.png`;
-          link.href = canvas.toDataURL();
-          link.click();
-        });
-      });
+      try {
+        const html2canvas = (await import('html2canvas')).default;
+        const canvas = await html2canvas(element);
+        const link = document.createElement('a');
+        link.download = `perfil-${professional.nombre_completo}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+      } catch (error) {
+        console.error('Error generating PNG:', error);
+      }
     }
   };
 
@@ -254,7 +256,7 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
                   </div>
                   <div className="flex items-center space-x-2">
                     <MapPin className="w-4 h-4 text-gray-500" />
-                    <span>{professional.distrito || 'Sin especificar'}, {professional.provincia || 'Sin especificar'}</span>
+                    <span>{professional.distrito || 'Sin especificar'}, {professional.distrito_sanitario || 'Sin especificar'}</span>
                   </div>
                 </CardContent>
               </Card>

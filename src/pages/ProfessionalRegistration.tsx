@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -176,11 +175,10 @@ const ProfessionalRegistration = () => {
           </p>
         </div>
 
-        {/* Progress Bar */}
         <div className="mb-8">
           <Progress value={progress} className="w-full mb-4" />
           <div className="flex justify-between items-center">
-            {steps.map((step, index) => {
+            {steps.map((step) => {
               const Icon = step.icon;
               return (
                 <div
@@ -719,7 +717,6 @@ const ProfessionalRegistration = () => {
               </CardContent>
             </Card>
 
-            {/* Navigation Buttons */}
             <div className="flex justify-between">
               <Button
                 type="button"

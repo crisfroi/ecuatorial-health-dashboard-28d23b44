@@ -1,448 +1,286 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { UserPlus, Shield, Edit, Trash2, Mail, Users, Lock, Eye } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { UserPlus, Mail, Shield, Trash2, Edit } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+const formSchema = z.object({
+  email: z.string().email('Email inválido'),
+  role: z.enum(['administrador', 'visualizer', 'hospital', 'comite']),
+  full_name: z.string().min(1, 'Nombre completo es requerido'),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 const UserRoleManagement = () => {
-  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [users, setUsers] = useState([
     {
-      id: 1,
-      email: 'admin@sanidad.gq',
-      nombre: 'Administrador Principal',
-      rol: 'administrador',
-      estado: 'activo',
-      fechaCreacion: '2024-01-15',
-      ultimoAcceso: '2024-06-23'
+      id: '1',
+      email: 'admin@minsalud.gq',
+      full_name: 'Dr. Carlos Obiang',
+      role: 'administrador',
+      created_at: '2024-01-15',
+      last_sign_in: '2024-06-27'
     },
     {
-      id: 2,
-      email: 'comite@sanidad.gq',
-      nombre: 'Comité Evaluador',
-      rol: 'comite',
-      estado: 'activo',
-      fechaCreacion: '2024-02-01',
-      ultimoAcceso: '2024-06-22'
-    },
-    {
-      id: 3,
-      email: 'hospital.malabo@sanidad.gq',
-      nombre: 'Hospital Regional Malabo',
-      rol: 'hospital',
-      estado: 'activo',
-      fechaCreacion: '2024-02-15',
-      ultimoAcceso: '2024-06-23'
-    },
-    {
-      id: 4,
-      email: 'consultor@external.com',
-      nombre: 'Consultor Externo',
-      rol: 'visualizador',
-      estado: 'inactivo',
-      fechaCreacion: '2024-03-01',
-      ultimoAcceso: '2024-05-15'
+      id: '2',
+      email: 'visualizer@minsalud.gq',
+      full_name: 'Ana Nguema',
+      role: 'visualizer',
+      created_at: '2024-02-10',
+      last_sign_in: '2024-06-26'
     }
   ]);
 
-  const [newUser, setNewUser] = useState({
-    email: '',
-    nombre: '',
-    rol: '',
-    estado: 'activo'
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: '',
+      role: 'visualizer',
+      full_name: ''
+    }
   });
 
-  const [editingUser, setEditingUser] = useState(null);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
-  const roles = [
-    { value: 'administrador', label: 'Administrador', description: 'Acceso completo al sistema' },
-    { value: 'comite', label: 'Comité Evaluador', description: 'Puede revisar y aprobar solicitudes' },
-    { value: 'hospital', label: 'Hospital', description: 'Puede registrar incidencias y consultar datos' },
-    { value: 'visualizador', label: 'Visualizador', description: 'Solo lectura de estadísticas' }
-  ];
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'administrador':
-        return 'bg-red-100 text-red-800';
-      case 'comite':
-        return 'bg-blue-100 text-blue-800';
-      case 'hospital':
-        return 'bg-green-100 text-green-800';
-      case 'visualizador':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    return status === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-  };
-
-  const getRolePermissions = (role: string) => {
-    switch (role) {
-      case 'administrador':
-        return ['Gestión completa', 'Asignación de roles', 'Configuración del sistema'];
-      case 'comite':
-        return ['Revisión de solicitudes', 'Aprobación/Rechazo', 'Estadísticas avanzadas'];
-      case 'hospital':
-        return ['Registro de incidencias', 'Consulta de profesionales', 'Estadísticas básicas'];
-      case 'visualizador':
-        return ['Solo lectura', 'Estadísticas básicas'];
-      default:
-        return [];
-    }
-  };
-
-  const handleAddUser = () => {
-    if (!newUser.email || !newUser.nombre || !newUser.rol) {
-      toast({
-        title: "Error",
-        description: "Todos los campos son obligatorios",
-        variant: "destructive",
+  const onSubmit = async (data: FormData) => {
+    try {
+      // Invitar usuario por email usando Supabase Auth Admin
+      const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(data.email, {
+        data: {
+          role: data.role,
+          full_name: data.full_name
+        },
+        redirectTo: `${window.location.origin}/dashboard`
       });
-      return;
-    }
 
-    const userExists = users.some(user => user.email === newUser.email);
-    if (userExists) {
-      toast({
-        title: "Error",
-        description: "Ya existe un usuario con este correo electrónico",
-        variant: "destructive",
-      });
-      return;
-    }
+      if (authError) {
+        console.error('Error inviting user:', authError);
+        toast.error('Error al enviar invitación: ' + authError.message);
+        return;
+      }
 
-    const newUserData = {
-      id: users.length + 1,
-      ...newUser,
-      fechaCreacion: new Date().toISOString().split('T')[0],
-      ultimoAcceso: null
+      console.log('User invited successfully:', authData);
+      
+      // Actualizar la lista local de usuarios
+      const newUser = {
+        id: authData.user?.id || Math.random().toString(),
+        email: data.email,
+        full_name: data.full_name,
+        role: data.role,
+        created_at: new Date().toISOString().split('T')[0],
+        last_sign_in: 'Nunca'
+      };
+
+      setUsers(prev => [...prev, newUser]);
+      toast.success('Invitación enviada correctamente');
+      setIsDialogOpen(false);
+      form.reset();
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error('Error al crear usuario');
+    }
+  };
+
+  const getRoleBadge = (role: string) => {
+    const roleColors = {
+      'administrador': 'bg-red-100 text-red-800',
+      'visualizer': 'bg-blue-100 text-blue-800',
+      'hospital': 'bg-green-100 text-green-800',
+      'comite': 'bg-purple-100 text-purple-800'
     };
-
-    setUsers([...users, newUserData]);
-    setNewUser({ email: '', nombre: '', rol: '', estado: 'activo' });
-    setIsAddDialogOpen(false);
-
-    toast({
-      title: "Usuario agregado",
-      description: `Se ha enviado una invitación a ${newUser.email}`,
-    });
+    return roleColors[role as keyof typeof roleColors] || 'bg-gray-100 text-gray-800';
   };
 
-  const handleEditUser = () => {
-    if (!editingUser) return;
-
-    setUsers(users.map(user => 
-      user.id === editingUser.id ? editingUser : user
-    ));
-    
-    setEditingUser(null);
-    setIsEditDialogOpen(false);
-
-    toast({
-      title: "Usuario actualizado",
-      description: "Los cambios se han guardado correctamente",
-    });
-  };
-
-  const handleDeleteUser = (userId: number) => {
-    setUsers(users.filter(user => user.id !== userId));
-    
-    toast({
-      title: "Usuario eliminado",
-      description: "El usuario ha sido eliminado del sistema",
-    });
-  };
-
-  const handleToggleStatus = (userId: number) => {
-    setUsers(users.map(user => 
-      user.id === userId 
-        ? { ...user, estado: user.estado === 'activo' ? 'inactivo' : 'activo' }
-        : user
-    ));
-
-    const user = users.find(u => u.id === userId);
-    const newStatus = user?.estado === 'activo' ? 'inactivo' : 'activo';
-    
-    toast({
-      title: `Usuario ${newStatus === 'activo' ? 'activado' : 'desactivado'}`,
-      description: `El estado del usuario ha sido actualizado`,
-    });
+  const getRoleLabel = (role: string) => {
+    const roleLabels = {
+      'administrador': 'Administrador',
+      'visualizer': 'Visualizador',
+      'hospital': 'Hospital',
+      'comite': 'Comité Ministerial'
+    };
+    return roleLabels[role as keyof typeof roleLabels] || role;
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Gestión de Usuarios y Roles</h2>
-          <p className="text-gray-600 mt-1">Administra los accesos y permisos del sistema</p>
-        </div>
-        
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-guinea-teal hover:bg-guinea-dark-teal">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Agregar Usuario
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center space-x-2">
-                <UserPlus className="w-5 h-5 text-guinea-teal" />
-                <span>Agregar Nuevo Usuario</span>
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Correo Electrónico</label>
-                <Input
-                  type="email"
-                  placeholder="usuario@sanidad.gq"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Nombre Completo</label>
-                <Input
-                  placeholder="Nombre del usuario"
-                  value={newUser.nombre}
-                  onChange={(e) => setNewUser({...newUser, nombre: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Rol</label>
-                <Select value={newUser.rol} onValueChange={(value) => setNewUser({...newUser, rol: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar rol" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        <div>
-                          <div className="font-medium">{role.label}</div>
-                          <div className="text-xs text-gray-500">{role.description}</div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleAddUser} className="bg-guinea-teal hover:bg-guinea-dark-teal">
-                  Agregar Usuario
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Resumen de Roles */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {roles.map((role) => {
-          const count = users.filter(user => user.rol === role.value && user.estado === 'activo').length;
-          return (
-            <Card key={role.value} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${getRoleColor(role.value).replace('text-', 'bg-').replace('100', '200')}`}>
-                    <Shield className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm">{role.label}</h3>
-                    <p className="text-2xl font-bold text-guinea-teal">{count}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Tabla de Usuarios */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="w-5 h-5 text-guinea-teal" />
-            <span>Lista de Usuarios</span>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center space-x-2">
+              <Shield className="w-5 h-5 text-blue-600" />
+              <span>Gestión de Usuarios y Roles</span>
+            </span>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Invitar Usuario
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Invitar Nuevo Usuario</DialogTitle>
+                </DialogHeader>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="full_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nombre Completo</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Dr. Juan Pérez" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input placeholder="usuario@minsalud.gq" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Rol del Usuario</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="visualizer">Visualizador</SelectItem>
+                              <SelectItem value="hospital">Hospital</SelectItem>
+                              <SelectItem value="comite">Comité Ministerial</SelectItem>
+                              <SelectItem value="administrador">Administrador</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="flex justify-end space-x-2">
+                      <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                        Cancelar
+                      </Button>
+                      <Button type="submit">
+                        <Mail className="w-4 h-4 mr-2" />
+                        Enviar Invitación
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Usuario</TableHead>
-                <TableHead>Rol</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Último Acceso</TableHead>
-                <TableHead>Permisos</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{user.nombre}</div>
-                      <div className="text-sm text-gray-500 flex items-center">
-                        <Mail className="w-3 h-3 mr-1" />
-                        {user.email}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getRoleColor(user.rol)}>
-                      {roles.find(r => r.value === user.rol)?.label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(user.estado)}>
-                      {user.estado === 'activo' ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {user.ultimoAcceso ? new Date(user.ultimoAcceso).toLocaleDateString() : 'Nunca'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      {getRolePermissions(user.rol).map((permission, index) => (
-                        <div key={index} className="text-xs bg-gray-100 px-2 py-1 rounded">
-                          {permission}
-                        </div>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setEditingUser(user);
-                          setIsEditDialogOpen(true);
-                        }}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleToggleStatus(user.id)}
-                        className={user.estado === 'activo' ? 'text-red-600' : 'text-green-600'}
-                      >
-                        <Lock className="w-4 h-4" />
-                      </Button>
-                      {user.rol !== 'administrador' && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-red-600">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción no se puede deshacer. El usuario perderá acceso al sistema.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteUser(user.id)}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                Eliminar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuario</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Rol</TableHead>
+                  <TableHead>Fecha Creación</TableHead>
+                  <TableHead>Último Acceso</TableHead>
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.full_name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge className={getRoleBadge(user.role)}>
+                        {getRoleLabel(user.role)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{user.created_at}</TableCell>
+                    <TableCell>{user.last_sign_in}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="ghost" size="sm">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Dialog de Edición */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Edit className="w-5 h-5 text-guinea-teal" />
-              <span>Editar Usuario</span>
-            </DialogTitle>
-          </DialogHeader>
-          {editingUser && (
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Correo Electrónico</label>
-                <Input
-                  type="email"
-                  value={editingUser.email}
-                  onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Nombre Completo</label>
-                <Input
-                  value={editingUser.nombre}
-                  onChange={(e) => setEditingUser({...editingUser, nombre: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Rol</label>
-                <Select 
-                  value={editingUser.rol} 
-                  onValueChange={(value) => setEditingUser({...editingUser, rol: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        <div>
-                          <div className="font-medium">{role.label}</div>
-                          <div className="text-xs text-gray-500">{role.description}</div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleEditUser} className="bg-guinea-teal hover:bg-guinea-dark-teal">
-                  Guardar Cambios
-                </Button>
-              </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Descripción de Roles</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-semibold text-red-700 mb-2">Administrador</h3>
+              <p className="text-sm text-gray-600">
+                Acceso completo al sistema. Puede gestionar usuarios, procesar solicitudes, 
+                ver estadísticas y configurar el sistema.
+              </p>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-semibold text-blue-700 mb-2">Visualizador</h3>
+              <p className="text-sm text-gray-600">
+                Puede ver estadísticas, profesionales registrados y centros de salud. 
+                Sin permisos de edición.
+              </p>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-semibold text-green-700 mb-2">Hospital</h3>
+              <p className="text-sm text-gray-600">
+                Gestión de incidencias hospitalarias y seguimiento de profesionales 
+                en su institución.
+              </p>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-semibold text-purple-700 mb-2">Comité Ministerial</h3>
+              <p className="text-sm text-gray-600">
+                Revisión y aprobación de solicitudes, generación de reportes ministeriales 
+                y toma de decisiones.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

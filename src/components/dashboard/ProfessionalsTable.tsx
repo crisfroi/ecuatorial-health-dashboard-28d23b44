@@ -4,219 +4,384 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Eye, Filter, Download, RefreshCw, Search, X } from 'lucide-react';
-import { useProfesionales } from '@/hooks/useProfesionales';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, Filter, X, Eye, Edit, Download, Save } from 'lucide-react';
+import { useProfesionales, type Profesional } from '@/hooks/useProfesionales';
+import { useActualizarProfesional } from '@/hooks/useProfesionalesMutations';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProfessionalsTableProps {
   onSelectProfessional: (professional: any) => void;
   userRole: string;
+  appliedFilters?: any;
+  onClearFilters?: () => void;
   dashboardFilters?: any;
 }
 
-const ProfessionalsTable = ({ onSelectProfessional, userRole, dashboardFilters }: ProfessionalsTableProps) => {
+const ProfessionalsTable = ({ 
+  onSelectProfessional, 
+  userRole, 
+  appliedFilters, 
+  onClearFilters,
+  dashboardFilters 
+}: ProfessionalsTableProps) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [editingStates, setEditingStates] = useState<Record<string, string>>({});
   const [filters, setFilters] = useState({
-    search: '',
     area_profesional: 'todos',
     estado_solicitud: 'todos',
-    distrito_sanitario: 'todos',
+    provincia: 'todos',
     genero: 'todos',
-    tipo_sector: 'todos',
-    ...dashboardFilters
+    tipo_sector: 'todos'
   });
 
-  const { data: professionals = [], isLoading, refetch } = useProfesionales(filters);
+  const { toast } = useToast();
+  const updateProfessional = useActualizarProfesional();
 
-  useEffect(() => {
-    if (dashboardFilters) {
-      setFilters(prev => ({ ...prev, ...dashboardFilters }));
-    }
-  }, [dashboardFilters]);
-
-  const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+  // Combinar filtros aplicados desde el dashboard con filtros locales
+  const combinedFilters = {
+    ...filters,
+    ...dashboardFilters,
+    ...appliedFilters
   };
 
-  const clearFilters = () => {
+  // Convertir "todos" a empty string para la query
+  const queryFilters = Object.fromEntries(
+    Object.entries(combinedFilters).map(([key, value]) => [
+      key, 
+      value === 'todos' ? '' : value
+    ])
+  );
+
+  const { data: profesionales = [], isLoading, error } = useProfesionales(queryFilters);
+
+  // Aplicar filtro de búsqueda local
+  const filteredProfesionales = profesionales.filter(prof =>
+    prof.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    prof.area_profesional?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    prof.numero_carnet_profesional?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  useEffect(() => {
+    if (appliedFilters) {
+      console.log('ProfessionalsTable: Applied filters received:', appliedFilters);
+    }
+  }, [appliedFilters]);
+
+  const handleClearAllFilters = () => {
+    setSearchTerm('');
     setFilters({
-      search: '',
       area_profesional: 'todos',
       estado_solicitud: 'todos',
-      distrito_sanitario: 'todos',
+      provincia: 'todos',
       genero: 'todos',
       tipo_sector: 'todos'
     });
+    if (onClearFilters) {
+      onClearFilters();
+    }
   };
 
-  const filteredProfessionals = professionals.filter(prof => {
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      return (
-        prof.nombre_completo?.toLowerCase().includes(searchTerm) ||
-        prof.numero_documento?.toLowerCase().includes(searchTerm) ||
-        prof.id_profesional_unico?.toLowerCase().includes(searchTerm) ||
-        prof.codigo_expediente?.toLowerCase().includes(searchTerm)
-      );
-    }
-    return true;
-  });
+  const handleEditState = (professionalId: string, currentState: string) => {
+    setEditingStates(prev => ({
+      ...prev,
+      [professionalId]: currentState
+    }));
+  };
 
-  const getStatusBadge = (status: string) => {
-    const statusColors = {
+  const handleSaveState = async (professionalId: string) => {
+    const newState = editingStates[professionalId];
+    if (!newState) return;
+
+    try {
+      await updateProfessional.mutateAsync({
+        id: professionalId,
+        updates: {
+          estado_solicitud: newState,
+          fecha_revision: newState !== 'Pendiente' ? new Date().toISOString().split('T')[0] : null,
+          fecha_aprobacion: newState === 'Aprobado' ? new Date().toISOString().split('T')[0] : null
+        }
+      });
+
+      toast({
+        title: "Estado actualizado",
+        description: `El estado del profesional ha sido actualizado a ${newState}`,
+        variant: "default",
+      });
+
+      setEditingStates(prev => {
+        const newStates = { ...prev };
+        delete newStates[professionalId];
+        return newStates;
+      });
+    } catch (error) {
+      console.error('Error updating professional state:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado del profesional",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelEdit = (professionalId: string) => {
+    setEditingStates(prev => {
+      const newStates = { ...prev };
+      delete newStates[professionalId];
+      return newStates;
+    });
+  };
+
+  const getEstadoBadge = (estado: string) => {
+    const variants: Record<string, string> = {
       'Aprobado': 'bg-green-100 text-green-800',
       'Pendiente': 'bg-yellow-100 text-yellow-800',
-      'Revisando': 'bg-blue-100 text-blue-800',
-      'Rechazado': 'bg-red-100 text-red-800'
+      'Rechazado': 'bg-red-100 text-red-800',
+      'Revisando': 'bg-blue-100 text-blue-800'
     };
-    return statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800';
+    return variants[estado] || 'bg-gray-100 text-gray-800';
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('es-ES');
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <RefreshCw className="w-6 h-6 animate-spin mr-2" />
-        Cargando profesionales...
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Cargando profesionales...</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-12 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-red-600">Error al cargar los datos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-500">Error: {error.message}</p>
+          <p className="text-sm text-gray-600 mt-2">
+            Verifica que la tabla esté creada correctamente en Supabase.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Filtros aplicados */}
+      {(appliedFilters || Object.values(combinedFilters).some(v => v && v !== 'todos')) && (
+        <Card className="border-guinea-teal">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-guinea-teal">
+                Filtros Aplicados
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearAllFilters}
+                className="text-guinea-teal hover:text-guinea-dark-teal"
+              >
+                <X className="w-4 h-4 mr-1" />
+                Limpiar Filtros
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(combinedFilters).map(([key, value]) => {
+                if (!value || value === 'todos') return null;
+                return (
+                  <Badge key={key} variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
+                    {key.replace('_', ' ')}: {String(value)}
+                  </Badge>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center space-x-2">
-              <Filter className="w-5 h-5" />
-              <span>Filtros de Búsqueda</span>
-            </span>
-            <Button variant="outline" size="sm" onClick={clearFilters}>
-              <X className="w-4 h-4 mr-2" />
-              Limpiar Filtros
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar por nombre, documento o código..."
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="pl-10"
-              />
-            </div>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <CardTitle className="flex items-center space-x-2">
+              <span>Profesionales Sanitarios</span>
+              <Badge variant="outline">{filteredProfesionales.length}</Badge>
+            </CardTitle>
             
-            <Select value={filters.area_profesional} onValueChange={(value) => handleFilterChange('area_profesional', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Área profesional" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas las áreas</SelectItem>
-                <SelectItem value="Medicina">Medicina</SelectItem>
-                <SelectItem value="Enfermería">Enfermería</SelectItem>
-                <SelectItem value="Farmacia">Farmacia</SelectItem>
-                <SelectItem value="Odontología">Odontología</SelectItem>
-                <SelectItem value="Laboratorio">Laboratorio</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Buscar profesional..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full sm:w-64"
+                />
+              </div>
+              
+              <div className="flex gap-2">
+                <Select value={filters.area_profesional} onValueChange={(value) => setFilters({...filters, area_profesional: value})}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Área" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas las áreas</SelectItem>
+                    <SelectItem value="MEDICINA GENERAL">Medicina General</SelectItem>
+                    <SelectItem value="ENFERMERÍA">Enfermería</SelectItem>
+                    <SelectItem value="FARMACIA">Farmacia</SelectItem>
+                    <SelectItem value="LABORATORIO">Laboratorio</SelectItem>
+                    <SelectItem value="RADIOLOGÍA">Radiología</SelectItem>
+                    <SelectItem value="ODONTOLOGÍA">Odontología</SelectItem>
+                    <SelectItem value="NUTRICIÓN">Nutrición</SelectItem>
+                    <SelectItem value="ESPECIALIDAD">Especialidad</SelectItem>
+                  </SelectContent>
+                </Select>
 
-            <Select value={filters.estado_solicitud} onValueChange={(value) => handleFilterChange('estado_solicitud', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="Pendiente">Pendiente</SelectItem>
-                <SelectItem value="Revisando">Revisando</SelectItem>
-                <SelectItem value="Aprobado">Aprobado</SelectItem>
-                <SelectItem value="Rechazado">Rechazado</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filters.distrito_sanitario} onValueChange={(value) => handleFilterChange('distrito_sanitario', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Distrito sanitario" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los distritos</SelectItem>
-                <SelectItem value="Malabo">Malabo</SelectItem>
-                <SelectItem value="Bata">Bata</SelectItem>
-                <SelectItem value="Ebebiyin">Ebebiyin</SelectItem>
-                <SelectItem value="Mongomo">Mongomo</SelectItem>
-                <SelectItem value="Evinayong">Evinayong</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Profesionales Sanitarios ({filteredProfessionals.length})</span>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm" onClick={() => refetch()}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Actualizar
-              </Button>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Exportar
-              </Button>
+                <Select value={filters.estado_solicitud} onValueChange={(value) => setFilters({...filters, estado_solicitud: value})}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="Aprobado">Aprobado</SelectItem>
+                    <SelectItem value="Pendiente">Pendiente</SelectItem>
+                    <SelectItem value="Rechazado">Rechazado</SelectItem>
+                    <SelectItem value="Revisando">Revisando</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </CardTitle>
+          </div>
         </CardHeader>
+        
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID Único</TableHead>
                   <TableHead>Nombre Completo</TableHead>
                   <TableHead>Área Profesional</TableHead>
-                  <TableHead>Distrito Sanitario</TableHead>
+                  <TableHead>Carnet</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead>Provincia</TableHead>
+                  <TableHead>Fecha Registro</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProfessionals.map((professional) => (
-                  <TableRow key={professional.id}>
-                    <TableCell className="font-mono text-sm">
-                      {professional.id_profesional_unico || professional.codigo_expediente || 'Sin asignar'}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {professional.nombre_completo}
-                    </TableCell>
-                    <TableCell>{professional.area_profesional}</TableCell>
-                    <TableCell>{professional.distrito_sanitario || professional.distrito}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusBadge(professional.estado_solicitud)}>
-                        {professional.estado_solicitud}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onSelectProfessional(professional)}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Ver
-                      </Button>
+                {filteredProfesionales.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                      {profesionales.length === 0 
+                        ? "No hay profesionales registrados aún"
+                        : "No se encontraron profesionales con los filtros aplicados"
+                      }
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredProfesionales.map((profesional) => (
+                    <TableRow key={profesional.id}>
+                      <TableCell className="font-medium">
+                        {profesional.nombre_completo}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {profesional.area_profesional}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {profesional.numero_carnet_profesional || 'Pendiente'}
+                      </TableCell>
+                      <TableCell>
+                        {editingStates[profesional.id] !== undefined ? (
+                          <div className="flex items-center space-x-2">
+                            <Select
+                              value={editingStates[profesional.id]}
+                              onValueChange={(value) => setEditingStates(prev => ({
+                                ...prev,
+                                [profesional.id]: value
+                              }))}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Pendiente">Pendiente</SelectItem>
+                                <SelectItem value="Revisando">Revisando</SelectItem>
+                                <SelectItem value="Aprobado">Aprobado</SelectItem>
+                                <SelectItem value="Rechazado">Rechazado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleSaveState(profesional.id)}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <Save className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleCancelEdit(profesional.id)}
+                              className="text-gray-600 hover:text-gray-700"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <Badge className={getEstadoBadge(profesional.estado_solicitud || 'Pendiente')}>
+                              {profesional.estado_solicitud || 'Pendiente'}
+                            </Badge>
+                            {(userRole === 'administrador' || userRole === 'comite') && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditState(profesional.id, profesional.estado_solicitud || 'Pendiente')}
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>{profesional.provincia || 'N/A'}</TableCell>
+                      <TableCell>{formatDate(profesional.created_at)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onSelectProfessional(profesional)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
-            
-            {filteredProfessionals.length === 0 && (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No se encontraron profesionales con los filtros aplicados</p>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

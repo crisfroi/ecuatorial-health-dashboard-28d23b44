@@ -1,5 +1,6 @@
 
 import { Button } from '@/components/ui/button';
+import { Activity, FileText, Users, TrendingUp, MessageCircle, AlertTriangle, Settings, UserCheck, Building2 } from 'lucide-react';
 
 interface DashboardTabsProps {
   activeTab: string;
@@ -9,37 +10,37 @@ interface DashboardTabsProps {
 
 const DashboardTabs = ({ activeTab, onTabChange, userRole }: DashboardTabsProps) => {
   const tabs = [
-    { id: 'overview', label: 'Resumen', roles: ['administrador', 'visualizer', 'hospital', 'comite'] },
-    { id: 'requests', label: 'Gestión de Solicitudes', roles: ['administrador'] },
-    { id: 'professionals', label: 'Profesionales', roles: ['administrador', 'visualizer'] },
-    { id: 'health-centers', label: 'Centros de Salud', roles: ['administrador', 'visualizer'] },
-    { id: 'incidents', label: 'Incidencias', roles: ['administrador', 'hospital'] },
-    { id: 'stats', label: 'Estadísticas', roles: ['administrador', 'visualizer', 'hospital', 'comite'] },
-    { id: 'ai-chat', label: 'IA Asistente', roles: ['administrador', 'visualizer', 'hospital', 'comite'] },
-    { id: 'user-management', label: 'Gestión de Usuarios', roles: ['administrador'] },
-    { id: 'ministerial', label: 'Panel Ministerial', roles: ['administrador', 'comite'] },
+    { id: 'overview', label: 'Panel Principal', icon: Activity },
+    { id: 'requests', label: 'Solicitudes', icon: FileText },
+    { id: 'professionals', label: 'Profesionales', icon: Users },
+    { id: 'health-centers', label: 'Centros de Salud', icon: Building2 },
+    { id: 'stats', label: 'Estadísticas', icon: TrendingUp },
+    { id: 'ai-chat', label: 'Análisis IA', icon: MessageCircle },
+    { id: 'incidents', label: 'Incidencias', icon: AlertTriangle },
+    ...(userRole === 'administrador' ? [
+      { id: 'user-management', label: 'Usuarios', icon: Settings }
+    ] : []),
+    ...((userRole === 'administrador' || userRole === 'comite') ? [
+      { id: 'ministerial', label: 'Panel Ministerial', icon: UserCheck }
+    ] : [])
   ];
 
-  const availableTabs = tabs.filter(tab => tab.roles.includes(userRole));
-
   return (
-    <div className="w-full overflow-x-auto">
-      <div className="flex space-x-1 min-w-max px-6 py-3 bg-gray-50 border-b">
-        {availableTabs.map((tab) => (
+    <div className="flex flex-wrap gap-2 mb-6 p-4 bg-white rounded-lg shadow-sm border">
+      {tabs.map((tab) => {
+        const Icon = tab.icon;
+        return (
           <Button
             key={tab.id}
             variant={activeTab === tab.id ? "default" : "ghost"}
             onClick={() => onTabChange(tab.id)}
-            className={`whitespace-nowrap ${
-              activeTab === tab.id 
-                ? "bg-guinea-teal text-white hover:bg-guinea-dark-teal" 
-                : "text-guinea-dark-teal hover:bg-guinea-light-teal/20"
-            }`}
+            className="flex items-center space-x-2 h-10"
           >
-            {tab.label}
+            <Icon className="w-4 h-4" />
+            <span className="hidden sm:inline">{tab.label}</span>
           </Button>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 };

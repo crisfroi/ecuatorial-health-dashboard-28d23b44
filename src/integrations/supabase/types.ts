@@ -9,139 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      distrito_sanitario: {
-        Row: {
-          abreviatura_distrito: string | null
-          abreviatura_provincia: string | null
-          nombre_distrito: string
-          nombre_provincia: string | null
-        }
-        Insert: {
-          abreviatura_distrito?: string | null
-          abreviatura_provincia?: string | null
-          nombre_distrito: string
-          nombre_provincia?: string | null
-        }
-        Update: {
-          abreviatura_distrito?: string | null
-          abreviatura_provincia?: string | null
-          nombre_distrito?: string
-          nombre_provincia?: string | null
-        }
-        Relationships: []
-      }
-      incidencias_hospitalarias: {
-        Row: {
-          created_at: string | null
-          descripcion: string | null
-          estado: string | null
-          fecha_incidencia: string | null
-          fecha_resolucion: string | null
-          gravedad: string | null
-          id: string
-          id_profesional: string | null
-          notas_resolucion: string | null
-          reportado_por: string | null
-          resuelto_por: string | null
-          tipo_incidencia: string | null
-          titulo_incidencia: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          descripcion?: string | null
-          estado?: string | null
-          fecha_incidencia?: string | null
-          fecha_resolucion?: string | null
-          gravedad?: string | null
-          id?: string
-          id_profesional?: string | null
-          notas_resolucion?: string | null
-          reportado_por?: string | null
-          resuelto_por?: string | null
-          tipo_incidencia?: string | null
-          titulo_incidencia: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          descripcion?: string | null
-          estado?: string | null
-          fecha_incidencia?: string | null
-          fecha_resolucion?: string | null
-          gravedad?: string | null
-          id?: string
-          id_profesional?: string | null
-          notas_resolucion?: string | null
-          reportado_por?: string | null
-          resuelto_por?: string | null
-          tipo_incidencia?: string | null
-          titulo_incidencia?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "incidencias_hospitalarias_id_profesional_fkey"
-            columns: ["id_profesional"]
-            isOneToOne: false
-            referencedRelation: "profesionales_sanitarios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      nacionalidades_gentilicios: {
-        Row: {
-          gentilicio_femenino: string | null
-          nacionalidad: string
-        }
-        Insert: {
-          gentilicio_femenino?: string | null
-          nacionalidad: string
-        }
-        Update: {
-          gentilicio_femenino?: string | null
-          nacionalidad?: string
-        }
-        Relationships: []
-      }
-      profesional_centro_asignado: {
-        Row: {
-          categoria_centro: string | null
-          distrito_sanitario: string | null
-          fecha_asignacion: string | null
-          id: string
-          id_profesional: string | null
-          nombre_centro: string | null
-          tipo_sector: string | null
-        }
-        Insert: {
-          categoria_centro?: string | null
-          distrito_sanitario?: string | null
-          fecha_asignacion?: string | null
-          id?: string
-          id_profesional?: string | null
-          nombre_centro?: string | null
-          tipo_sector?: string | null
-        }
-        Update: {
-          categoria_centro?: string | null
-          distrito_sanitario?: string | null
-          fecha_asignacion?: string | null
-          id?: string
-          id_profesional?: string | null
-          nombre_centro?: string | null
-          tipo_sector?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profesional_centro_asignado_id_profesional_fkey"
-            columns: ["id_profesional"]
-            isOneToOne: false
-            referencedRelation: "profesionales_sanitarios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profesionales_sanitarios: {
         Row: {
           año_graduacion: number | null
@@ -168,27 +35,23 @@ export type Database = {
           fecha_alta: string | null
           fecha_aprobacion: string | null
           fecha_aprobacion_carnet: string | null
-          fecha_creacion_solicitud: string | null
           fecha_nacimiento: string | null
           fecha_revision: string | null
           fecha_solicitud: string | null
           fecha_validez_carnet: string | null
           foto_carnet: string | null
           genero: string | null
-          genero_interesado: string | null
-          gentilicio_femenino: string | null
+          gentilicio: string | null
           id: string
-          id_distrito: string | null
           id_profesional_unico: string | null
           institucion_1: string | null
           institucion_2: string | null
+          lugar_trabajo: string | null
           meses_en_paro: number | null
           motivo_rechazo: string | null
           nacionalidad: string | null
           nombre: string | null
-          nombre_centro: string | null
           nombre_completo: string
-          notas_revision: string | null
           numero_autonumerico_correlativo: number | null
           numero_carnet_profesional: string | null
           numero_correlativo: number | null
@@ -204,8 +67,6 @@ export type Database = {
           prefijo_area: string | null
           provincia: string | null
           puesto_responsabilidad: string | null
-          referencia_articulo_genero: string | null
-          revisor_solicitud: string | null
           telefono: string | null
           tipo_cooperacion: string | null
           tipo_documento: string | null
@@ -216,10 +77,8 @@ export type Database = {
           titulacion_especifica_2: string | null
           titulo_adjunto_1: string | null
           titulo_adjunto_2: string | null
-          tratamiento_genero: string | null
           ultima_modificacion_por: string | null
           updated_at: string | null
-          urgencia_solicitud: string | null
           url_carta_resolucion: string | null
           url_codigo_barras: string | null
           url_pdf: string | null
@@ -249,27 +108,23 @@ export type Database = {
           fecha_alta?: string | null
           fecha_aprobacion?: string | null
           fecha_aprobacion_carnet?: string | null
-          fecha_creacion_solicitud?: string | null
           fecha_nacimiento?: string | null
           fecha_revision?: string | null
           fecha_solicitud?: string | null
           fecha_validez_carnet?: string | null
           foto_carnet?: string | null
           genero?: string | null
-          genero_interesado?: string | null
-          gentilicio_femenino?: string | null
+          gentilicio?: string | null
           id?: string
-          id_distrito?: string | null
           id_profesional_unico?: string | null
           institucion_1?: string | null
           institucion_2?: string | null
+          lugar_trabajo?: string | null
           meses_en_paro?: number | null
           motivo_rechazo?: string | null
           nacionalidad?: string | null
           nombre?: string | null
-          nombre_centro?: string | null
           nombre_completo: string
-          notas_revision?: string | null
           numero_autonumerico_correlativo?: number | null
           numero_carnet_profesional?: string | null
           numero_correlativo?: number | null
@@ -285,8 +140,6 @@ export type Database = {
           prefijo_area?: string | null
           provincia?: string | null
           puesto_responsabilidad?: string | null
-          referencia_articulo_genero?: string | null
-          revisor_solicitud?: string | null
           telefono?: string | null
           tipo_cooperacion?: string | null
           tipo_documento?: string | null
@@ -297,10 +150,8 @@ export type Database = {
           titulacion_especifica_2?: string | null
           titulo_adjunto_1?: string | null
           titulo_adjunto_2?: string | null
-          tratamiento_genero?: string | null
           ultima_modificacion_por?: string | null
           updated_at?: string | null
-          urgencia_solicitud?: string | null
           url_carta_resolucion?: string | null
           url_codigo_barras?: string | null
           url_pdf?: string | null
@@ -330,27 +181,23 @@ export type Database = {
           fecha_alta?: string | null
           fecha_aprobacion?: string | null
           fecha_aprobacion_carnet?: string | null
-          fecha_creacion_solicitud?: string | null
           fecha_nacimiento?: string | null
           fecha_revision?: string | null
           fecha_solicitud?: string | null
           fecha_validez_carnet?: string | null
           foto_carnet?: string | null
           genero?: string | null
-          genero_interesado?: string | null
-          gentilicio_femenino?: string | null
+          gentilicio?: string | null
           id?: string
-          id_distrito?: string | null
           id_profesional_unico?: string | null
           institucion_1?: string | null
           institucion_2?: string | null
+          lugar_trabajo?: string | null
           meses_en_paro?: number | null
           motivo_rechazo?: string | null
           nacionalidad?: string | null
           nombre?: string | null
-          nombre_centro?: string | null
           nombre_completo?: string
-          notas_revision?: string | null
           numero_autonumerico_correlativo?: number | null
           numero_carnet_profesional?: string | null
           numero_correlativo?: number | null
@@ -366,8 +213,6 @@ export type Database = {
           prefijo_area?: string | null
           provincia?: string | null
           puesto_responsabilidad?: string | null
-          referencia_articulo_genero?: string | null
-          revisor_solicitud?: string | null
           telefono?: string | null
           tipo_cooperacion?: string | null
           tipo_documento?: string | null
@@ -378,33 +223,206 @@ export type Database = {
           titulacion_especifica_2?: string | null
           titulo_adjunto_1?: string | null
           titulo_adjunto_2?: string | null
-          tratamiento_genero?: string | null
           ultima_modificacion_por?: string | null
           updated_at?: string | null
-          urgencia_solicitud?: string | null
           url_carta_resolucion?: string | null
           url_codigo_barras?: string | null
           url_pdf?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profesionales_sanitarios_id_distrito_fkey"
-            columns: ["id_distrito"]
-            isOneToOne: false
-            referencedRelation: "distrito_sanitario"
-            referencedColumns: ["nombre_distrito"]
-          },
-        ]
+        Relationships: []
+      }
+      "RENAPROSA 1": {
+        Row: {
+          "¿Pertenece usted a alguna Brigada o Cooperación Médica Inter":
+            | string
+            | null
+          "Año de inicio del paro": number | null
+          Apellidos: string | null
+          "Area Profesional": string | null
+          "AUTONUMÉRICO INTERNO": number | null
+          "Brigadas y Cooperaciones": string | null
+          "Categorias centros": string | null
+          "codigo barras(url)": string | null
+          "Codigo de Expediente": string
+          Creada: string | null
+          createdTime: string | null
+          Distrito: string | null
+          "Distritos Sanitarios": string | null
+          Domicilio: string | null
+          "Estado Actual  de Trabajo": string | null
+          "Estado de Solicitud": string | null
+          "Fecha de Aprobación": string | null
+          "Fecha de Nacimiento": string | null
+          "Fecha de Revisión": string | null
+          "Fecha de Solicitud": string | null
+          "Foto Carnet": string | null
+          "Género o sexo": string | null
+          "Gentilicio (from Nacionalidad)": string | null
+          id: string | null
+          "ID Profesional": string | null
+          "IMAGEN CODIGO BARRAS": string | null
+          "Institución 1": string | null
+          "Institución 2": string | null
+          "Lugar de trabajo": string | null
+          "Meses en paro": number | null
+          "Motivo del rechazo": string | null
+          Nacionalidad: string | null
+          Nombre: string | null
+          "NOMBRE COMPLETO": string
+          "NUMERO CORRELATIVO": number | null
+          "Número de DIP": number | null
+          "Número de Documento": string | null
+          "Número de Pasaporte": string | null
+          "Número de Teléfono": number | null
+          "País de Formación 1": string | null
+          "Pais de Formación 2": string | null
+          "pdf formulario": string | null
+          "Periodo Formación 1": string | null
+          "Periodo Formación 2": string | null
+          "PREFIJO DE ÁREA": string | null
+          "Puesto o Responsabilidad": string | null
+          "Seleccione su Brigada o Cooperacíon": string | null
+          "Tipo de formación 1": string | null
+          "Tipo de formación 2": string | null
+          "Tipo de sector": string | null
+          "Titulación específica 1": string | null
+          "Titulación específica 2": string | null
+          "Titulo Adjunto 1": string | null
+          "Titulo Adjunto 2": string | null
+          "Última modificación por": string | null
+          "Url Carta de Resolución": string | null
+          "url pdf": string | null
+        }
+        Insert: {
+          "¿Pertenece usted a alguna Brigada o Cooperación Médica Inter"?:
+            | string
+            | null
+          "Año de inicio del paro"?: number | null
+          Apellidos?: string | null
+          "Area Profesional"?: string | null
+          "AUTONUMÉRICO INTERNO"?: number | null
+          "Brigadas y Cooperaciones"?: string | null
+          "Categorias centros"?: string | null
+          "codigo barras(url)"?: string | null
+          "Codigo de Expediente": string
+          Creada?: string | null
+          createdTime?: string | null
+          Distrito?: string | null
+          "Distritos Sanitarios"?: string | null
+          Domicilio?: string | null
+          "Estado Actual  de Trabajo"?: string | null
+          "Estado de Solicitud"?: string | null
+          "Fecha de Aprobación"?: string | null
+          "Fecha de Nacimiento"?: string | null
+          "Fecha de Revisión"?: string | null
+          "Fecha de Solicitud"?: string | null
+          "Foto Carnet"?: string | null
+          "Género o sexo"?: string | null
+          "Gentilicio (from Nacionalidad)"?: string | null
+          id?: string | null
+          "ID Profesional"?: string | null
+          "IMAGEN CODIGO BARRAS"?: string | null
+          "Institución 1"?: string | null
+          "Institución 2"?: string | null
+          "Lugar de trabajo"?: string | null
+          "Meses en paro"?: number | null
+          "Motivo del rechazo"?: string | null
+          Nacionalidad?: string | null
+          Nombre?: string | null
+          "NOMBRE COMPLETO": string
+          "NUMERO CORRELATIVO"?: number | null
+          "Número de DIP"?: number | null
+          "Número de Documento"?: string | null
+          "Número de Pasaporte"?: string | null
+          "Número de Teléfono"?: number | null
+          "País de Formación 1"?: string | null
+          "Pais de Formación 2"?: string | null
+          "pdf formulario"?: string | null
+          "Periodo Formación 1"?: string | null
+          "Periodo Formación 2"?: string | null
+          "PREFIJO DE ÁREA"?: string | null
+          "Puesto o Responsabilidad"?: string | null
+          "Seleccione su Brigada o Cooperacíon"?: string | null
+          "Tipo de formación 1"?: string | null
+          "Tipo de formación 2"?: string | null
+          "Tipo de sector"?: string | null
+          "Titulación específica 1"?: string | null
+          "Titulación específica 2"?: string | null
+          "Titulo Adjunto 1"?: string | null
+          "Titulo Adjunto 2"?: string | null
+          "Última modificación por"?: string | null
+          "Url Carta de Resolución"?: string | null
+          "url pdf"?: string | null
+        }
+        Update: {
+          "¿Pertenece usted a alguna Brigada o Cooperación Médica Inter"?:
+            | string
+            | null
+          "Año de inicio del paro"?: number | null
+          Apellidos?: string | null
+          "Area Profesional"?: string | null
+          "AUTONUMÉRICO INTERNO"?: number | null
+          "Brigadas y Cooperaciones"?: string | null
+          "Categorias centros"?: string | null
+          "codigo barras(url)"?: string | null
+          "Codigo de Expediente"?: string
+          Creada?: string | null
+          createdTime?: string | null
+          Distrito?: string | null
+          "Distritos Sanitarios"?: string | null
+          Domicilio?: string | null
+          "Estado Actual  de Trabajo"?: string | null
+          "Estado de Solicitud"?: string | null
+          "Fecha de Aprobación"?: string | null
+          "Fecha de Nacimiento"?: string | null
+          "Fecha de Revisión"?: string | null
+          "Fecha de Solicitud"?: string | null
+          "Foto Carnet"?: string | null
+          "Género o sexo"?: string | null
+          "Gentilicio (from Nacionalidad)"?: string | null
+          id?: string | null
+          "ID Profesional"?: string | null
+          "IMAGEN CODIGO BARRAS"?: string | null
+          "Institución 1"?: string | null
+          "Institución 2"?: string | null
+          "Lugar de trabajo"?: string | null
+          "Meses en paro"?: number | null
+          "Motivo del rechazo"?: string | null
+          Nacionalidad?: string | null
+          Nombre?: string | null
+          "NOMBRE COMPLETO"?: string
+          "NUMERO CORRELATIVO"?: number | null
+          "Número de DIP"?: number | null
+          "Número de Documento"?: string | null
+          "Número de Pasaporte"?: string | null
+          "Número de Teléfono"?: number | null
+          "País de Formación 1"?: string | null
+          "Pais de Formación 2"?: string | null
+          "pdf formulario"?: string | null
+          "Periodo Formación 1"?: string | null
+          "Periodo Formación 2"?: string | null
+          "PREFIJO DE ÁREA"?: string | null
+          "Puesto o Responsabilidad"?: string | null
+          "Seleccione su Brigada o Cooperacíon"?: string | null
+          "Tipo de formación 1"?: string | null
+          "Tipo de formación 2"?: string | null
+          "Tipo de sector"?: string | null
+          "Titulación específica 1"?: string | null
+          "Titulación específica 2"?: string | null
+          "Titulo Adjunto 1"?: string | null
+          "Titulo Adjunto 2"?: string | null
+          "Última modificación por"?: string | null
+          "Url Carta de Resolución"?: string | null
+          "url pdf"?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      calcular_edad: {
-        Args: { birth_date: string }
-        Returns: number
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

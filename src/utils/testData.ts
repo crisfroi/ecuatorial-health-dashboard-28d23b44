@@ -2,138 +2,137 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { ProfesionalInsert } from '@/hooks/useProfesionales';
 
-export const createTestProfessionals = async () => {
-  const testProfessionals: ProfesionalInsert[] = [
-    {
-      nombre_completo: "Dr. Carlos Mendoza García",
-      nombre: "Carlos",
-      apellidos: "Mendoza García",
-      genero: "Masculino",
-      fecha_nacimiento: "1985-03-15",
-      edad: 39,
-      nacionalidad: "Ecuatoguineana",
-      gentilicio: "Ecuatoguineano",
-      domicilio: "Calle Principal 123, Malabo",
-      numero_dip: "12345678",
-      numero_pasaporte: "EG123456789",
-      telefono: "+240222123456",
-      area_profesional: "MEDICINA GENERAL",
-      prefijo_area: "MG",
-      especialidad: "Medicina Interna",
-      lugar_trabajo: "Hospital General de Malabo",
-      provincia: "Bioko Norte",
-      distrito: "Malabo",
-      distrito_sanitario: "Malabo Centro",
-      tipo_sector: "Público",
-      categoria_centro: "Hospital Nacional",
-      estado_solicitud: "Aprobado",
-      estado_trabajo: "Activo",
-      año_graduacion: 2010,
-      titulacion_especifica_1: "Licenciatura en Medicina y Cirugía",
-      tipo_formacion_1: "Universitaria",
-      institucion_1: "Universidad Nacional de Guinea Ecuatorial",
-      periodo_formacion_1: "2004-2010",
-      pais_formacion_1: "Guinea Ecuatorial",
-      puesto_responsabilidad: "Médico Internista",
-      numero_carnet_profesional: "MG-2024-001",
-      fecha_validez_carnet: "2025-12-31",
-      fecha_solicitud: "2024-01-15",
-      fecha_aprobacion: "2024-02-01",
-      pertenece_brigada_medica: false
-    },
-    {
-      nombre_completo: "Enfermera María José Nsue Obiang",
-      nombre: "María José",
-      apellidos: "Nsue Obiang",
-      genero: "Femenino",
-      fecha_nacimiento: "1990-07-22",
-      edad: 34,
-      nacionalidad: "Ecuatoguineana",
-      gentilicio: "Ecuatoguineana",
-      domicilio: "Barrio Ela Nguema, Bata",
-      numero_dip: "87654321",
-      numero_pasaporte: "EG987654321",
-      telefono: "+240333456789",
-      area_profesional: "ENFERMERÍA",
-      prefijo_area: "ENF",
-      especialidad: "Enfermería Pediátrica",
-      lugar_trabajo: "Hospital Regional de Bata",
-      provincia: "Litoral",
-      distrito: "Bata",
-      distrito_sanitario: "Bata Urbano",
-      tipo_sector: "Público",
-      categoria_centro: "Hospital Regional",
-      estado_solicitud: "Pendiente",
-      estado_trabajo: "Activo",
-      año_graduacion: 2015,
-      titulacion_especifica_1: "Diplomatura en Enfermería",
-      tipo_formacion_1: "Universitaria",
-      institucion_1: "Escuela de Enfermería de Bata",
-      periodo_formacion_1: "2012-2015",
-      pais_formacion_1: "Guinea Ecuatorial",
-      puesto_responsabilidad: "Supervisora de Enfermería Pediátrica",
-      fecha_solicitud: "2024-03-10",
-      pertenece_brigada_medica: true,
-      brigada_cooperacion: "Brigada Médica Cubana"
-    },
-    {
-      nombre_completo: "Farm. Antonio Nguema Mba",
-      nombre: "Antonio",
-      apellidos: "Nguema Mba",
-      genero: "Masculino",
-      fecha_nacimiento: "1988-11-08",
-      edad: 36,
-      nacionalidad: "Ecuatoguineana",
-      gentilicio: "Ecuatoguineano",
-      domicilio: "Avenida de la Independencia 45, Malabo",
-      numero_dip: "45678901",
-      numero_pasaporte: "EG456789012",
-      telefono: "+240555789012",
-      area_profesional: "FARMACIA",
-      prefijo_area: "FARM",
-      especialidad: "Farmacia Hospitalaria",
-      lugar_trabajo: "Hospital La Paz",
-      provincia: "Bioko Norte",
-      distrito: "Malabo",
-      distrito_sanitario: "Malabo Sur",
-      tipo_sector: "Privado",
-      categoria_centro: "Hospital Privado",
-      estado_solicitud: "Aprobado",
-      estado_trabajo: "Activo",
-      año_graduacion: 2013,
-      titulacion_especifica_1: "Licenciatura en Farmacia",
-      tipo_formacion_1: "Universitaria",
-      institucion_1: "Universidad de Alcalá de Henares",
-      periodo_formacion_1: "2008-2013",
-      pais_formacion_1: "España",
-      titulacion_especifica_2: "Máster en Farmacia Hospitalaria",
-      tipo_formacion_2: "Postgrado",
-      institucion_2: "Universidad Complutense de Madrid",
-      periodo_formacion_2: "2014-2015",
-      pais_formacion_2: "España",
-      puesto_responsabilidad: "Jefe de Farmacia",
-      numero_carnet_profesional: "FARM-2024-002",
-      fecha_validez_carnet: "2025-06-30",
-      fecha_solicitud: "2024-01-20",
-      fecha_aprobacion: "2024-02-15",
-      pertenece_brigada_medica: false,
-      año_inicio_paro: null,
-      meses_en_paro: 0
+const testProfesionales: ProfesionalInsert[] = [
+  {
+    nombre_completo: "Dr. Juan Carlos Mendoza",
+    nombre: "Juan Carlos",
+    apellidos: "Mendoza",
+    genero: "Masculino",
+    fecha_nacimiento: "1985-03-15",
+    edad: 39,
+    nacionalidad: "Ecuatoguineana",
+    gentilicio_femenino: "Ecuatoguineana",
+    numero_dip: "12345678",
+    telefono: "+240222123456",
+    domicilio: "Barrio Ela Nguema, Malabo",
+    area_profesional: "Medicina",
+    especialidad: "Cardiología",
+    numero_carnet_profesional: "MED-001-2024",
+    fecha_validez_carnet: "2025-12-31",
+    nombre_centro: "Hospital Nacional de Malabo",
+    provincia: "Bioko Norte",
+    distrito: "Malabo",
+    categoria_centro: "Hospital Nacional",
+    tipo_sector: "Público",
+    estado_solicitud: "Aprobado",
+    titulacion_especifica_1: "Licenciado en Medicina",
+    institucion_1: "Universidad Nacional de Guinea Ecuatorial",
+    año_graduacion: 2010,
+    pais_formacion_1: "Guinea Ecuatorial",
+    fecha_solicitud: "2024-01-15",
+    fecha_aprobacion: "2024-02-01",
+    pertenece_brigada_medica: false
+  },
+  {
+    nombre_completo: "Dra. María Carmen Obiang",
+    nombre: "María Carmen",
+    apellidos: "Obiang",
+    genero: "Femenino",
+    fecha_nacimiento: "1990-07-22",
+    edad: 34,
+    nacionalidad: "Ecuatoguineana",
+    gentilicio_femenino: "Ecuatoguineana",
+    numero_dip: "87654321",
+    telefono: "+240333456789",
+    domicilio: "Barrio Comandachina, Bata",
+    area_profesional: "Enfermería",
+    especialidad: "Enfermería Pediátrica",
+    numero_carnet_profesional: "ENF-002-2024",
+    fecha_validez_carnet: "2025-06-30",
+    nombre_centro: "Hospital Regional de Bata",
+    provincia: "Litoral",
+    distrito: "Bata",
+    categoria_centro: "Hospital Regional",
+    tipo_sector: "Público",
+    estado_solicitud: "Aprobado",
+    titulacion_especifica_1: "Diplomado en Enfermería",
+    institucion_1: "Escuela de Enfermería de Bata",
+    año_graduacion: 2015,
+    pais_formacion_1: "Guinea Ecuatorial",
+    fecha_solicitud: "2024-01-20",
+    fecha_aprobacion: "2024-02-10",
+    pertenece_brigada_medica: false
+  },
+  {
+    nombre_completo: "Dr. Antonio Nsue Micha",
+    nombre: "Antonio",
+    apellidos: "Nsue Micha",
+    genero: "Masculino",
+    fecha_nacimiento: "1982-11-08",
+    edad: 42,
+    nacionalidad: "Ecuatoguineana",
+    gentilicio_femenino: "Ecuatoguineana",
+    numero_dip: "11223344",
+    telefono: "+240444567890",
+    domicilio: "Barrio Ela Nguema, Malabo",
+    area_profesional: "Farmacia",
+    especialidad: "Farmacia Hospitalaria",
+    numero_carnet_profesional: "FAR-003-2024",
+    fecha_validez_carnet: "2024-12-31",
+    nombre_centro: "Farmacia Central de Malabo",
+    provincia: "Bioko Norte",
+    distrito: "Malabo",
+    categoria_centro: "Centro de Salud",
+    tipo_sector: "Público",
+    estado_solicitud: "Pendiente",
+    titulacion_especifica_1: "Licenciado en Farmacia",
+    institucion_1: "Universidad de Barcelona",
+    año_graduacion: 2008,
+    pais_formacion_1: "España",
+    fecha_solicitud: "2024-02-01",
+    pertenece_brigada_medica: false
+  }
+];
+
+export const createTestData = async () => {
+  try {
+    console.log('Creando datos de prueba...');
+    
+    const { data, error } = await supabase
+      .from('profesionales_sanitarios')
+      .insert(testProfesionales)
+      .select();
+
+    if (error) {
+      console.error('Error creando datos de prueba:', error);
+      throw error;
     }
-  ];
 
-  console.log('Inserting test professionals:', testProfessionals);
-
-  const { data, error } = await supabase
-    .from('profesionales_sanitarios')
-    .insert(testProfessionals)
-    .select();
-
-  if (error) {
-    console.error('Error inserting test professionals:', error);
+    console.log('Datos de prueba creados exitosamente:', data?.length || 0, 'registros');
+    return data;
+  } catch (error) {
+    console.error('Error en createTestData:', error);
     throw error;
   }
+};
 
-  console.log('Test professionals inserted successfully:', data);
-  return data;
+export const clearTestData = async () => {
+  try {
+    console.log('Eliminando todos los datos...');
+    
+    const { error } = await supabase
+      .from('profesionales_sanitarios')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Eliminar todos excepto un ID imposible
+
+    if (error) {
+      console.error('Error eliminando datos:', error);
+      throw error;
+    }
+
+    console.log('Datos eliminados exitosamente');
+  } catch (error) {
+    console.error('Error en clearTestData:', error);
+    throw error;
+  }
 };

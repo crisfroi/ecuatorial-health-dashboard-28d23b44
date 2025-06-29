@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -114,12 +115,31 @@ const ProfessionalRegistration = () => {
       const birthDate = new Date(data.fecha_nacimiento);
       const age = new Date().getFullYear() - birthDate.getFullYear();
 
+      // Crear objeto con solo los campos que existen en la base de datos
       const submissionData = {
-        ...data,
-        edad: age,
+        nombre_completo: data.nombre_completo,
+        genero: data.genero,
         fecha_nacimiento: data.fecha_nacimiento,
+        edad: age,
+        nacionalidad: data.nacionalidad,
+        numero_dip: data.numero_dip || null,
+        numero_pasaporte: data.numero_pasaporte || null,
+        telefono: data.telefono,
+        domicilio: data.domicilio,
+        provincia: data.provincia,
+        distrito: data.distrito,
+        area_profesional: data.area_profesional,
+        especialidad: data.especialidad || null,
+        titulacion_especifica_1: data.titulacion_especifica_1,
+        institucion_1: data.institucion_1,
         año_graduacion: data.año_graduacion,
-        estado_solicitud: 'Pendiente',
+        pais_formacion_1: data.pais_formacion_1,
+        nombre_centro: data.nombre_centro,
+        categoria_centro: data.categoria_centro,
+        tipo_sector: data.tipo_sector,
+        pertenece_brigada_medica: data.pertenece_brigada_medica,
+        tipo_cooperacion: data.tipo_cooperacion || null,
+        estado_solicitud: 'Pendiente' as const,
         fecha_solicitud: new Date().toISOString().split('T')[0]
       };
 

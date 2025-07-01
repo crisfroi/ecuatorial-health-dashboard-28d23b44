@@ -14,7 +14,6 @@ import HospitalIncidents from '@/components/dashboard/HospitalIncidents';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 import MinisterialPanel from '@/components/dashboard/MinisterialPanel';
 import ProfessionalDetail from '@/components/dashboard/ProfessionalDetail';
-import TestDataButton from '@/components/TestDataButton';
 import { useEstadisticasAvanzadas } from '@/hooks/useEstadisticasAvanzadas';
 
 const Dashboard = () => {
@@ -66,7 +65,6 @@ const Dashboard = () => {
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
               <DashboardHeader userRole={userRole} />
-              <TestDataButton />
             </div>
           </div>
           <DashboardTabs 

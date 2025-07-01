@@ -5,24 +5,25 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { AlertCircle, Upload, User, Home, GraduationCap, Briefcase, FileText, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { useNacionalidades } from '@/hooks/useNacionalidades';
+import { useDistritosSanitarios } from '@/hooks/useDistritosSanitarios';
 
-// Schema de validación
+// Schema de validación actualizado
 const formSchema = z.object({
-  nombre_completo: z.string().min(2, "El nombre completo es requerido"),
+  nombre: z.string().min(2, "El nombre es requerido"),
+  apellidos: z.string().min(2, "Los apellidos son requeridos"),
   genero: z.string().min(1, "El género es requerido"),
   fecha_nacimiento: z.string().min(1, "La fecha de nacimiento es requerida"),
   nacionalidad: z.string().min(1, "La nacionalidad es requerida"),
@@ -34,15 +35,19 @@ const formSchema = z.object({
   distrito: z.string().min(1, "El distrito es requerido"),
   area_profesional: z.string().min(1, "El área profesional es requerida"),
   especialidad: z.string().optional(),
+  categoria_titulacion: z.string().min(1, "La categoría de titulación es requerida"),
   titulacion_especifica_1: z.string().min(1, "La titulación es requerida"),
   institucion_1: z.string().min(1, "La institución es requerida"),
-  año_graduacion: z.number().min(1950).max(new Date().getFullYear()),
+  periodo_formacion: z.string().min(1, "El período de formación es requerido"),
   pais_formacion_1: z.string().min(1, "El país de formación es requerido"),
+  situacion_laboral: z.string().min(1, "La situación laboral es requerida"),
   nombre_centro: z.string().min(1, "El centro de trabajo es requerido"),
   categoria_centro: z.string().min(1, "La categoría del centro es requerida"),
   tipo_sector: z.string().min(1, "El tipo de sector es requerido"),
+  distrito_sanitario: z.string().optional(),
   pertenece_brigada_medica: z.boolean().default(false),
   tipo_cooperacion: z.string().optional(),
+  documentos: z.any().optional(),
   acepta_politicas: z.boolean().refine(val => val === true, "Debe aceptar las políticas")
 });
 
@@ -55,17 +60,6 @@ const steps = [
   { id: 4, title: "Situación Laboral", icon: Briefcase },
   { id: 5, title: "Documentos", icon: FileText },
   { id: 6, title: "Confirmación", icon: CheckCircle }
-];
-
-const nacionalidades = [
-  "Ecuatoguineana",
-  "Española",
-  "Cubana",
-  "Marroquí",
-  "Camerunesa",
-  "Gabonesa",
-  "Nigeria",
-  "Otra"
 ];
 
 const provincias = [
@@ -91,22 +85,53 @@ const areas_profesionales = [
   "Otra"
 ];
 
+const categorias_titulacion = [
+  "LICENCIATURA",
+  "DIPLOMADO", 
+  "MASTER",
+  "ESPECIALIDAD",
+  "TÉCNICO"
+];
+
+const categorias_centro = [
+  "HOSPITAL",
+  "CENTRO DE SALUD",
+  "CLINICA",
+  "CONSULTORIO",
+  "FARMACIA",
+  "LABORATORIO"
+];
+
 const ProfessionalRegistration = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { data: nacionalidades = [] } = useNacionalidades();
+  const { data: distritosSanitarios = [] } = useDistritosSanitarios();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       pertenece_brigada_medica: false,
-      acepta_politicas: false
+      acepta_politicas: false,
+      situacion_laboral: 'Activo'
     }
   });
 
   const watchedValues = form.watch();
   const isEcuatoguineana = watchedValues.nacionalidad === "Ecuatoguineana";
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    setUploadedFiles(prev => [...prev, ...files]);
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
@@ -115,9 +140,18 @@ const ProfessionalRegistration = () => {
       const birthDate = new Date(data.fecha_nacimiento);
       const age = new Date().getFullYear() - birthDate.getFullYear();
 
-      // Crear objeto con solo los campos que existen en la base de datos
+      // Preparar datos de documentos
+      const documentosData = uploadedFiles.map(file => ({
+        nombre: file.name,
+        tipo: file.type,
+        tamaño: file.size
+      }));
+
+      // Crear objeto con los datos del formulario
       const submissionData = {
-        nombre_completo: data.nombre_completo,
+        nombre_completo: `${data.nombre} ${data.apellidos}`,
+        nombre: data.nombre,
+        apellidos: data.apellidos,
         genero: data.genero,
         fecha_nacimiento: data.fecha_nacimiento,
         edad: age,
@@ -130,15 +164,19 @@ const ProfessionalRegistration = () => {
         distrito: data.distrito,
         area_profesional: data.area_profesional,
         especialidad: data.especialidad || null,
+        categoria_titulacion: data.categoria_titulacion,
         titulacion_especifica_1: data.titulacion_especifica_1,
         institucion_1: data.institucion_1,
-        año_graduacion: data.año_graduacion,
+        periodo_formacion: data.periodo_formacion,
         pais_formacion_1: data.pais_formacion_1,
+        situacion_laboral: data.situacion_laboral,
         nombre_centro: data.nombre_centro,
         categoria_centro: data.categoria_centro,
         tipo_sector: data.tipo_sector,
+        distrito_sanitario: data.distrito_sanitario || null,
         pertenece_brigada_medica: data.pertenece_brigada_medica,
         tipo_cooperacion: data.tipo_cooperacion || null,
+        documentos_cargados: documentosData,
         estado_solicitud: 'Pendiente' as const,
         fecha_solicitud: new Date().toISOString().split('T')[0]
       };
@@ -241,12 +279,26 @@ const ProfessionalRegistration = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
-                      name="nombre_completo"
+                      name="nombre"
                       render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                          <FormLabel>Nombre Completo *</FormLabel>
+                        <FormItem>
+                          <FormLabel>Nombre *</FormLabel>
                           <FormControl>
-                            <Input placeholder="Ingrese su nombre completo" {...field} />
+                            <Input placeholder="Ingrese su nombre" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="apellidos"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Apellidos *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ingrese sus apellidos" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -293,7 +345,7 @@ const ProfessionalRegistration = () => {
                       control={form.control}
                       name="nacionalidad"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="md:col-span-2">
                           <FormLabel>Nacionalidad *</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
@@ -303,8 +355,8 @@ const ProfessionalRegistration = () => {
                             </FormControl>
                             <SelectContent>
                               {nacionalidades.map((nacionalidad) => (
-                                <SelectItem key={nacionalidad} value={nacionalidad}>
-                                  {nacionalidad}
+                                <SelectItem key={nacionalidad.id} value={nacionalidad.nacionalidad}>
+                                  {nacionalidad.nacionalidad}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -365,7 +417,7 @@ const ProfessionalRegistration = () => {
                         control={form.control}
                         name="pertenece_brigada_medica"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 md:col-span-2">
                             <FormControl>
                               <Checkbox
                                 checked={field.value}
@@ -387,7 +439,7 @@ const ProfessionalRegistration = () => {
                         control={form.control}
                         name="tipo_cooperacion"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="md:col-span-2">
                             <FormLabel>Tipo de Cooperación</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
@@ -512,6 +564,31 @@ const ProfessionalRegistration = () => {
 
                     <FormField
                       control={form.control}
+                      name="categoria_titulacion"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Categoría de Titulación *</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccione la categoría" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categorias_titulacion.map((categoria) => (
+                                <SelectItem key={categoria} value={categoria}>
+                                  {categoria}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
                       name="titulacion_especifica_1"
                       render={({ field }) => (
                         <FormItem className="md:col-span-2">
@@ -540,17 +617,12 @@ const ProfessionalRegistration = () => {
 
                     <FormField
                       control={form.control}
-                      name="año_graduacion"
+                      name="periodo_formacion"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Año de Graduación *</FormLabel>
+                          <FormLabel>Período de Formación *</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="Ej: 2020" 
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value))}
-                            />
+                            <Input placeholder="Ej: 2018-2022" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -578,36 +650,19 @@ const ProfessionalRegistration = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
-                      name="nombre_centro"
+                      name="situacion_laboral"
                       render={({ field }) => (
                         <FormItem className="md:col-span-2">
-                          <FormLabel>Centro de Trabajo *</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Nombre del centro donde trabaja" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="categoria_centro"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Categoría del Centro *</FormLabel>
+                          <FormLabel>Situación Laboral *</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Seleccione la categoría" />
+                                <SelectValue placeholder="Seleccione su situación" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="Hospital Nacional">Hospital Nacional</SelectItem>
-                              <SelectItem value="Hospital Regional">Hospital Regional</SelectItem>
-                              <SelectItem value="Centro de Salud">Centro de Salud</SelectItem>
-                              <SelectItem value="Puesto de Salud">Puesto de Salud</SelectItem>
-                              <SelectItem value="Clínica Privada">Clínica Privada</SelectItem>
+                              <SelectItem value="Activo">Activo</SelectItem>
+                              <SelectItem value="En paro">En paro</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -615,68 +670,156 @@ const ProfessionalRegistration = () => {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="tipo_sector"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Tipo de Sector *</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Seleccione el sector" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Público">Público</SelectItem>
-                              <SelectItem value="Privado">Privado</SelectItem>
-                              <SelectItem value="Mixto">Mixto</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {watchedValues.situacion_laboral === 'Activo' && (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="nombre_centro"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>Centro de Trabajo *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Nombre del centro donde trabaja" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="categoria_centro"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Categoría del Centro *</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Seleccione la categoría" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {categorias_centro.map((categoria) => (
+                                    <SelectItem key={categoria} value={categoria}>
+                                      {categoria}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="tipo_sector"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Tipo de Sector *</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Seleccione el sector" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="Público">Público</SelectItem>
+                                  <SelectItem value="Privado">Privado</SelectItem>
+                                  <SelectItem value="Mixto">Mixto</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="distrito_sanitario"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>Distrito Sanitario</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Seleccione el distrito sanitario" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {distritosSanitarios.map((distrito) => (
+                                    <SelectItem key={distrito.nombre_distrito} value={distrito.nombre_distrito}>
+                                      {distrito.nombre_distrito} - {distrito.nombre_provincia}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    )}
                   </div>
                 )}
 
                 {/* Paso 5: Documentos */}
                 {currentStep === 5 && (
                   <div className="space-y-6">
-                    <Alert>
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        La carga de documentos será habilitada próximamente. Por ahora, puede continuar con el registro.
-                      </AlertDescription>
-                    </Alert>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                         <Upload className="mx-auto h-12 w-12 text-gray-400" />
                         <div className="mt-4">
-                          <Button variant="outline" disabled>
-                            <Upload className="w-4 h-4 mr-2" />
-                            Subir Títulos
-                          </Button>
+                          <label htmlFor="documentos" className="cursor-pointer">
+                            <Button type="button" variant="outline" asChild>
+                              <span>
+                                <Upload className="w-4 h-4 mr-2" />
+                                Subir Documentos
+                              </span>
+                            </Button>
+                          </label>
+                          <input
+                            id="documentos"
+                            type="file"
+                            multiple
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
                           <p className="mt-2 text-sm text-gray-600">
-                            Formatos: PDF, JPG, PNG (máx. 5MB)
+                            Formatos: PDF, JPG, PNG (máx. 5MB cada uno)
                           </p>
                         </div>
                       </div>
 
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                        <div className="mt-4">
-                          <Button variant="outline" disabled>
-                            <Upload className="w-4 h-4 mr-2" />
-                            Foto Carnet
-                          </Button>
-                          <p className="mt-2 text-sm text-gray-600">
-                            Formato: JPG, PNG (máx. 2MB)
-                          </p>
-                        </div>
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Documentos cargados:</h4>
+                        {uploadedFiles.length === 0 ? (
+                          <p className="text-gray-500 text-sm">Ningún documento cargado</p>
+                        ) : (
+                          uploadedFiles.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between bg-gray-100 p-2 rounded">
+                              <span className="text-sm truncate">{file.name}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeFile(index)}
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
+
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Puede cargar títulos académicos, certificados, foto tipo carnet y otros documentos relevantes.
+                      </AlertDescription>
+                    </Alert>
                   </div>
                 )}
 
@@ -695,7 +838,7 @@ const ProfessionalRegistration = () => {
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="font-medium">Nombre:</span> {watchedValues.nombre_completo}
+                          <span className="font-medium">Nombre:</span> {watchedValues.nombre} {watchedValues.apellidos}
                         </div>
                         <div>
                           <span className="font-medium">Nacionalidad:</span> {watchedValues.nacionalidad}
@@ -704,7 +847,18 @@ const ProfessionalRegistration = () => {
                           <span className="font-medium">Área Profesional:</span> {watchedValues.area_profesional}
                         </div>
                         <div>
-                          <span className="font-medium">Centro de Trabajo:</span> {watchedValues.nombre_centro}
+                          <span className="font-medium">Categoría de Titulación:</span> {watchedValues.categoria_titulacion}
+                        </div>
+                        <div>
+                          <span className="font-medium">Situación Laboral:</span> {watchedValues.situacion_laboral}
+                        </div>
+                        {watchedValues.situacion_laboral === 'Activo' && (
+                          <div>
+                            <span className="font-medium">Centro de Trabajo:</span> {watchedValues.nombre_centro}
+                          </div>
+                        )}
+                        <div>
+                          <span className="font-medium">Documentos:</span> {uploadedFiles.length} archivo(s)
                         </div>
                       </div>
                     </div>

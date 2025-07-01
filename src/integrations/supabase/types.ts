@@ -104,6 +104,27 @@ export type Database = {
         }
         Relationships: []
       }
+      nacionalidades_mundo: {
+        Row: {
+          codigo_iso: string | null
+          id: number
+          nacionalidad: string
+          pais: string
+        }
+        Insert: {
+          codigo_iso?: string | null
+          id?: number
+          nacionalidad: string
+          pais: string
+        }
+        Update: {
+          codigo_iso?: string | null
+          id?: number
+          nacionalidad?: string
+          pais?: string
+        }
+        Relationships: []
+      }
       notificaciones_sms: {
         Row: {
           created_at: string
@@ -185,6 +206,7 @@ export type Database = {
       }
       profesionales_sanitarios: {
         Row: {
+          año_fin_formacion: number | null
           año_graduacion: number | null
           año_inicio_paro: number | null
           apellidos: string | null
@@ -192,6 +214,7 @@ export type Database = {
           autonumerico_interno: number | null
           brigada_cooperacion: string | null
           categoria_centro: string | null
+          categoria_titulacion: string | null
           codigo_barras: string | null
           codigo_expediente: string | null
           copia_dip: string | null
@@ -201,6 +224,7 @@ export type Database = {
           created_time: string | null
           distrito: string | null
           distrito_sanitario: string | null
+          documentos_cargados: Json | null
           domicilio: string | null
           edad: number | null
           especialidad: string | null
@@ -239,6 +263,7 @@ export type Database = {
           pais_formacion_1: string | null
           pais_formacion_2: string | null
           pdf_formulario: string | null
+          periodo_formacion: string | null
           periodo_formacion_1: string | null
           periodo_formacion_2: string | null
           pertenece_brigada_medica: boolean | null
@@ -247,6 +272,7 @@ export type Database = {
           puesto_responsabilidad: string | null
           referencia_articulo_genero: string | null
           revisor_solicitud: string | null
+          situacion_laboral: string | null
           telefono: string | null
           tipo_cooperacion: string | null
           tipo_documento: string | null
@@ -266,6 +292,7 @@ export type Database = {
           url_pdf: string | null
         }
         Insert: {
+          año_fin_formacion?: number | null
           año_graduacion?: number | null
           año_inicio_paro?: number | null
           apellidos?: string | null
@@ -273,6 +300,7 @@ export type Database = {
           autonumerico_interno?: number | null
           brigada_cooperacion?: string | null
           categoria_centro?: string | null
+          categoria_titulacion?: string | null
           codigo_barras?: string | null
           codigo_expediente?: string | null
           copia_dip?: string | null
@@ -282,6 +310,7 @@ export type Database = {
           created_time?: string | null
           distrito?: string | null
           distrito_sanitario?: string | null
+          documentos_cargados?: Json | null
           domicilio?: string | null
           edad?: number | null
           especialidad?: string | null
@@ -320,6 +349,7 @@ export type Database = {
           pais_formacion_1?: string | null
           pais_formacion_2?: string | null
           pdf_formulario?: string | null
+          periodo_formacion?: string | null
           periodo_formacion_1?: string | null
           periodo_formacion_2?: string | null
           pertenece_brigada_medica?: boolean | null
@@ -328,6 +358,7 @@ export type Database = {
           puesto_responsabilidad?: string | null
           referencia_articulo_genero?: string | null
           revisor_solicitud?: string | null
+          situacion_laboral?: string | null
           telefono?: string | null
           tipo_cooperacion?: string | null
           tipo_documento?: string | null
@@ -347,6 +378,7 @@ export type Database = {
           url_pdf?: string | null
         }
         Update: {
+          año_fin_formacion?: number | null
           año_graduacion?: number | null
           año_inicio_paro?: number | null
           apellidos?: string | null
@@ -354,6 +386,7 @@ export type Database = {
           autonumerico_interno?: number | null
           brigada_cooperacion?: string | null
           categoria_centro?: string | null
+          categoria_titulacion?: string | null
           codigo_barras?: string | null
           codigo_expediente?: string | null
           copia_dip?: string | null
@@ -363,6 +396,7 @@ export type Database = {
           created_time?: string | null
           distrito?: string | null
           distrito_sanitario?: string | null
+          documentos_cargados?: Json | null
           domicilio?: string | null
           edad?: number | null
           especialidad?: string | null
@@ -401,6 +435,7 @@ export type Database = {
           pais_formacion_1?: string | null
           pais_formacion_2?: string | null
           pdf_formulario?: string | null
+          periodo_formacion?: string | null
           periodo_formacion_1?: string | null
           periodo_formacion_2?: string | null
           pertenece_brigada_medica?: boolean | null
@@ -409,6 +444,7 @@ export type Database = {
           puesto_responsabilidad?: string | null
           referencia_articulo_genero?: string | null
           revisor_solicitud?: string | null
+          situacion_laboral?: string | null
           telefono?: string | null
           tipo_cooperacion?: string | null
           tipo_documento?: string | null

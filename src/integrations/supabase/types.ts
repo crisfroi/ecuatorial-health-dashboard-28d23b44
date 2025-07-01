@@ -9,6 +9,47 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      busqueda_profesionales_publica: {
+        Row: {
+          area_profesional: string | null
+          created_at: string | null
+          estado_acreditacion: string | null
+          fecha_validez: string | null
+          id: string
+          nombre_completo: string | null
+          numero_carnet: string | null
+          profesional_id: string | null
+        }
+        Insert: {
+          area_profesional?: string | null
+          created_at?: string | null
+          estado_acreditacion?: string | null
+          fecha_validez?: string | null
+          id?: string
+          nombre_completo?: string | null
+          numero_carnet?: string | null
+          profesional_id?: string | null
+        }
+        Update: {
+          area_profesional?: string | null
+          created_at?: string | null
+          estado_acreditacion?: string | null
+          fecha_validez?: string | null
+          id?: string
+          nombre_completo?: string | null
+          numero_carnet?: string | null
+          profesional_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "busqueda_profesionales_publica_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       distrito_sanitario: {
         Row: {
           abreviatura_distrito: string | null

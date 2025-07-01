@@ -1,131 +1,231 @@
 
-import { useState } from 'react';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
-import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import DashboardTabs from '@/components/dashboard/DashboardTabs';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { 
+  BarChart3, 
+  Users, 
+  FileText, 
+  Settings, 
+  TrendingUp,
+  Calendar,
+  MapPin,
+  Activity,
+  MessageSquare,
+  Filter,
+  X
+} from 'lucide-react';
+
+// Import components
 import StatsCards from '@/components/dashboard/StatsCards';
 import DashboardCharts from '@/components/dashboard/DashboardCharts';
 import ProfessionalsTable from '@/components/dashboard/ProfessionalsTable';
-import HealthCenters from '@/components/dashboard/HealthCenters';
-import RequestsPanel from '@/components/dashboard/RequestsPanel';
-import AdvancedStats from '@/components/dashboard/AdvancedStats';
-import AIChat from '@/components/dashboard/AIChat';
-import HospitalIncidents from '@/components/dashboard/HospitalIncidents';
-import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
-import MinisterialPanel from '@/components/dashboard/MinisterialPanel';
 import ProfessionalDetail from '@/components/dashboard/ProfessionalDetail';
-import { useEstadisticasAvanzadas } from '@/hooks/useEstadisticasAvanzadas';
+import DashboardFilters from '@/components/dashboard/DashboardFilters';
+import RequestsPanel from '@/components/dashboard/RequestsPanel';
+import RenewalAlerts from '@/components/dashboard/RenewalAlerts';
+import OpenAIChat from '@/components/dashboard/OpenAIChat';
+
+// Types
+interface Profesional {
+  id: string;
+  nombre_completo: string;
+  area_profesional: string;
+  estado_solicitud: string;
+  numero_carnet_profesional?: string;
+}
 
 const Dashboard = () => {
-  const [userRole, setUserRole] = useState('administrador');
-  const [selectedProfessional, setSelectedProfessional] = useState(null);
-  const [dashboardFilters, setDashboardFilters] = useState({});
-  const [activeTab, setActiveTab] = useState('overview');
+  const [selectedProfessional, setSelectedProfessional] = useState<Profesional | null>(null);
+  const [appliedFilters, setAppliedFilters] = useState<any>({});
+  const [showFilters, setShowFilters] = useState(false);
+  const [dashboardFilters, setDashboardFilters] = useState<any>({});
 
-  const { data: stats } = useEstadisticasAvanzadas();
+  // Simular rol de usuario (en una app real vendría de auth)
+  const userRole = 'administrador'; // o 'comite', 'revisor'
 
-  const handleSelectProfessional = (professional: any) => {
+  const handleSelectProfessional = (professional: Profesional) => {
     setSelectedProfessional(professional);
   };
 
-  const handleNavigateToProfessionals = (filters: any) => {
-    console.log('Dashboard: Navigating to professionals with filters:', filters);
+  const handleApplyFilters = (filters: any) => {
+    console.log('Dashboard: Applying filters:', filters);
+    setAppliedFilters(filters);
     setDashboardFilters(filters);
-    setActiveTab('professionals');
+    setShowFilters(false);
   };
 
-  const handleChartClick = (data: any, chartType: string) => {
-    console.log('Dashboard: Chart clicked:', data, chartType);
-    let filters = {};
-    
-    if (chartType === 'area_profesional') {
-      filters = { area_profesional: data.area };
-    } else if (chartType === 'provincia') {
-      filters = { provincia: data.provincia };
-    } else if (chartType === 'estado_solicitud') {
-      filters = { estado_solicitud: data.estado };
-    }
-    
-    handleNavigateToProfessionals(filters);
+  const handleClearFilters = () => {
+    console.log('Dashboard: Clearing filters');
+    setAppliedFilters({});
+    setDashboardFilters({});
   };
 
-  if (selectedProfessional) {
-    return (
-      <ProfessionalDetail 
-        professional={selectedProfessional}
-        onClose={() => setSelectedProfessional(null)}
-      />
-    );
-  }
+  const handleStatsCardClick = (filter: any) => {
+    console.log('Dashboard: Stats card clicked with filter:', filter);
+    setDashboardFilters(filter);
+    setAppliedFilters(filter);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="flex flex-col min-h-screen">
-        <header className="bg-white border-b">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <DashboardHeader userRole={userRole} />
-            </div>
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard de Gestión</h1>
+            <p className="text-gray-600 mt-1">
+              Sistema de gestión de profesionales sanitarios
+            </p>
           </div>
-          <DashboardTabs 
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            userRole={userRole}
-          />
-        </header>
-        
-        <main className="flex-1 p-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsContent value="overview" className="space-y-6">
-              <div>
-                <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
-                <div className="mt-6">
-                  <DashboardCharts onChartClick={handleChartClick} />
-                </div>
+          
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              {showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+            </Button>
+            
+            {(Object.keys(appliedFilters).length > 0 || Object.keys(dashboardFilters).length > 0) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+                className="flex items-center gap-2 text-red-600 hover:text-red-700"
+              >
+                <X className="w-4 h-4" />
+                Limpiar Filtros
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Filters */}
+        {showFilters && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Filtros de Búsqueda</CardTitle>
+              <CardDescription>
+                Filtra los datos del dashboard según tus criterios
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DashboardFilters onApplyFilters={handleApplyFilters} />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Stats Cards */}
+        <StatsCards onCardClick={handleStatsCardClick} />
+
+        {/* Main Content */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">General</span>
+            </TabsTrigger>
+            <TabsTrigger value="professionals" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Profesionales</span>
+            </TabsTrigger>
+            <TabsTrigger value="requests" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">Solicitudes</span>
+            </TabsTrigger>
+            <TabsTrigger value="renewals" className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span className="hidden sm:inline">Renovaciones</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              <span className="hidden sm:inline">Analíticas</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai-chat" className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">IA Chat</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <DashboardCharts />
+          </TabsContent>
+
+          <TabsContent value="professionals" className="space-y-6">
+            {selectedProfessional ? (
+              <div className="space-y-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSelectedProfessional(null)}
+                  className="flex items-center gap-2"
+                >
+                  ← Volver a la lista
+                </Button>
+                <ProfessionalDetail 
+                  professional={selectedProfessional}
+                  onClose={() => setSelectedProfessional(null)}
+                />
               </div>
-            </TabsContent>
-
-            <TabsContent value="requests">
-              <RequestsPanel userRole={userRole} />
-            </TabsContent>
-
-            <TabsContent value="professionals">
+            ) : (
               <ProfessionalsTable 
                 onSelectProfessional={handleSelectProfessional}
                 userRole={userRole}
+                appliedFilters={appliedFilters}
+                onClearFilters={handleClearFilters}
                 dashboardFilters={dashboardFilters}
               />
-            </TabsContent>
-
-            <TabsContent value="health-centers">
-              <HealthCenters />
-            </TabsContent>
-
-            <TabsContent value="stats">
-              <AdvancedStats onNavigateToProfessionals={handleNavigateToProfessionals} />
-            </TabsContent>
-
-            <TabsContent value="ai-chat">
-              <AIChat />
-            </TabsContent>
-
-            <TabsContent value="incidents">
-              <HospitalIncidents />
-            </TabsContent>
-
-            {userRole === 'administrador' && (
-              <TabsContent value="user-management">
-                <UserRoleManagement />
-              </TabsContent>
             )}
+          </TabsContent>
 
-            {(userRole === 'administrador' || userRole === 'comite') && (
-              <TabsContent value="ministerial">
-                <MinisterialPanel />
-              </TabsContent>
-            )}
-          </Tabs>
-        </main>
+          <TabsContent value="requests" className="space-y-6">
+            <RequestsPanel userRole={userRole} />
+          </TabsContent>
+
+          <TabsContent value="renewals" className="space-y-6">
+            <RenewalAlerts />
+          </TabsContent>
+
+          <TabsContent value="analytics" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-blue-600" />
+                    Métricas Avanzadas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">
+                    Análisis detallado de tendencias y patrones en el registro de profesionales.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-green-600" />
+                    Distribución Geográfica
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">
+                    Mapa de calor mostrando la distribución de profesionales por provincia.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="ai-chat" className="space-y-6">
+            <OpenAIChat />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

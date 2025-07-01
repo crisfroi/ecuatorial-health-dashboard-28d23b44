@@ -54,7 +54,7 @@ const ProfessionalsTable = ({
     ])
   );
 
-  const { data: profesionales = [], isLoading, error } = useProfesionales(queryFilters);
+  const { data: profesionales = [], isLoading, error, refetch } = useProfesionales(queryFilters);
 
   // Aplicar filtro de búsqueda local
   const filteredProfesionales = profesionales.filter(prof =>
@@ -118,11 +118,15 @@ const ProfessionalsTable = ({
         variant: "default",
       });
 
+      // Limpiar estado de edición
       setEditingStates(prev => {
         const newStates = { ...prev };
         delete newStates[professionalId];
         return newStates;
       });
+
+      // Refrescar datos
+      refetch();
     } catch (error) {
       console.error('Error updating professional state:', error);
       toast({
@@ -145,8 +149,9 @@ const ProfessionalsTable = ({
     const variants: Record<string, string> = {
       'Aprobado': 'bg-green-100 text-green-800',
       'Pendiente': 'bg-yellow-100 text-yellow-800',
+      'Pendiente de Firma': 'bg-blue-100 text-blue-800',
       'Rechazado': 'bg-red-100 text-red-800',
-      'Revisando': 'bg-blue-100 text-blue-800'
+      'Revisando': 'bg-orange-100 text-orange-800'
     };
     return variants[estado] || 'bg-gray-100 text-gray-800';
   };
@@ -273,13 +278,14 @@ const ProfessionalsTable = ({
                 </Select>
 
                 <Select value={filters.estado_solicitud} onValueChange={(value) => setFilters({...filters, estado_solicitud: value})}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-40">
                     <SelectValue placeholder="Estado" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="Aprobado">Aprobado</SelectItem>
                     <SelectItem value="Pendiente">Pendiente</SelectItem>
+                    <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
                     <SelectItem value="Rechazado">Rechazado</SelectItem>
                     <SelectItem value="Revisando">Revisando</SelectItem>
                   </SelectContent>
@@ -337,12 +343,13 @@ const ProfessionalsTable = ({
                                 [profesional.id]: value
                               }))}
                             >
-                              <SelectTrigger className="w-32">
+                              <SelectTrigger className="w-40">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="Pendiente">Pendiente</SelectItem>
                                 <SelectItem value="Revisando">Revisando</SelectItem>
+                                <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
                                 <SelectItem value="Aprobado">Aprobado</SelectItem>
                                 <SelectItem value="Rechazado">Rechazado</SelectItem>
                               </SelectContent>

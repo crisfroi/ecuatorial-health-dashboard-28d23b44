@@ -1,7 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { createTestProfessionals } from '@/utils/testData';
+import { createTestData } from '@/utils/testData';
 import { UserPlus } from 'lucide-react';
 
 const TestDataButton = () => {
@@ -9,7 +9,7 @@ const TestDataButton = () => {
 
   const handleCreateTestData = async () => {
     try {
-      await createTestProfessionals();
+      await createTestData();
       toast({
         title: "Datos de prueba creados",
         description: "Se han registrado 3 profesionales ficticios exitosamente.",

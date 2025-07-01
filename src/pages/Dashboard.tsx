@@ -100,7 +100,7 @@ const Dashboard = () => {
             </TabsContent>
 
             <TabsContent value="health-centers">
-              <HealthCenters userRole={userRole} />
+              <HealthCenters />
             </TabsContent>
 
             <TabsContent value="stats">

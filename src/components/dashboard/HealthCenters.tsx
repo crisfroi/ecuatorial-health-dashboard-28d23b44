@@ -88,8 +88,8 @@ const HealthCenters = () => {
                     }, {})
                   ).slice(0, 3).map(([area, count]) => (
                     <div key={area} className="flex justify-between">
-                      <span>{area}:</span>
-                      <span className="font-medium">{count}</span>
+                      <span className="truncate">{area}:</span>
+                      <span className="font-medium">{String(count)}</span>
                     </div>
                   ))}
                 </div>

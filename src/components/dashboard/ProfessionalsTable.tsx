@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, X, Eye, Edit, Download, Save } from 'lucide-react';
 import { useProfesionales, type Profesional } from '@/hooks/useProfesionales';
-import { useActualizarProfesional } from '@/hooks/useProfesionalesMutations';
+import { useProfesionalesMutations } from '@/hooks/useProfesionalesMutations';
 import { useToast } from '@/hooks/use-toast';
 
 interface ProfessionalsTableProps {
@@ -30,14 +29,14 @@ const ProfessionalsTable = ({
   const [editingStates, setEditingStates] = useState<Record<string, string>>({});
   const [filters, setFilters] = useState({
     area_profesional: 'todos',
-    estado_solicitud: 'todos',
+    estado_solicitud: 'Aprobado', // Solo mostrar aprobados por defecto
     provincia: 'todos',
     genero: 'todos',
     tipo_sector: 'todos'
   });
 
   const { toast } = useToast();
-  const updateProfessional = useActualizarProfesional();
+  const { updateProfesional } = useProfesionalesMutations();
 
   // Combinar filtros aplicados desde el dashboard con filtros locales
   const combinedFilters = {
@@ -56,7 +55,6 @@ const ProfessionalsTable = ({
 
   const { data: profesionales = [], isLoading, error, refetch } = useProfesionales(queryFilters);
 
-  // Aplicar filtro de búsqueda local
   const filteredProfesionales = profesionales.filter(prof =>
     prof.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     prof.area_profesional?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -66,7 +64,6 @@ const ProfessionalsTable = ({
   useEffect(() => {
     if (dashboardFilters) {
       console.log('ProfessionalsTable: Dashboard filters received:', dashboardFilters);
-      // Actualizar filtros locales con los del dashboard
       setFilters(prev => ({
         ...prev,
         ...Object.fromEntries(
@@ -81,7 +78,7 @@ const ProfessionalsTable = ({
     setSearchTerm('');
     setFilters({
       area_profesional: 'todos',
-      estado_solicitud: 'todos',
+      estado_solicitud: 'Aprobado', // Mantener solo aprobados
       provincia: 'todos',
       genero: 'todos',
       tipo_sector: 'todos'
@@ -103,7 +100,7 @@ const ProfessionalsTable = ({
     if (!newState) return;
 
     try {
-      await updateProfessional.mutateAsync({
+      await updateProfesional.mutateAsync({
         id: professionalId,
         updates: {
           estado_solicitud: newState,
@@ -112,28 +109,15 @@ const ProfessionalsTable = ({
         }
       });
 
-      toast({
-        title: "Estado actualizado",
-        description: `El estado del profesional ha sido actualizado a ${newState}`,
-        variant: "default",
-      });
-
-      // Limpiar estado de edición
       setEditingStates(prev => {
         const newStates = { ...prev };
         delete newStates[professionalId];
         return newStates;
       });
 
-      // Refrescar datos
       refetch();
     } catch (error) {
       console.error('Error updating professional state:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el estado del profesional",
-        variant: "destructive",
-      });
     }
   };
 
@@ -161,10 +145,8 @@ const ProfessionalsTable = ({
     return new Date(dateString).toLocaleDateString('es-ES');
   };
 
-  // Verificar si hay filtros activos
   const hasActiveFilters = searchTerm || 
-    Object.values(combinedFilters).some(value => value && value !== 'todos') ||
-    Object.values(filters).some(value => value && value !== 'todos');
+    Object.values(combinedFilters).some(value => value && value !== 'todos' && value !== 'Aprobado');
 
   if (isLoading) {
     return (
@@ -191,9 +173,6 @@ const ProfessionalsTable = ({
         </CardHeader>
         <CardContent>
           <p className="text-red-500">Error: {error.message}</p>
-          <p className="text-sm text-gray-600 mt-2">
-            Verifica que la tabla esté creada correctamente en Supabase.
-          </p>
         </CardContent>
       </Card>
     );
@@ -201,7 +180,6 @@ const ProfessionalsTable = ({
 
   return (
     <div className="space-y-6">
-      {/* Filtros aplicados */}
       {hasActiveFilters && (
         <Card className="border-guinea-teal">
           <CardHeader className="pb-3">
@@ -228,7 +206,7 @@ const ProfessionalsTable = ({
                 </Badge>
               )}
               {Object.entries(combinedFilters).map(([key, value]) => {
-                if (!value || value === 'todos') return null;
+                if (!value || value === 'todos' || (key === 'estado_solicitud' && value === 'Aprobado')) return null;
                 return (
                   <Badge key={key} variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
                     {key.replace('_', ' ')}: {String(value)}
@@ -244,7 +222,7 @@ const ProfessionalsTable = ({
         <CardHeader>
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <CardTitle className="flex items-center space-x-2">
-              <span>Profesionales Sanitarios</span>
+              <span>Profesionales Aprobados</span>
               <Badge variant="outline">{filteredProfesionales.length}</Badge>
             </CardTitle>
             
@@ -277,17 +255,19 @@ const ProfessionalsTable = ({
                   </SelectContent>
                 </Select>
 
-                <Select value={filters.estado_solicitud} onValueChange={(value) => setFilters({...filters, estado_solicitud: value})}>
+                <Select value={filters.provincia} onValueChange={(value) => setFilters({...filters, provincia: value})}>
                   <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Estado" />
+                    <SelectValue placeholder="Provincia" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    <SelectItem value="Aprobado">Aprobado</SelectItem>
-                    <SelectItem value="Pendiente">Pendiente</SelectItem>
-                    <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
-                    <SelectItem value="Rechazado">Rechazado</SelectItem>
-                    <SelectItem value="Revisando">Revisando</SelectItem>
+                    <SelectItem value="todos">Todas</SelectItem>
+                    <SelectItem value="Malabo">Malabo</SelectItem>
+                    <SelectItem value="Bata">Bata</SelectItem>
+                    <SelectItem value="Ebebiyin">Ebebiyin</SelectItem>
+                    <SelectItem value="Aconibe">Aconibe</SelectItem>
+                    <SelectItem value="Mongomo">Mongomo</SelectItem>
+                    <SelectItem value="Evinayong">Evinayong</SelectItem>
+                    <SelectItem value="Luba">Luba</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -313,10 +293,7 @@ const ProfessionalsTable = ({
                 {filteredProfesionales.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                      {profesionales.length === 0 
-                        ? "No hay profesionales registrados aún"
-                        : "No se encontraron profesionales con los filtros aplicados"
-                      }
+                      No se encontraron profesionales aprobados con los filtros aplicados
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -334,60 +311,9 @@ const ProfessionalsTable = ({
                         {profesional.numero_carnet_profesional || 'Pendiente'}
                       </TableCell>
                       <TableCell>
-                        {editingStates[profesional.id] !== undefined ? (
-                          <div className="flex items-center space-x-2">
-                            <Select
-                              value={editingStates[profesional.id]}
-                              onValueChange={(value) => setEditingStates(prev => ({
-                                ...prev,
-                                [profesional.id]: value
-                              }))}
-                            >
-                              <SelectTrigger className="w-40">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Pendiente">Pendiente</SelectItem>
-                                <SelectItem value="Revisando">Revisando</SelectItem>
-                                <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
-                                <SelectItem value="Aprobado">Aprobado</SelectItem>
-                                <SelectItem value="Rechazado">Rechazado</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleSaveState(profesional.id)}
-                              className="text-green-600 hover:text-green-700"
-                            >
-                              <Save className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleCancelEdit(profesional.id)}
-                              className="text-gray-600 hover:text-gray-700"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <Badge className={getEstadoBadge(profesional.estado_solicitud || 'Pendiente')}>
-                              {profesional.estado_solicitud || 'Pendiente'}
-                            </Badge>
-                            {(userRole === 'administrador' || userRole === 'comite') && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleEditState(profesional.id, profesional.estado_solicitud || 'Pendiente')}
-                                className="text-blue-600 hover:text-blue-700"
-                              >
-                                <Edit className="w-3 h-3" />
-                              </Button>
-                            )}
-                          </div>
-                        )}
+                        <Badge className={getEstadoBadge(profesional.estado_solicitud || 'Pendiente')}>
+                          {profesional.estado_solicitud || 'Pendiente'}
+                        </Badge>
                       </TableCell>
                       <TableCell>{profesional.provincia || 'N/A'}</TableCell>
                       <TableCell>{formatDate(profesional.created_at)}</TableCell>

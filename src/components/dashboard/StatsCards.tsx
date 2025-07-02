@@ -46,32 +46,16 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <Card 
         className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105"
-        onClick={() => handleCardClick({})}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Profesionales</CardTitle>
-          <Users className="h-4 w-4 text-guinea-teal" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-guinea-teal">{stats?.total || 0}</div>
-          <p className="text-xs text-muted-foreground">
-            Profesionales registrados
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card 
-        className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105"
         onClick={() => handleCardClick({ estado_solicitud: 'Aprobado' })}
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Aprobados</CardTitle>
-          <UserCheck className="h-4 w-4 text-green-600" />
+          <CardTitle className="text-sm font-medium">Profesionales Aprobados</CardTitle>
+          <Users className="h-4 w-4 text-guinea-teal" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">{stats?.aprobados || 0}</div>
+          <div className="text-2xl font-bold text-guinea-teal">{stats?.aprobados || 0}</div>
           <p className="text-xs text-muted-foreground">
-            Tasa: {stats?.tasaAprobacion || 0}%
+            Profesionales acreditados
           </p>
         </CardContent>
       </Card>
@@ -81,29 +65,13 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
         onClick={() => handleCardClick({ estado_solicitud: 'Pendiente' })}
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
+          <CardTitle className="text-sm font-medium">Solicitudes Pendientes</CardTitle>
           <Clock className="h-4 w-4 text-orange-600" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-orange-600">{stats?.pendientes || 0}</div>
           <p className="text-xs text-muted-foreground">
             En proceso de revisión
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card 
-        className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105"
-        onClick={() => handleCardClick({ estado_solicitud: 'Rechazado' })}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Rechazadas</CardTitle>
-          <FileText className="h-4 w-4 text-red-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-red-600">{stats?.rechazados || 0}</div>
-          <p className="text-xs text-muted-foreground">
-            Tasa: {stats?.tasaRechazo || 0}%
           </p>
         </CardContent>
       </Card>
@@ -120,6 +88,22 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           <div className="text-2xl font-bold text-blue-600">{stats?.revisando || 0}</div>
           <p className="text-xs text-muted-foreground">
             Siendo evaluadas
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card 
+        className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105"
+        onClick={() => handleCardClick({ estado_solicitud: 'Rechazado' })}
+      >
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Solicitudes Rechazadas</CardTitle>
+          <FileText className="h-4 w-4 text-red-600" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-red-600">{stats?.rechazados || 0}</div>
+          <p className="text-xs text-muted-foreground">
+            Tasa: {stats?.tasaRechazo || 0}%
           </p>
         </CardContent>
       </Card>

@@ -77,3 +77,9 @@ export function useProfesionalesMutations() {
     deleteProfesional,
   };
 }
+
+// Export with both names for backward compatibility
+export const useActualizarProfesional = () => {
+  const { updateProfesional } = useProfesionalesMutations();
+  return updateProfesional;
+};

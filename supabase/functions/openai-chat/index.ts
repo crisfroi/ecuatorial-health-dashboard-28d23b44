@@ -76,6 +76,8 @@ Tu función es ayudar a analizar datos de profesionales sanitarios, generar repo
 - Recomendaciones para mejorar el sistema de salud
 - Estado actual del sistema con datos en tiempo real
 
+IMPORTANTE: NO proporciones nombres específicos de profesionales ni datos personales. Solo proporciona estadísticas agregadas y análisis de tendencias.
+
 Responde siempre en español y mantén un tono profesional y útil. Utiliza los datos reales del sistema para proporcionar análisis precisos y actualizados.`
     }
 

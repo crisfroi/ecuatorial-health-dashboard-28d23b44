@@ -68,6 +68,7 @@ const ProfessionalRegistration = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -94,7 +95,27 @@ const ProfessionalRegistration = () => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+    }
+  };
+
+  const removePhoto = () => {
+    setPhotoFile(null);
+  };
+
   const onSubmit = async (data: FormData) => {
+    if (!photoFile) {
+      toast({
+        title: "Error",
+        description: "La foto tipo carnet es obligatoria.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Calcular edad
@@ -138,6 +159,7 @@ const ProfessionalRegistration = () => {
         pertenece_brigada_medica: data.pertenece_brigada_medica,
         tipo_cooperacion: data.tipo_cooperacion || null,
         documentos_cargados: documentosData,
+        foto_carnet: photoFile.name, // Guardar referencia a la foto
         estado_solicitud: 'Pendiente' as const,
         fecha_solicitud: new Date().toISOString().split('T')[0]
       };
@@ -148,7 +170,10 @@ const ProfessionalRegistration = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
       toast({
         title: "Solicitud enviada exitosamente",
@@ -208,6 +233,9 @@ const ProfessionalRegistration = () => {
             uploadedFiles={uploadedFiles}
             handleFileUpload={handleFileUpload}
             removeFile={removeFile}
+            photoFile={photoFile}
+            handlePhotoUpload={handlePhotoUpload}
+            removePhoto={removePhoto}
           />
         );
       case 6:
@@ -215,7 +243,8 @@ const ProfessionalRegistration = () => {
           <ConfirmationStep 
             form={form} 
             watchedValues={watchedValues} 
-            uploadedFiles={uploadedFiles} 
+            uploadedFiles={uploadedFiles}
+            photoFile={photoFile}
           />
         );
       default:

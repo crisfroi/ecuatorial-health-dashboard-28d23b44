@@ -3,16 +3,17 @@ import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Camera } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
 
 interface ConfirmationStepProps {
   form: UseFormReturn<any>;
   watchedValues: any;
   uploadedFiles: File[];
+  photoFile: File | null;
 }
 
-export const ConfirmationStep = ({ form, watchedValues, uploadedFiles }: ConfirmationStepProps) => {
+export const ConfirmationStep = ({ form, watchedValues, uploadedFiles, photoFile }: ConfirmationStepProps) => {
   return (
     <div className="space-y-6">
       <Alert>
@@ -46,8 +47,22 @@ export const ConfirmationStep = ({ form, watchedValues, uploadedFiles }: Confirm
               <span className="font-medium">Centro de Trabajo:</span> {watchedValues.nombre_centro}
             </div>
           )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div>
-            <span className="font-medium">Documentos:</span> {uploadedFiles.length} archivo(s)
+            <span className="font-medium">Foto tipo carnet:</span>
+            {photoFile ? (
+              <div className="mt-2 flex items-center space-x-2">
+                <Camera className="w-4 h-4 text-green-600" />
+                <span className="text-green-600 text-sm">✓ {photoFile.name}</span>
+              </div>
+            ) : (
+              <span className="text-red-600 text-sm">✗ No cargada</span>
+            )}
+          </div>
+          <div>
+            <span className="font-medium">Documentos adicionales:</span> {uploadedFiles.length} archivo(s)
           </div>
         </div>
       </div>

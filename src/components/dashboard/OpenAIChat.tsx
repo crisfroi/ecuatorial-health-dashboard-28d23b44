@@ -1,104 +1,66 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Bot, User, Loader2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { MessageSquare, Send, Bot, User, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
-  id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
 }
 
 const OpenAIChat = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: '¡Hola! Soy tu asistente de IA especializado en análisis de datos sanitarios. Puedo ayudarte a analizar estadísticas, generar reportes y responder preguntas sobre los profesionales sanitarios registrados en el sistema.',
-      timestamp: new Date()
-    }
-  ]);
-  const [inputMessage, setInputMessage] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const scrollToBottom = () => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
-    }
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+    if (!input.trim()) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
       role: 'user',
-      content: inputMessage.trim(),
+      content: input,
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
+    setInput('');
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/openai-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [...messages, userMessage].map(msg => ({
-            role: msg.role,
-            content: msg.content
-          }))
-        })
+      const { data, error } = await supabase.functions.invoke('openai-chat', {
+        body: {
+          messages: [
+            ...messages.map(msg => ({ role: msg.role, content: msg.content })),
+            { role: 'user', content: input }
+          ]
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Error al comunicarse con OpenAI');
+      if (error) {
+        console.error('Error calling OpenAI function:', error);
+        throw error;
       }
 
-      const data = await response.json();
-      
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.response,
+        content: data.response || 'No se pudo obtener respuesta',
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error in chat:', error);
       toast({
         title: "Error",
-        description: "No se pudo enviar el mensaje. Intenta nuevamente.",
+        description: "No se pudo procesar su mensaje. Verifique la configuración de OpenAI.",
         variant: "destructive",
       });
-      
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, intenta nuevamente.',
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -114,84 +76,86 @@ const OpenAIChat = () => {
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Bot className="w-5 h-5 text-blue-600" />
-          <span>Asistente IA - OpenAI</span>
+        <CardTitle className="flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-blue-600" />
+          Asistente IA - Análisis Sanitario
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-0">
-        <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[80%] p-3 rounded-lg ${
-                    message.role === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-900'
-                  }`}
-                >
-                  <div className="flex items-start space-x-2">
-                    {message.role === 'assistant' && (
-                      <Bot className="w-4 h-4 mt-0.5 text-blue-600" />
-                    )}
-                    {message.role === 'user' && (
-                      <User className="w-4 h-4 mt-0.5 text-white" />
-                    )}
-                    <div className="flex-1">
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      <p className={`text-xs mt-1 ${
-                        message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
-                      }`}>
-                        {message.timestamp.toLocaleTimeString('es-ES', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 text-gray-900 p-3 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Bot className="w-4 h-4 text-blue-600" />
-                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                    <span className="text-sm">Pensando...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
-        
-        <div className="p-4 border-t">
-          <div className="flex space-x-2">
-            <Input
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Escribe tu mensaje..."
-              disabled={isLoading}
-              className="flex-1"
-            />
-            <Button 
-              onClick={sendMessage} 
-              disabled={!inputMessage.trim() || isLoading}
-              size="sm"
+      
+      <CardContent className="flex-1 flex flex-col">
+        <div className="flex-1 overflow-y-auto mb-4 space-y-4 max-h-[400px]">
+          {messages.length === 0 && (
+            <div className="text-center text-gray-500 py-8">
+              <Bot className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>¡Hola! Soy tu asistente especializado en análisis de datos sanitarios.</p>
+              <p className="text-sm mt-2">Puedes preguntarme sobre estadísticas, tendencias o cualquier análisis de los profesionales registrados.</p>
+            </div>
+          )}
+          
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
+              {message.role === 'assistant' && (
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Bot className="w-4 h-4 text-blue-600" />
+                </div>
               )}
-            </Button>
-          </div>
+              
+              <div
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  message.role === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-900'
+                }`}
+              >
+                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <span className="text-xs opacity-70 mt-1 block">
+                  {message.timestamp.toLocaleTimeString()}
+                </span>
+              </div>
+              
+              {message.role === 'user' && (
+                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+              )}
+            </div>
+          ))}
+          
+          {isLoading && (
+            <div className="flex gap-3 justify-start">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <Bot className="w-4 h-4 text-blue-600" />
+              </div>
+              <div className="bg-gray-100 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm">Pensando...</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        <div className="flex gap-2">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Escribe tu pregunta sobre los datos sanitarios..."
+            className="flex-1 min-h-[40px] max-h-[100px]"
+            disabled={isLoading}
+          />
+          <Button
+            onClick={sendMessage}
+            disabled={!input.trim() || isLoading}
+            size="sm"
+            className="px-3"
+          >
+            <Send className="w-4 h-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>

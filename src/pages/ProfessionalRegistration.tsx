@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,7 +18,7 @@ import { AddressStep } from '@/components/registration/AddressStep';
 import { EducationStep } from '@/components/registration/EducationStep';
 import { WorkSituationStep } from '@/components/registration/WorkSituationStep';
 import { DocumentsStep } from '@/components/registration/DocumentsStep';
-import { ConfirmationStep } from '@/components/registration/ConfirmationStep';
+import ConfirmationStep from '@/components/registration/ConfirmationStep';
 import { RegistrationProgress } from '@/components/registration/RegistrationProgress';
 
 // Schema de validación
@@ -249,10 +248,8 @@ const ProfessionalRegistration = () => {
       case 6:
         return (
           <ConfirmationStep 
-            form={form} 
-            watchedValues={watchedValues} 
-            uploadedFiles={uploadedFiles}
-            photoFile={photoFile}
+            formData={watchedValues}
+            isSubmitting={isSubmitting}
           />
         );
       default:

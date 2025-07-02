@@ -16,6 +16,7 @@ import {
   Filter,
   X
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 // Import components
 import StatsCards from '@/components/dashboard/StatsCards';
@@ -27,20 +28,27 @@ import RequestsPanel from '@/components/dashboard/RequestsPanel';
 import RenewalAlerts from '@/components/dashboard/RenewalAlerts';
 import OpenAIChat from '@/components/dashboard/OpenAIChat';
 
-// Types
-interface Profesional {
-  id: string;
-  nombre_completo: string;
-  area_profesional: string;
-  estado_solicitud: string;
-  numero_carnet_profesional?: string;
+// Types - using the full database type
+import type { Tables } from '@/integrations/supabase/types';
+
+type Profesional = Tables<'profesionales_sanitarios'>;
+
+interface Filtros {
+  area_profesional?: string;
+  estado_solicitud?: string;
+  provincia?: string;
+  genero?: string;
+  tipo_sector?: string;
+  distrito?: string;
+  anoGraduacion?: string;
 }
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [selectedProfessional, setSelectedProfessional] = useState<Profesional | null>(null);
-  const [appliedFilters, setAppliedFilters] = useState<any>({});
+  const [appliedFilters, setAppliedFilters] = useState<Filtros>({});
   const [showFilters, setShowFilters] = useState(false);
-  const [dashboardFilters, setDashboardFilters] = useState<any>({});
+  const [dashboardFilters, setDashboardFilters] = useState<Filtros>({});
 
   // Simular rol de usuario (en una app real vendría de auth)
   const userRole = 'administrador'; // o 'comite', 'revisor'
@@ -49,23 +57,50 @@ const Dashboard = () => {
     setSelectedProfessional(professional);
   };
 
-  const handleApplyFilters = (filters: any) => {
+  const handleFiltersChange = (filters: Filtros) => {
     console.log('Dashboard: Applying filters:', filters);
     setAppliedFilters(filters);
     setDashboardFilters(filters);
-    setShowFilters(false);
   };
 
   const handleClearFilters = () => {
     console.log('Dashboard: Clearing filters');
     setAppliedFilters({});
     setDashboardFilters({});
+    setShowFilters(false);
   };
 
-  const handleStatsCardClick = (filter: any) => {
+  const handleNavigateToProfessionals = (filter: Filtros) => {
     console.log('Dashboard: Stats card clicked with filter:', filter);
     setDashboardFilters(filter);
     setAppliedFilters(filter);
+    // Switch to professionals tab when a card is clicked
+    const professionalsTab = document.querySelector('[value="professionals"]') as HTMLElement;
+    if (professionalsTab) {
+      professionalsTab.click();
+    }
+  };
+
+  const handleChartClick = (data: any, chartType: string) => {
+    console.log('Dashboard: Chart clicked:', data, chartType);
+    const filter: Filtros = {};
+    
+    if (chartType === 'area_profesional' && data.area) {
+      filter.area_profesional = data.area;
+    } else if (chartType === 'provincia' && data.provincia) {
+      filter.provincia = data.provincia;
+    } else if (chartType === 'estado_solicitud' && data.estado) {
+      filter.estado_solicitud = data.estado;
+    }
+    
+    setDashboardFilters(filter);
+    setAppliedFilters(filter);
+    
+    // Switch to professionals tab when a chart is clicked
+    const professionalsTab = document.querySelector('[value="professionals"]') as HTMLElement;
+    if (professionalsTab) {
+      professionalsTab.click();
+    }
   };
 
   return (
@@ -115,13 +150,17 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <DashboardFilters onApplyFilters={handleApplyFilters} />
+              <DashboardFilters 
+                filters={appliedFilters}
+                onFiltersChange={handleFiltersChange}
+                onClearFilters={handleClearFilters}
+              />
             </CardContent>
           </Card>
         )}
 
         {/* Stats Cards */}
-        <StatsCards onCardClick={handleStatsCardClick} />
+        <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
 
         {/* Main Content */}
         <Tabs defaultValue="overview" className="space-y-6">
@@ -153,7 +192,7 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <DashboardCharts />
+            <DashboardCharts onChartClick={handleChartClick} />
           </TabsContent>
 
           <TabsContent value="professionals" className="space-y-6">

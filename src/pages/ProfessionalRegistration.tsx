@@ -75,6 +75,8 @@ const ProfessionalRegistration = () => {
   const { data: nacionalidades = [] } = useNacionalidades();
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
 
+  console.log('Distritos sanitarios en ProfessionalRegistration:', distritosSanitarios);
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -118,6 +120,8 @@ const ProfessionalRegistration = () => {
 
     setIsSubmitting(true);
     try {
+      console.log('Enviando formulario con datos:', data);
+      
       // Calcular edad
       const birthDate = new Date(data.fecha_nacimiento);
       const age = new Date().getFullYear() - birthDate.getFullYear();
@@ -152,17 +156,19 @@ const ProfessionalRegistration = () => {
         periodo_formacion: data.periodo_formacion,
         pais_formacion_1: data.pais_formacion_1,
         situacion_laboral: data.situacion_laboral,
-        nombre_centro: data.nombre_centro,
-        categoria_centro: data.categoria_centro,
-        tipo_sector: data.tipo_sector,
+        nombre_centro: data.nombre_centro || null,
+        categoria_centro: data.categoria_centro || null,
+        tipo_sector: data.tipo_sector || null,
         distrito_sanitario: data.distrito_sanitario || null,
         pertenece_brigada_medica: data.pertenece_brigada_medica,
         tipo_cooperacion: data.tipo_cooperacion || null,
         documentos_cargados: documentosData,
-        foto_carnet: photoFile.name, // Guardar referencia a la foto
+        foto_carnet: photoFile.name,
         estado_solicitud: 'Pendiente' as const,
         fecha_solicitud: new Date().toISOString().split('T')[0]
       };
+
+      console.log('Datos a enviar:', submissionData);
 
       const { data: result, error } = await supabase
         .from('profesionales_sanitarios')
@@ -175,6 +181,8 @@ const ProfessionalRegistration = () => {
         throw error;
       }
 
+      console.log('Resultado exitoso:', result);
+
       toast({
         title: "Solicitud enviada exitosamente",
         description: "Su solicitud ha sido registrada y está pendiente de revisión.",
@@ -185,7 +193,7 @@ const ProfessionalRegistration = () => {
       console.error('Error submitting form:', error);
       toast({
         title: "Error",
-        description: "Hubo un problema al enviar su solicitud. Intente nuevamente.",
+        description: `Hubo un problema al enviar su solicitud: ${error.message}`,
         variant: "destructive",
       });
     } finally {

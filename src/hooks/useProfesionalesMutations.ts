@@ -1,42 +1,15 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { ProfesionalInsert, ProfesionalUpdate } from './useProfesionales';
+import { useToast } from '@/hooks/use-toast';
 
-export function useCrearProfesional() {
+export function useProfesionalesMutations() {
   const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (profesional: ProfesionalInsert) => {
-      console.log('Creating profesional:', profesional);
-      
-      const { data, error } = await supabase
-        .from('profesionales_sanitarios')
-        .insert([profesional])
-        .select()
-        .single();
+  const { toast } = useToast();
 
-      if (error) {
-        console.error('Error creating profesional:', error);
-        throw error;
-      }
-
-      console.log('Profesional created:', data);
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profesionales'] });
-      queryClient.invalidateQueries({ queryKey: ['estadisticas-profesionales'] });
-    }
-  });
-}
-
-export function useActualizarProfesional() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: ProfesionalUpdate }) => {
-      console.log('Updating profesional:', id, updates);
+  const updateProfesional = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+      console.log('Actualizando profesional:', id, updates);
       
       const { data, error } = await supabase
         .from('profesionales_sanitarios')
@@ -46,70 +19,61 @@ export function useActualizarProfesional() {
         .single();
 
       if (error) {
-        console.error('Error updating profesional:', error);
+        console.error('Error updating professional:', error);
         throw error;
       }
 
-      console.log('Profesional updated:', data);
+      console.log('Profesional actualizado:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Invalidar y refrescar las consultas relacionadas
       queryClient.invalidateQueries({ queryKey: ['profesionales'] });
-      queryClient.invalidateQueries({ queryKey: ['estadisticas-profesionales'] });
-    }
-  });
-}
-
-export function useEliminarProfesional() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (id: string) => {
-      console.log('Deleting profesional:', id);
+      queryClient.invalidateQueries({ queryKey: ['estadisticas'] });
+      queryClient.invalidateQueries({ queryKey: ['estadisticas-avanzadas'] });
       
+      toast({
+        title: "Éxito",
+        description: "El estado del profesional ha sido actualizado correctamente.",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error en mutación:', error);
+      toast({
+        title: "Error",
+        description: `No se pudo actualizar el estado: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteProfesional = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('profesionales_sanitarios')
         .delete()
         .eq('id', id);
 
-      if (error) {
-        console.error('Error deleting profesional:', error);
-        throw error;
-      }
-
-      console.log('Profesional deleted:', id);
-      return id;
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profesionales'] });
-      queryClient.invalidateQueries({ queryKey: ['estadisticas-profesionales'] });
-    }
-  });
-}
-
-export function useCrearLoteProfesionales() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (profesionales: ProfesionalInsert[]) => {
-      console.log('Creating batch of profesionales:', profesionales.length);
-      
-      const { data, error } = await supabase
-        .from('profesionales_sanitarios')
-        .insert(profesionales)
-        .select();
-
-      if (error) {
-        console.error('Error creating batch:', error);
-        throw error;
-      }
-
-      console.log('Batch created successfully:', data?.length);
-      return data;
+      toast({
+        title: "Éxito",
+        description: "El profesional ha sido eliminado correctamente.",
+      });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profesionales'] });
-      queryClient.invalidateQueries({ queryKey: ['estadisticas-profesionales'] });
-    }
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: `No se pudo eliminar el profesional: ${error.message}`,
+        variant: "destructive",
+      });
+    },
   });
+
+  return {
+    updateProfesional,
+    deleteProfesional,
+  };
 }

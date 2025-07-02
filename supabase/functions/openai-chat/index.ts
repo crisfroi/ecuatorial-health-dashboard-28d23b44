@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,20 +20,63 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY no configurada')
     }
 
-    // Crear el prompt del sistema especializado en salud
+    // Configurar cliente de Supabase para acceder a datos
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // Obtener datos en tiempo real para análisis
+    const [
+      { data: profesionales },
+      { data: distritosSanitarios },
+      { data: incidencias },
+      { data: notificaciones }
+    ] = await Promise.all([
+      supabase.from('profesionales_sanitarios').select('*').limit(100),
+      supabase.from('distrito_sanitario').select('*'),
+      supabase.from('incidencias_hospitalarias').select('*').limit(50),
+      supabase.from('notificaciones_sms').select('*').limit(50)
+    ])
+
+    // Crear contexto con datos actuales
+    const contextData = {
+      totalProfesionales: profesionales?.length || 0,
+      profesionalesPorArea: profesionales?.reduce((acc: any, p: any) => {
+        acc[p.area_profesional] = (acc[p.area_profesional] || 0) + 1
+        return acc
+      }, {}),
+      profesionalesPorEstado: profesionales?.reduce((acc: any, p: any) => {
+        acc[p.estado_solicitud] = (acc[p.estado_solicitud] || 0) + 1
+        return acc
+      }, {}),
+      totalDistritos: distritosSanitarios?.length || 0,
+      incidenciasAbiertas: incidencias?.filter((i: any) => i.estado === 'Abierta').length || 0,
+      notificacionesRecientes: notificaciones?.length || 0
+    }
+
+    // Crear el prompt del sistema especializado en salud con datos reales
     const systemPrompt = {
       role: 'system',
       content: `Eres un asistente de IA especializado en análisis de datos sanitarios para el Ministerio de Sanidad de Guinea Ecuatorial. 
 
+DATOS ACTUALES DEL SISTEMA:
+- Total de profesionales registrados: ${contextData.totalProfesionales}
+- Profesionales por área: ${JSON.stringify(contextData.profesionalesPorArea, null, 2)}
+- Estados de solicitudes: ${JSON.stringify(contextData.profesionalesPorEstado, null, 2)}
+- Total de distritos sanitarios: ${contextData.totalDistritos}
+- Incidencias abiertas: ${contextData.incidenciasAbiertas}
+- Notificaciones recientes: ${contextData.notificacionesRecientes}
+
 Tu función es ayudar a analizar datos de profesionales sanitarios, generar reportes, y responder preguntas sobre:
-- Estadísticas de profesionales registrados
+- Estadísticas de profesionales registrados (usa los datos reales arriba)
 - Análisis de distribución geográfica
 - Tendencias en especialidades médicas
 - Métricas de acreditación y renovación
 - Alertas de vencimiento de carnets
 - Recomendaciones para mejorar el sistema de salud
+- Estado actual del sistema con datos en tiempo real
 
-Responde siempre en español y mantén un tono profesional y útil. Cuando no tengas datos específicos, ofrece análisis generales basados en mejores prácticas del sector sanitario.`
+Responde siempre en español y mantén un tono profesional y útil. Utiliza los datos reales del sistema para proporcionar análisis precisos y actualizados.`
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

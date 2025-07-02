@@ -43,27 +43,32 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
         heightLeft -= pageHeight;
       }
 
-      pdf.save(`solicitud-${formData.nombre_completo?.replace(/\s+/g, '-') || 'profesional'}.pdf`);
+      pdf.save(`solicitud-${formData.nombre}-${formData.apellidos?.replace(/\s+/g, '-') || 'profesional'}.pdf`);
       onDownload();
     } catch (error) {
       console.error('Error generating PDF:', error);
     }
   };
 
-  const generateBarcode = (text: string) => {
-    // Generar código de barras simple usando texto
-    const barcode = `GEQ${new Date().getFullYear()}${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
-    return barcode;
+  const generateBarcodeCode = () => {
+    // Generar código único basado en área profesional y timestamp
+    const prefijo = formData.area_profesional === 'MEDICINA GENERAL' ? 'MED' : 
+                   formData.area_profesional === 'ENFERMERÍA' ? 'ENF' : 
+                   formData.area_profesional === 'FARMACIA' ? 'FAR' : 'GEN';
+    const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `${prefijo}${fecha}${random}`;
   };
 
-  const expedientCode = generateBarcode(formData.nombre_completo || '');
+  const barcodeData = generateBarcodeCode();
+  const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${barcodeData}&code=Code128&translate-esc=false&width=300&height=80`;
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Resumen de Solicitud</span>
+            <span>Resumen Completo de Solicitud</span>
             <Button onClick={generatePDF} className="flex items-center gap-2">
               <Download className="w-4 h-4" />
               Descargar PDF
@@ -71,125 +76,207 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div id="pdf-content" className="space-y-6 p-6 bg-white">
-            {/* Header */}
-            <div className="text-center border-b pb-4">
-              <h1 className="text-2xl font-bold text-guinea-teal">
+          <div id="pdf-content" className="space-y-8 p-8 bg-white">
+            {/* Header Oficial */}
+            <div className="text-center border-b-2 border-guinea-teal pb-6">
+              <h1 className="text-3xl font-bold text-guinea-teal mb-2">
                 MINISTERIO DE SANIDAD Y BIENESTAR SOCIAL
               </h1>
-              <h2 className="text-lg font-semibold mt-2">
+              <h2 className="text-xl font-semibold text-gray-700">
                 REPÚBLICA DE GUINEA ECUATORIAL
               </h2>
-              <p className="text-sm mt-2">SOLICITUD DE ACREDITACIÓN PROFESIONAL</p>
-              <div className="mt-4 text-center">
-                <div className="inline-block bg-gray-100 p-2 font-mono text-sm">
-                  {expedientCode}
+              <p className="text-lg mt-3 font-medium">SOLICITUD DE ACREDITACIÓN PROFESIONAL</p>
+              <div className="mt-4">
+                <div className="inline-block bg-gray-100 p-3 font-mono text-lg font-bold">
+                  {barcodeData}
                 </div>
-                <p className="text-xs mt-1">Código de Expediente</p>
+                <p className="text-sm mt-1 text-gray-600">Código de Expediente</p>
               </div>
             </div>
 
-            {/* Foto y datos personales */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Sección Principal con Foto */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div className="md:col-span-1">
-                {formData.foto_carnet && (
+                {formData.photoFile ? (
                   <div className="text-center">
                     <img 
-                      src={formData.foto_carnet} 
+                      src={URL.createObjectURL(formData.photoFile)} 
                       alt="Foto carnet"
-                      className="w-32 h-40 object-cover border-2 border-gray-300 mx-auto"
+                      className="w-full max-w-[150px] h-48 object-cover border-2 border-gray-400 mx-auto rounded"
                     />
-                    <p className="text-xs mt-2">Fotografía tamaño carnet</p>
+                    <p className="text-xs mt-2 text-gray-600">Fotografía tamaño carnet</p>
+                  </div>
+                ) : (
+                  <div className="w-full max-w-[150px] h-48 border-2 border-dashed border-gray-300 flex items-center justify-center mx-auto rounded">
+                    <span className="text-gray-400 text-sm">Sin foto</span>
                   </div>
                 )}
               </div>
               
-              <div className="md:col-span-2 space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">DATOS PERSONALES</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <strong>Nombre Completo:</strong>
-                    <p>{formData.nombre_completo}</p>
+              <div className="md:col-span-3 space-y-6">
+                {/* DATOS PERSONALES */}
+                <div>
+                  <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">
+                    I. DATOS PERSONALES
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <strong>Nombre Completo:</strong>
+                      <p className="mt-1">{formData.nombre} {formData.apellidos}</p>
+                    </div>
+                    <div>
+                      <strong>Género:</strong>
+                      <p className="mt-1">{formData.genero}</p>
+                    </div>
+                    <div>
+                      <strong>Fecha de Nacimiento:</strong>
+                      <p className="mt-1">{formData.fecha_nacimiento}</p>
+                    </div>
+                    <div>
+                      <strong>Nacionalidad:</strong>
+                      <p className="mt-1">{formData.nacionalidad}</p>
+                    </div>
+                    <div>
+                      <strong>Número DIP:</strong>
+                      <p className="mt-1">{formData.numero_dip || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <strong>Número Pasaporte:</strong>
+                      <p className="mt-1">{formData.numero_pasaporte || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <strong>Teléfono:</strong>
+                      <p className="mt-1">{formData.telefono}</p>
+                    </div>
+                    <div>
+                      <strong>Domicilio:</strong>
+                      <p className="mt-1">{formData.domicilio}</p>
+                    </div>
+                    <div>
+                      <strong>Provincia:</strong>
+                      <p className="mt-1">{formData.provincia}</p>
+                    </div>
+                    <div>
+                      <strong>Distrito:</strong>
+                      <p className="mt-1">{formData.distrito}</p>
+                    </div>
                   </div>
-                  <div>
-                    <strong>Género:</strong>
-                    <p>{formData.genero}</p>
+                </div>
+
+                {/* INFORMACIÓN PROFESIONAL */}
+                <div>
+                  <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">
+                    II. INFORMACIÓN PROFESIONAL
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <strong>Área Profesional:</strong>
+                      <p className="mt-1">{formData.area_profesional}</p>
+                    </div>
+                    <div>
+                      <strong>Especialidad:</strong>
+                      <p className="mt-1">{formData.especialidad || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <strong>Categoría de Titulación:</strong>
+                      <p className="mt-1">{formData.categoria_titulacion}</p>
+                    </div>
+                    <div>
+                      <strong>Situación Laboral:</strong>
+                      <p className="mt-1">{formData.situacion_laboral}</p>
+                    </div>
                   </div>
-                  <div>
-                    <strong>Fecha de Nacimiento:</strong>
-                    <p>{formData.fecha_nacimiento}</p>
+                </div>
+
+                {/* FORMACIÓN ACADÉMICA */}
+                <div>
+                  <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">
+                    III. FORMACIÓN ACADÉMICA
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <strong>Titulación Específica:</strong>
+                      <p className="mt-1">{formData.titulacion_especifica_1}</p>
+                    </div>
+                    <div>
+                      <strong>Institución de Formación:</strong>
+                      <p className="mt-1">{formData.institucion_1}</p>
+                    </div>
+                    <div>
+                      <strong>Período de Formación:</strong>
+                      <p className="mt-1">{formData.periodo_formacion}</p>
+                    </div>
+                    <div>
+                      <strong>País de Formación:</strong>
+                      <p className="mt-1">{formData.pais_formacion_1}</p>
+                    </div>
                   </div>
-                  <div>
-                    <strong>Nacionalidad:</strong>
-                    <p>{formData.nacionalidad}</p>
-                  </div>
-                  <div>
-                    <strong>Teléfono:</strong>
-                    <p>{formData.telefono}</p>
-                  </div>
-                  <div>
-                    <strong>Domicilio:</strong>
-                    <p>{formData.domicilio}</p>
+                </div>
+
+                {/* INFORMACIÓN LABORAL */}
+                <div>
+                  <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">
+                    IV. INFORMACIÓN LABORAL
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <strong>Centro de Trabajo:</strong>
+                      <p className="mt-1">{formData.nombre_centro}</p>
+                    </div>
+                    <div>
+                      <strong>Categoría del Centro:</strong>
+                      <p className="mt-1">{formData.categoria_centro}</p>
+                    </div>
+                    <div>
+                      <strong>Tipo de Sector:</strong>
+                      <p className="mt-1">{formData.tipo_sector}</p>
+                    </div>
+                    <div>
+                      <strong>Distrito Sanitario:</strong>
+                      <p className="mt-1">{formData.distrito_sanitario || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <strong>Pertenece a Brigada Médica:</strong>
+                      <p className="mt-1">{formData.pertenece_brigada_medica ? 'Sí' : 'No'}</p>
+                    </div>
+                    {formData.pertenece_brigada_medica && (
+                      <div>
+                        <strong>Tipo de Cooperación:</strong>
+                        <p className="mt-1">{formData.tipo_cooperacion || 'N/A'}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Información profesional */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold border-b pb-2">INFORMACIÓN PROFESIONAL</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <strong>Área Profesional:</strong>
-                  <p>{formData.area_profesional}</p>
-                </div>
-                <div>
-                  <strong>Especialidad:</strong>
-                  <p>{formData.especialidad || 'N/A'}</p>
-                </div>
-                <div>
-                  <strong>Año de Graduación:</strong>
-                  <p>{formData.año_graduacion}</p>
-                </div>
-                <div>
-                  <strong>Institución de Formación:</strong>
-                  <p>{formData.institucion_1}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Información laboral */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold border-b pb-2">INFORMACIÓN LABORAL</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <strong>Centro de Trabajo:</strong>
-                  <p>{formData.nombre_centro}</p>
-                </div>
-                <div>
-                  <strong>Provincia:</strong>
-                  <p>{formData.provincia}</p>
-                </div>
-                <div>
-                  <strong>Distrito Sanitario:</strong>
-                  <p>{formData.distrito_sanitario}</p>
-                </div>
-                <div>
-                  <strong>Tipo de Sector:</strong>
-                  <p>{formData.tipo_sector}</p>
-                </div>
-              </div>
+            {/* Código de Barras */}
+            <div className="text-center border-t-2 border-gray-200 pt-6">
+              <h4 className="text-lg font-semibold mb-4">CÓDIGO DE IDENTIFICACIÓN</h4>
+              <img 
+                src={barcodeUrl} 
+                alt={`Código de barras: ${barcodeData}`}
+                className="mx-auto"
+                style={{ maxWidth: '300px', height: 'auto' }}
+              />
+              <p className="font-mono text-sm mt-2 font-semibold">{barcodeData}</p>
             </div>
 
             {/* Footer */}
-            <div className="mt-8 pt-4 border-t text-xs text-gray-600">
-              <p>Fecha de Solicitud: {new Date().toLocaleDateString('es-ES')}</p>
-              <p>Estado: Pendiente de Revisión</p>
-              <div className="mt-4 text-center">
-                <p className="font-mono text-lg">{expedientCode}</p>
-                <div className="mt-2 bg-black text-white inline-block px-4 py-1 font-mono text-xs">
-                  ||||| {expedientCode} |||||
+            <div className="border-t-2 border-gray-200 pt-6 text-center text-sm text-gray-600">
+              <div className="grid grid-cols-2 gap-8">
+                <div>
+                  <p><strong>Fecha de Solicitud:</strong> {new Date().toLocaleDateString('es-ES')}</p>
+                  <p><strong>Estado:</strong> Pendiente de Revisión</p>
                 </div>
+                <div>
+                  <p><strong>Código de Expediente:</strong> {barcodeData}</p>
+                  <p><strong>Generado por:</strong> Sistema RENAPROSA</p>
+                </div>
+              </div>
+              <div className="mt-6 text-xs">
+                <p>Este documento es un resumen de la solicitud de acreditación profesional.</p>
+                <p>Para verificar la autenticidad, consulte el código de barras en el sistema oficial.</p>
               </div>
             </div>
           </div>

@@ -25,20 +25,22 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Obtener datos en tiempo real para análisis
+    // Obtener TODOS los datos disponibles para análisis completo
     const [
       { data: profesionales },
       { data: distritosSanitarios },
       { data: incidencias },
-      { data: notificaciones }
+      { data: notificaciones },
+      { data: nacionalidades }
     ] = await Promise.all([
-      supabase.from('profesionales_sanitarios').select('*').limit(100),
+      supabase.from('profesionales_sanitarios').select('*'),
       supabase.from('distrito_sanitario').select('*'),
-      supabase.from('incidencias_hospitalarias').select('*').limit(50),
-      supabase.from('notificaciones_sms').select('*').limit(50)
+      supabase.from('incidencias_hospitalarias').select('*'),
+      supabase.from('notificaciones_sms').select('*'),
+      supabase.from('nacionalidades_mundo').select('*')
     ])
 
-    // Crear contexto con datos actuales
+    // Crear contexto completo con TODOS los datos disponibles
     const contextData = {
       totalProfesionales: profesionales?.length || 0,
       profesionalesPorArea: profesionales?.reduce((acc: any, p: any) => {
@@ -49,36 +51,74 @@ serve(async (req) => {
         acc[p.estado_solicitud] = (acc[p.estado_solicitud] || 0) + 1
         return acc
       }, {}),
+      profesionalesPorGenero: profesionales?.reduce((acc: any, p: any) => {
+        acc[p.genero] = (acc[p.genero] || 0) + 1
+        return acc
+      }, {}),
+      profesionalesPorProvincia: profesionales?.reduce((acc: any, p: any) => {
+        acc[p.provincia] = (acc[p.provincia] || 0) + 1
+        return acc
+      }, {}),
+      profesionalesPorNacionalidad: profesionales?.reduce((acc: any, p: any) => {
+        acc[p.nacionalidad] = (acc[p.nacionalidad] || 0) + 1
+        return acc
+      }, {}),
+      profesionalesPorInstitucion: profesionales?.reduce((acc: any, p: any) => {
+        acc[p.institucion_1] = (acc[p.institucion_1] || 0) + 1
+        return acc
+      }, {}),
+      profesionalesPorCentroTrabajo: profesionales?.reduce((acc: any, p: any) => {
+        acc[p.nombre_centro] = (acc[p.nombre_centro] || 0) + 1
+        return acc
+      }, {}),
+      edadPromedio: profesionales?.filter(p => p.edad).reduce((sum, p) => sum + (p.edad || 0), 0) / (profesionales?.filter(p => p.edad).length || 1),
       totalDistritos: distritosSanitarios?.length || 0,
       incidenciasAbiertas: incidencias?.filter((i: any) => i.estado === 'Abierta').length || 0,
-      notificacionesRecientes: notificaciones?.length || 0
+      totalIncidencias: incidencias?.length || 0,
+      notificacionesRecientes: notificaciones?.length || 0,
+      totalNacionalidades: nacionalidades?.length || 0
     }
 
-    // Crear el prompt del sistema especializado en salud con datos reales
+    // Crear el prompt del sistema especializado en salud con TODOS los datos
     const systemPrompt = {
       role: 'system',
       content: `Eres un asistente de IA especializado en análisis de datos sanitarios para el Ministerio de Sanidad de Guinea Ecuatorial. 
 
-DATOS ACTUALES DEL SISTEMA:
+DATOS ACTUALES DEL SISTEMA (COMPLETOS):
 - Total de profesionales registrados: ${contextData.totalProfesionales}
 - Profesionales por área: ${JSON.stringify(contextData.profesionalesPorArea, null, 2)}
 - Estados de solicitudes: ${JSON.stringify(contextData.profesionalesPorEstado, null, 2)}
+- Distribución por género: ${JSON.stringify(contextData.profesionalesPorGenero, null, 2)}
+- Distribución por provincia: ${JSON.stringify(contextData.profesionalesPorProvincia, null, 2)}
+- Distribución por nacionalidad: ${JSON.stringify(contextData.profesionalesPorNacionalidad, null, 2)}
+- Principales instituciones de formación: ${JSON.stringify(contextData.profesionalesPorInstitucion, null, 2)}
+- Centros de trabajo más comunes: ${JSON.stringify(contextData.profesionalesPorCentroTrabajo, null, 2)}
+- Edad promedio de profesionales: ${Math.round(contextData.edadPromedio)} años
 - Total de distritos sanitarios: ${contextData.totalDistritos}
-- Incidencias abiertas: ${contextData.incidenciasAbiertas}
-- Notificaciones recientes: ${contextData.notificacionesRecientes}
+- Incidencias abiertas: ${contextData.incidenciasAbiertas} de ${contextData.totalIncidencias} totales
+- Notificaciones SMS enviadas: ${contextData.notificacionesRecientes}
+- Nacionalidades registradas: ${contextData.totalNacionalidades}
 
-Tu función es ayudar a analizar datos de profesionales sanitarios, generar reportes, y responder preguntas sobre:
-- Estadísticas de profesionales registrados (usa los datos reales arriba)
-- Análisis de distribución geográfica
-- Tendencias en especialidades médicas
+TIENES ACCESO COMPLETO a todos los campos de todas las tablas para análisis estadístico y de tendencias.
+
+Tu función es ayudar a analizar datos de profesionales sanitarios, generar reportes detallados, y responder preguntas sobre:
+- Estadísticas completas de profesionales registrados
+- Análisis de distribución geográfica, demográfica y académica
+- Tendencias en especialidades médicas y centros de formación
 - Métricas de acreditación y renovación
+- Análisis de edad, género, nacionalidad y experiencia
+- Distribución por centros de trabajo y sectores
 - Alertas de vencimiento de carnets
 - Recomendaciones para mejorar el sistema de salud
 - Estado actual del sistema con datos en tiempo real
 
-IMPORTANTE: NO proporciones nombres específicos de profesionales ni datos personales. Solo proporciona estadísticas agregadas y análisis de tendencias.
+IMPORTANTE: 
+- NUNCA proporciones nombres específicos de profesionales ni datos personales identificables
+- Solo proporciona estadísticas agregadas, conteos, porcentajes y análisis de tendencias
+- Puedes hacer referencia a instituciones, centros de trabajo, provincias y otros datos no personales
+- Siempre mantén la confidencialidad de datos personales individuales
 
-Responde siempre en español y mantén un tono profesional y útil. Utiliza los datos reales del sistema para proporcionar análisis precisos y actualizados.`
+Responde siempre en español y mantén un tono profesional y útil. Utiliza todos los datos disponibles del sistema para proporcionar análisis precisos, detallados y actualizados.`
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -90,7 +130,7 @@ Responde siempre en español y mantén un tono profesional y útil. Utiliza los 
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [systemPrompt, ...messages],
-        max_tokens: 1000,
+        max_tokens: 1500,
         temperature: 0.7,
       }),
     })

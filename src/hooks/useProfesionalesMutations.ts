@@ -20,17 +20,20 @@ export function useProfesionalesMutations() {
 
       if (error) {
         console.error('Error updating professional:', error);
-        throw error;
+        throw new Error(`Error al actualizar: ${error.message}`);
       }
 
-      console.log('Profesional actualizado:', data);
+      console.log('Profesional actualizado exitosamente:', data);
       return data;
     },
     onSuccess: (data) => {
-      // Invalidar y refrescar las consultas relacionadas
+      // Invalidar múltiples consultas para asegurar que se actualicen
       queryClient.invalidateQueries({ queryKey: ['profesionales'] });
       queryClient.invalidateQueries({ queryKey: ['estadisticas'] });
       queryClient.invalidateQueries({ queryKey: ['estadisticas-avanzadas'] });
+      
+      // Refrescar datos específicos
+      queryClient.refetchQueries({ queryKey: ['profesionales'] });
       
       toast({
         title: "Éxito",
@@ -54,10 +57,11 @@ export function useProfesionalesMutations() {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) throw new Error(`Error al eliminar: ${error.message}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profesionales'] });
+      queryClient.refetchQueries({ queryKey: ['profesionales'] });
       toast({
         title: "Éxito",
         description: "El profesional ha sido eliminado correctamente.",

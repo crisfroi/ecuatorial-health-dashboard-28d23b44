@@ -76,44 +76,55 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div id="pdf-content" className="space-y-8 p-8 bg-white">
+          <div id="pdf-content" className="max-w-[210mm] mx-auto bg-white" style={{ padding: '20mm', minHeight: '297mm', fontSize: '12px', lineHeight: '1.4' }}>
             {/* Header Oficial */}
-            <div className="text-center border-b-2 border-guinea-teal pb-6">
-              <h1 className="text-3xl font-bold text-guinea-teal mb-2">
+            <div className="text-center border-b-2 border-black pb-6 mb-8">
+              <h1 className="text-2xl font-bold mb-2" style={{ fontSize: '18px' }}>
                 MINISTERIO DE SANIDAD Y BIENESTAR SOCIAL
               </h1>
-              <h2 className="text-xl font-semibold text-gray-700">
+              <h2 className="text-lg font-semibold text-gray-700" style={{ fontSize: '16px' }}>
                 REPÚBLICA DE GUINEA ECUATORIAL
               </h2>
-              <p className="text-lg mt-3 font-medium">SOLICITUD DE ACREDITACIÓN PROFESIONAL</p>
+              <p className="text-base mt-3 font-medium" style={{ fontSize: '14px' }}>SOLICITUD DE ACREDITACIÓN PROFESIONAL</p>
               <div className="mt-4">
-                <div className="inline-block bg-gray-100 p-3 font-mono text-lg font-bold">
+                <div className="inline-block bg-gray-100 p-2 font-mono text-base font-bold" style={{ fontSize: '12px' }}>
                   {barcodeData}
                 </div>
-                <p className="text-sm mt-1 text-gray-600">Código de Expediente</p>
+                <p className="text-xs mt-1 text-gray-600">Código de Expediente</p>
               </div>
             </div>
 
             {/* Sección Principal con Foto */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-              <div className="md:col-span-1">
+            <div className="grid grid-cols-4 gap-6">
+              <div className="col-span-1">
                 {formData.photoFile ? (
                   <div className="text-center">
                     <img 
                       src={URL.createObjectURL(formData.photoFile)} 
                       alt="Foto carnet"
-                      className="w-full max-w-[150px] h-48 object-cover border-2 border-gray-400 mx-auto rounded"
+                      className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto"
+                      style={{ maxWidth: '120px', height: '160px' }}
                     />
-                    <p className="text-xs mt-2 text-gray-600">Fotografía tamaño carnet</p>
+                    <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
+                  </div>
+                ) : formData.submittedData?.foto_carnet ? (
+                  <div className="text-center">
+                    <img 
+                      src={formData.submittedData.foto_carnet} 
+                      alt="Foto carnet"
+                      className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto"
+                      style={{ maxWidth: '120px', height: '160px' }}
+                    />
+                    <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
                   </div>
                 ) : (
-                  <div className="w-full max-w-[150px] h-48 border-2 border-dashed border-gray-300 flex items-center justify-center mx-auto rounded">
-                    <span className="text-gray-400 text-sm">Sin foto</span>
+                  <div className="w-full max-w-[120px] h-40 border-2 border-dashed border-gray-300 flex items-center justify-center mx-auto">
+                    <span className="text-gray-400 text-xs">Sin foto</span>
                   </div>
                 )}
               </div>
               
-              <div className="md:col-span-3 space-y-6">
+              <div className="col-span-3 space-y-6">
                 {/* DATOS PERSONALES */}
                 <div>
                   <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">

@@ -68,6 +68,7 @@ const ProfessionalRegistration = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [formDataForPDF, setFormDataForPDF] = useState<any>(null);
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -121,6 +122,25 @@ const ProfessionalRegistration = () => {
     try {
       console.log('Enviando formulario con datos:', data);
       
+      // Subir foto a Supabase Storage
+      const fileExt = photoFile.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('fotos-carnet')
+        .upload(filePath, photoFile);
+
+      if (uploadError) {
+        console.error('Error uploading photo:', uploadError);
+        throw new Error('Error al subir la foto: ' + uploadError.message);
+      }
+
+      // Obtener URL pública de la foto
+      const { data: { publicUrl } } = supabase.storage
+        .from('fotos-carnet')
+        .getPublicUrl(filePath);
+
       // Calcular edad
       const birthDate = new Date(data.fecha_nacimiento);
       const age = new Date().getFullYear() - birthDate.getFullYear();
@@ -162,7 +182,7 @@ const ProfessionalRegistration = () => {
         pertenece_brigada_medica: data.pertenece_brigada_medica,
         tipo_cooperacion: data.tipo_cooperacion || null,
         documentos_cargados: documentosData,
-        foto_carnet: photoFile.name,
+        foto_carnet: publicUrl,
         estado_solicitud: 'Pendiente' as const,
         fecha_solicitud: new Date().toISOString().split('T')[0]
       };
@@ -182,12 +202,19 @@ const ProfessionalRegistration = () => {
 
       console.log('Resultado exitoso:', result);
 
+      // Actualizar el estado interno con los datos para el PDF
+      setFormDataForPDF({
+        ...data,
+        photoFile,
+        submittedData: result
+      });
+
       toast({
         title: "Solicitud enviada exitosamente",
         description: "Su solicitud ha sido registrada y está pendiente de revisión.",
       });
 
-      navigate('/');
+      setCurrentStep(6); // Ir al step de confirmación en lugar de navegar
     } catch (error) {
       console.error('Error submitting form:', error);
       toast({
@@ -248,7 +275,7 @@ const ProfessionalRegistration = () => {
       case 6:
         return (
           <ConfirmationStep 
-            formData={watchedValues}
+            formData={formDataForPDF || watchedValues}
             isSubmitting={isSubmitting}
           />
         );

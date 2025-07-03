@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Download, FileText, User } from 'lucide-react';
+import { CheckCircle, Download, FileText, User, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import PDFSummary from './PDFSummary';
+import RequestLetter from './RequestLetter';
 
 interface ConfirmationStepProps {
   formData: any;
@@ -13,6 +14,7 @@ interface ConfirmationStepProps {
 
 const ConfirmationStep = ({ formData, isSubmitting }: ConfirmationStepProps) => {
   const [showPDF, setShowPDF] = useState(false);
+  const [showLetter, setShowLetter] = useState(false);
 
   if (isSubmitting) {
     return (
@@ -41,6 +43,24 @@ const ConfirmationStep = ({ formData, isSubmitting }: ConfirmationStepProps) => 
         <PDFSummary 
           formData={formData} 
           onDownload={() => console.log('PDF descargado')}
+        />
+      </div>
+    );
+  }
+
+  if (showLetter) {
+    return (
+      <div className="space-y-4">
+        <Button 
+          variant="outline" 
+          onClick={() => setShowLetter(false)}
+          className="mb-4"
+        >
+          ← Volver al resumen
+        </Button>
+        <RequestLetter 
+          formData={formData} 
+          onDownload={() => console.log('Carta descargada')}
         />
       </div>
     );
@@ -84,6 +104,15 @@ const ConfirmationStep = ({ formData, isSubmitting }: ConfirmationStepProps) => 
             >
               <Download className="w-4 h-4" />
               <span>Descargar Resumen PDF</span>
+            </Button>
+            
+            <Button 
+              onClick={() => setShowLetter(true)}
+              variant="secondary"
+              className="flex items-center space-x-2"
+            >
+              <Mail className="w-4 h-4" />
+              <span>Descargar Carta de Instancia</span>
             </Button>
             
             <Button 

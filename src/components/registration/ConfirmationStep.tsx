@@ -6,6 +6,8 @@ import { CheckCircle, Download, FileText, User, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import PDFSummary from './PDFSummary';
 import RequestLetter from './RequestLetter';
+import ApprovalLetter from './ApprovalLetter';
+import ProfessionalCard from './ProfessionalCard';
 
 interface ConfirmationStepProps {
   formData: any;
@@ -15,6 +17,8 @@ interface ConfirmationStepProps {
 const ConfirmationStep = ({ formData, isSubmitting }: ConfirmationStepProps) => {
   const [showPDF, setShowPDF] = useState(false);
   const [showLetter, setShowLetter] = useState(false);
+  const [showApprovalLetter, setShowApprovalLetter] = useState(false);
+  const [showCard, setShowCard] = useState(false);
 
   if (isSubmitting) {
     return (
@@ -66,6 +70,42 @@ const ConfirmationStep = ({ formData, isSubmitting }: ConfirmationStepProps) => 
     );
   }
 
+  if (showApprovalLetter) {
+    return (
+      <div className="space-y-4">
+        <Button 
+          variant="outline" 
+          onClick={() => setShowApprovalLetter(false)}
+          className="mb-4"
+        >
+          ← Volver al resumen
+        </Button>
+        <ApprovalLetter 
+          formData={formData} 
+          onDownload={() => console.log('Carta de aprobación descargada')}
+        />
+      </div>
+    );
+  }
+
+  if (showCard) {
+    return (
+      <div className="space-y-4">
+        <Button 
+          variant="outline" 
+          onClick={() => setShowCard(false)}
+          className="mb-4"
+        >
+          ← Volver al resumen
+        </Button>
+        <ProfessionalCard 
+          formData={formData} 
+          onDownload={() => console.log('Carnet descargado')}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card className="border-green-200 bg-green-50">
@@ -97,13 +137,13 @@ const ConfirmationStep = ({ formData, isSubmitting }: ConfirmationStepProps) => 
             </ul>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <Button 
               onClick={() => setShowPDF(true)}
               className="flex items-center space-x-2"
             >
               <Download className="w-4 h-4" />
-              <span>Descargar Resumen PDF</span>
+              <span>Resumen PDF</span>
             </Button>
             
             <Button 
@@ -112,13 +152,30 @@ const ConfirmationStep = ({ formData, isSubmitting }: ConfirmationStepProps) => 
               className="flex items-center space-x-2"
             >
               <Mail className="w-4 h-4" />
-              <span>Descargar Carta de Instancia</span>
+              <span>Carta de Instancia</span>
+            </Button>
+
+            <Button 
+              onClick={() => setShowApprovalLetter(true)}
+              variant="outline"
+              className="flex items-center space-x-2"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Carta de Aprobación</span>
+            </Button>
+
+            <Button 
+              onClick={() => setShowCard(true)}
+              className="flex items-center space-x-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700"
+            >
+              <CheckCircle className="w-4 h-4" />
+              <span>Carnet Profesional</span>
             </Button>
             
             <Button 
               variant="outline"
               onClick={() => window.location.href = '/'}
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 sm:col-span-2 lg:col-span-1"
             >
               <User className="w-4 h-4" />
               <span>Volver al Inicio</span>

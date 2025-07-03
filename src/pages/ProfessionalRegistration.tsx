@@ -206,6 +206,7 @@ const ProfessionalRegistration = () => {
       setFormDataForPDF({
         ...data,
         photoFile,
+        foto_carnet: publicUrl,
         submittedData: result
       });
 

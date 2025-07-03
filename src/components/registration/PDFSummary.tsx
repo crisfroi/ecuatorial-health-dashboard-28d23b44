@@ -97,7 +97,17 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
             {/* Sección Principal con Foto */}
             <div className="grid grid-cols-4 gap-6">
               <div className="col-span-1">
-                {formData.photoFile ? (
+                {formData.foto_carnet ? (
+                  <div className="text-center">
+                    <img 
+                      src={formData.foto_carnet} 
+                      alt="Foto carnet"
+                      className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto"
+                      style={{ maxWidth: '120px', height: '160px' }}
+                    />
+                    <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
+                  </div>
+                ) : formData.photoFile ? (
                   <div className="text-center">
                     <img 
                       src={URL.createObjectURL(formData.photoFile)} 

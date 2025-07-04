@@ -76,21 +76,21 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div id="pdf-content" className="max-w-[210mm] mx-auto bg-white" style={{ padding: '20mm', minHeight: '297mm', fontSize: '12px', lineHeight: '1.4' }}>
+          <div id="pdf-content" className="max-w-[210mm] mx-auto bg-white" style={{ padding: '15mm', minHeight: '297mm', fontSize: '11px', lineHeight: '1.3' }}>
             {/* Header Oficial */}
-            <div className="text-center border-b-2 border-black pb-6 mb-8">
-              <h1 className="text-2xl font-bold mb-2" style={{ fontSize: '18px' }}>
+            <div className="text-center border-b-2 border-black pb-4 mb-6">
+              <h1 className="font-bold mb-1" style={{ fontSize: '16px' }}>
                 MINISTERIO DE SANIDAD Y BIENESTAR SOCIAL
               </h1>
-              <h2 className="text-lg font-semibold text-gray-700" style={{ fontSize: '16px' }}>
+              <h2 className="font-semibold text-gray-700" style={{ fontSize: '14px' }}>
                 REPÚBLICA DE GUINEA ECUATORIAL
               </h2>
-              <p className="text-base mt-3 font-medium" style={{ fontSize: '14px' }}>SOLICITUD DE ACREDITACIÓN PROFESIONAL</p>
-              <div className="mt-4">
-                <div className="inline-block bg-gray-100 p-2 font-mono text-base font-bold" style={{ fontSize: '12px' }}>
+              <p className="mt-2 font-medium" style={{ fontSize: '12px' }}>SOLICITUD DE ACREDITACIÓN PROFESIONAL</p>
+              <div className="mt-3">
+                <div className="inline-block bg-gray-100 p-1 font-mono font-bold" style={{ fontSize: '10px' }}>
                   {barcodeData}
                 </div>
-                <p className="text-xs mt-1 text-gray-600">Código de Expediente</p>
+                <p className="text-xs mt-1 text-gray-600" style={{ fontSize: '8px' }}>Código de Expediente</p>
               </div>
             </div>
 

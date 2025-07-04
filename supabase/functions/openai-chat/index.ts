@@ -40,7 +40,7 @@ serve(async (req) => {
       supabase.from('nacionalidades_mundo').select('*')
     ])
 
-    // Crear contexto completo con TODOS los datos disponibles
+    // Crear contexto completo con TODOS los datos disponibles incluyendo nombres específicos
     const contextData = {
       totalProfesionales: profesionales?.length || 0,
       profesionalesPorArea: profesionales?.reduce((acc: any, p: any) => {
@@ -76,7 +76,21 @@ serve(async (req) => {
       incidenciasAbiertas: incidencias?.filter((i: any) => i.estado === 'Abierta').length || 0,
       totalIncidencias: incidencias?.length || 0,
       notificacionesRecientes: notificaciones?.length || 0,
-      totalNacionalidades: nacionalidades?.length || 0
+      totalNacionalidades: nacionalidades?.length || 0,
+      // DATOS ESPECÍFICOS PARA CONSULTAS ADMINISTRATIVAS
+      profesionalesCompletos: profesionales?.map((p: any) => ({
+        id: p.id,
+        nombre_completo: p.nombre_completo,
+        numero_carnet_profesional: p.numero_carnet_profesional,
+        area_profesional: p.area_profesional,
+        estado_solicitud: p.estado_solicitud,
+        telefono: p.telefono,
+        provincia: p.provincia,
+        nombre_centro: p.nombre_centro,
+        fecha_solicitud: p.fecha_solicitud,
+        fecha_validez_carnet: p.fecha_validez_carnet
+      })) || [],
+      listaNombres: profesionales?.map((p: any) => p.nombre_completo).filter(Boolean) || []
     }
 
     // Crear el prompt del sistema especializado en salud con TODOS los datos
@@ -98,6 +112,13 @@ DATOS ACTUALES DEL SISTEMA (COMPLETOS):
 - Incidencias abiertas: ${contextData.incidenciasAbiertas} de ${contextData.totalIncidencias} totales
 - Notificaciones SMS enviadas: ${contextData.notificacionesRecientes}
 - Nacionalidades registradas: ${contextData.totalNacionalidades}
+
+LISTADO COMPLETO DE PROFESIONALES REGISTRADOS:
+${contextData.profesionalesCompletos.map((p: any, index: number) => 
+  `${index + 1}. ${p.nombre_completo} (ID: ${p.id}, Carnet: ${p.numero_carnet_profesional || 'Sin carnet'}, Área: ${p.area_profesional}, Estado: ${p.estado_solicitud})`
+).join('\n')}
+
+NOMBRES ESPECÍFICOS PARA BÚSQUEDAS: ${contextData.listaNombres.join(', ')}
 
 TIENES ACCESO COMPLETO a todos los campos de todas las tablas para análisis estadístico y de tendencias.
 

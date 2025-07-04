@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import ProfessionalRegistration from "./pages/ProfessionalRegistration";
 import PublicSearch from "./pages/PublicSearch";
 import NotFound from "./pages/NotFound";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/old-home" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/register" element={<ProfessionalRegistration />} />
             <Route path="/search" element={<PublicSearch />} />

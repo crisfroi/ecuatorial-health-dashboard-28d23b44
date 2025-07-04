@@ -68,7 +68,7 @@ const ApprovalLetter = ({ formData, onDownload }: ApprovalLetterProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div id="approval-letter-content" className="max-w-[210mm] mx-auto bg-white" style={{ padding: '30mm', minHeight: '297mm', fontSize: '12px', lineHeight: '1.6' }}>
+          <div id="approval-letter-content" className="max-w-[210mm] mx-auto bg-white" style={{ padding: '20mm', minHeight: '297mm', fontSize: '11px', lineHeight: '1.4' }}>
             
             {/* Membrete Oficial */}
             <div className="text-center mb-8">

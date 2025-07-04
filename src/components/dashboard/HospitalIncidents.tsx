@@ -1,399 +1,418 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertTriangle, Plus, Eye, Clock, CheckCircle, XCircle, Hospital, FileText } from 'lucide-react';
+import { AlertTriangle, Plus, Edit, Eye, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-interface Incident {
-  id: string;
-  hospitalName: string;
-  professionalName: string;
-  professionalId: string;
-  incidentType: string;
-  severity: 'Baja' | 'Media' | 'Alta' | 'Crítica';
-  description: string;
-  reportedBy: string;
-  reportDate: Date;
-  status: 'Pendiente' | 'En Revisión' | 'Resuelta' | 'Escalada';
-  actions: string;
-}
 
 const HospitalIncidents = () => {
   const { toast } = useToast();
-  const [incidents, setIncidents] = useState<Incident[]>([
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedIncident, setSelectedIncident] = useState(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+
+  // Datos simulados de incidencias
+  const [incidencias, setIncidencias] = useState([
     {
-      id: '1',
-      hospitalName: 'Hospital Nacional de Malabo',
-      professionalName: 'Dr. María González',
-      professionalId: 'GE-MED-2024-001',
-      incidentType: 'Incumplimiento de protocolo',
-      severity: 'Media',
-      description: 'No siguió el protocolo de desinfección en sala de operaciones',
-      reportedBy: 'Jefe de Enfermería',
-      reportDate: new Date('2024-01-15'),
-      status: 'En Revisión',
-      actions: 'Reunión programada con el profesional'
+      id: 1,
+      titulo: 'Falta de suministros médicos',
+      descripcion: 'Escasez crítica de medicamentos esenciales en farmacia',
+      tipo: 'Suministros',
+      gravedad: 'Alta',
+      estado: 'Abierta',
+      fechaIncidencia: '2024-01-20',
+      reportadoPor: 'Dr. Carlos Obiang',
+      centroAfectado: 'Hospital Regional Malabo',
+      provincia: 'Bioko Norte'
     },
     {
-      id: '2',
-      hospitalName: 'Centro de Salud de Bata',
-      professionalName: 'Enf. Carlos Mbomio',
-      professionalId: 'GE-ENF-2024-045',
-      incidentType: 'Ausencia no justificada',
-      severity: 'Alta',
-      description: 'Ausencia de 3 días sin notificación previa',
-      reportedBy: 'Director del Centro',
-      reportDate: new Date('2024-01-20'),
-      status: 'Pendiente',
-      actions: 'Pendiente de contacto'
+      id: 2,
+      titulo: 'Equipo médico averiado',
+      descripcion: 'Máquina de rayos X fuera de servicio desde hace 3 días',
+      tipo: 'Equipamiento',
+      gravedad: 'Media',
+      estado: 'En Progreso',
+      fechaIncidencia: '2024-01-18',
+      reportadoPor: 'Dra. María Nsue',
+      centroAfectado: 'Centro de Salud Bata',
+      provincia: 'Litoral'
+    },
+    {
+      id: 3,
+      titulo: 'Incidente de seguridad',
+      descripcion: 'Robo de medicamentos en área de farmacia durante la noche',
+      tipo: 'Seguridad',
+      gravedad: 'Alta',
+      estado: 'Resuelta',
+      fechaIncidencia: '2024-01-15',
+      fechaResolucion: '2024-01-22',
+      reportadoPor: 'Farm. Ana Nguema',
+      resuelto: 'Admin. Pedro Nsue',
+      centroAfectado: 'Farmacia Central',
+      provincia: 'Bioko Norte'
     }
   ]);
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    hospitalName: '',
-    professionalName: '',
-    professionalId: '',
-    incidentType: '',
-    severity: '',
-    description: '',
-    reportedBy: '',
-    actions: ''
+  const [newIncident, setNewIncident] = useState({
+    titulo: '',
+    descripcion: '',
+    tipo: '',
+    gravedad: 'Media',
+    centroAfectado: '',
+    provincia: ''
   });
 
-  const hospitals = [
-    'Hospital Nacional de Malabo',
-    'Hospital Regional de Bata',
-    'Centro de Salud de Ebebiyín',
-    'Hospital de Mongomo',
-    'Centro Médico de Evinayong',
-    'Clínica San Carlos',
-    'Hospital La Paz'
-  ];
+  const tipos = ['Suministros', 'Equipamiento', 'Personal', 'Seguridad', 'Infraestructura', 'Otro'];
+  const gravedades = ['Baja', 'Media', 'Alta', 'Crítica'];
+  const estados = ['Abierta', 'En Progreso', 'Resuelta', 'Cerrada'];
 
-  const incidentTypes = [
-    'Incumplimiento de protocolo',
-    'Ausencia no justificada',
-    'Negligencia profesional',
-    'Conflicto con pacientes',
-    'Uso inadecuado de recursos',
-    'Violación de confidencialidad',
-    'Otros'
-  ];
+  const getGravityColor = (gravedad: string) => {
+    switch (gravedad) {
+      case 'Crítica':
+        return 'bg-red-100 text-red-800';
+      case 'Alta':
+        return 'bg-orange-100 text-orange-800';
+      case 'Media':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Baja':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const newIncident: Incident = {
-      id: (Date.now()).toString(),
-      hospitalName: formData.hospitalName,
-      professionalName: formData.professionalName,
-      professionalId: formData.professionalId,
-      incidentType: formData.incidentType,
-      severity: formData.severity as any,
-      description: formData.description,
-      reportedBy: formData.reportedBy,
-      reportDate: new Date(),
-      status: 'Pendiente',
-      actions: formData.actions
+  const getStatusColor = (estado: string) => {
+    switch (estado) {
+      case 'Abierta':
+        return 'bg-red-100 text-red-800';
+      case 'En Progreso':
+        return 'bg-blue-100 text-blue-800';
+      case 'Resuelta':
+        return 'bg-green-100 text-green-800';
+      case 'Cerrada':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusIcon = (estado: string) => {
+    switch (estado) {
+      case 'Abierta':
+        return <XCircle className="w-4 h-4" />;
+      case 'En Progreso':
+        return <Clock className="w-4 h-4" />;
+      case 'Resuelta':
+        return <CheckCircle className="w-4 h-4" />;
+      default:
+        return <AlertTriangle className="w-4 h-4" />;
+    }
+  };
+
+  const handleAddIncident = () => {
+    if (!newIncident.titulo || !newIncident.descripcion || !newIncident.tipo) {
+      toast({
+        title: "Error",
+        description: "Todos los campos obligatorios deben ser completados",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newIncidentData = {
+      id: incidencias.length + 1,
+      ...newIncident,
+      estado: 'Abierta',
+      fechaIncidencia: new Date().toISOString().split('T')[0],
+      reportadoPor: 'Usuario Actual' // En una app real vendría del contexto de auth
     };
 
-    setIncidents(prev => [newIncident, ...prev]);
-    setIsDialogOpen(false);
-    setFormData({
-      hospitalName: '',
-      professionalName: '',
-      professionalId: '',
-      incidentType: '',
-      severity: '',
-      description: '',
-      reportedBy: '',
-      actions: ''
+    setIncidencias([...incidencias, newIncidentData]);
+    setNewIncident({
+      titulo: '',
+      descripcion: '',
+      tipo: '',
+      gravedad: 'Media',
+      centroAfectado: '',
+      provincia: ''
     });
+    setIsAddDialogOpen(false);
 
     toast({
-      title: "Incidencia registrada",
-      description: "La incidencia ha sido registrada correctamente y será revisada por el comité.",
+      title: "Incidencia creada",
+      description: "La incidencia ha sido registrada exitosamente",
     });
   };
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'Baja': return 'bg-green-100 text-green-800';
-      case 'Media': return 'bg-yellow-100 text-yellow-800';
-      case 'Alta': return 'bg-orange-100 text-orange-800';
-      case 'Crítica': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const handleViewIncident = (incident: any) => {
+    setSelectedIncident(incident);
+    setIsViewDialogOpen(true);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Pendiente': return 'bg-gray-100 text-gray-800';
-      case 'En Revisión': return 'bg-blue-100 text-blue-800';
-      case 'Resuelta': return 'bg-green-100 text-green-800';
-      case 'Escalada': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const updateIncidentStatus = (id: number, newStatus: string) => {
+    setIncidencias(incidencias.map(inc => 
+      inc.id === id 
+        ? { 
+            ...inc, 
+            estado: newStatus,
+            fechaResolucion: newStatus === 'Resuelta' ? new Date().toISOString().split('T')[0] : undefined,
+            resuelto: newStatus === 'Resuelta' ? 'Usuario Actual' : undefined
+          }
+        : inc
+    ));
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Pendiente': return <Clock className="w-4 h-4" />;
-      case 'En Revisión': return <Eye className="w-4 h-4" />;
-      case 'Resuelta': return <CheckCircle className="w-4 h-4" />;
-      case 'Escalada': return <XCircle className="w-4 h-4" />;
-      default: return <Clock className="w-4 h-4" />;
-    }
+    toast({
+      title: "Estado actualizado",
+      description: `La incidencia ha sido marcada como ${newStatus}`,
+    });
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-orange-500 rounded-lg">
-            <AlertTriangle className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Portal de Incidencias</h2>
-            <p className="text-gray-600">Registro y seguimiento de incidencias hospitalarias</p>
-          </div>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Incidencias Hospitalarias</h2>
+          <p className="text-gray-600 mt-1">Gestión de incidencias y problemas reportados</p>
         </div>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-guinea-teal hover:bg-guinea-dark-teal">
               <Plus className="w-4 h-4 mr-2" />
               Nueva Incidencia
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Registrar Nueva Incidencia</DialogTitle>
+              <DialogTitle>Reportar Nueva Incidencia</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Título de la incidencia *</label>
+                <Input
+                  placeholder="Descripción breve del problema"
+                  value={newIncident.titulo}
+                  onChange={(e) => setNewIncident({...newIncident, titulo: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Descripción detallada *</label>
+                <Textarea
+                  placeholder="Describe detalladamente la incidencia"
+                  value={newIncident.descripcion}
+                  onChange={(e) => setNewIncident({...newIncident, descripcion: e.target.value})}
+                  rows={3}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Hospital/Centro</label>
-                  <Select value={formData.hospitalName} onValueChange={(value) => setFormData({...formData, hospitalName: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar hospital" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {hospitals.map((hospital) => (
-                        <SelectItem key={hospital} value={hospital}>{hospital}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Tipo de Incidencia</label>
-                  <Select value={formData.incidentType} onValueChange={(value) => setFormData({...formData, incidentType: value})}>
+                  <label className="text-sm font-medium">Tipo *</label>
+                  <Select value={newIncident.tipo} onValueChange={(value) => setNewIncident({...newIncident, tipo: value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccionar tipo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {incidentTypes.map((type) => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      {tipos.map((tipo) => (
+                        <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Gravedad</label>
+                  <Select value={newIncident.gravedad} onValueChange={(value) => setNewIncident({...newIncident, gravedad: value})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {gravedades.map((gravedad) => (
+                        <SelectItem key={gravedad} value={gravedad}>{gravedad}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Nombre del Profesional</label>
-                  <Input
-                    value={formData.professionalName}
-                    onChange={(e) => setFormData({...formData, professionalName: e.target.value})}
-                    placeholder="Nombre completo"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">ID Profesional</label>
-                  <Input
-                    value={formData.professionalId}
-                    onChange={(e) => setFormData({...formData, professionalId: e.target.value})}
-                    placeholder="GE-XXX-XXXX-XXX"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Severidad</label>
-                  <Select value={formData.severity} onValueChange={(value) => setFormData({...formData, severity: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Nivel de severidad" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Baja">Baja</SelectItem>
-                      <SelectItem value="Media">Media</SelectItem>
-                      <SelectItem value="Alta">Alta</SelectItem>
-                      <SelectItem value="Crítica">Crítica</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Reportado por</label>
-                  <Input
-                    value={formData.reportedBy}
-                    onChange={(e) => setFormData({...formData, reportedBy: e.target.value})}
-                    placeholder="Nombre del reportante"
-                    required
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="block text-sm font-medium mb-2">Descripción de la Incidencia</label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Describe detalladamente la incidencia..."
-                  rows={4}
-                  required
+                <label className="text-sm font-medium">Centro afectado</label>
+                <Input
+                  placeholder="Nombre del centro de salud"
+                  value={newIncident.centroAfectado}
+                  onChange={(e) => setNewIncident({...newIncident, centroAfectado: e.target.value})}
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium mb-2">Acciones Inmediatas Tomadas</label>
-                <Textarea
-                  value={formData.actions}
-                  onChange={(e) => setFormData({...formData, actions: e.target.value})}
-                  placeholder="Describe las acciones tomadas hasta el momento..."
-                  rows={3}
+                <label className="text-sm font-medium">Provincia</label>
+                <Input
+                  placeholder="Provincia donde ocurrió"
+                  value={newIncident.provincia}
+                  onChange={(e) => setNewIncident({...newIncident, provincia: e.target.value})}
                 />
               </div>
-
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" className="bg-guinea-teal hover:bg-guinea-dark-teal">
-                  Registrar Incidencia
+                <Button onClick={handleAddIncident} className="bg-guinea-teal hover:bg-guinea-dark-teal">
+                  Crear Incidencia
                 </Button>
               </div>
-            </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* Estadísticas rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-gray-100 rounded">
-                <FileText className="w-4 h-4 text-gray-600" />
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-lg bg-red-100">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{incidents.length}</p>
-                <p className="text-sm text-gray-600">Total Incidencias</p>
+                <h3 className="font-semibold text-sm">Total Incidencias</h3>
+                <p className="text-2xl font-bold text-red-600">{incidencias.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-orange-100 rounded">
-                <Clock className="w-4 h-4 text-orange-600" />
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-lg bg-orange-100">
+                <XCircle className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{incidents.filter(i => i.status === 'Pendiente').length}</p>
-                <p className="text-sm text-gray-600">Pendientes</p>
+                <h3 className="font-semibold text-sm">Abiertas</h3>
+                <p className="text-2xl font-bold text-orange-600">
+                  {incidencias.filter(i => i.estado === 'Abierta').length}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-blue-100 rounded">
-                <Eye className="w-4 h-4 text-blue-600" />
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-lg bg-blue-100">
+                <Clock className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{incidents.filter(i => i.status === 'En Revisión').length}</p>
-                <p className="text-sm text-gray-600">En Revisión</p>
+                <h3 className="font-semibold text-sm">En Progreso</h3>
+                <p className="text-2xl font-bold text-blue-600">
+                  {incidencias.filter(i => i.estado === 'En Progreso').length}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-green-100 rounded">
-                <CheckCircle className="w-4 h-4 text-green-600"  />
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-lg bg-green-100">
+                <CheckCircle className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{incidents.filter(i => i.status === 'Resuelta').length}</p>
-                <p className="text-sm text-gray-600">Resueltas</p>
+                <h3 className="font-semibold text-sm">Resueltas</h3>
+                <p className="text-2xl font-bold text-green-600">
+                  {incidencias.filter(i => i.estado === 'Resuelta').length}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Tabla de incidencias */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Hospital className="w-5 h-5 text-guinea-teal" />
-            <span>Registro de Incidencias</span>
+          <CardTitle className="flex items-center justify-between">
+            <span>Lista de Incidencias</span>
+            <Badge variant="outline">{incidencias.length} incidencias</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Hospital</TableHead>
-                <TableHead>Profesional</TableHead>
+                <TableHead>Incidencia</TableHead>
                 <TableHead>Tipo</TableHead>
-                <TableHead>Severidad</TableHead>
+                <TableHead>Gravedad</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead>Centro</TableHead>
                 <TableHead>Fecha</TableHead>
+                <TableHead>Reportado por</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {incidents.map((incident) => (
-                <TableRow key={incident.id}>
-                  <TableCell className="font-medium">{incident.hospitalName}</TableCell>
+              {incidencias.map((incidencia) => (
+                <TableRow key={incidencia.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{incident.professionalName}</p>
-                      <p className="text-sm text-gray-500">{incident.professionalId}</p>
+                      <div className="font-medium">{incidencia.titulo}</div>
+                      <div className="text-sm text-gray-500 truncate max-w-xs">
+                        {incidencia.descripcion}
+                      </div>
                     </div>
                   </TableCell>
-                  <TableCell>{incident.incidentType}</TableCell>
                   <TableCell>
-                    <Badge className={getSeverityColor(incident.severity)}>
-                      {incident.severity}
+                    <Badge variant="outline">{incidencia.tipo}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={getGravityColor(incidencia.gravedad)}>
+                      {incidencia.gravedad}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(incident.status)}>
-                      <div className="flex items-center space-x-1">
-                        {getStatusIcon(incident.status)}
-                        <span>{incident.status}</span>
-                      </div>
-                    </Badge>
+                    <div className="flex items-center space-x-2">
+                      {getStatusIcon(incidencia.estado)}
+                      <Badge className={getStatusColor(incidencia.estado)}>
+                        {incidencia.estado}
+                      </Badge>
+                    </div>
                   </TableCell>
-                  <TableCell>{incident.reportDate.toLocaleDateString()}</TableCell>
                   <TableCell>
-                    <Button variant="outline" size="sm">
-                      <Eye className="w-4 h-4 mr-1" />
-                      Ver
-                    </Button>
+                    <div>
+                      <div className="font-medium text-sm">{incidencia.centroAfectado}</div>
+                      <div className="text-xs text-gray-500">{incidencia.provincia}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{incidencia.fechaIncidencia}</TableCell>
+                  <TableCell>{incidencia.reportadoPor}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewIncident(incidencia)}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      {incidencia.estado !== 'Resuelta' && (
+                        <Select
+                          value={incidencia.estado}
+                          onValueChange={(value) => updateIncidentStatus(incidencia.id, value)}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {estados.map((estado) => (
+                              <SelectItem key={estado} value={estado}>{estado}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -401,6 +420,62 @@ const HospitalIncidents = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialog para ver detalles */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Detalles de la Incidencia</DialogTitle>
+          </DialogHeader>
+          {selectedIncident && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold">{selectedIncident.titulo}</h4>
+                <div className="flex items-center space-x-2 mt-2">
+                  <Badge className={getGravityColor(selectedIncident.gravedad)}>
+                    {selectedIncident.gravedad}
+                  </Badge>
+                  <Badge className={getStatusColor(selectedIncident.estado)}>
+                    {selectedIncident.estado}
+                  </Badge>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Descripción:</label>
+                <p className="text-sm text-gray-600 mt-1">{selectedIncident.descripcion}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Tipo:</label>
+                  <p className="text-sm">{selectedIncident.tipo}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Centro:</label>
+                  <p className="text-sm">{selectedIncident.centroAfectado}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Reportado por:</label>
+                  <p className="text-sm">{selectedIncident.reportadoPor}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Fecha:</label>
+                  <p className="text-sm">{selectedIncident.fechaIncidencia}</p>
+                </div>
+              </div>
+              {selectedIncident.estado === 'Resuelta' && selectedIncident.fechaResolucion && (
+                <div className="bg-green-50 p-3 rounded-lg">
+                  <label className="text-sm font-medium text-green-800">Resuelto:</label>
+                  <p className="text-sm text-green-700">
+                    {selectedIncident.fechaResolucion} por {selectedIncident.resuelto}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

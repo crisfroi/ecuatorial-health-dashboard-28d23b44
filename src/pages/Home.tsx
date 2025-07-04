@@ -24,7 +24,7 @@ const Home = () => {
                   Verificar Profesional
                 </Button>
               </Link>
-              <Link to="/dashboard">
+              <Link to="/auth">
                 <Button variant="outline">Panel de Control</Button>
               </Link>
             </nav>

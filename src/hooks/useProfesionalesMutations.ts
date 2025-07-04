@@ -11,6 +11,12 @@ export function useProfesionalesMutations() {
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
       console.log('Actualizando profesional:', id, updates);
       
+      // Si se está cambiando a "Pendiente de Firma", generar automáticamente el carnet
+      if (updates.estado_solicitud === 'Pendiente de Firma') {
+        updates.fecha_alta = new Date().toISOString().split('T')[0];
+        updates.fecha_aprobacion = new Date().toISOString().split('T')[0];
+      }
+      
       const { data, error } = await supabase
         .from('profesionales_sanitarios')
         .update(updates)

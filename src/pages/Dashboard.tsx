@@ -27,6 +27,9 @@ import DashboardFilters from '@/components/dashboard/DashboardFilters';
 import RequestsPanel from '@/components/dashboard/RequestsPanel';
 import RenewalAlerts from '@/components/dashboard/RenewalAlerts';
 import OpenAIChat from '@/components/dashboard/OpenAIChat';
+import MinisterialPanel from '@/components/dashboard/MinisterialPanel';
+import HospitalIncidents from '@/components/dashboard/HospitalIncidents';
+import HealthCenters from '@/components/dashboard/HealthCenters';
 
 // Types - using the full database type
 import type { Tables } from '@/integrations/supabase/types';
@@ -164,7 +167,7 @@ const Dashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">General</span>
@@ -188,6 +191,18 @@ const Dashboard = () => {
             <TabsTrigger value="ai-chat" className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
               <span className="hidden sm:inline">IA Chat</span>
+            </TabsTrigger>
+            <TabsTrigger value="ministerial" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Ministerial</span>
+            </TabsTrigger>
+            <TabsTrigger value="incidents" className="flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              <span className="hidden sm:inline">Incidencias</span>
+            </TabsTrigger>
+            <TabsTrigger value="health-centers" className="flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              <span className="hidden sm:inline">Centros</span>
             </TabsTrigger>
           </TabsList>
 
@@ -263,6 +278,18 @@ const Dashboard = () => {
 
           <TabsContent value="ai-chat" className="space-y-6">
             <OpenAIChat />
+          </TabsContent>
+
+          <TabsContent value="ministerial" className="space-y-6">
+            <MinisterialPanel />
+          </TabsContent>
+
+          <TabsContent value="incidents" className="space-y-6">
+            <HospitalIncidents />
+          </TabsContent>
+
+          <TabsContent value="health-centers" className="space-y-6">
+            <HealthCenters />
           </TabsContent>
         </Tabs>
       </div>

@@ -114,32 +114,34 @@ const PDFSummary = ({
             </div>
 
             {/* Sección Principal con Foto */}
-            <div className="grid grid-cols-4 gap-6">
-              <div className="col-span-1">
-               {formData.foto_carnet_base64 ? <div className="text-center">
-                   <img src={formData.foto_carnet_base64} alt="Foto carnet" className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto" style={{
-                  maxWidth: '120px',
-                  height: '160px'
-                }} />
-                     <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
-                 </div> : formData.foto_carnet ? <div className="text-center">
-                    <img src={formData.foto_carnet} alt="Foto carnet" className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto" style={{
-                  maxWidth: '120px',
-                  height: '160px'
-                }} />
-                    <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
-                  </div> : formData.submittedData?.foto_carnet ? <div className="text-center">
-                    <img src={formData.submittedData.foto_carnet} alt="Foto carnet" className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto" style={{
-                  maxWidth: '120px',
-                  height: '160px'
-                }} />
-                    <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
-                  </div> : <div className="w-full max-w-[120px] h-40 border-2 border-dashed border-gray-300 flex items-center justify-center mx-auto">
-                    <span className="text-gray-400 text-xs">Sin foto</span>
-                  </div>}
-              </div>
-              
-              <div className="col-span-3 space-y-6">
+       <div className="grid grid-cols-4 gap-6">
+  <div className="col-span-1">
+    <div className="text-center">
+      {(() => {
+        const fotoSrc =
+          formData.foto_carnet_base64 ||
+          formData.foto_carnet ||
+          formData.submittedData?.foto_carnet;
+
+        return fotoSrc ? (
+          <>
+            <img
+              src={fotoSrc}
+              alt="Foto carnet"
+              className="w-full max-w-[100px] h-[140px] object-cover border border-gray-400 mx-auto"
+            />
+            <p className="text-xs mt-2 text-gray-600">Fotografía tamaño carnet</p>
+          </>
+        ) : (
+          <div className="w-full max-w-[100px] h-[140px] border border-dashed border-gray-300 flex items-center justify-center mx-auto">
+            <span className="text-gray-400 text-xs">Sin foto</span>
+          </div>
+        );
+      })()}
+    </div>
+  </div>
+
+  <div className="col-span-3 space-y-6">
                 {/* DATOS PERSONALES */}
                 <div>
                   <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">

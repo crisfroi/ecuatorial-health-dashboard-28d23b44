@@ -51,6 +51,14 @@ const ConfirmationStep = ({ formData, isSubmitting }: ConfirmationStepProps) => 
       </div>
     );
   }
+if (showPDF) {
+  console.log('formData en ConfirmationStep:', formData);
+  return (
+    <div className="space-y-4">
+      {/* … */}
+    </div>
+  );
+}
 
   if (showLetter) {
     return (

@@ -279,16 +279,34 @@ const ProfessionalRegistration = () => {
           />
         );
       case 6:
-        return (
-          <ConfirmationStep 
-            formData={formDataForPDF || watchedValues}
-            isSubmitting={isSubmitting}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+        return (import PDFSummary from './PDFSummary'; // Asegúrate que el path esté correcto
+
+const ConfirmationStep = ({ formData, isSubmitting }: { formData: any, isSubmitting: boolean }) => {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
+        Confirmación de Datos
+      </h2>
+
+      {/* Aquí está el resumen PDF en pantalla */}
+      <PDFSummary
+        formData={formData}
+        onDownload={() => {}}
+      />
+
+      <div className="text-center">
+        {isSubmitting ? (
+          <p className="text-blue-600">Enviando solicitud...</p>
+        ) : (
+          <p className="text-green-600">Solicitud registrada exitosamente.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ConfirmationStep;
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

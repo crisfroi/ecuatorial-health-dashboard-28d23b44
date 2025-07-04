@@ -269,13 +269,6 @@ const ProfessionalRegistration = () => {
       case 5:
         return (
           <DocumentsStep 
-            <PDFSummary
-            formData={{   ...formData, 
-                       foto_carnet_base64: fotoCarnetBase64,
-                       photoFile: photoFile
-                      }}
-            onDownload={() => {}}
-            />
             uploadedFiles={uploadedFiles}
             handleFileUpload={handleFileUpload}
             removeFile={removeFile}

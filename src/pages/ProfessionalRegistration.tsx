@@ -100,17 +100,24 @@ const ProfessionalRegistration = () => {
   };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setPhotoFile(file);
-      setFotoBase64(base64String)
-    }
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  setPhotoFile(file);
+
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    const base64 = reader.result as string;
+    setFotoCarnetBase64(base64);
+  };
+  reader.readAsDataURL(file);
   };
 
+
   const removePhoto = () => {
-    setPhotoFile(null);
-    setFotoBase64(base64String)
-  };
+  setPhotoFile(null);
+  setFotoCarnetBase64(null);
+ };
 
   const onSubmit = async (data: FormData) => {
     if (!photoFile) {

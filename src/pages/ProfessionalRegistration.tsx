@@ -68,6 +68,7 @@ const ProfessionalRegistration = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [fotoCarnetBase64, setFotoCarnetBase64] = useState<string | null>(null);
   const [formDataForPDF, setFormDataForPDF] = useState<any>(null);
   
   const { toast } = useToast();
@@ -101,11 +102,13 @@ const ProfessionalRegistration = () => {
     const file = event.target.files?.[0];
     if (file) {
       setPhotoFile(file);
+      setFotoBase64(base64String)
     }
   };
 
   const removePhoto = () => {
     setPhotoFile(null);
+    setFotoBase64(base64String)
   };
 
   const onSubmit = async (data: FormData) => {

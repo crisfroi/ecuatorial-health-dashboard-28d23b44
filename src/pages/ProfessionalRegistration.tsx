@@ -218,8 +218,10 @@ const ProfessionalRegistration = () => {
         ...data,
         photoFile,
         foto_carnet: publicUrl,
+        foto_carnet_base64: fotoCarnetBase64,
         submittedData: result
       });
+
 
       toast({
         title: "Solicitud enviada exitosamente",

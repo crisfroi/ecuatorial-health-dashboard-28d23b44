@@ -13,7 +13,7 @@ const PDFSummary = ({
   formData,
   onDownload
 }: PDFSummaryProps) => {
-  const generatePDF = async () => {
+ const generatePDF = async () => {
   const element = document.getElementById('pdf-content');
   if (!element) return;
 
@@ -25,31 +25,42 @@ const PDFSummary = ({
       backgroundColor: '#ffffff'
     });
 
-    const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidthMM = 210;
+    const pageHeightMM = 297;
+    const imgWidthPX = canvas.width;
+    const imgHeightPX = canvas.height;
 
-    const imgWidth = 210; // A4 width in mm
-    const pageHeight = 297; // A4 height in mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    // Factor de conversión px → mm
+    const pxPerMM = imgWidthPX / pageWidthMM;
+    const imgHeightMM = imgHeightPX / pxPerMM;
 
-    // Scale the image to fit within a single A4 page
-    const yOffset = (pageHeight - imgHeight) / 2;
+    // Recorta el canvas si excede la altura de página
+    const cropHeightPX = imgHeightMM > pageHeightMM
+      ? pageHeightMM * pxPerMM
+      : imgHeightPX;
 
-    pdf.addImage(imgData, 'PNG', 0, yOffset > 0 ? yOffset : 0, imgWidth, imgHeight);
+    const croppedCanvas = document.createElement('canvas');
+    croppedCanvas.width = imgWidthPX;
+    croppedCanvas.height = cropHeightPX;
+    croppedCanvas.getContext('2d')!
+      .drawImage(canvas, 0, 0, imgWidthPX, cropHeightPX, 0, 0, imgWidthPX, cropHeightPX);
+
+    const imgData = croppedCanvas.toDataURL('image/png');
+    const imgHeightFinalMM = croppedCanvas.height / pxPerMM;
+
+    // Centra verticalmente si es más corto que la página
+    const yOffset = imgHeightFinalMM < pageHeightMM
+      ? (pageHeightMM - imgHeightFinalMM) / 2
+      : 0;
+
+    pdf.addImage(imgData, 'PNG', 0, yOffset, pageWidthMM, imgHeightFinalMM);
     pdf.save(`solicitud-${formData.nombre}-${formData.apellidos?.replace(/\s+/g, '-') || 'profesional'}.pdf`);
-
     onDownload();
   } catch (error) {
     console.error('Error generating PDF:', error);
   }
 };
-
-      pdf.save(`solicitud-${formData.nombre}-${formData.apellidos?.replace(/\s+/g, '-') || 'profesional'}.pdf`);
-      onDownload();
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-    }
-  };
   const generateBarcodeCode = () => {
     // Generar código único basado en área profesional y timestamp
     const prefijo = formData.area_profesional === 'MEDICINA GENERAL' ? 'MED' : formData.area_profesional === 'ENFERMERÍA' ? 'ENF' : formData.area_profesional === 'FARMACIA' ? 'FAR' : 'GEN';

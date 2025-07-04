@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,18 +5,17 @@ import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { DocumentsStep } from './DocumentsStep';
-
-
 interface PDFSummaryProps {
   formData: any;
   onDownload: () => void;
 }
-
-const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
+const PDFSummary = ({
+  formData,
+  onDownload
+}: PDFSummaryProps) => {
   const generatePDF = async () => {
     const element = document.getElementById('pdf-content');
     if (!element) return;
-
     try {
       const canvas = await html2canvas(element, {
         scale: 2,
@@ -25,50 +23,39 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
         allowTaint: true,
         backgroundColor: '#ffffff'
       });
-
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
-      
       const imgWidth = 210;
       const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const imgHeight = canvas.height * imgWidth / canvas.width;
       let heightLeft = imgHeight;
       let position = 0;
-
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
-
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
-
       pdf.save(`solicitud-${formData.nombre}-${formData.apellidos?.replace(/\s+/g, '-') || 'profesional'}.pdf`);
       onDownload();
     } catch (error) {
       console.error('Error generating PDF:', error);
     }
   };
-
   const generateBarcodeCode = () => {
     // Generar código único basado en área profesional y timestamp
-    const prefijo = formData.area_profesional === 'MEDICINA GENERAL' ? 'MED' : 
-                   formData.area_profesional === 'ENFERMERÍA' ? 'ENF' : 
-                   formData.area_profesional === 'FARMACIA' ? 'FAR' : 'GEN';
+    const prefijo = formData.area_profesional === 'MEDICINA GENERAL' ? 'MED' : formData.area_profesional === 'ENFERMERÍA' ? 'ENF' : formData.area_profesional === 'FARMACIA' ? 'FAR' : 'GEN';
     const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     return `${prefijo}${fecha}${random}`;
   };
-
   const barcodeData = generateBarcodeCode();
   const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${barcodeData}&code=Code128&translate-esc=false&width=300&height=80`;
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [fotoCarnetBase64, setFotoCarnetBase64] = useState<string | null>(null);
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -80,63 +67,61 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div id="pdf-content" className="max-w-[210mm] mx-auto bg-white" style={{ padding: '15mm', minHeight: '297mm', fontSize: '11px', lineHeight: '1.3' }}>
+          <div id="pdf-content" className="max-w-[210mm] mx-auto bg-white" style={{
+          padding: '15mm',
+          minHeight: '297mm',
+          fontSize: '11px',
+          lineHeight: '1.3'
+        }}>
             {/* Header Oficial */}
             <div className="text-center border-b-2 border-black pb-4 mb-6">
-              <h1 className="font-bold mb-1" style={{ fontSize: '16px' }}>
-                MINISTERIO DE SANIDAD Y BIENESTAR SOCIAL
-              </h1>
-              <h2 className="font-semibold text-gray-700" style={{ fontSize: '14px' }}>
+              <h1 style={{
+              fontSize: '16px'
+            }} className="font-bold mb-1 text-base">MINISTERIO DE SANIDAD SANIDAD, BIENESTAR SOCIAL E INFRAESTRUCTURAS SANITARIAS</h1>
+              <h2 className="font-semibold text-gray-700" style={{
+              fontSize: '14px'
+            }}>
                 REPÚBLICA DE GUINEA ECUATORIAL
               </h2>
-              <p className="mt-2 font-medium" style={{ fontSize: '12px' }}>SOLICITUD DE ACREDITACIÓN PROFESIONAL</p>
+              <p className="mt-2 font-medium" style={{
+              fontSize: '12px'
+            }}>SOLICITUD DE ACREDITACIÓN PROFESIONAL</p>
               <div className="mt-3">
-                <div className="inline-block bg-gray-100 p-1 font-mono font-bold" style={{ fontSize: '10px' }}>
+                <div className="inline-block bg-gray-100 p-1 font-mono font-bold" style={{
+                fontSize: '10px'
+              }}>
                   {barcodeData}
                 </div>
-                <p className="text-xs mt-1 text-gray-600" style={{ fontSize: '8px' }}>Código de Expediente</p>
+                <p className="text-xs mt-1 text-gray-600" style={{
+                fontSize: '8px'
+              }}>Código de Expediente</p>
               </div>
             </div>
 
             {/* Sección Principal con Foto */}
             <div className="grid grid-cols-4 gap-6">
               <div className="col-span-1">
-               {formData.foto_carnet_base64 ? (
-                 <div className="text-center">
-                   <img 
-                     src={formData.foto_carnet_base64}
-                     alt="Foto carnet"
-                     className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto"
-                     style={{ maxWidth: '120px', height: '160px' }}
-                     />
+               {formData.foto_carnet_base64 ? <div className="text-center">
+                   <img src={formData.foto_carnet_base64} alt="Foto carnet" className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto" style={{
+                  maxWidth: '120px',
+                  height: '160px'
+                }} />
                      <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
-                 </div>
-
-                ) : formData.foto_carnet ? (
-                  <div className="text-center">
-                    <img 
-                      src={formData.foto_carnet} 
-                      alt="Foto carnet"
-                      className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto"
-                      style={{ maxWidth: '120px', height: '160px' }}
-                    />
+                 </div> : formData.foto_carnet ? <div className="text-center">
+                    <img src={formData.foto_carnet} alt="Foto carnet" className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto" style={{
+                  maxWidth: '120px',
+                  height: '160px'
+                }} />
                     <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
-                  </div>
-                ) : formData.submittedData?.foto_carnet ? (
-                  <div className="text-center">
-                    <img 
-                      src={formData.submittedData.foto_carnet} 
-                      alt="Foto carnet"
-                      className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto"
-                      style={{ maxWidth: '120px', height: '160px' }}
-                    />
+                  </div> : formData.submittedData?.foto_carnet ? <div className="text-center">
+                    <img src={formData.submittedData.foto_carnet} alt="Foto carnet" className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto" style={{
+                  maxWidth: '120px',
+                  height: '160px'
+                }} />
                     <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
-                  </div>
-                ) : (
-                  <div className="w-full max-w-[120px] h-40 border-2 border-dashed border-gray-300 flex items-center justify-center mx-auto">
+                  </div> : <div className="w-full max-w-[120px] h-40 border-2 border-dashed border-gray-300 flex items-center justify-center mx-auto">
                     <span className="text-gray-400 text-xs">Sin foto</span>
-                  </div>
-                )}
+                  </div>}
               </div>
               
               <div className="col-span-3 space-y-6">
@@ -265,12 +250,10 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
                       <strong>Pertenece a Brigada Médica:</strong>
                       <p className="mt-1">{formData.pertenece_brigada_medica ? 'Sí' : 'No'}</p>
                     </div>
-                    {formData.pertenece_brigada_medica && (
-                      <div>
+                    {formData.pertenece_brigada_medica && <div>
                         <strong>Tipo de Cooperación:</strong>
                         <p className="mt-1">{formData.tipo_cooperacion || 'N/A'}</p>
-                      </div>
-                    )}
+                      </div>}
                   </div>
                 </div>
               </div>
@@ -278,13 +261,11 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
 
             {/* Código de Barras */}
             <div className="text-center border-t-2 border-gray-200 pt-6">
-              <h4 className="text-lg font-semibold mb-4">CÓDIGO DE IDENTIFICACIÓN</h4>
-              <img 
-                src={barcodeUrl} 
-                alt={`Código de barras: ${barcodeData}`}
-                className="mx-auto"
-                style={{ maxWidth: '300px', height: 'auto' }}
-              />
+              <h4 className="text-lg font-semibold mb-4">CÓDIGO DE EXPEDIENTE</h4>
+              <img src={barcodeUrl} alt={`Código de barras: ${barcodeData}`} className="mx-auto" style={{
+              maxWidth: '300px',
+              height: 'auto'
+            }} />
               <p className="font-mono text-sm mt-2 font-semibold">{barcodeData}</p>
             </div>
 
@@ -308,8 +289,6 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default PDFSummary;

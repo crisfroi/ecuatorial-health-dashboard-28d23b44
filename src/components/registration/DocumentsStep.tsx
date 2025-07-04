@@ -43,18 +43,17 @@ export const DocumentsStep = ({
                 id="foto-carnet"
                 type="file"
                 accept="image/jpeg,image/jpg,image/png"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    const base64 = reader.result as string;
-                    handlePhotoUpload(e); // mantener lógica anterior (setPhotoFile)
-                    setFotoCarnetBase64(base64); // guardar base64 adicionalmente
-                  };
-                  reader.readAsDataURL(file);
-                }}
+               onChange={(e) => {
+                 const file = e.target.files?.[0];
+                 if (!file) return;
+                 const reader = new FileReader();
+                 reader.onloadend = () => {
+                   const base64 = reader.result as string;
+                   setFotoCarnetBase64(base64); // guardamos la imagen base64 para el PDF
+                 };
+                 reader.readAsDataURL(file);
+                 handlePhotoUpload(e); // sigue guardando photoFile normalmente
+               }}
 
                 className="hidden"
               />

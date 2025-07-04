@@ -20,7 +20,8 @@ export const DocumentsStep = ({
   removeFile,
   photoFile,
   handlePhotoUpload,
-  removePhoto
+  removePhoto,
+  setFotoCarnetBase64
 }: DocumentsStepProps) => {
   return (
     <div className="space-y-6">

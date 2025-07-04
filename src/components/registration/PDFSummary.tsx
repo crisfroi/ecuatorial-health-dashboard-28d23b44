@@ -114,7 +114,7 @@ const PDFSummary = ({
             </div>
 
             {/* Sección Principal con Foto */}
-       <div className="grid grid-cols-4 gap-6">
+       <div className="grid grid-cols-3 gap-3">
   <div className="col-span-1">
     <div className="text-center">
       {(() => {
@@ -133,7 +133,7 @@ const PDFSummary = ({
             <p className="text-xs mt-2 text-gray-600">Fotografía tamaño carnet</p>
           </>
         ) : (
-          <div className="w-full max-w-[100px] h-[140px] border border-dashed border-gray-300 flex items-center justify-center mx-auto">
+          <div className="w-full max-w-[100px] h-[120px] border border-dashed border-gray-300 flex items-center justify-center mx-auto">
             <span className="text-gray-400 text-xs">Sin foto</span>
           </div>
         );
@@ -141,7 +141,7 @@ const PDFSummary = ({
     </div>
   </div>
 
-  <div className="col-span-3 space-y-6">
+  <div className="col-span-3 space-y-3">
                 {/* DATOS PERSONALES */}
                 <div>
                   <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">

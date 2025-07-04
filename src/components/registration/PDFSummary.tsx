@@ -150,24 +150,31 @@ const PDFSummary = ({
                       <strong>Nombre Completo:</strong>
                       <p className="mt-1">{formData.nombre} {formData.apellidos}</p>
                     </div>
+                    <div>
                       <strong>Género:</strong>
                       <p className="mt-1">{formData.genero}</p>
                     </div>
+                    <div>
                       <strong>Fecha de Nacimiento:</strong>
                       <p className="mt-1">{formData.fecha_nacimiento}</p>
                     </div>
+                    <div>
                       <strong>Nacionalidad:</strong>
                       <p className="mt-1">{formData.nacionalidad}</p>
                     </div>
+                    <div>
                       <strong>Número DIP:</strong>
                       <p className="mt-1">{formData.numero_dip || 'N/A'}</p>
                     </div>
+                    <div>
                       <strong>Número Pasaporte:</strong>
                       <p className="mt-1">{formData.numero_pasaporte || 'N/A'}</p>
                     </div>
+                    <div>
                       <strong>Teléfono:</strong>
                       <p className="mt-1">{formData.telefono}</p>
                     </div>
+                    <div>
                       <strong>Domicilio:</strong>
                       <p className="mt-1">{formData.domicilio}</p>
                     </div>
@@ -179,6 +186,7 @@ const PDFSummary = ({
                       <strong>Distrito:</strong>
                       <p className="mt-1">{formData.distrito}</p>
                     </div>
+                  </div>
                 </div>
 
                 {/* INFORMACIÓN PROFESIONAL */}
@@ -241,15 +249,19 @@ const PDFSummary = ({
                       <strong>Centro de Trabajo:</strong>
                       <p className="mt-1">{formData.nombre_centro}</p>
                     </div>
+                    <div>
                       <strong>Categoría del Centro:</strong>
                       <p className="mt-1">{formData.categoria_centro}</p>
                     </div>
+                    <div>
                       <strong>Tipo de Sector:</strong>
                       <p className="mt-1">{formData.tipo_sector}</p>
                     </div>
+                    <div>
                       <strong>Distrito Sanitario:</strong>
                       <p className="mt-1">{formData.distrito_sanitario || 'N/A'}</p>
                     </div>
+                    <div>
                       <strong>Pertenece a Brigada Médica:</strong>
                       <p className="mt-1">{formData.pertenece_brigada_medica ? 'Sí' : 'No'}</p>
                     </div>
@@ -258,6 +270,9 @@ const PDFSummary = ({
                         <p className="mt-1">{formData.tipo_cooperacion || 'N/A'}</p>
                       </div>}
                   </div>
+                </div>
+              </div>
+            </div>
 
             {/* Código de Barras */}
             <div className="text-center border-t-2 border-gray-200 pt-6">

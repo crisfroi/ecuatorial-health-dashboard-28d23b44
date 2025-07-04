@@ -112,19 +112,26 @@ const ConfirmationStep = ({ formData, isSubmitting }: ConfirmationStepProps) => 
         <CardHeader>
           <CardTitle className="flex items-center space-x-2 text-green-800">
             <CheckCircle className="w-6 h-6" />
-            <span>¡Solicitud Enviada Exitosamente!</span>
+            <span>¡Gracias por su Solicitud!</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-white p-4 rounded-lg border">
-            <p className="text-gray-700 mb-2">
-              Su solicitud de acreditación profesional ha sido recibida y está siendo procesada.
+          <div className="bg-white p-6 rounded-lg border text-center">
+            <div className="text-6xl mb-4">🙏</div>
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">
+              ¡Muchas gracias por confiar en nosotros!
+            </h3>
+            <p className="text-gray-700 mb-4">
+              Su solicitud de acreditación profesional ha sido recibida exitosamente y está siendo procesada por nuestro equipo técnico.
             </p>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-center space-x-2 mb-4">
               <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                 Estado: Pendiente de Revisión
               </Badge>
             </div>
+            <p className="text-sm text-gray-600">
+              Recibirá notificaciones sobre el progreso de su solicitud en el teléfono proporcionado.
+            </p>
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -137,7 +144,7 @@ const ConfirmationStep = ({ formData, isSubmitting }: ConfirmationStepProps) => 
             </ul>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Button 
               onClick={() => setShowPDF(true)}
               className="flex items-center space-x-2"
@@ -154,28 +161,11 @@ const ConfirmationStep = ({ formData, isSubmitting }: ConfirmationStepProps) => 
               <Mail className="w-4 h-4" />
               <span>Carta de Instancia</span>
             </Button>
-
-            <Button 
-              onClick={() => setShowApprovalLetter(true)}
-              variant="outline"
-              className="flex items-center space-x-2"
-            >
-              <FileText className="w-4 h-4" />
-              <span>Carta de Aprobación</span>
-            </Button>
-
-            <Button 
-              onClick={() => setShowCard(true)}
-              className="flex items-center space-x-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700"
-            >
-              <CheckCircle className="w-4 h-4" />
-              <span>Carnet Profesional</span>
-            </Button>
             
             <Button 
               variant="outline"
               onClick={() => window.location.href = '/'}
-              className="flex items-center space-x-2 sm:col-span-2 lg:col-span-1"
+              className="flex items-center space-x-2 sm:col-span-2"
             >
               <User className="w-4 h-4" />
               <span>Volver al Inicio</span>

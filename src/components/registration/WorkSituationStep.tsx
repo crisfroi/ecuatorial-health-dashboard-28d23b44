@@ -70,12 +70,12 @@ export const WorkSituationStep = ({ form, watchedValues, distritosSanitarios }: 
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Hospital Nacional">Hospital Nacional</SelectItem>
-                    <SelectItem value="Hospital Regional">Hospital Regional</SelectItem>
-                    <SelectItem value="Centro de Salud">Centro de Salud</SelectItem>
-                    <SelectItem value="Dispensario">Dispensario</SelectItem>
-                    <SelectItem value="Clínica Privada">Clínica Privada</SelectItem>
-                    <SelectItem value="Otro">Otro</SelectItem>
+                    <SelectItem value="HOSPITAL">HOSPITAL</SelectItem>
+                    <SelectItem value="CLINICA">CLINICA</SelectItem>
+                    <SelectItem value="CENTRO DE SALUD">CENTRO DE SALUD</SelectItem>
+                    <SelectItem value="CONSULTORIO">CONSULTORIO</SelectItem>
+                    <SelectItem value="FARMACIA">FARMACIA</SelectItem>
+                    <SelectItem value="LABORATORIO">LABORATORIO</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />

@@ -11,6 +11,7 @@ interface DocumentsStepProps {
   photoFile: File | null;
   handlePhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   removePhoto: () => void;
+  setFotoCarnetBase64: (base64: string | null) => void;
 }
 
 export const DocumentsStep = ({ 

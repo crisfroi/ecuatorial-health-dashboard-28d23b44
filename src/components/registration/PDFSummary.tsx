@@ -28,7 +28,7 @@ const PDFSummary = ({
       const imgWidth = 210;
       const imgHeight = canvas.height * imgWidth / canvas.width;
     
-      pdf.addImage(imgData, 'PNG', 0, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       heightLeft -= pageHeight;
       pdf.save(`solicitud-${formData.nombre}-${formData.apellidos?.replace(/\s+/g, '-') || 'profesional'}.pdf`);
       onDownload();

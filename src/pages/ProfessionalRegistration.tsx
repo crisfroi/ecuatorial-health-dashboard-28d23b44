@@ -281,13 +281,6 @@ const ProfessionalRegistration = () => {
       case 6:
         return (
           <ConfirmationStep 
-            <PDFSummary
-            formData={{
-              ...formData, 
-              foto_carnet_base64: formData.foto_carnet_base64, 
-              photoFile: formData.photoFile }}
-            onDownload={() => {}}
-            />
             formData={formDataForPDF || watchedValues}
             isSubmitting={isSubmitting}
           />

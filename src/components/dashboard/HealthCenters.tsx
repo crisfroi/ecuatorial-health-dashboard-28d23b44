@@ -5,103 +5,90 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Building2, MapPin, Users, Search, Filter } from 'lucide-react';
-
 const HealthCenters = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
 
   // Datos simulados de centros de salud
-  const centros = [
-    {
-      id: 1,
-      nombre: 'Hospital Regional de Malabo',
-      categoria: 'HOSPITAL',
-      provincia: 'Bioko Norte',
-      distrito: 'Malabo',
-      sector: 'Público',
-      profesionales: 156,
-      especialidades: ['Medicina General', 'Cirugía', 'Pediatría', 'Ginecología'],
-      director: 'Dr. Carlos Obiang Nguema',
-      telefono: '+240 333 123 456',
-      estado: 'Activo'
-    },
-    {
-      id: 2,
-      nombre: 'Centro de Salud de Bata',
-      categoria: 'CENTRO DE SALUD',
-      provincia: 'Litoral',
-      distrito: 'Bata',
-      sector: 'Público',
-      profesionales: 45,
-      especialidades: ['Medicina General', 'Enfermería', 'Laboratorio'],
-      director: 'Dra. María Nsue Ela',
-      telefono: '+240 333 987 654',
-      estado: 'Activo'
-    },
-    {
-      id: 3,
-      nombre: 'Clínica Santa Isabel',
-      categoria: 'CLINICA',
-      provincia: 'Bioko Norte',
-      distrito: 'Malabo',
-      sector: 'Privado',
-      profesionales: 28,
-      especialidades: ['Medicina General', 'Odontología', 'Radiología'],
-      director: 'Dr. José Mba Obono',
-      telefono: '+240 333 555 777',
-      estado: 'Activo'
-    },
-    {
-      id: 4,
-      nombre: 'Farmacia Central Malabo',
-      categoria: 'FARMACIA',
-      provincia: 'Bioko Norte',
-      distrito: 'Malabo',
-      sector: 'Privado',
-      profesionales: 8,
-      especialidades: ['Farmacia'],
-      director: 'Farm. Ana Nguema Mba',
-      telefono: '+240 333 444 888',
-      estado: 'Activo'
-    },
-    {
-      id: 5,
-      nombre: 'Laboratorio Clínico Continental',
-      categoria: 'LABORATORIO',
-      provincia: 'Litoral',
-      distrito: 'Bata',
-      sector: 'Privado',
-      profesionales: 12,
-      especialidades: ['Laboratorio', 'Microbiología'],
-      director: 'Dra. Carmen Obiang Asue',
-      telefono: '+240 333 222 999',
-      estado: 'Activo'
-    },
-    {
-      id: 6,
-      nombre: 'Consultorio Médico Evinayong',
-      categoria: 'CONSULTORIO',
-      provincia: 'Centro Sur',
-      distrito: 'Evinayong',
-      sector: 'Público',
-      profesionales: 6,
-      especialidades: ['Medicina General', 'Enfermería'],
-      director: 'Dr. Luis Mba Ela',
-      telefono: '+240 333 111 333',
-      estado: 'Activo'
-    }
-  ];
-
+  const centros = [{
+    id: 1,
+    nombre: 'Hospital Regional de Malabo',
+    categoria: 'HOSPITAL',
+    provincia: 'Bioko Norte',
+    distrito: 'Malabo',
+    sector: 'Público',
+    profesionales: 156,
+    especialidades: ['Medicina General', 'Cirugía', 'Pediatría', 'Ginecología'],
+    director: 'Dr. Carlos Obiang Nguema',
+    telefono: '+240 333 123 456',
+    estado: 'Activo'
+  }, {
+    id: 2,
+    nombre: 'Centro de Salud de Bata',
+    categoria: 'CENTRO DE SALUD',
+    provincia: 'Litoral',
+    distrito: 'Bata',
+    sector: 'Público',
+    profesionales: 45,
+    especialidades: ['Medicina General', 'Enfermería', 'Laboratorio'],
+    director: 'Dra. María Nsue Ela',
+    telefono: '+240 333 987 654',
+    estado: 'Activo'
+  }, {
+    id: 3,
+    nombre: 'Clínica Santa Isabel',
+    categoria: 'CLINICA',
+    provincia: 'Bioko Norte',
+    distrito: 'Malabo',
+    sector: 'Privado',
+    profesionales: 28,
+    especialidades: ['Medicina General', 'Odontología', 'Radiología'],
+    director: 'Dr. José Mba Obono',
+    telefono: '+240 333 555 777',
+    estado: 'Activo'
+  }, {
+    id: 4,
+    nombre: 'Farmacia Central Malabo',
+    categoria: 'FARMACIA',
+    provincia: 'Bioko Norte',
+    distrito: 'Malabo',
+    sector: 'Privado',
+    profesionales: 8,
+    especialidades: ['Farmacia'],
+    director: 'Farm. Ana Nguema Mba',
+    telefono: '+240 333 444 888',
+    estado: 'Activo'
+  }, {
+    id: 5,
+    nombre: 'Laboratorio Clínico Continental',
+    categoria: 'LABORATORIO',
+    provincia: 'Litoral',
+    distrito: 'Bata',
+    sector: 'Privado',
+    profesionales: 12,
+    especialidades: ['Laboratorio', 'Microbiología'],
+    director: 'Dra. Carmen Obiang Asue',
+    telefono: '+240 333 222 999',
+    estado: 'Activo'
+  }, {
+    id: 6,
+    nombre: 'Consultorio Médico Evinayong',
+    categoria: 'CONSULTORIO',
+    provincia: 'Centro Sur',
+    distrito: 'Evinayong',
+    sector: 'Público',
+    profesionales: 6,
+    especialidades: ['Medicina General', 'Enfermería'],
+    director: 'Dr. Luis Mba Ela',
+    telefono: '+240 333 111 333',
+    estado: 'Activo'
+  }];
   const categorias = ['HOSPITAL', 'CLINICA', 'CENTRO DE SALUD', 'CONSULTORIO', 'FARMACIA', 'LABORATORIO'];
-
   const centrosFiltrados = centros.filter(centro => {
-    const matchesSearch = centro.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         centro.provincia.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         centro.director.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = centro.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || centro.provincia.toLowerCase().includes(searchTerm.toLowerCase()) || centro.director.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === '' || centro.categoria === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
   const getCategoryColor = (categoria: string) => {
     switch (categoria) {
       case 'HOSPITAL':
@@ -120,13 +107,10 @@ const HealthCenters = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-
   const getSectorColor = (sector: string) => {
     return sector === 'Público' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800';
   };
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Centros de Salud</h2>
@@ -213,25 +197,14 @@ const HealthCenters = () => {
               <label className="text-sm font-medium">Buscar centro</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Nombre, provincia o director..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+                <Input placeholder="Nombre, provincia o director..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
               </div>
             </div>
             <div>
               <label className="text-sm font-medium">Categoría</label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md"
-              >
+              <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md">
                 <option value="">Todas las categorías</option>
-                {categorias.map(categoria => (
-                  <option key={categoria} value={categoria}>{categoria}</option>
-                ))}
+                {categorias.map(categoria => <option key={categoria} value={categoria}>{categoria}</option>)}
               </select>
             </div>
           </div>
@@ -260,8 +233,7 @@ const HealthCenters = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {centrosFiltrados.map((centro) => (
-                <TableRow key={centro.id}>
+              {centrosFiltrados.map(centro => <TableRow key={centro.id}>
                   <TableCell>
                     <div>
                       <div className="font-medium">{centro.nombre}</div>
@@ -296,14 +268,11 @@ const HealthCenters = () => {
                   <TableCell>
                     <div className="text-sm">{centro.telefono}</div>
                   </TableCell>
-                </TableRow>
-              ))}
+                </TableRow>)}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default HealthCenters;

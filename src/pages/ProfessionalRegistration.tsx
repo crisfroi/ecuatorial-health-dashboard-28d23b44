@@ -20,6 +20,7 @@ import { WorkSituationStep } from '@/components/registration/WorkSituationStep';
 import { DocumentsStep } from '@/components/registration/DocumentsStep';
 import ConfirmationStep from '@/components/registration/ConfirmationStep';
 import { RegistrationProgress } from '@/components/registration/RegistrationProgress';
+import { PDFSummary } from '@/components/registration/PDFSummary';
 
 // Schema de validación
 const formSchema = z.object({

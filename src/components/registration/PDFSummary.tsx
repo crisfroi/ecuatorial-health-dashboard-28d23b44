@@ -86,8 +86,7 @@ const PDFSummary = ({
         <CardContent>
           <div id="pdf-content" className="max-w-[210mm] mx-auto bg-white" style={{
           padding: '5mm',
-          minHeight: '297mm',
-          fontSize: '11px',
+          fontSize: '10px',
           lineHeight: '1.2'
         }}>
             {/* Header Oficial */}

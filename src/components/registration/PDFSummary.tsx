@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { DocumentsStep } from './DocumentsStep';
+import React, { useState } from 'react';
 
 interface PDFSummaryProps {
   formData: any;
@@ -62,6 +64,8 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
 
   const barcodeData = generateBarcodeCode();
   const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${barcodeData}&code=Code128&translate-esc=false&width=300&height=80`;
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [fotoCarnetBase64, setFotoCarnetBase64] = useState<string | null>(null);
 
   return (
     <div className="space-y-6">
@@ -97,16 +101,17 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
             {/* Sección Principal con Foto */}
             <div className="grid grid-cols-4 gap-6">
               <div className="col-span-1">
-                {formData.photoFile ? (
-                  <div className="text-center">
-                    <img 
-                      src={URL.createObjectURL(formData.photoFile)} 
-                      alt="Foto carnet"
-                      className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto"
-                      style={{ maxWidth: '120px', height: '160px' }}
-                    />
-                    <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
-                  </div>
+               {formData.foto_carnet_base64 ? (
+                 <div className="text-center">
+                   <img 
+                     src={formData.foto_carnet_base64}
+                     alt="Foto carnet"
+                     className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto"
+                     style={{ maxWidth: '120px', height: '160px' }}
+                     />
+                     <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
+                 </div>
+
                 ) : formData.foto_carnet ? (
                   <div className="text-center">
                     <img 

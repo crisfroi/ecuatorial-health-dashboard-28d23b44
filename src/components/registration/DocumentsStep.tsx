@@ -43,7 +43,19 @@ export const DocumentsStep = ({
                 id="foto-carnet"
                 type="file"
                 accept="image/jpeg,image/jpg,image/png"
-                onChange={handlePhotoUpload}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    const base64 = reader.result as string;
+                    handlePhotoUpload(e); // mantener lógica anterior (setPhotoFile)
+                    setFotoCarnetBase64(base64); // guardar base64 adicionalmente
+                  };
+                  reader.readAsDataURL(file);
+                }}
+
                 className="hidden"
               />
               <p className="mt-2 text-sm text-gray-600">

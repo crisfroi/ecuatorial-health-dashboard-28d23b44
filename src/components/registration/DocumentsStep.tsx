@@ -49,12 +49,17 @@ export const DocumentsStep = ({
                  const reader = new FileReader();
                  reader.onloadend = () => {
                    const base64 = reader.result as string;
-                   setFotoCarnetBase64(base64); // guardamos la imagen base64 para el PDF
+                   setPhotoFile(file);
+                   setFotoCarnetBase64(base64);
                  };
                  reader.readAsDataURL(file);
-                 handlePhotoUpload(e); // sigue guardando photoFile normalmente
                }}
-
+                removePhoto={() => {
+                  setPhotoFile(null);
+                  setFotoCarnetBase64(null);
+                }}
+                setFotoCarnetBase64={setFotoCarnetBase64}
+                />
                 className="hidden"
               />
               <p className="mt-2 text-sm text-gray-600">

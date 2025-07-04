@@ -19,7 +19,7 @@ const PDFSummary = ({
 
   try {
     const canvas = await html2canvas(element, {
-      scale: 2,
+      scale: 3,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff'
@@ -85,18 +85,20 @@ const PDFSummary = ({
         </CardHeader>
         <CardContent>
           <div id="pdf-content" className="max-w-[210mm] mx-auto bg-white" style={{
-          padding: '5mm',
+          padding: '15mm',
+          minHeight: '297mm',
           fontSize: '11px',
-          lineHeight: '1.2'
+          lineHeight: '1.3'
         }}>
             {/* Header Oficial */}
             <div className="text-center border-b-2 border-black pb-4 mb-6">
               <h1 style={{
-              fontSize: '12px'
+              fontSize: '16px'
             }} className="font-bold mb-1 text-base">MINISTERIO DE SANIDAD SANIDAD, BIENESTAR SOCIAL E INFRAESTRUCTURAS SANITARIAS</h1>
               <h2 className="font-semibold text-gray-700" style={{
-              fontSize: '12px'
+              fontSize: '14px'
             }}>
+                REPÚBLICA DE GUINEA ECUATORIAL
               </h2>
               <p className="mt-2 font-medium" style={{
               fontSize: '12px'
@@ -105,6 +107,14 @@ const PDFSummary = ({
                 <div className="inline-block bg-gray-100 p-1 font-mono font-bold" style={{
                 fontSize: '10px'
               }}>
+                  {barcodeData}
+                </div>
+                <p className="text-xs mt-1 text-gray-600" style={{
+                fontSize: '8px'
+              }}>Código de Expediente</p>
+              </div>
+            </div>
+
             {/* Sección Principal con Foto */}
             <div className="grid grid-cols-4 gap-6">
               <div className="col-span-1">

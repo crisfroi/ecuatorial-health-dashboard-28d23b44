@@ -185,8 +185,8 @@ const ConfirmationStep = ({ formData, isSubmitting }: ConfirmationStepProps) => 
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <strong>Nombre:</strong>
-              <p>{formData.nombre_completo}</p>
+              <strong>Nombre completo:</strong>
+              <p>{formData.nombre} {formData.apellidos}</p>
             </div>
             <div>
               <strong>Área Profesional:</strong>

@@ -28,7 +28,6 @@ const PDFSummary = ({
       const imgWidth = 210;
       const pageHeight = 295;
       const imgHeight = canvas.height * imgWidth / canvas.width;
-      let heightLeft = imgHeight;
       let position = 0;
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;

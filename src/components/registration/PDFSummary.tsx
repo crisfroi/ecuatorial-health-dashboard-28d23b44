@@ -18,7 +18,7 @@ const PDFSummary = ({
     if (!element) return;
     try {
       const canvas = await html2canvas(element, {
-        scale: 3,
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff'

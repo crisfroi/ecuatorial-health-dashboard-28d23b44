@@ -92,7 +92,7 @@ const PDFSummary = ({
             {/* Header Oficial */}
             <div className="text-center border-b-2 border-black pb-4 mb-6">
               <h1 style={{
-              fontSize: '16px'
+              fontSize: '12px'
             }} className="font-bold mb-1 text-base">MINISTERIO DE SANIDAD SANIDAD, BIENESTAR SOCIAL E INFRAESTRUCTURAS SANITARIAS</h1>
               <h2 className="font-semibold text-gray-700" style={{
               fontSize: '12px'

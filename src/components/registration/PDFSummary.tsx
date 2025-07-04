@@ -111,6 +111,33 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
                      />
                      <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
                  </div>
+
+                ) : formData.foto_carnet ? (
+                  <div className="text-center">
+                    <img 
+                      src={formData.foto_carnet} 
+                      alt="Foto carnet"
+                      className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto"
+                      style={{ maxWidth: '120px', height: '160px' }}
+                    />
+                    <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
+                  </div>
+                ) : formData.submittedData?.foto_carnet ? (
+                  <div className="text-center">
+                    <img 
+                      src={formData.submittedData.foto_carnet} 
+                      alt="Foto carnet"
+                      className="w-full max-w-[120px] h-40 object-cover border-2 border-gray-400 mx-auto"
+                      style={{ maxWidth: '120px', height: '160px' }}
+                    />
+                    <p className="text-xs mt-2 text-gray-600 break-words">Fotografía tamaño carnet</p>
+                  </div>
+                ) : (
+                  <div className="w-full max-w-[120px] h-40 border-2 border-dashed border-gray-300 flex items-center justify-center mx-auto">
+                    <span className="text-gray-400 text-xs">Sin foto</span>
+                  </div>
+                )}
+              </div>
               
               <div className="col-span-3 space-y-6">
                 {/* DATOS PERSONALES */}

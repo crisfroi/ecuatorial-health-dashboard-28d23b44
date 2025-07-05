@@ -215,14 +215,14 @@ const ProfessionalRegistration = () => {
 
       // Actualizar el estado interno con los datos para el PDF
       setFormDataForPDF({
-         ...data,
+        ...data,
         photoFile,
         foto_carnet: publicUrl,
         foto_carnet_base64: fotoCarnetBase64,
         submittedData: result
       });
 
-      
+
       toast({
         title: "Solicitud enviada exitosamente",
         description: "Su solicitud ha sido registrada y está pendiente de revisión.",
@@ -289,13 +289,14 @@ const ProfessionalRegistration = () => {
         );
       case 6:
         return (
-      <ConfirmationStep 
-        formData={{
-    ...(formDataForPDF || watchedValues),
-    foto_carnet_base64: fotoCarnetBase64
-        }}
-        isSubmitting={isSubmitting}
-        />
+          <ConfirmationStep 
+            formData={{
+              ...formDataForPDF,
+              foto_carnet_base64: fotoCarnetBase64
+              }}
+            isSubmitting={isSubmitting}
+            />
+        );
 
       default:
         return null;

@@ -114,7 +114,7 @@ const PDFSummary = ({
             </div>
 
             {/* Sección Principal con Foto */}
-       <div className="grid grid-cols-4 gap-3">
+       <div className="grid grid-cols-3 gap-3">
   <div className="col-span-1">
     <div className="text-center">
       {(() => {

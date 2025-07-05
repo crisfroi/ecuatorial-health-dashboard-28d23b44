@@ -160,7 +160,16 @@ export const DocumentsStep = ({
       </div>
       <div className="space-y-2">
   <label className="flex items-start space-x-2 text-sm text-gray-700">
-    <input 
+    
+</div>
+
+  <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          La foto tipo carnet es obligatoria. Puede cargar títulos académicos, certificados y otros documentos relevantes como documentos adicionales.
+        </AlertDescription>
+      </Alert>
+     <input 
       type="checkbox" 
       {...register('acepta_politicas')} 
       className="mt-1 border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -179,28 +188,6 @@ export const DocumentsStep = ({
   {errors.acepta_politicas && (
     <p className="text-red-600 text-xs">{errors.acepta_politicas.message}</p>
   )}
-</div>
-
-  <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          La foto tipo carnet es obligatoria. Puede cargar títulos académicos, certificados y otros documentos relevantes como documentos adicionales.
-        </AlertDescription>
-      </Alert>
-      <div className="mt-6 flex items-start space-x-2">
-  <input
-    type="checkbox"
-    id="acepta_politicas"
-    className="mt-1"
-    onChange={(e) => setAceptaPoliticas?.(e.target.checked)}
-  />
-  <label htmlFor="acepta_politicas" className="text-sm text-gray-600">
-    He leído y acepto las{' '}
-    <span
-      onClick={() => setShowPoliticas?.(true)}
-      className="text-blue-600 underline cursor-pointer"
-    >
-      políticas de privacidad y uso de datos
     </span>
   </label>
 </div>

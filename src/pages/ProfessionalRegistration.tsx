@@ -289,11 +289,11 @@ const ProfessionalRegistration = () => {
         );
       case 6:
         return (
-            formData={formDataForPDF || watchedValues}
+          <ConfirmationStep 
+           formData={formDataForPDF || watchedValues}
             isSubmitting={isSubmitting}
-              />
             />
-              );
+        );
 
       default:
         return null;

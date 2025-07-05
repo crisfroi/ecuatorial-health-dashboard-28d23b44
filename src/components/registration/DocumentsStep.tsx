@@ -178,14 +178,15 @@ export const DocumentsStep = ({
       />
       <span>
         Declaro que he leído y comprendido esta{' '}
-        <button
-          type="button"
-          className="text-blue-600 underline"
-          onClick={() => window.open('/politicas', '_blank')}
-        >
-          Política de Privacidad, y autorizo expresamente el tratamiento de mis datos 
+         <span
+           role="button"
+           tabIndex={0}
+           onClick={() => window.open('/politicas', '_blank')}
+           className="text-[#007F98] underline cursor-pointer inline"
+           >
+           Política de Privacidad, y autorizo expresamente el tratamiento de mis datos 
           conforme a lo estipulado por la Ley de Proteccion de Datos Personales de Guinea Ecuatorial. Ley 1/2016.
-        </button>
+        </span>
         .
       </span>
     </label>

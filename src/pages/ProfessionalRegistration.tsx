@@ -293,9 +293,9 @@ const ProfessionalRegistration = () => {
         return (
           <ConfirmationStep 
             formData={{
-              ...formDataForPDF,
+              ...formDataForPDF ?? watchedValues}
               foto_carnet_base64: fotoCarnetBase64
-              }}
+              }
             isSubmitting={isSubmitting}
             />
         );

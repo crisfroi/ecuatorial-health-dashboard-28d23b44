@@ -187,22 +187,6 @@ export const DocumentsStep = ({
           La foto tipo carnet es obligatoria. Puede cargar títulos académicos, certificados y otros documentos relevantes como documentos adicionales.
         </AlertDescription>
       </Alert>
-      <div className="mt-6 flex items-start space-x-2">
-  <input
-    type="checkbox"
-    id="acepta_politicas"
-    className="mt-1"
-    onChange={(e) => setAceptaPoliticas?.(e.target.checked)}
-  />
-  <label htmlFor="acepta_politicas" className="text-sm text-gray-600">
-    He leído y acepto las{' '}
-    <span
-      onClick={() => setShowPoliticas?.(true)}
-      className="text-blue-600 underline cursor-pointer"
-    >
-      políticas de privacidad y uso de datos
-    </span>
-  </label>
 </div>
 
     </div>

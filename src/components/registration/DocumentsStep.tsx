@@ -1,4 +1,4 @@
-
+import { useFormContext } from 'react-hook-form';
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -28,6 +28,7 @@ export const DocumentsStep = ({
   setAceptaPoliticas,
   setShowPoliticas
 }: DocumentsStepProps) => {
+  const { register, formState: { errors } } = useFormContext();
   return (
     <div className="space-y-6">
       {/* Foto carnet */}
@@ -157,6 +158,29 @@ export const DocumentsStep = ({
           </div>
         </div>
       </div>
+      <div className="space-y-2">
+  <label className="flex items-start space-x-2 text-sm text-gray-700">
+    <input 
+      type="checkbox" 
+      {...register('acepta_politicas')} 
+      className="mt-1 border-gray-300 text-blue-600 focus:ring-blue-500"
+    />
+    <span>
+      He leído y acepto las 
+      <button 
+        type="button" 
+        onClick={() => window.open('/politicas', '_blank')} 
+        className="text-blue-600 underline ml-1"
+      >
+        políticas de privacidad y protección de datos
+      </button>.
+    </span>
+  </label>
+  {errors.acepta_politicas && (
+    <p className="text-red-600 text-xs">{errors.acepta_politicas.message}</p>
+  )}
+</div>
+
   <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>

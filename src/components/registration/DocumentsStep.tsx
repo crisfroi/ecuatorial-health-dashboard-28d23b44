@@ -159,16 +159,12 @@ export const DocumentsStep = ({
         </div>
       </div>
       <div className="space-y-2">
-  <label className="flex items-start space-x-2 text-sm text-gray-700">
-    
+  <label className="flex items-start space-x-2 text-sm text-gray-700"> 
 </div>
-
   <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           La foto tipo carnet es obligatoria. Puede cargar títulos académicos, certificados y otros documentos relevantes como documentos adicionales.
-        </AlertDescription>
-      </Alert>
      <input 
       type="checkbox" 
       {...register('acepta_politicas')} 
@@ -179,8 +175,7 @@ export const DocumentsStep = ({
       <button 
         type="button" 
         onClick={() => window.open('/politicas', '_blank')} 
-        className="text-blue-600 underline ml-1"
-      >
+        className="text-blue-600 underline ml-1">
         políticas de privacidad y protección de datos
       </button>.
     </span>
@@ -191,7 +186,6 @@ export const DocumentsStep = ({
     </span>
   </label>
 </div>
-
     </div>
   );
 };

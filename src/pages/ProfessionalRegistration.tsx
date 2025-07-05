@@ -215,9 +215,13 @@ const ProfessionalRegistration = () => {
 
       // Actualizar el estado interno con los datos para el PDF
       setFormDataForPDF({
-         ...submissionData,
+         ...data,
+        photoFile,
+        foto_carnet: publicUrl,
         foto_carnet_base64: fotoCarnetBase64,
         submittedData: result
+      });
+
       });
 
 

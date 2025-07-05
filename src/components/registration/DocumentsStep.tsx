@@ -158,48 +158,40 @@ export const DocumentsStep = ({
           </div>
         </div>
       </div>
-      <div className="space-y-2">
-  <label className="flex items-start space-x-2 text-sm text-gray-700">
-    <input 
-      type="checkbox" 
-      {...register('acepta_politicas')} 
-      className="mt-1 border-gray-300 text-blue-600 focus:ring-blue-500"
-    />
-    <span>
-      He leído y acepto las 
-      <button 
-        type="button" 
-        onClick={() => window.open('/politicas', '_blank')} 
-        className="text-blue-600 underline ml-1"
-      >
-        políticas de privacidad y protección de datos
-      </button>.
-    </span>
-  </label>
-  {errors.acepta_politicas && (
-    <p className="text-red-600 text-xs">{errors.acepta_politicas.message}</p>
-  )}
-</div>
+     {/* ALERTA: Foto carnet obligatoria */}
+<Alert className="bg-red-100 border-red-300 text-red-800">
+  <AlertCircle className="h-4 w-4 mt-1" />
+  <AlertDescription>
+    La foto tipo carnet es obligatoria. Puede cargar títulos académicos, certificados y otros documentos relevantes como documentos adicionales.
+  </AlertDescription>
+</Alert>
 
- <Alert className="bg-red-100 border-red-300 text-red-800">
-  <AlertCircle className="h-4 w-4" />
+{/* ALERTA: Aceptación de políticas */}
+<Alert className="bg-red-100 border-red-300 text-red-800">
+  <AlertCircle className="h-4 w-4 mt-1" />
   <AlertDescription className="space-y-2">
-    <p>
-      La foto tipo carnet es obligatoria. Puede cargar títulos académicos, certificados y otros documentos relevantes como documentos adicionales.
-    </p>
-    <div className="flex items-center gap-2 pt-2">
-      <Checkbox id="acepta_politicas" />
-      <label htmlFor="acepta_politicas" className="text-sm">
+    <label className="flex items-start space-x-2 text-sm text-gray-700">
+      <input
+        type="checkbox"
+        {...register('acepta_politicas')}
+        className="mt-1 border-red-400 text-[#007F98] focus:ring-[#007F98] w-5 h-5"
+      />
+      <span>
         Acepto las{' '}
         <button
           type="button"
           className="text-blue-600 underline"
-          onClick={() => setShowPolicies(true)}
+          onClick={() => window.open('/politicas', '_blank')}
         >
-          políticas de privacidad y uso de datos
+          políticas de privacidad y protección de datos
         </button>
         .
-      </label>
-    </div>
+      </span>
+    </label>
+    {errors.acepta_politicas && (
+      <p className="text-red-600 text-xs">{errors.acepta_politicas.message}</p>
+    )}
   </AlertDescription>
 </Alert>
+      </div>
+    );

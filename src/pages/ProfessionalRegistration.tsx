@@ -289,11 +289,8 @@ const ProfessionalRegistration = () => {
         );
       case 6:
         return (
-           formData={{
-             ...(formDataForPDF || watchedValues),
-             foto_carnet_base64: fotoCarnetBase64
-           }}
-    isSubmitting={isSubmitting}
+           formData={formDataForPDF || watchedValues}
+           isSubmitting={isSubmitting}
       />
             />
         );

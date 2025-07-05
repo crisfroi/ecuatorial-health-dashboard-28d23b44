@@ -134,7 +134,7 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
                   </div>
                 </div>
               </div>
-              <div className="w-[120px] flex-shrink-0 flex flex-col items-center space-y-4 pt-[38px]">
+              <div className="w-[120px] flex-shrink-0 flex flex-col items-center space-y-4 pt-[38px] ml-2">
                 <div className="text-center">
                   <img
                     src={formData.foto_carnet_base64 || formData.foto_carnet || formData.submittedData?.foto_carnet}
@@ -143,7 +143,7 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
                   />
                 </div>
                 <div className="text-center">
-                  <img src={barcodeUrl} alt={`Código de barras: ${barcodeData}`} className="max-w-[100px] mx-auto" />
+                  <img src={barcodeUrl} alt={`Código de barras: ${barcodeData}`} className="w-[100px] mx-auto" />
                 </div>
               </div>
             </div>

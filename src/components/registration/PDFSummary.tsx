@@ -17,6 +17,13 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
     if (!element) return;
 
     try {
+      const barcodeImg = new Image();
+      barcodeImg.src = barcodeUrl;
+      await new Promise((resolve, reject) => {
+        barcodeImg.onload = resolve;
+        barcodeImg.onerror = reject;
+});
+
       const canvas = await html2canvas(element, {
         scale: 3,
         useCORS: true,

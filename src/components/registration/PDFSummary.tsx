@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download } from 'lucide-react';
@@ -12,22 +12,18 @@ interface PDFSummaryProps {
 }
 
 const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
-  const [barcodeLoaded, setBarcodeLoaded] = useState(false);
-  const barcodeData = generateBarcodeCode();
-  const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${barcodeData}&code=Code128&translate-esc=false&width=300&height=80`;
-
-  useEffect(() => {
-    const barcodeImg = new Image();
-    barcodeImg.src = barcodeUrl;
-    barcodeImg.onload = () => setBarcodeLoaded(true);
-    barcodeImg.onerror = () => setBarcodeLoaded(false);
-  }, [barcodeUrl]);
-
   const generatePDF = async () => {
     const element = document.getElementById('pdf-content');
-    if (!element || !barcodeLoaded) return;
+    if (!element) return;
 
     try {
+      const barcodeImg = new Image();
+      barcodeImg.src = barcodeUrl;
+      await new Promise((resolve, reject) => {
+        barcodeImg.onload = resolve;
+        barcodeImg.onerror = reject;
+});
+
       const canvas = await html2canvas(element, {
         scale: 3,
         useCORS: true,
@@ -64,12 +60,15 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
     }
   };
 
-  function generateBarcodeCode() {
+  const generateBarcodeCode = () => {
     const prefijo = formData.area_profesional === 'MEDICINA GENERAL' ? 'MED' : formData.area_profesional === 'ENFERMERÍA' ? 'ENF' : formData.area_profesional === 'FARMACIA' ? 'FAR' : 'GEN';
     const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     return `${prefijo}${fecha}${random}`;
-  }
+  };
+
+  const barcodeData = generateBarcodeCode();
+  const barcodeUrl = `https://barcode.tec-it.com/barcode.ashx?data=${barcodeData}&code=Code128&translate-esc=false&width=300&height=80`;
 
   return (
     <div className="space-y-6">
@@ -77,7 +76,7 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Resumen Completo de Solicitud</span>
-            <Button onClick={generatePDF} className="flex items-center gap-2" disabled={!barcodeLoaded}>
+            <Button onClick={generatePDF} className="flex items-center gap-2">
               <Download className="w-4 h-4" />
               Descargar PDF
             </Button>
@@ -92,7 +91,55 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
 
             <div className="flex gap-6 items-start">
               <div className="flex-1 space-y-6">
-                {/* Secciones de contenido omitidas para brevedad */}
+                <div>
+                  <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">I. DATOS PERSONALES</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div><strong>Nombre Completo:</strong><p className="mt-1">{formData.nombre} {formData.apellidos}</p></div>
+                    <div><strong>Género:</strong><p className="mt-1">{formData.genero}</p></div>
+                    <div><strong>Fecha de Nacimiento:</strong><p className="mt-1">{formData.fecha_nacimiento}</p></div>
+                    <div><strong>Nacionalidad:</strong><p className="mt-1">{formData.nacionalidad}</p></div>
+                    <div><strong>Número DIP:</strong><p className="mt-1">{formData.numero_dip || 'N/A'}</p></div>
+                    <div><strong>Número Pasaporte:</strong><p className="mt-1">{formData.numero_pasaporte || 'N/A'}</p></div>
+                    <div><strong>Teléfono:</strong><p className="mt-1">{formData.telefono}</p></div>
+                    <div><strong>Domicilio:</strong><p className="mt-1">{formData.domicilio}</p></div>
+                    <div><strong>Provincia:</strong><p className="mt-1">{formData.provincia}</p></div>
+                    <div><strong>Distrito:</strong><p className="mt-1">{formData.distrito}</p></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">II. INFORMACIÓN PROFESIONAL</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div><strong>Área Profesional:</strong><p className="mt-1">{formData.area_profesional}</p></div>
+                    <div><strong>Especialidad:</strong><p className="mt-1">{formData.especialidad || 'N/A'}</p></div>
+                    <div><strong>Categoría de Titulación:</strong><p className="mt-1">{formData.categoria_titulacion}</p></div>
+                    <div><strong>Situación Laboral:</strong><p className="mt-1">{formData.situacion_laboral}</p></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">III. FORMACIÓN ACADÉMICA</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div><strong>Titulación Específica:</strong><p className="mt-1">{formData.titulacion_especifica_1}</p></div>
+                    <div><strong>Institución de Formación:</strong><p className="mt-1">{formData.institucion_1}</p></div>
+                    <div><strong>Período de Formación:</strong><p className="mt-1">{formData.periodo_formacion}</p></div>
+                    <div><strong>País de Formación:</strong><p className="mt-1">{formData.pais_formacion_1}</p></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">IV. INFORMACIÓN LABORAL</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div><strong>Centro de Trabajo:</strong><p className="mt-1">{formData.nombre_centro}</p></div>
+                    <div><strong>Categoría del Centro:</strong><p className="mt-1">{formData.categoria_centro}</p></div>
+                    <div><strong>Tipo de Sector:</strong><p className="mt-1">{formData.tipo_sector}</p></div>
+                    <div><strong>Distrito Sanitario:</strong><p className="mt-1">{formData.distrito_sanitario || 'N/A'}</p></div>
+                    <div><strong>Pertenece a Brigada Médica:</strong><p className="mt-1">{formData.pertenece_brigada_medica ? 'Sí' : 'No'}</p></div>
+                    {formData.pertenece_brigada_medica && (
+                      <div><strong>Tipo de Cooperación:</strong><p className="mt-1">{formData.tipo_cooperacion || 'N/A'}</p></div>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="w-[120px] flex-shrink-0 flex flex-col items-center space-y-4 pt-[38px] ml-2">
                 <div className="text-center">
@@ -103,7 +150,7 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
                   />
                 </div>
                 <div className="text-center">
-                  <img src={barcodeUrl} alt="Código de barras" className="w-[100px] mx-auto" />
+                  <img src={barcodeUrl} alt={`Código de barras: ${barcodeData}`} className="w-[100px] mx-auto" />
                 </div>
               </div>
             </div>

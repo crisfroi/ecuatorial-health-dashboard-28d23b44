@@ -193,5 +193,6 @@ export const DocumentsStep = ({
     )}
   </AlertDescription>
 </Alert>
-      </div>
-    );
+    </div>
+  );
+};

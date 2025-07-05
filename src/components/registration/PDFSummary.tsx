@@ -87,7 +87,7 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
             </div>
 
             <div className="flex gap-6 items-start">
-              <div className="flex-1 space-y-3 pt-1.5">
+              <div className="flex-1 space-y-6">
                 <div>
                   <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">I. DATOS PERSONALES</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
@@ -103,8 +103,42 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
                     <div><strong>Distrito:</strong><p className="mt-1">{formData.distrito}</p></div>
                   </div>
                 </div>
+
+                <div>
+                  <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">II. INFORMACIÓN PROFESIONAL</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div><strong>Área Profesional:</strong><p className="mt-1">{formData.area_profesional}</p></div>
+                    <div><strong>Especialidad:</strong><p className="mt-1">{formData.especialidad || 'N/A'}</p></div>
+                    <div><strong>Categoría de Titulación:</strong><p className="mt-1">{formData.categoria_titulacion}</p></div>
+                    <div><strong>Situación Laboral:</strong><p className="mt-1">{formData.situacion_laboral}</p></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">III. FORMACIÓN ACADÉMICA</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div><strong>Titulación Específica:</strong><p className="mt-1">{formData.titulacion_especifica_1}</p></div>
+                    <div><strong>Institución de Formación:</strong><p className="mt-1">{formData.institucion_1}</p></div>
+                    <div><strong>Período de Formación:</strong><p className="mt-1">{formData.periodo_formacion}</p></div>
+                    <div><strong>País de Formación:</strong><p className="mt-1">{formData.pais_formacion_1}</p></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-bold border-b-2 border-guinea-teal pb-2 mb-4">IV. INFORMACIÓN LABORAL</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div><strong>Centro de Trabajo:</strong><p className="mt-1">{formData.nombre_centro}</p></div>
+                    <div><strong>Categoría del Centro:</strong><p className="mt-1">{formData.categoria_centro}</p></div>
+                    <div><strong>Tipo de Sector:</strong><p className="mt-1">{formData.tipo_sector}</p></div>
+                    <div><strong>Distrito Sanitario:</strong><p className="mt-1">{formData.distrito_sanitario || 'N/A'}</p></div>
+                    <div><strong>Pertenece a Brigada Médica:</strong><p className="mt-1">{formData.pertenece_brigada_medica ? 'Sí' : 'No'}</p></div>
+                    {formData.pertenece_brigada_medica && (
+                      <div><strong>Tipo de Cooperación:</strong><p className="mt-1">{formData.tipo_cooperacion || 'N/A'}</p></div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="w-[120px] flex-shrink-0 flex flex-col items-center space-y-4">
+              <div className="w-[120px] flex-shrink-0 flex flex-col items-center space-y-4 pt-[56px]">
                 <div className="text-center">
                   <img
                     src={formData.foto_carnet_base64 || formData.foto_carnet || formData.submittedData?.foto_carnet}

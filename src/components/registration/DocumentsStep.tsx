@@ -12,6 +12,9 @@ interface DocumentsStepProps {
   handlePhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   removePhoto: () => void;
   setFotoCarnetBase64: (base64: string | null) => void;
+  setAceptaPoliticas?: (val: boolean) => void;
+  setShowPoliticas?: (show: boolean) => void;
+
 }
 
 export const DocumentsStep = ({ 
@@ -21,7 +24,9 @@ export const DocumentsStep = ({
   photoFile,
   handlePhotoUpload,
   removePhoto,
-  setFotoCarnetBase64
+  setFotoCarnetBase64,
+  setAceptaPoliticas,
+  setShowPoliticas
 }: DocumentsStepProps) => {
   return (
     <div className="space-y-6">
@@ -152,13 +157,30 @@ export const DocumentsStep = ({
           </div>
         </div>
       </div>
-
-      <Alert>
+  <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           La foto tipo carnet es obligatoria. Puede cargar títulos académicos, certificados y otros documentos relevantes como documentos adicionales.
         </AlertDescription>
       </Alert>
+      <div className="mt-6 flex items-start space-x-2">
+  <input
+    type="checkbox"
+    id="acepta_politicas"
+    className="mt-1"
+    onChange={(e) => setAceptaPoliticas?.(e.target.checked)}
+  />
+  <label htmlFor="acepta_politicas" className="text-sm text-gray-600">
+    He leído y acepto las{' '}
+    <span
+      onClick={() => setShowPoliticas?.(true)}
+      className="text-blue-600 underline cursor-pointer"
+    >
+      políticas de privacidad y uso de datos
+    </span>
+  </label>
+</div>
+
     </div>
   );
 };

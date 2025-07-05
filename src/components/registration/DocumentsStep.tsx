@@ -181,30 +181,25 @@ export const DocumentsStep = ({
   )}
 </div>
 
-  <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          La foto tipo carnet es obligatoria. Puede cargar títulos académicos, certificados y otros documentos relevantes como documentos adicionales.
-        </AlertDescription>
-      </Alert>
-      <div className="mt-6 flex items-start space-x-2">
-  <input
-    type="checkbox"
-    id="acepta_politicas"
-    className="mt-1"
-    onChange={(e) => setAceptaPoliticas?.(e.target.checked)}
-  />
-  <label htmlFor="acepta_politicas" className="text-sm text-gray-600">
-    He leído y acepto las{' '}
-    <span
-      onClick={() => setShowPoliticas?.(true)}
-      className="text-blue-600 underline cursor-pointer"
-    >
-      políticas de privacidad y uso de datos
-    </span>
-  </label>
-</div>
-
+ <Alert className="bg-red-100 border-red-300 text-red-800">
+  <AlertCircle className="h-4 w-4" />
+  <AlertDescription className="space-y-2">
+    <p>
+      La foto tipo carnet es obligatoria. Puede cargar títulos académicos, certificados y otros documentos relevantes como documentos adicionales.
+    </p>
+    <div className="flex items-center gap-2 pt-2">
+      <Checkbox id="acepta_politicas" />
+      <label htmlFor="acepta_politicas" className="text-sm">
+        Acepto las{' '}
+        <button
+          type="button"
+          className="text-blue-600 underline"
+          onClick={() => setShowPolicies(true)}
+        >
+          políticas de privacidad y uso de datos
+        </button>
+        .
+      </label>
     </div>
-  );
-};
+  </AlertDescription>
+</Alert>

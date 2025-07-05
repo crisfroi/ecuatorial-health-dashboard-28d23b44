@@ -76,14 +76,10 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div id="pdf-content" className="max-w-[210mm] mx-auto bg-white" style={{ padding: '5mm', fontSize: '10px', lineHeight: '1.2' }}>
+          <div id="pdf-content" className="max-w-[210mm] mx-auto bg-white" style={{ padding: '5mm', fontSize: '8px', lineHeight: '1.2' }}>
             <div className="text-center border-b-2 border-black pb-4 mb-6">
               <h1 style={{ fontSize: '16px' }} className="font-bold mb-1 text-base">MINISTERIO DE SANIDAD SANIDAD, BIENESTAR SOCIAL E INFRAESTRUCTURAS SANITARIAS</h1>
               <p className="mt-2 font-medium" style={{ fontSize: '12px' }}>SOLICITUD DE ACREDITACIÓN PROFESIONAL</p>
-              <div className="mt-3">
-                <div className="inline-block bg-gray-100 p-1 font-mono font-bold" style={{ fontSize: '10px' }}>{barcodeData}</div>
-                <p className="text-xs mt-1 text-gray-600" style={{ fontSize: '8px' }}>Código de Expediente</p>
-              </div>
             </div>
 
             <div className="flex gap-6 items-start">
@@ -138,18 +134,16 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
                   </div>
                 </div>
               </div>
-              <div className="w-[120px] flex-shrink-0 flex flex-col items-center space-y-4 pt-[56px]">
+              <div className="w-[120px] flex-shrink-0 flex flex-col items-center space-y-4 pt-[38px]">
                 <div className="text-center">
                   <img
                     src={formData.foto_carnet_base64 || formData.foto_carnet || formData.submittedData?.foto_carnet}
                     alt="Foto carnet"
                     className="w-full max-w-[100px] h-[140px] object-cover border border-gray-400"
                   />
-                  <p className="text-xs mt-2 text-gray-600">Fotografía tamaño carnet</p>
                 </div>
                 <div className="text-center">
                   <img src={barcodeUrl} alt={`Código de barras: ${barcodeData}`} className="max-w-[100px] mx-auto" />
-                  <p className="font-mono text-sm mt-2 font-semibold">{barcodeData}</p>
                 </div>
               </div>
             </div>
@@ -161,7 +155,6 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
                   <p><strong>Estado:</strong> Pendiente de Revisión</p>
                 </div>
                 <div>
-                  <p><strong>Código de Expediente:</strong> {barcodeData}</p>
                   <p><strong>Generado por:</strong> Sistema RENAPROSA</p>
                 </div>
               </div>

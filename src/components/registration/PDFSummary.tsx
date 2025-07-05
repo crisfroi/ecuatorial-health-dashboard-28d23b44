@@ -105,14 +105,7 @@ const PDFSummary = ({
                 <div className="inline-block bg-gray-100 p-1 font-mono font-bold" style={{
                 fontSize: '10px'
               }}>
-                  {barcodeData}
-                </div>
-                <p className="text-xs mt-1 text-gray-600" style={{
-                fontSize: '8px'
-              }}>Código de Expediente</p>
-              </div>
-            </div>
-
+                  
             {/* Sección Principal con Foto */}
        <div className="grid grid-cols-3 gap-3">
   <div className="col-span-1">

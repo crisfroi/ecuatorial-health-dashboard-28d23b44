@@ -170,7 +170,7 @@ export const DocumentsStep = ({
 <Alert className="bg-red-100 border-red-300 text-red-800">
   <AlertCircle className="h-4 w-4 mt-1" />
   <AlertDescription className="space-y-2">
-    <label className="flex items-start space-x-2 text-sm text-gray-700">
+    <label className="flex items-start gap-2 text-sm text-gray-700 flex-wrap">
       <input
         type="checkbox"
         {...register('acepta_politicas')}

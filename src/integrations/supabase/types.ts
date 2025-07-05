@@ -13,7 +13,7 @@ export type Database = {
         Row: {
           area_profesional: string | null
           created_at: string | null
-          estado_acreditacion: string | null
+          estado_solicitud: string | null
           fecha_validez: string | null
           id: string
           nombre_completo: string | null
@@ -23,7 +23,7 @@ export type Database = {
         Insert: {
           area_profesional?: string | null
           created_at?: string | null
-          estado_acreditacion?: string | null
+          estado_solicitud?: string | null
           fecha_validez?: string | null
           id?: string
           nombre_completo?: string | null
@@ -33,7 +33,7 @@ export type Database = {
         Update: {
           area_profesional?: string | null
           created_at?: string | null
-          estado_acreditacion?: string | null
+          estado_solicitud?: string | null
           fecha_validez?: string | null
           id?: string
           nombre_completo?: string | null
@@ -44,7 +44,7 @@ export type Database = {
           {
             foreignKeyName: "busqueda_profesionales_publica_profesional_id_fkey"
             columns: ["profesional_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "profesionales_sanitarios"
             referencedColumns: ["id"]
           },
@@ -129,6 +129,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      logs_sistema: {
+        Row: {
+          accion: string
+          descripcion: string | null
+          error: boolean | null
+          fecha: string | null
+          id: number
+        }
+        Insert: {
+          accion: string
+          descripcion?: string | null
+          error?: boolean | null
+          fecha?: string | null
+          id?: never
+        }
+        Update: {
+          accion?: string
+          descripcion?: string | null
+          error?: boolean | null
+          fecha?: string | null
+          id?: never
+        }
+        Relationships: []
       }
       nacionalidades_gentilicios: {
         Row: {

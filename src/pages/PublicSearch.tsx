@@ -135,7 +135,7 @@ const PublicSearch = () => {
                         <span>{profesional.nombre_completo}</span>
                       </CardTitle>
                       <Badge className="bg-green-100 text-green-800">
-                        {profesional.estado_acreditacion}
+                        {profesional.estado_solicitud}
                       </Badge>
                     </div>
                   </CardHeader>

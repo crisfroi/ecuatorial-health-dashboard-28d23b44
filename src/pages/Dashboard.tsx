@@ -30,6 +30,7 @@ import OpenAIChat from '@/components/dashboard/OpenAIChat';
 import MinisterialPanel from '@/components/dashboard/MinisterialPanel';
 import HospitalIncidents from '@/components/dashboard/HospitalIncidents';
 import HealthCenters from '@/components/dashboard/HealthCenters';
+import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 
 // Types - using the full database type
 import type { Tables } from '@/integrations/supabase/types';
@@ -167,7 +168,7 @@ const Dashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9">
+          <TabsList className="grid w-full grid-cols-10">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">General</span>
@@ -203,6 +204,10 @@ const Dashboard = () => {
             <TabsTrigger value="health-centers" className="flex items-center gap-2">
               <MapPin className="w-4 h-4" />
               <span className="hidden sm:inline">Centros</span>
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Usuarios</span>
             </TabsTrigger>
           </TabsList>
 
@@ -290,6 +295,10 @@ const Dashboard = () => {
 
           <TabsContent value="health-centers" className="space-y-6">
             <HealthCenters />
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-6">
+            <UserRoleManagement />
           </TabsContent>
         </Tabs>
       </div>

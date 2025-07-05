@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Building2, MapPin, Users, Search, Filter } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Building2, MapPin, Users, Search, Filter, Phone, Eye } from 'lucide-react';
 const HealthCenters = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCenter, setSelectedCenter] = useState(null);
 
   // Datos simulados de centros de salud
   const centros = [{
@@ -211,68 +212,129 @@ const HealthCenters = () => {
         </CardContent>
       </Card>
 
-      {/* Tabla de centros */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Centros de Salud</span>
-            <Badge variant="outline">{centrosFiltrados.length} centros</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Centro</TableHead>
-                <TableHead>Categoría</TableHead>
-                <TableHead>Ubicación</TableHead>
-                <TableHead>Sector</TableHead>
-                <TableHead>Profesionales</TableHead>
-                <TableHead>Director</TableHead>
-                <TableHead>Contacto</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {centrosFiltrados.map(centro => <TableRow key={centro.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{centro.nombre}</div>
-                      <div className="text-sm text-gray-500">
-                        {centro.especialidades.slice(0, 2).join(', ')}
-                        {centro.especialidades.length > 2 && ` +${centro.especialidades.length - 2} más`}
+      {/* Vista Kanban de Centros */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {centrosFiltrados.map(centro => (
+          <Card key={centro.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1">{centro.nombre}</h3>
+                  <div className="flex items-center text-sm text-gray-500 mb-2">
+                    <MapPin className="w-4 h-4 mr-1" />
+                    <span>{centro.provincia}, {centro.distrito}</span>
+                  </div>
+                </div>
+                <Badge className={getCategoryColor(centro.categoria)}>
+                  {centro.categoria}
+                </Badge>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center text-sm">
+                    <Users className="w-4 h-4 mr-2 text-blue-600" />
+                    <span>{centro.profesionales} profesionales</span>
+                  </div>
+                  <Badge className={getSectorColor(centro.sector)}>
+                    {centro.sector}
+                  </Badge>
+                </div>
+
+                <div className="text-sm text-gray-600">
+                  <strong>Director:</strong> {centro.director}
+                </div>
+
+                <div className="flex items-center text-sm text-gray-600">
+                  <Phone className="w-4 h-4 mr-2" />
+                  <span>{centro.telefono}</span>
+                </div>
+
+                <div className="text-sm">
+                  <div className="text-gray-600 mb-1">Especialidades:</div>
+                  <div className="flex flex-wrap gap-1">
+                    {centro.especialidades.slice(0, 2).map((esp, index) => (
+                      <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+                        {esp}
+                      </span>
+                    ))}
+                    {centro.especialidades.length > 2 && (
+                      <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+                        +{centro.especialidades.length - 2} más
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full mt-4"
+                      onClick={() => setSelectedCenter(centro)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Ver Detalles
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center space-x-2">
+                        <Building2 className="w-5 h-5 text-blue-600" />
+                        <span>{centro.nombre}</span>
+                      </DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-semibold mb-2">Información General</h4>
+                          <div className="space-y-2 text-sm">
+                            <div><strong>Categoría:</strong> {centro.categoria}</div>
+                            <div><strong>Sector:</strong> {centro.sector}</div>
+                            <div><strong>Estado:</strong> {centro.estado}</div>
+                            <div><strong>Profesionales:</strong> {centro.profesionales}</div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h4 className="font-semibold mb-2">Ubicación</h4>
+                          <div className="space-y-2 text-sm">
+                            <div><strong>Provincia:</strong> {centro.provincia}</div>
+                            <div><strong>Distrito:</strong> {centro.distrito}</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-semibold mb-2">Contacto</h4>
+                          <div className="space-y-2 text-sm">
+                            <div><strong>Director:</strong> {centro.director}</div>
+                            <div><strong>Teléfono:</strong> {centro.telefono}</div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h4 className="font-semibold mb-2">Especialidades</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {centro.especialidades.map((esp, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {esp}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getCategoryColor(centro.categoria)}>
-                      {centro.categoria}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{centro.provincia}</div>
-                      <div className="text-sm text-gray-500">{centro.distrito}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getSectorColor(centro.sector)}>
-                      {centro.sector}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">{centro.profesionales}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{centro.director}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{centro.telefono}</div>
-                  </TableCell>
-                </TableRow>)}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>;
 };
 export default HealthCenters;

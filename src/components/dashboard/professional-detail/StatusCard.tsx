@@ -53,16 +53,30 @@ const StatusCard = ({ professional }: StatusCardProps) => {
 
         <div className="space-y-2">
           <h4 className="font-medium">Documentos</h4>
-          <Button variant="outline" className="w-full justify-start" disabled>
-            <Download className="w-4 h-4 mr-2" />
-            Carnet Profesional (PDF)
-          </Button>
-          <Button variant="outline" className="w-full justify-start" disabled>
+          {professional.numero_carnet_profesional && (
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => window.open(`/api/documents/carnet/${professional.id}`, '_blank')}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Carnet Profesional (PDF)
+            </Button>
+          )}
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => window.open(`/api/documents/solicitud/${professional.id}`, '_blank')}
+          >
             <Download className="w-4 h-4 mr-2" />
             Ficha de Solicitud (PDF)
           </Button>
           {professional.estado_solicitud === 'Aprobado' && (
-            <Button variant="outline" className="w-full justify-start" disabled>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={() => window.open(`/api/documents/resolucion/${professional.id}`, '_blank')}
+            >
               <Download className="w-4 h-4 mr-2" />
               Carta de Resolución (PDF)
             </Button>

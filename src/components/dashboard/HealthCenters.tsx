@@ -161,7 +161,7 @@ const HealthCenters = () => {
                   <SelectValue placeholder="Filtrar por área" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas las áreas</SelectItem>
+                  <SelectItem value="all">Todas las áreas</SelectItem>
                   {areasProf.map(area => (
                     <SelectItem key={area} value={area}>{area}</SelectItem>
                   ))}
@@ -172,7 +172,7 @@ const HealthCenters = () => {
                   <SelectValue placeholder="Filtrar por estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos los estados</SelectItem>
+                  <SelectItem value="all">Todos los estados</SelectItem>
                   {estadosSolicitud.map(estado => (
                     <SelectItem key={estado} value={estado}>{estado}</SelectItem>
                   ))}
@@ -434,7 +434,7 @@ const HealthCenters = () => {
                   <SelectValue placeholder="Todas las categorías" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas las categorías</SelectItem>
+                  <SelectItem value="all">Todas las categorías</SelectItem>
                   {categorias.map(categoria => (
                     <SelectItem key={categoria} value={categoria}>{categoria}</SelectItem>
                   ))}
@@ -448,7 +448,7 @@ const HealthCenters = () => {
                   <SelectValue placeholder="Todos los distritos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos los distritos</SelectItem>
+                  <SelectItem value="all">Todos los distritos</SelectItem>
                   {distritosSanitarios.map(distrito => (
                     <SelectItem key={distrito.nombre_distrito} value={distrito.nombre_distrito}>
                       {distrito.nombre_distrito}

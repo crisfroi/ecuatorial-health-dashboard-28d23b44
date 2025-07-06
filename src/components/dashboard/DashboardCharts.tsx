@@ -34,12 +34,13 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Gráfico de barras por área profesional */}
-      <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+      <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-guinea-teal">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <BarChart3 className="w-5 h-5 text-guinea-teal" />
             <span>Profesionales por Área</span>
           </CardTitle>
+          <p className="text-sm text-gray-600">Clic en cualquier barra para filtrar</p>
         </CardHeader>
         <CardContent>
           <ChartActions title="Profesionales por Área">
@@ -59,7 +60,7 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
                   dataKey="cantidad" 
                   fill="hsl(var(--guinea-teal))" 
                   onClick={(data) => onChartClick(data, 'area_profesional')}
-                  className="cursor-pointer"
+                  className="cursor-pointer hover:opacity-80"
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -68,12 +69,13 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
       </Card>
 
       {/* Gráfico circular por provincia */}
-      <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+      <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-guinea-teal">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <PieChart className="w-5 h-5 text-guinea-teal" />
             <span>Distribución por Provincia</span>
           </CardTitle>
+          <p className="text-sm text-gray-600">Clic en cualquier sector para filtrar</p>
         </CardHeader>
         <CardContent>
           <ChartActions title="Distribución por Provincia">
@@ -89,7 +91,7 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
                   fill="#8884d8"
                   dataKey="cantidad"
                   onClick={(data) => onChartClick(data, 'provincia')}
-                  className="cursor-pointer"
+                  className="cursor-pointer hover:opacity-80"
                 >
                   {(stats?.datosGraficoProvincias || []).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -103,12 +105,13 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
       </Card>
 
       {/* Gráfico de estados de solicitud */}
-      <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+      <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-guinea-teal">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Users className="w-5 h-5 text-guinea-teal" />
             <span>Estados de Solicitud</span>
           </CardTitle>
+          <p className="text-sm text-gray-600">Clic en cualquier barra para filtrar</p>
         </CardHeader>
         <CardContent>
           <ChartActions title="Estados de Solicitud">
@@ -122,7 +125,7 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
                   dataKey="cantidad" 
                   fill="#22c55e"
                   onClick={(data) => onChartClick(data, 'estado_solicitud')}
-                  className="cursor-pointer"
+                  className="cursor-pointer hover:opacity-80"
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -131,12 +134,13 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
       </Card>
 
       {/* Gráfico de tendencias mensuales */}
-      <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+      <Card className="hover:shadow-lg transition-all duration-200">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <TrendingUp className="w-5 h-5 text-guinea-teal" />
             <span>Tendencia de Registros (12 meses)</span>
           </CardTitle>
+          <p className="text-sm text-gray-600">Evolución temporal de registros</p>
         </CardHeader>
         <CardContent>
           <ChartActions title="Tendencia de Registros">

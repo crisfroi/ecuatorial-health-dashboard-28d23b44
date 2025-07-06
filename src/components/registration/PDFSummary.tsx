@@ -85,8 +85,9 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
           )}
         </div>
 
-        {/* Foto y código de barras */}
-        <div className="flex justify-center items-center space-x-8 mb-8">
+        {/* Layout optimizado: Foto + Datos personales + Código de barras */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Foto carnet */}
           <div className="flex flex-col items-center space-y-4">
             {formData.foto_carnet_base64 && (
               <div className="w-32 h-40 border-2 border-gray-300 rounded overflow-hidden">
@@ -97,30 +98,24 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
                 />
               </div>
             )}
+            {/* Código de barras debajo de la foto */}
             {formData.codigo_barras && (
               <div className="flex flex-col items-center">
                 <BarcodeGenerator 
                   code={formData.codigo_barras}
-                  width={200}
-                  height={60}
+                  width={160}
+                  height={50}
                   className="mb-2"
                 />
-                <p className="text-xs text-gray-600">Código de Barras</p>
+                <p className="text-xs text-gray-600 text-center">Código de Barras</p>
               </div>
             )}
           </div>
-        </div>
 
-        {/* Información personal */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <User className="w-5 h-5 text-guinea-teal" />
-              <span>Información Personal</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+          {/* Datos personales básicos */}
+          <div className="md:col-span-2 space-y-3">
+            <h4 className="font-semibold text-lg text-gray-800 mb-4">Datos Personales</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div><strong>Nombre completo:</strong> {formData.nombre} {formData.apellidos}</div>
               <div><strong>Género:</strong> {formData.genero}</div>
               <div><strong>Fecha de nacimiento:</strong> {formData.fecha_nacimiento}</div>
@@ -130,8 +125,8 @@ const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
               {formData.numero_dip && <div><strong>Número DIP:</strong> {formData.numero_dip}</div>}
               {formData.numero_pasaporte && <div><strong>Número Pasaporte:</strong> {formData.numero_pasaporte}</div>}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Información de domicilio */}
         <Card>

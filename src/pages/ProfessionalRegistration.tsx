@@ -76,6 +76,7 @@ const ProfessionalRegistration = () => {
   const [formDataForPDF, setFormDataForPDF] = useState<any>(null);
   const [showPoliticasModal, setShowPoliticasModal] = React.useState(false);
   const [solicitudEnviada, setSolicitudEnviada] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState<string>('');
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -136,15 +137,14 @@ const ProfessionalRegistration = () => {
     }
 
     if (!photoFile) {
-      toast({
-        title: "Error",
-        description: "La foto tipo carnet es obligatoria.",
-        variant: "destructive",
-      });
+      setErrorEnvio("La foto tipo carnet es obligatoria para enviar la solicitud.");
+      setCurrentStep(6); // Ir al step de confirmación para mostrar el error
       return;
     }
 
     setIsSubmitting(true);
+    setErrorEnvio(''); // Limpiar errores previos
+    
     try {
       console.log('Enviando formulario con datos:', data);
       
@@ -230,22 +230,27 @@ const ProfessionalRegistration = () => {
         foto_carnet_base64: fotoCarnetBase64,
         codigo_barras: codigoBarras,
         codigo_expediente: result.codigo_expediente,
+        edad: age,
         submittedData: result
       });
 
       toast({
-        title: "Solicitud enviada exitosamente",
+        title: "¡Solicitud enviada exitosamente!",
         description: `Su solicitud ha sido registrada con código: ${result.codigo_expediente}`,
       });
 
       setCurrentStep(6); // Ir al step de confirmación
     } catch (error) {
       console.error('Error submitting form:', error);
+      setErrorEnvio(`Hubo un problema al enviar su solicitud: ${error.message}`);
+      
       toast({
-        title: "Error",
+        title: "Error al enviar solicitud",
         description: `Hubo un problema al enviar su solicitud: ${error.message}`,
         variant: "destructive",
       });
+      
+      setCurrentStep(6); // Ir al step de confirmación para mostrar el error
     } finally {
       setIsSubmitting(false);
     }
@@ -303,6 +308,8 @@ const ProfessionalRegistration = () => {
           <ConfirmationStep 
             formData={formDataForPDF || { ...watchedValues, foto_carnet_base64: fotoCarnetBase64 }}
             isSubmitting={isSubmitting}
+            solicitudEnviada={solicitudEnviada}
+            errorEnvio={errorEnvio}
           />
         );
       default:

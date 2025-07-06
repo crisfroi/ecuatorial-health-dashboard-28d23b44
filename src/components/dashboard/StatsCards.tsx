@@ -45,7 +45,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <Card 
-        className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105"
+        className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-guinea-teal"
         onClick={() => handleCardClick({ estado_solicitud: 'Aprobado' })}
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -57,11 +57,14 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           <p className="text-xs text-muted-foreground">
             Profesionales acreditados
           </p>
+          <div className="mt-2 text-xs text-blue-600 font-medium">
+            Clic para ver detalles →
+          </div>
         </CardContent>
       </Card>
 
       <Card 
-        className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105"
+        className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-orange-400"
         onClick={() => handleCardClick({ estado_solicitud: 'Pendiente' })}
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -73,11 +76,14 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           <p className="text-xs text-muted-foreground">
             En proceso de revisión
           </p>
+          <div className="mt-2 text-xs text-blue-600 font-medium">
+            Clic para ver detalles →
+          </div>
         </CardContent>
       </Card>
 
       <Card 
-        className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105"
+        className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-blue-400"
         onClick={() => handleCardClick({ estado_solicitud: 'Revisando' })}
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -89,11 +95,14 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           <p className="text-xs text-muted-foreground">
             Siendo evaluadas
           </p>
+          <div className="mt-2 text-xs text-blue-600 font-medium">
+            Clic para ver detalles →
+          </div>
         </CardContent>
       </Card>
 
       <Card 
-        className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105"
+        className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-red-400"
         onClick={() => handleCardClick({ estado_solicitud: 'Rechazado' })}
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -105,10 +114,16 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           <p className="text-xs text-muted-foreground">
             Tasa: {stats?.tasaRechazo || 0}%
           </p>
+          <div className="mt-2 text-xs text-blue-600 font-medium">
+            Clic para ver detalles →
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105">
+      <Card 
+        className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-yellow-400"
+        onClick={() => handleCardClick({ vencimiento_proximo: true })}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Próximos a Vencer</CardTitle>
           <AlertTriangle className="h-4 w-4 text-yellow-600" />
@@ -118,10 +133,16 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           <p className="text-xs text-muted-foreground">
             Carnets vencen en 30 días
           </p>
+          <div className="mt-2 text-xs text-blue-600 font-medium">
+            Clic para ver detalles →
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="cursor-pointer hover:shadow-lg transition-shadow hover:scale-105">
+      <Card 
+        className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-red-500"
+        onClick={() => handleCardClick({ carnet_vencido: true })}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Carnets Vencidos</CardTitle>
           <AlertTriangle className="h-4 w-4 text-red-600" />
@@ -131,10 +152,13 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           <p className="text-xs text-muted-foreground">
             Requieren renovación
           </p>
+          <div className="mt-2 text-xs text-blue-600 font-medium">
+            Clic para ver detalles →
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="md:col-span-2 cursor-pointer hover:shadow-lg transition-shadow">
+      <Card className="md:col-span-2 hover:shadow-lg transition-all duration-200">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Distribución por Área</CardTitle>
           <TrendingUp className="h-4 w-4 text-guinea-teal" />
@@ -145,7 +169,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
               <Badge 
                 key={area} 
                 variant="secondary"
-                className="cursor-pointer hover:bg-guinea-light-teal transition-colors"
+                className="cursor-pointer hover:bg-guinea-light-teal transition-colors hover:scale-105"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleCardClick({ area_profesional: area });
@@ -154,6 +178,9 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
                 {area}: {cantidad as number}
               </Badge>
             ))}
+          </div>
+          <div className="mt-3 text-xs text-blue-600 font-medium">
+            Clic en cualquier área para ver profesionales →
           </div>
         </CardContent>
       </Card>

@@ -3,6 +3,8 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload, AlertCircle, Camera, X } from 'lucide-react';
+import PoliticasModal from '@/components/registration/PoliticasModal';
+
 
 interface DocumentsStepProps {
   uploadedFiles: File[];

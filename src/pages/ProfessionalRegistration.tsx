@@ -21,7 +21,7 @@ import { DocumentsStep } from '@/components/registration/DocumentsStep';
 import ConfirmationStep from '@/components/registration/ConfirmationStep';
 import { RegistrationProgress } from '@/components/registration/RegistrationProgress';
 import PDFSummary from '@/components/registration/PDFSummary';
-import PoliticasModal from '@/componenets/registration/PoliticasModal';
+import PoliticasModal from '@/components/registration/PoliticasModal';
 
 
 // Schema de validación

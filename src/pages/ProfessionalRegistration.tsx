@@ -71,7 +71,7 @@ const ProfessionalRegistration = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [fotoCarnetBase64, setFotoCarnetBase64] = useState<string | null>(null);
   const [formDataForPDF, setFormDataForPDF] = useState<any>(null);
-  
+  const [showPoliticasModal, setShowPoliticasModal] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: nacionalidades = [] } = useNacionalidades();
@@ -285,6 +285,7 @@ const ProfessionalRegistration = () => {
             handlePhotoUpload={handlePhotoUpload}
             removePhoto={removePhoto}
             setFotoCarnetBase64={setFotoCarnetBase64}
+            setShowPoliticasModal={setShowPoliticasModal}
           />
         );
       case 6:
@@ -340,7 +341,6 @@ const ProfessionalRegistration = () => {
               >
                 Anterior
               </Button>
-
               {currentStep < steps.length ? (
                 <Button type="button" onClick={nextStep}>
                   Siguiente
@@ -354,6 +354,10 @@ const ProfessionalRegistration = () => {
           </form>
         </Form>
       </div>
+      <PoliticasModal 
+        open={showPoliticasModal} 
+        onClose={() => setShowPoliticasModal(false)} 
+        />
     </div>
   );
 };

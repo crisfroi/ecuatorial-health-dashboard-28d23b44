@@ -203,8 +203,7 @@ const HealthCenters = () => {
             <DialogHeader>
               <DialogTitle>Editar Centro de Salud</DialogTitle>
             </DialogHeader>
-            <form action={handleEditCenter} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={(e) => {e.preventDefault(); handleEditCenter(new FormData(e.currentTarget));}} className="space-y-4">
                 <div>
                   <label className="text-sm font-medium">Nombre *</label>
                   <Input name="nombre" defaultValue={editingCenter?.nombre} required />
@@ -301,9 +300,7 @@ const HealthCenters = () => {
             <DialogHeader>
               <DialogTitle>Crear Nuevo Centro de Salud</DialogTitle>
             </DialogHeader>
-            <form action={handleCreateCenter} className="space-y-4">
-              {/* Formulario similar al de editar */}
-              <div className="grid grid-cols-2 gap-4">
+           <form onSubmit={(e) => {e.preventDefault(); handleCreateCenter(new FormData(e.currentTarget));}} className="space-y-4">
                 <div>
                   <label className="text-sm font-medium">Nombre *</label>
                   <Input name="nombre" required />

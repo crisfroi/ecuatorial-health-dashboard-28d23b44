@@ -288,6 +288,7 @@ const ProfessionalRegistration = () => {
             handlePhotoUpload={handlePhotoUpload}
             removePhoto={removePhoto}
             setFotoCarnetBase64={setFotoCarnetBase64}
+            setShowPoliticas={setShowPoliticas}
           />
         );
       case 6:

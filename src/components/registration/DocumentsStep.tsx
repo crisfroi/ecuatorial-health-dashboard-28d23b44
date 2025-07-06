@@ -15,7 +15,7 @@ interface DocumentsStepProps {
   removePhoto: () => void;
   setFotoCarnetBase64: (base64: string | null) => void;
   setAceptaPoliticas?: (val: boolean) => void;
-  setShowPoliticas?: (show: boolean) => void;
+  setShowPoliticasModal?: (show: boolean) => void;
 
 }
 
@@ -28,7 +28,7 @@ export const DocumentsStep = ({
   removePhoto,
   setFotoCarnetBase64,
   setAceptaPoliticas,
-  setShowPoliticas
+  setShowPoliticasModal
 }: DocumentsStepProps) => {
   const { register, formState: { errors } } = useFormContext();
   return (

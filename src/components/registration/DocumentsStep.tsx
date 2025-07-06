@@ -15,7 +15,8 @@ interface DocumentsStepProps {
   removePhoto: () => void;
   setFotoCarnetBase64: (base64: string | null) => void;
   setAceptaPoliticas?: (val: boolean) => void;
-  setShowPoliticasModal?: (show: boolean) => void;
+  setShowPoliticas?: (show: boolean) => void;
+
 }
 
 export const DocumentsStep = ({ 
@@ -182,7 +183,7 @@ export const DocumentsStep = ({
          <span
            role="button"
            tabIndex={0}
-           onClick={() =>setShowPoliticasModal?.(true)}
+           onClick={() => window.open('/politicas', '_blank')}
            className="text-[#007F98] underline cursor-pointer inline"
            >
            Política de Privacidad, y autorizo expresamente el tratamiento de mis datos 

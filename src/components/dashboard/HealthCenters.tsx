@@ -15,6 +15,7 @@ const HealthCenters = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedDistrito, setSelectedDistrito] = useState('');
   const [selectedCenter, setSelectedCenter] = useState<any>(null);
+  
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingCenter, setEditingCenter] = useState<any>(null);
@@ -265,7 +266,6 @@ const HealthCenters = () => {
                   <label className="text-sm font-medium">Teléfono</label>
                   <Input name="telefono" defaultValue={editingCenter?.telefono} />
                 </div>
-              </div>
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
                   Cancelar

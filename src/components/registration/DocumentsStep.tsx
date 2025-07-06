@@ -183,7 +183,7 @@ export const DocumentsStep = ({
          <span
            role="button"
            tabIndex={0}
-           onClick={() => window.open('/politicas', '_blank')}
+           onClick={() => setShowPoliticasModal?.(true)}
            className="text-[#007F98] underline cursor-pointer inline"
            >
            Política de Privacidad, y autorizo expresamente el tratamiento de mis datos 

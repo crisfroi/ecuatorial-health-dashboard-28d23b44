@@ -24,10 +24,18 @@ const HealthCenters = () => {
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
   const { crearCentroMutation, actualizarCentroMutation } = useCentrosSalud();
 
-  const { data: centros = [], isLoading } = useBuscarCentros({
+  const { data: centros = [], isLoading, isError, error } = useBuscarCentros({
     nombreParcial: searchTerm || undefined,
     categoria: selectedCategory || undefined,
     distritoSanitario: selectedDistrito || undefined,
+    if (isError) {
+  return (
+    <div className="p-6 text-center text-red-600">
+      Ocurrió un error al cargar los centros de salud.<br />
+      {error?.message || 'Intenta recargar la página.'}
+    </div>
+  );
+}
   });
 
   const { data: profesionalesDelCentro = [] } = useProfesionalesPorCentro(

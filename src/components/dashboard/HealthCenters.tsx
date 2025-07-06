@@ -90,7 +90,7 @@ const HealthCenters = () => {
     setShowEditDialog(false);
     setEditingCenter(null);
   };
-
+}
   if (selectedCenter) {
     return (
       <div className="space-y-6">

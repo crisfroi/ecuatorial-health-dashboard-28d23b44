@@ -357,7 +357,7 @@ const ProfessionalRegistration = () => {
       <PoliticasModal 
         open={showPoliticasModal} 
         onClose={() => setShowPoliticasModal(false)} 
-        />
+        >
     </div>
   );
 };

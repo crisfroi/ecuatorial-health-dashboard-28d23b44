@@ -120,7 +120,7 @@ export const useBuscarCentros = (params: BuscarCentrosParams) => {
   return useQuery({
     queryKey: ['centros', params],
     queryFn: () => buscarCentros(params),
-    enabled: !!(params.nombreParcial || params.categoria || params.distritoSanitario),
+    true: !!(params.nombreParcial || params.categoria || params.distritoSanitario),
   });
 };
 

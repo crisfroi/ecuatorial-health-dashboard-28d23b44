@@ -15,7 +15,6 @@ const HealthCenters = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedDistrito, setSelectedDistrito] = useState('');
   const [selectedCenter, setSelectedCenter] = useState<any>(null);
-  
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingCenter, setEditingCenter] = useState<any>(null);
@@ -90,9 +89,10 @@ const HealthCenters = () => {
     setShowEditDialog(false);
     setEditingCenter(null);
   };
-    if (selectedCenter) {
+
+  if (selectedCenter) {
     return (
-      <className="space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <Button variant="outline" onClick={() => setSelectedCenter(null)}>
             ← Volver a centros
@@ -203,7 +203,8 @@ const HealthCenters = () => {
             <DialogHeader>
               <DialogTitle>Editar Centro de Salud</DialogTitle>
             </DialogHeader>
-        <form onSubmit={(e) => {e.preventDefault(); handleEditCenter(new FormData(e.currentTarget));}} className="space-y-4">
+            <form action={handleEditCenter} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Nombre *</label>
                   <Input name="nombre" defaultValue={editingCenter?.nombre} required />
@@ -265,6 +266,7 @@ const HealthCenters = () => {
                   <label className="text-sm font-medium">Teléfono</label>
                   <Input name="telefono" defaultValue={editingCenter?.telefono} />
                 </div>
+              </div>
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
                   Cancelar
@@ -276,8 +278,10 @@ const HealthCenters = () => {
             </form>
           </DialogContent>
         </Dialog>
+      </div>
     );
   }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -297,7 +301,9 @@ const HealthCenters = () => {
             <DialogHeader>
               <DialogTitle>Crear Nuevo Centro de Salud</DialogTitle>
             </DialogHeader>
-           <form onSubmit={(e) => {e.preventDefault(); handleCreateCenter(new FormData(e.currentTarget));}} className="space-y-4">
+            <form action={handleCreateCenter} className="space-y-4">
+              {/* Formulario similar al de editar */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Nombre *</label>
                   <Input name="nombre" required />

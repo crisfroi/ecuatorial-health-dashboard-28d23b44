@@ -1,10 +1,10 @@
+
 import { useFormContext } from 'react-hook-form';
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload, AlertCircle, Camera, X } from 'lucide-react';
 import PoliticasModal from '@/components/registration/PoliticasModal';
-
 
 interface DocumentsStepProps {
   uploadedFiles: File[];
@@ -16,7 +16,6 @@ interface DocumentsStepProps {
   setFotoCarnetBase64: (base64: string | null) => void;
   setAceptaPoliticas?: (val: boolean) => void;
   setShowPoliticasModal?: (show: boolean) => void;
-
 }
 
 export const DocumentsStep = ({ 
@@ -31,6 +30,7 @@ export const DocumentsStep = ({
   setShowPoliticasModal
 }: DocumentsStepProps) => {
   const { register, formState: { errors } } = useFormContext();
+  
   return (
     <div className="space-y-6">
       {/* Foto carnet */}
@@ -63,7 +63,6 @@ export const DocumentsStep = ({
                  reader.readAsDataURL(file);
                  handlePhotoUpload(e); // sigue guardando photoFile normalmente
                }}
-
                 className="hidden"
               />
               <p className="mt-2 text-sm text-gray-600">
@@ -160,43 +159,46 @@ export const DocumentsStep = ({
           </div>
         </div>
       </div>
-     {/* ALERTA: Foto carnet obligatoria */}
-<Alert className="bg-red-100 border-red-300 text-red-800">
-  <AlertCircle className="h-4 w-4 mt-1" />
-  <AlertDescription>
-    La foto tipo carnet es obligatoria. Puede cargar títulos académicos, certificados y otros documentos relevantes como documentos adicionales.
-  </AlertDescription>
-</Alert>
 
-{/* ALERTA: Aceptación de políticas */}
-<Alert className="bg-red-100 border-red-300 text-red-800">
-  <AlertCircle className="h-4 w-4 mt-1" />
-  <AlertDescription className="space-y-2">
-    <label className="flex items-start space-x-2 text-sm text-gray-700">
-      <input
-        type="checkbox"
-        {...register('acepta_politicas')}
-        className="mt-1 border-red-400 text-[#007F98] focus:ring-[#007F98] w-5 h-5"
-      />
-      <span>
-        Declaro que he leído y comprendido esta{' '}
-         <span
-           role="button"
-           tabIndex={0}
-           onClick={() => setShowPoliticasModal?.(true)}
-           className="text-[#007F98] underline cursor-pointer inline"
-           >
-           Política de Privacidad, y autorizo expresamente el tratamiento de mis datos 
-          conforme a lo estipulado por la Ley de Proteccion de Datos Personales de Guinea Ecuatorial. Ley 1/2016.
-        </span>
-        .
-      </span>
-    </label>
-    {errors.acepta_politicas && (
-      <p className="text-red-600 text-xs">{errors.acepta_politicas.message}</p>
-    )}
-  </AlertDescription>
-</Alert>
+      {/* ALERTA: Foto carnet obligatoria */}
+      <Alert className="bg-red-100 border-red-300 text-red-800">
+        <AlertCircle className="h-4 w-4 mt-1" />
+        <AlertDescription>
+          La foto tipo carnet es obligatoria. Puede cargar títulos académicos, certificados y otros documentos relevantes como documentos adicionales.
+        </AlertDescription>
+      </Alert>
+
+      {/* ALERTA: Aceptación de políticas */}
+      <Alert className="bg-red-100 border-red-300 text-red-800">
+        <AlertCircle className="h-4 w-4 mt-1" />
+        <AlertDescription className="space-y-2">
+          <label className="flex items-start space-x-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              {...register('acepta_politicas')}
+              className="mt-1 border-red-400 text-[#007F98] focus:ring-[#007F98] w-5 h-5"
+            />
+            <span>
+              Declaro que he leído y comprendido esta{' '}
+               <span
+                 role="button"
+                 tabIndex={0}
+                 onClick={() => setShowPoliticasModal?.(true)}
+                 className="text-[#007F98] underline cursor-pointer inline"
+                 >
+                 Política de Privacidad, y autorizo expresamente el tratamiento de mis datos 
+                conforme a lo estipulado por la Ley de Proteccion de Datos Personales de Guinea Ecuatorial. Ley 1/2016.
+              </span>
+              .
+            </span>
+          </label>
+          {errors.acepta_politicas && (
+            <p className="text-red-600 text-xs">
+              {String(errors.acepta_politicas.message)}
+            </p>
+          )}
+        </AlertDescription>
+      </Alert>
     </div>
   );
 };

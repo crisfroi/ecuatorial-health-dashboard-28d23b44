@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useNacionalidades } from '@/hooks/useNacionalidades';
 import { useDistritosSanitarios } from '@/hooks/useDistritosSanitarios';
+import { useFileUpload } from '@/hooks/useFileUpload';
 
 // Import step components
 import { PersonalInfoStep } from '@/components/registration/PersonalInfoStep';
@@ -22,7 +24,6 @@ import ConfirmationStep from '@/components/registration/ConfirmationStep';
 import { RegistrationProgress } from '@/components/registration/RegistrationProgress';
 import PDFSummary from '@/components/registration/PDFSummary';
 import PoliticasModal from '@/components/registration/PoliticasModal';
-
 
 // Schema de validación
 const formSchema = z.object({
@@ -74,11 +75,13 @@ const ProfessionalRegistration = () => {
   const [fotoCarnetBase64, setFotoCarnetBase64] = useState<string | null>(null);
   const [formDataForPDF, setFormDataForPDF] = useState<any>(null);
   const [showPoliticasModal, setShowPoliticasModal] = React.useState(false);
+  const [solicitudEnviada, setSolicitudEnviada] = useState(false);
   
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: nacionalidades = [] } = useNacionalidades();
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
+  const { uploadFile, uploadPDF, isUploading } = useFileUpload();
 
   console.log('Distritos sanitarios en ProfessionalRegistration:', distritosSanitarios);
 
@@ -103,26 +106,35 @@ const ProfessionalRegistration = () => {
   };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-  const file = event.target.files?.[0];
-  if (!file) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  setPhotoFile(file);
+    setPhotoFile(file);
 
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    const base64 = reader.result as string;
-    setFotoCarnetBase64(base64);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setFotoCarnetBase64(base64);
+    };
+    reader.readAsDataURL(file);
   };
-  reader.readAsDataURL(file);
-  };
-
 
   const removePhoto = () => {
-  setPhotoFile(null);
-  setFotoCarnetBase64(null);
- };
+    setPhotoFile(null);
+    setFotoCarnetBase64(null);
+  };
 
   const onSubmit = async (data: FormData) => {
+    // Prevenir envío múltiple
+    if (solicitudEnviada) {
+      toast({
+        title: "Solicitud ya enviada",
+        description: "Esta solicitud ya ha sido enviada. No puede enviar duplicados.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!photoFile) {
       toast({
         title: "Error",
@@ -137,27 +149,17 @@ const ProfessionalRegistration = () => {
       console.log('Enviando formulario con datos:', data);
       
       // Subir foto a Supabase Storage
-      const fileExt = photoFile.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('fotos-carnet')
-        .upload(filePath, photoFile);
-
-      if (uploadError) {
-        console.error('Error uploading photo:', uploadError);
-        throw new Error('Error al subir la foto: ' + uploadError.message);
+      const fotoUrl = await uploadFile(photoFile, 'fotos-carnet');
+      if (!fotoUrl) {
+        throw new Error('Error al subir la foto');
       }
-
-      // Obtener URL pública de la foto
-      const { data: { publicUrl } } = supabase.storage
-        .from('fotos-carnet')
-        .getPublicUrl(filePath);
 
       // Calcular edad
       const birthDate = new Date(data.fecha_nacimiento);
       const age = new Date().getFullYear() - birthDate.getFullYear();
+
+      // Generar código de barras único
+      const codigoBarras = `GEQ${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
       // Preparar datos de documentos
       const documentosData = uploadedFiles.map(file => ({
@@ -196,7 +198,8 @@ const ProfessionalRegistration = () => {
         pertenece_brigada_medica: data.pertenece_brigada_medica,
         tipo_cooperacion: data.tipo_cooperacion || null,
         documentos_cargados: documentosData,
-        foto_carnet: publicUrl,
+        foto_carnet: fotoUrl,
+        codigo_barras: codigoBarras,
         estado_solicitud: 'Pendiente' as const,
         fecha_solicitud: new Date().toISOString().split('T')[0]
       };
@@ -216,22 +219,26 @@ const ProfessionalRegistration = () => {
 
       console.log('Resultado exitoso:', result);
 
+      // Marcar solicitud como enviada
+      setSolicitudEnviada(true);
+
       // Actualizar el estado interno con los datos para el PDF
       setFormDataForPDF({
         ...data,
         photoFile,
-        foto_carnet: publicUrl,
+        foto_carnet: fotoUrl,
         foto_carnet_base64: fotoCarnetBase64,
+        codigo_barras: codigoBarras,
+        codigo_expediente: result.codigo_expediente,
         submittedData: result
       });
 
-
       toast({
         title: "Solicitud enviada exitosamente",
-        description: "Su solicitud ha sido registrada y está pendiente de revisión.",
+        description: `Su solicitud ha sido registrada con código: ${result.codigo_expediente}`,
       });
 
-      setCurrentStep(6); // Ir al step de confirmación en lugar de navegar
+      setCurrentStep(6); // Ir al step de confirmación
     } catch (error) {
       console.error('Error submitting form:', error);
       toast({
@@ -294,11 +301,10 @@ const ProfessionalRegistration = () => {
       case 6:
         return (
           <ConfirmationStep 
-           formData={formDataForPDF || { ...watchedValues, foto_carnet_base64: fotoCarnetBase64 }}
+            formData={formDataForPDF || { ...watchedValues, foto_carnet_base64: fotoCarnetBase64 }}
             isSubmitting={isSubmitting}
-            />
+          />
         );
-
       default:
         return null;
     }
@@ -350,13 +356,17 @@ const ProfessionalRegistration = () => {
                   Siguiente
                 </Button>
               ) : (
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Enviando..." : "Enviar Solicitud"}
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || solicitudEnviada}
+                >
+                  {isSubmitting ? "Enviando..." : solicitudEnviada ? "Solicitud Enviada" : "Enviar Solicitud"}
                 </Button>
               )}
             </div>
           </form>
         </Form>
+        
         <PoliticasModal open={showPoliticasModal} onClose={() => setShowPoliticasModal(false)} />
       </div>
     </div>

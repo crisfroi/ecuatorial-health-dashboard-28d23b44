@@ -50,6 +50,57 @@ export type Database = {
           },
         ]
       }
+      centros_salud: {
+        Row: {
+          categoria: string
+          created_at: string | null
+          director: string | null
+          distrito: string
+          distrito_sanitario: string | null
+          distrito_sanitario_id: number | null
+          especialidades: string[] | null
+          estado: string | null
+          id: string
+          nombre: string
+          provincia: string
+          sector: string
+          telefono: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          categoria: string
+          created_at?: string | null
+          director?: string | null
+          distrito: string
+          distrito_sanitario?: string | null
+          distrito_sanitario_id?: number | null
+          especialidades?: string[] | null
+          estado?: string | null
+          id?: string
+          nombre: string
+          provincia: string
+          sector: string
+          telefono?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          categoria?: string
+          created_at?: string | null
+          director?: string | null
+          distrito?: string
+          distrito_sanitario?: string | null
+          distrito_sanitario_id?: number | null
+          especialidades?: string[] | null
+          estado?: string | null
+          id?: string
+          nombre?: string
+          provincia?: string
+          sector?: string
+          telefono?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       distrito_sanitario: {
         Row: {
           abreviatura_distrito: string | null
@@ -280,6 +331,7 @@ export type Database = {
           brigada_cooperacion: string | null
           categoria_centro: string | null
           categoria_titulacion: string | null
+          centro_salud_id: string | null
           codigo_barras: string | null
           codigo_expediente: string | null
           copia_dip: string | null
@@ -366,6 +418,7 @@ export type Database = {
           brigada_cooperacion?: string | null
           categoria_centro?: string | null
           categoria_titulacion?: string | null
+          centro_salud_id?: string | null
           codigo_barras?: string | null
           codigo_expediente?: string | null
           copia_dip?: string | null
@@ -452,6 +505,7 @@ export type Database = {
           brigada_cooperacion?: string | null
           categoria_centro?: string | null
           categoria_titulacion?: string | null
+          centro_salud_id?: string | null
           codigo_barras?: string | null
           codigo_expediente?: string | null
           copia_dip?: string | null
@@ -530,6 +584,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_profesionales_centro_salud"
+            columns: ["centro_salud_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "profesionales_sanitarios_id_distrito_fkey"
             columns: ["id_distrito"]
             isOneToOne: false
@@ -551,6 +612,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      generar_codigo_expediente_unico: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_notification_count: {
         Args: { p_profesional_id: string }
         Returns: {
@@ -559,6 +624,10 @@ export type Database = {
           notificaciones_10_dias: number
           ultima_notificacion: string
         }[]
+      }
+      migrar_relaciones_centros_distritos: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {

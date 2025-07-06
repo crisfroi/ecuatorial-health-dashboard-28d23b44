@@ -1,48 +1,92 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+// … resto de imports …
+import DashboardTabs from '@/components/dashboard/DashboardTabs';
 
-import { Button } from '@/components/ui/button';
-import { Activity, FileText, Users, TrendingUp, MessageCircle, AlertTriangle, Settings, UserCheck, Building2 } from 'lucide-react';
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const [selectedProfessional, setSelectedProfessional] = useState<Profesional | null>(null);
+  const [appliedFilters, setAppliedFilters] = useState<Filtros>({});
+  const [showFilters, setShowFilters] = useState(false);
+  const [dashboardFilters, setDashboardFilters] = useState<Filtros>({});
+  
+  // 🔄 NUEVO estado para pestañas
+  const [activeTab, setActiveTab] = useState<string>('overview');
 
-interface DashboardTabsProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-  userRole: string;
-}
+  const userRole = 'administrador';
 
-const DashboardTabs = ({ activeTab, onTabChange, userRole }: DashboardTabsProps) => {
-  const tabs = [
-    { id: 'overview', label: 'Panel Principal', icon: Activity },
-    { id: 'requests', label: 'Solicitudes', icon: FileText },
-    { id: 'professionals', label: 'Profesionales', icon: Users },
-    { id: 'health-centers', label: 'Centros de Salud', icon: Building2 },
-    { id: 'stats', label: 'Estadísticas', icon: TrendingUp },
-    { id: 'ai-chat', label: 'Análisis IA', icon: MessageCircle },
-    { id: 'incidents', label: 'Incidencias', icon: AlertTriangle },
-    ...(userRole === 'administrador' ? [
-      { id: 'user-management', label: 'Usuarios', icon: Settings }
-    ] : []),
-    ...((userRole === 'administrador' || userRole === 'comite') ? [
-      { id: 'ministerial', label: 'Panel Ministerial', icon: UserCheck }
-    ] : [])
-  ];
+  const handleFiltersChange = (filters: Filtros) => { /* … */ };
+  const handleClearFilters = () => { /* … */ };
+  const handleChartClick = (data: any, chartType: string) => { /* … */ };
+
+  // 🔄 NUEVA función para cambiar pestañas y limpiar selectedProfessional
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    if (tabId !== 'professionals') setSelectedProfessional(null);
+  };
 
   return (
-    <div className="flex flex-wrap gap-2 mb-6 p-4 bg-white rounded-lg shadow-sm border">
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        return (
-          <Button
-            key={tab.id}
-            variant={activeTab === tab.id ? "default" : "ghost"}
-            onClick={() => onTabChange(tab.id)}
-            className="flex items-center space-x-2 h-10"
-          >
-            <Icon className="w-4 h-4" />
-            <span className="hidden sm:inline">{tab.label}</span>
-          </Button>
-        );
-      })}
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header, StatsCards, filtros, etc. */}
+        <DashboardTabs
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          userRole={userRole}
+        />
+
+        {/* 🔄 Reemplazamos TabsContent por condicionales */}
+        {/* Mantenemos el mismo espaciado */}
+        <div className="space-y-6">
+          {activeTab === 'overview' && (
+            <DashboardCharts onChartClick={handleChartClick} />
+          )}
+
+          {activeTab === 'professionals' && (
+            selectedProfessional ? (
+              <div className="space-y-4">
+                <Button variant="outline" onClick={() => setSelectedProfessional(null)}>
+                  ← Volver a la lista
+                </Button>
+                <ProfessionalDetail
+                  professional={selectedProfessional}
+                  onClose={() => setSelectedProfessional(null)}
+                />
+              </div>
+            ) : (
+              <ProfessionalsTable
+                onSelectProfessional={setSelectedProfessional}
+                userRole={userRole}
+                appliedFilters={appliedFilters}
+                onClearFilters={handleClearFilters}
+                dashboardFilters={dashboardFilters}
+              />
+            )
+          )}
+
+          {activeTab === 'requests' && <RequestsPanel userRole={userRole} />}
+
+          {activeTab === 'renewals' && <RenewalAlerts />}
+
+          {activeTab === 'analytics' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* … contenido analíticas … */}
+            </div>
+          )}
+
+          {activeTab === 'ai-chat' && <OpenAIChat />}
+
+          {activeTab === 'ministerial' && <MinisterialPanel />}
+
+          {activeTab === 'incidents' && <HospitalIncidents />}
+
+          {activeTab === 'health-centers' && <HealthCenters />}
+
+          {activeTab === 'users' && <UserRoleManagement />}
+        </div>
+      </div>
     </div>
   );
 };
 
-export default DashboardTabs;
+export default Dashboard;

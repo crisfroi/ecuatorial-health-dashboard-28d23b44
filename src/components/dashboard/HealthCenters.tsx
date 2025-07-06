@@ -279,7 +279,6 @@ const HealthCenters = () => {
         </Dialog>
     );
   }
-
   return (
     <div className="space-y-6">
       {/* Header */}

@@ -21,6 +21,8 @@ import { DocumentsStep } from '@/components/registration/DocumentsStep';
 import ConfirmationStep from '@/components/registration/ConfirmationStep';
 import { RegistrationProgress } from '@/components/registration/RegistrationProgress';
 import PDFSummary from '@/components/registration/PDFSummary';
+import PoliticasModal from '@/componenets/registration/PoliticasModal';
+
 
 // Schema de validación
 const formSchema = z.object({
@@ -71,6 +73,7 @@ const ProfessionalRegistration = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [fotoCarnetBase64, setFotoCarnetBase64] = useState<string | null>(null);
   const [formDataForPDF, setFormDataForPDF] = useState<any>(null);
+  const [showPoliticasModal, setShowPoliticasModal] = React.useState(false);
   
   const { toast } = useToast();
   const navigate = useNavigate();

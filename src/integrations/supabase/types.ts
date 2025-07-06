@@ -604,6 +604,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      buscar_centros_por_criterios: {
+        Args: {
+          p_nombre_parcial?: string
+          p_categoria?: string
+          p_distrito_sanitario?: string
+        }
+        Returns: {
+          id: string
+          nombre: string
+          categoria: string
+          distrito_sanitario: string
+          sector: string
+          provincia: string
+          distrito: string
+          total_profesionales: number
+        }[]
+      }
       calcular_edad: {
         Args: { birth_date: string }
         Returns: number
@@ -628,6 +645,21 @@ export type Database = {
       migrar_relaciones_centros_distritos: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      obtener_profesionales_por_centro: {
+        Args: {
+          p_centro_id: string
+          p_area_profesional?: string
+          p_estado_solicitud?: string
+        }
+        Returns: {
+          id: string
+          nombre_completo: string
+          area_profesional: string
+          estado_solicitud: string
+          telefono: string
+          fecha_alta: string
+        }[]
       }
     }
     Enums: {

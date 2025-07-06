@@ -126,6 +126,8 @@ const ProfessionalRegistration = () => {
   };
 
   const onSubmit = async (data: FormData) => {
+    console.log('onSubmit called with data:', data);
+    
     // Prevenir envío múltiple
     if (solicitudEnviada) {
       toast({
@@ -146,7 +148,7 @@ const ProfessionalRegistration = () => {
     setErrorEnvio(''); // Limpiar errores previos
     
     try {
-      console.log('Enviando formulario con datos:', data);
+      console.log('Iniciando proceso de envío de formulario...');
       
       // Subir foto a Supabase Storage
       const fotoUrl = await uploadFile(photoFile, 'fotos-carnet');
@@ -204,7 +206,7 @@ const ProfessionalRegistration = () => {
         fecha_solicitud: new Date().toISOString().split('T')[0]
       };
 
-      console.log('Datos a enviar:', submissionData);
+      console.log('Datos a enviar a Supabase:', submissionData);
 
       const { data: result, error } = await supabase
         .from('profesionales_sanitarios')
@@ -213,11 +215,11 @@ const ProfessionalRegistration = () => {
         .single();
 
       if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+        console.error('Error de Supabase:', error);
+        throw new Error(`Error de base de datos: ${error.message}`);
       }
 
-      console.log('Resultado exitoso:', result);
+      console.log('Resultado exitoso de Supabase:', result);
 
       // Marcar solicitud como enviada
       setSolicitudEnviada(true);
@@ -240,13 +242,14 @@ const ProfessionalRegistration = () => {
       });
 
       setCurrentStep(6); // Ir al step de confirmación
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      setErrorEnvio(`Hubo un problema al enviar su solicitud: ${error.message}`);
+    } catch (error: any) {
+      console.error('Error completo al enviar formulario:', error);
+      const errorMessage = error.message || 'Error desconocido al procesar la solicitud';
+      setErrorEnvio(errorMessage);
       
       toast({
         title: "Error al enviar solicitud",
-        description: `Hubo un problema al enviar su solicitud: ${error.message}`,
+        description: errorMessage,
         variant: "destructive",
       });
       
@@ -366,6 +369,7 @@ const ProfessionalRegistration = () => {
                 <Button 
                   type="submit" 
                   disabled={isSubmitting || solicitudEnviada}
+                  className="bg-guinea-teal hover:bg-guinea-teal/90"
                 >
                   {isSubmitting ? "Enviando..." : solicitudEnviada ? "Solicitud Enviada" : "Enviar Solicitud"}
                 </Button>

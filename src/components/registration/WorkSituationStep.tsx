@@ -1,10 +1,10 @@
 
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { UseFormReturn } from 'react-hook-form';
+import { CentroTrabajoAutocomplete } from './CentroTrabajoAutocomplete';
 
 interface WorkSituationStepProps {
   form: UseFormReturn<any>;
@@ -45,20 +45,6 @@ export const WorkSituationStep = ({ form, watchedValues, distritosSanitarios }: 
         <>
           <FormField
             control={form.control}
-            name="nombre_centro"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nombre del Centro de Trabajo *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ej: Hospital Nacional de Malabo" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
             name="categoria_centro"
             render={({ field }) => (
               <FormItem>
@@ -76,30 +62,6 @@ export const WorkSituationStep = ({ form, watchedValues, distritosSanitarios }: 
                     <SelectItem value="CONSULTORIO">CONSULTORIO</SelectItem>
                     <SelectItem value="FARMACIA">FARMACIA</SelectItem>
                     <SelectItem value="LABORATORIO">LABORATORIO</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="tipo_sector"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tipo de Sector *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona el tipo de sector" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Público">Público</SelectItem>
-                    <SelectItem value="Privado">Privado</SelectItem>
-                    <SelectItem value="Mixto">Mixto</SelectItem>
-                    <SelectItem value="ONG">ONG</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -131,6 +93,38 @@ export const WorkSituationStep = ({ form, watchedValues, distritosSanitarios }: 
                         No hay distritos disponibles
                       </SelectItem>
                     )}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Componente de autocompletado para centros de trabajo */}
+          {watchedValues.categoria_centro && (
+            <CentroTrabajoAutocomplete 
+              form={form} 
+              watchedValues={watchedValues}
+            />
+          )}
+
+          <FormField
+            control={form.control}
+            name="tipo_sector"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tipo de Sector *</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona el tipo de sector" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Público">Público</SelectItem>
+                    <SelectItem value="Privado">Privado</SelectItem>
+                    <SelectItem value="Mixto">Mixto</SelectItem>
+                    <SelectItem value="ONG">ONG</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />

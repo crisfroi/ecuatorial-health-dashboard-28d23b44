@@ -277,7 +277,6 @@ const HealthCenters = () => {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
     );
   }
 

@@ -10,7 +10,7 @@ interface EducationStepProps {
 }
 
 const areas_profesionales = [
-  "Medicina",
+  "Medicina General",
   "Enfermería",
   "Farmacia",
   "Odontología",
@@ -19,7 +19,9 @@ const areas_profesionales = [
   "Nutrición",
   "Radiología",
   "Laboratorio",
-  "Otra"
+  "Biología",
+  "Oftamológia",
+  "Cuidados Intensivos"
 ];
 
 const categorias_titulacion = [
@@ -28,6 +30,7 @@ const categorias_titulacion = [
   "MASTER",
   "ESPECIALIDAD",
   "TÉCNICO"
+  "AUXILIAR",
 ];
 
 export const EducationStep = ({ form }: EducationStepProps) => {

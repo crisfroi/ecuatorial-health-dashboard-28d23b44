@@ -67,7 +67,7 @@ const PublicSearch = () => {
                       placeholder={
                         searchType === 'carnet' 
                           ? "Ej: MED-2024-0001" 
-                          : "Ej: Juan Pérez García"
+                          : "Ej: CRISTIAN FROILAN"
                       }
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -135,7 +135,7 @@ const PublicSearch = () => {
                         <span>{profesional.nombre_completo}</span>
                       </CardTitle>
                       <Badge className="bg-green-100 text-green-800">
-                        {profesional.estado_solicitud}
+                        {profesional.estado_solicitud === 'Aprobado' ? 'Acreditado' : profesional.estado_solicitud}
                       </Badge>
                     </div>
                   </CardHeader>

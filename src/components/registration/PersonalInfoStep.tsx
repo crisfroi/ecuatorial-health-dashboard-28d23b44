@@ -112,7 +112,7 @@ export const PersonalInfoStep = ({ form, nacionalidades, watchedValues }: Person
           name="numero_dip"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Número DIP</FormLabel>
+              <FormLabel>Número DIP *</FormLabel>
               <FormControl>
                 <Input placeholder="Ingrese su número DIP" {...field} />
               </FormControl>
@@ -128,7 +128,7 @@ export const PersonalInfoStep = ({ form, nacionalidades, watchedValues }: Person
           name="numero_pasaporte"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Número de Pasaporte</FormLabel>
+              <FormLabel>Número de Pasaporte *</FormLabel>
               <FormControl>
                 <Input placeholder="Ingrese su número de pasaporte" {...field} />
               </FormControl>

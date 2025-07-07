@@ -24,13 +24,11 @@ import ConfirmationStep from '@/components/registration/ConfirmationStep';
 import { RegistrationProgress } from '@/components/registration/RegistrationProgress';
 import PDFSummary from '@/components/registration/PDFSummary';
 import PoliticasModal from '@/components/registration/PoliticasModal';
-// ... otras importaciones
 import HealthCenters from '@/components/dashboard/HealthCenters';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
-import ApplicationProcedureSection from '@/components/registration/ApplicationProcedureSection';
 import ProcedureModal from '@/components/registration/ProcedureModal';
 
-// ...
+
 
 // Schema de validación
 const formSchema = z.object({
@@ -388,7 +386,6 @@ const ProfessionalRegistration = () => {
         </Form>
         
         <PoliticasModal open={showPoliticasModal} onClose={() => setShowPoliticasModal(false)} />
-        <ProcedureModal Open={showProcedureModal} onClose={() => setShowProcedureModal(false)} />
       </div>
     </div>
   );

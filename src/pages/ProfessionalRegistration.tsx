@@ -74,6 +74,15 @@ const steps = [
   { id: 6, title: "Confirmación", icon: CheckCircle }
 ];
 
+const stepFields: { [key: number]: (keyof FormData)[] } = {
+  1: ['nombre', 'apellidos', 'genero', 'fecha_nacimiento', 'nacionalidad', 'numero_dip', 'numero_pasaporte', 'telefono'],
+  2: ['domicilio', 'provincia', 'distrito'],
+  3: ['area_profesional', 'categoria_titulacion', 'titulacion_especifica_1', 'institucion_1', 'periodo_formacion', 'pais_formacion_1', 'especialidad'], // Añade 'especialidad' si es parte de este paso y necesitas validarlo
+  4: ['situacion_laboral', 'nombre_centro', 'categoria_centro', 'tipo_sector', 'distrito_sanitario', 'tipo_cooperacion'], // Añade campos condicionales si son validados aquí
+  5: ['documentos', 'acepta_politicas'], // Asumiendo que 'documentos' y 'acepta_politicas' son manejados o validados aquí
+  6: [] // El paso de confirmación generalmente no tiene campos propios para validar al avanzar
+};
+
 const ProfessionalRegistration = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -275,24 +284,32 @@ const ProfessionalRegistration = () => {
   };
 
   const nextStep = async () => {
-    // Validar SOLO los campos visibles en el paso actual
-    const isValid = await form.trigger(); // Esto activa la validación para todos los campos registrados en el form
-    
-    if (isValid) {
-      if (currentStep < steps.length) {
-        setCurrentStep(currentStep + 1);
-      }
-    } else {
-      // Opcional: Proporcionar feedback al usuario si la validación falla
-      toast({
-        title: "Campos incompletos o incorrectos",
-        description: "Por favor, complete correctamente todos los campos obligatorios antes de avanzar.",
-        variant: "destructive",
-      });
-      // Aquí podrías agregar lógica para hacer scroll al primer error
-      console.error("Errores de validación al avanzar de paso:", form.formState.errors);
+  const fieldsToValidate = stepFields[currentStep];
+
+  // Si no hay campos definidos para el paso actual, simplemente avanza
+  if (!fieldsToValidate || fieldsToValidate.length === 0) {
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1);
     }
-  };
+    return;
+  }
+
+  // Valida solo los campos del paso actual
+  const isValid = await form.trigger(fieldsToValidate as any); // 'as any' puede ser necesario por el tipo de 'keyof FormData'
+
+  if (isValid) {
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1);
+    }
+  } else {
+    toast({
+      title: "Campos incompletos o incorrectos",
+      description: "Por favor, complete correctamente todos los campos obligatorios del paso actual antes de avanzar.",
+      variant: "destructive",
+    });
+    console.error("Errores de validación al avanzar de paso:", form.formState.errors);
+  }
+};
 
   const prevStep = () => {
     if (currentStep > 1) {

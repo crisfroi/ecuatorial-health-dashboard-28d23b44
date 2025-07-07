@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, Check, CheckCircle } from 'lucide-react';
-import ApplicationProcedureContent from '@/components/ApplicationProcedureSection';
+import ApplicationProcedureContent from '@/components/registration/ApplicationProcedureSection';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 

@@ -39,8 +39,8 @@ const formSchema = z.object({
   genero: z.string().min(1, "El género es requerido"),
   fecha_nacimiento: z.string().min(1, "La fecha de nacimiento es requerida"),
   nacionalidad: z.string().min(1, "La nacionalidad es requerida"),
-  numero_dip: z.string().min(9, "Verifique su número DIP"),
-  numero_pasaporte: z.string().min(1, "Verifique su número de Pasaporte"),
+  numero_dip: z.string().optional(),
+  numero_pasaporte: z.string().optional(),
   telefono: z.string().min(9, "El teléfono debe tener al menos 9 dígitos"),
   domicilio: z.string().min(2, "El domicilio es requerido"),
   provincia: z.string().min(1, "La provincia es requerida"),
@@ -62,6 +62,26 @@ const formSchema = z.object({
   documentos: z.any().optional(),
   acepta_politicas: z.boolean().refine(val => val === true, "Debe aceptar las políticas")
 });
+.superRefine((data, ctx) => {
+  // Lógica para numero_dip: Es obligatorio si la nacionalidad es "Guinea Ecuatorial"
+  if (data.nacionalidad === "Guinea Ecuatorial") {
+    if (!data.numero_dip || data.numero_dip.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Verifique su numero de DIP.",
+        path: ["numero_dip"],
+      });
+    }
+  } else {
+    // Lógica para numero_pasaporte: Es obligatorio si la nacionalidad NO es "Guinea Ecuatorial"
+    if (!data.numero_pasaporte || data.numero_pasaporte.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Verifique su número de Pasaporte.",
+        path: ["numero_pasaporte"],
+      });
+    }
+  }
 
 type FormData = z.infer<typeof formSchema>;
 

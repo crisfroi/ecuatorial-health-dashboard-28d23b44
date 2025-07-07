@@ -19,45 +19,9 @@ const ProcedureModal = ({ isOpen, onClose }: ProcedureModalProps) => {
     onClose();
   };
 
-  // Descarga PDF generado del contenido del modal
-  const handleDownloadPDF = async () => {
-    if (!contentRef.current) return;
-    try {
-      const canvas = await html2canvas(contentRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#fff'
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210;
-      const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      pdf.save('Procedimiento_Carnet_Profesional.pdf');
-    } catch (error) {
-      alert('Hubo un error al generar el PDF.');
-      console.error('Error generando PDF:', error);
-    }
-  };
-
   // Descarga el archivo PDF de guía estático (si lo necesitas además del PDF dinámico)
   const handleDownloadGuide = () => {
-    const downloadUrl = '/docs/Guia_Procedimiento_Carnet_Profesional.pdf';
+    const downloadUrl = "public/lovable-uploads/Procedemiento Solicitud.pdf";
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.setAttribute('download', 'Guia_Procedimiento_Carnet_Profesional.pdf');

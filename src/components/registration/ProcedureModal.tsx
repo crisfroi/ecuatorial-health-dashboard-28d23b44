@@ -21,7 +21,7 @@ const ProcedureModal = ({ isOpen, onClose }: ProcedureModalProps) => {
 
   // Descarga el archivo PDF de guía estático (si lo necesitas además del PDF dinámico)
   const handleDownloadGuide = () => {
-    const downloadUrl = "public/lovable-uploads/Procedemiento Solicitud.pdf";
+    const downloadUrl = "/lovable-uploads/Procedemiento Solicitud.pdf";
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.setAttribute('download', 'Guia_Procedimiento_Carnet_Profesional.pdf');

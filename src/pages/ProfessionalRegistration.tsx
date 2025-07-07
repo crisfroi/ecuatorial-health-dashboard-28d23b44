@@ -27,7 +27,8 @@ import PoliticasModal from '@/components/registration/PoliticasModal';
 // ... otras importaciones
 import HealthCenters from '@/components/dashboard/HealthCenters';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
-import ProcedureModal from '@/components/registration/ProcedureModal';
+import ApplicationProcedureSection from '@/components/ApplicationProcedureSection';
+
 // ...
 
 // Schema de validación
@@ -82,7 +83,6 @@ const ProfessionalRegistration = () => {
   const [showPoliticasModal, setShowPoliticasModal] = React.useState(false);
   const [solicitudEnviada, setSolicitudEnviada] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState<string>('');
-  const [showProcedureModal, setShowProcedureModal] = useState(false);
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -246,7 +246,6 @@ const ProfessionalRegistration = () => {
         title: "¡Solicitud enviada exitosamente!",
         description: `Su solicitud ha sido registrada con código: ${result.codigo_expediente}`,
       });
-      setShowProcedureModal(true);
 
       setCurrentStep(6); // Ir al step de confirmación
     } catch (error: any) {
@@ -386,11 +385,6 @@ const ProfessionalRegistration = () => {
         </Form>
         
         <PoliticasModal open={showPoliticasModal} onClose={() => setShowPoliticasModal(false)} />
-        {/* ¡Aquí renderizamos el modal del procedimiento! */}
-        <ProcedureModal
-          isOpen={showProcedureModal} // Controla si el modal está visible
-          onClose={() => setShowProcedureModal(false)} // Función para cerrarlo (ej. al hacer clic fuera o en un botón de cerrar)
-        />
       </div>
     </div>
   );

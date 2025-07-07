@@ -108,7 +108,8 @@ const ProfessionalRegistration = () => {
     defaultValues: {
       pertenece_brigada_medica: false,
       acepta_politicas: false,
-      situacion_laboral: 'Activo'
+      situacion_laboral: 'Activo',
+      nacionalidad: "Ecuatoguineana"
     }
   });
 

@@ -62,6 +62,30 @@ const formSchema = z.object({
   documentos: z.any().optional(),
   acepta_politicas: z.boolean().refine(val => val === true, "Debe aceptar las políticas")
 });
+.superRefine((data, ctx) => {
+  // Aquí va tu lógica superRefine para DIP/Pasaporte
+  if (!data.nacionalidad || data.nacionalidad.trim() === "") {
+    return;
+  }
+
+  if (data.nacionalidad === "Ecuatoguineana") { // Asegúrate de que el valor coincida exactamente
+    if (!data.numero_dip || data.numero_dip.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "El número de DIP es obligatorio para la nacionalidad Ecuatoguineana.",
+        path: ["numero_dip"],
+      });
+    }
+  } else {
+    if (!data.numero_pasaporte || data.numero_pasaporte.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "El número de pasaporte es obligatorio para la nacionalidad seleccionada.",
+        path: ["numero_pasaporte"],
+      });
+    }
+  }
+});
 
 type FormData = z.infer<typeof formSchema>;
 

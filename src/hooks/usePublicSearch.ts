@@ -32,7 +32,7 @@ export function usePublicSearch(searchTerm: string, searchType: 'carnet' | 'nomb
       }
 
       const { data, error } = await query
-        .eq('estado_solicitud', 'Acreditado')
+        .eq('estado_solicitud', 'Aprobado')
         .order('created_at', { ascending: false });
       
       if (error) {

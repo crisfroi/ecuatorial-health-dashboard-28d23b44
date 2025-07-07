@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, Check, CheckCircle } from 'lucide-react'; // Importa CheckCircle
-import ApplicationProcedureContent from '@/components/ApplicationProcedureSection'; // Importa el componente de contenido refactorizado
+import { Download, Check, CheckCircle } from 'lucide-react';
+import ApplicationProcedureContent from '@/components/ApplicationProcedureSection';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface ProcedureModalProps {
   isOpen: boolean;
@@ -10,14 +12,52 @@ interface ProcedureModalProps {
 }
 
 const ProcedureModal = ({ isOpen, onClose }: ProcedureModalProps) => {
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const handleUnderstandingConfirm = () => {
     alert('¡Gracias por confirmar! Has entendido el procedimiento.');
-    onClose(); // Cierra el modal después de confirmar
+    onClose();
   };
 
+  // Descarga PDF generado del contenido del modal
+  const handleDownloadPDF = async () => {
+    if (!contentRef.current) return;
+    try {
+      const canvas = await html2canvas(contentRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#fff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save('Procedimiento_Carnet_Profesional.pdf');
+    } catch (error) {
+      alert('Hubo un error al generar el PDF.');
+      console.error('Error generando PDF:', error);
+    }
+  };
+
+  // Descarga el archivo PDF de guía estático (si lo necesitas además del PDF dinámico)
   const handleDownloadGuide = () => {
-    const downloadUrl = '/docs/Guia_Procedimiento_Carnet_Profesional.pdf'; // <<< ¡IMPORTANTE: Cambia esta URL!
+    const downloadUrl = '/docs/Guia_Procedimiento_Carnet_Profesional.pdf';
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.setAttribute('download', 'Guia_Procedimiento_Carnet_Profesional.pdf');
@@ -29,7 +69,6 @@ const ProcedureModal = ({ isOpen, onClose }: ProcedureModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      {/* Ajusta el tamaño del modal y permite scroll si el contenido es largo */}
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold flex items-center">
@@ -41,8 +80,10 @@ const ProcedureModal = ({ isOpen, onClose }: ProcedureModalProps) => {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Aquí renderizamos el contenido del procedimiento, sin la Card envolvente */}
-        <ApplicationProcedureContent />
+        {/* Contenido a exportar como PDF */}
+        <div ref={contentRef}>
+          <ApplicationProcedureContent />
+        </div>
 
         <div className="flex flex-col sm:flex-row gap-4 mt-6 pt-4 border-t border-gray-200">
           <Button
@@ -51,6 +92,14 @@ const ProcedureModal = ({ isOpen, onClose }: ProcedureModalProps) => {
           >
             <Check className="w-5 h-5" />
             Confirmar Entendimiento
+          </Button>
+          <Button
+            onClick={handleDownloadPDF}
+            variant="outline"
+            className="flex items-center gap-2 px-6 py-3 border border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-semibold rounded-md shadow-md transition-colors duration-200"
+          >
+            <Download className="w-5 h-5" />
+            Descargar Procedimiento en PDF
           </Button>
           <Button
             onClick={handleDownloadGuide}

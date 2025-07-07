@@ -86,9 +86,7 @@ const formSchema = z.object({
     }
   }
 });
-
 type FormData = z.infer<typeof formSchema>;
-
 const steps = [
   { id: 1, title: "Datos Personales", icon: User },
   { id: 2, title: "Domicilio", icon: Home },

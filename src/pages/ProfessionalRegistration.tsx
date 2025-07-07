@@ -38,9 +38,9 @@ const formSchema = z.object({
   apellidos: z.string().min(2, "Los apellidos son requeridos"),
   genero: z.string().min(1, "El género es requerido"),
   fecha_nacimiento: z.string().min(1, "La fecha de nacimiento es requerida"),
-  nacionalidad: z.string().optional(),
+  nacionalidad: z.string().min(1, "Seleccione su nacionalidad"),
   numero_dip: z.string().optional(),
-  numero_pasaporte: z.string().min(1, "Verifique su número de Pasaporte"),
+  numero_pasaporte: z.string().optional(),
   telefono: z.string().min(9, "El teléfono debe tener al menos 9 dígitos"),
   domicilio: z.string().min(2, "El domicilio es requerido"),
   provincia: z.string().min(1, "La provincia es requerida"),
@@ -72,7 +72,7 @@ const formSchema = z.object({
     if (!data.numero_dip || data.numero_dip.trim() === "") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "El número de DIP es obligatorio para la nacionalidad Ecuatoguineana.",
+        message: "Verifique su número de DIP",
         path: ["numero_dip"],
       });
     }
@@ -80,7 +80,7 @@ const formSchema = z.object({
     if (!data.numero_pasaporte || data.numero_pasaporte.trim() === "") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "El número de pasaporte es obligatorio para la nacionalidad seleccionada.",
+        message: "Verifique su número de Pasaporte.",
         path: ["numero_pasaporte"],
       });
     }

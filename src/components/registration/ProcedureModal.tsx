@@ -3,8 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Download, Check, CheckCircle } from 'lucide-react';
 import ApplicationProcedureContent from '@/components/ApplicationProcedureSection';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 interface ProcedureModalProps {
   isOpen: boolean;
@@ -17,42 +15,6 @@ const ProcedureModal = ({ isOpen, onClose }: ProcedureModalProps) => {
   const handleUnderstandingConfirm = () => {
     alert('¡Gracias por confirmar! Has entendido el procedimiento.');
     onClose();
-  };
-
-  // Descarga PDF generado del contenido del modal
-  const handleDownloadPDF = async () => {
-    if (!contentRef.current) return;
-    try {
-      const canvas = await html2canvas(contentRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#fff'
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210;
-      const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      pdf.save('Procedimiento_Carnet_Profesional.pdf');
-    } catch (error) {
-      alert('Hubo un error al generar el PDF.');
-      console.error('Error generando PDF:', error);
-    }
   };
 
   // Descarga el archivo PDF de guía estático (si lo necesitas además del PDF dinámico)
@@ -95,14 +57,6 @@ const ProcedureModal = ({ isOpen, onClose }: ProcedureModalProps) => {
           </Button>
           <Button
             onClick={handleDownloadPDF}
-            variant="outline"
-            className="flex items-center gap-2 px-6 py-3 border border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-semibold rounded-md shadow-md transition-colors duration-200"
-          >
-            <Download className="w-5 h-5" />
-            Descargar Procedimiento en PDF
-          </Button>
-          <Button
-            onClick={handleDownloadGuide}
             variant="outline"
             className="flex items-center gap-2 px-6 py-3 border border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-semibold rounded-md shadow-md transition-colors duration-200"
           >

@@ -26,8 +26,8 @@ const HealthCenters = () => {
 
   const { data: centros = [], isLoading, isError, error } = useBuscarCentros({
     nombreParcial: searchTerm || undefined,
-    categoria: selectedCategory || undefined,
-    distritoSanitario: selectedDistrito || undefined,
+    categoria: selectedCategory === "all" ? undefined : selectedCategory,
+    distritoSanitario: selectedDistrito === "all" ? undefined : selectedDistrito,
     if (isError) {
   return (
     <div className="p-6 text-center text-red-600">

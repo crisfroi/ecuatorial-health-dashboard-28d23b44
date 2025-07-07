@@ -148,9 +148,15 @@ const ProfessionalRegistration = () => {
 
     if (!photoFile) {
       setErrorEnvio("La foto tipo carnet es obligatoria para enviar la solicitud.");
-      setCurrentStep(6); // Ir al step de confirmación para mostrar el error
-      return;
-    }
+      toast({
+        title: "Requisito Faltante",
+      description: "Por favor, suba su foto tipo carnet para enviar la solicitud.",
+      variant: "destructive",
+      });
+      setIsSubmitting(false); // Asegurarse de que el spinner desaparezca
+    return; // Detener el envío
+  }
+      
 
     setIsSubmitting(true);
     setErrorEnvio(''); // Limpiar errores previos

@@ -268,9 +268,23 @@ const ProfessionalRegistration = () => {
     }
   };
 
-  const nextStep = () => {
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
+  const nextStep = async () => {
+    // Validar SOLO los campos visibles en el paso actual
+    const isValid = await form.trigger(); // Esto activa la validación para todos los campos registrados en el form
+    
+    if (isValid) {
+      if (currentStep < steps.length) {
+        setCurrentStep(currentStep + 1);
+      }
+    } else {
+      // Opcional: Proporcionar feedback al usuario si la validación falla
+      toast({
+        title: "Campos incompletos o incorrectos",
+        description: "Por favor, complete correctamente todos los campos obligatorios antes de avanzar.",
+        variant: "destructive",
+      });
+      // Aquí podrías agregar lógica para hacer scroll al primer error
+      console.error("Errores de validación al avanzar de paso:", form.formState.errors);
     }
   };
 

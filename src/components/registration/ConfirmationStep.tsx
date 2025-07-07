@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, AlertCircle, Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PDFSummary from './PDFSummary';
-import RequestLetter from '@./components/registration/RequestLetter';
 
 interface ConfirmationStepProps {
   formData: any;
@@ -114,18 +113,14 @@ const ConfirmationStep = ({ formData, isSubmitting, solicitudEnviada = false, er
             <div className="border border-gray-200 rounded-lg p-4">
               <h4 className="font-semibold text-gray-900 mb-2">Resumen de Solicitud</h4>
               <p className="text-sm text-gray-600 mb-3">
-                Formulario de Solicitud.
+                Documento completo con todos los datos de su solicitud.
               </p>
-              <PDFSummary formData={formData} />
             </div>
             <div className="border border-gray-200 rounded-lg p-4">
               <h4 className="font-semibold text-gray-900 mb-2">Carta de Solicitud</h4>
               <p className="text-sm text-gray-600 mb-3">
                 Documento oficial para presentar en el Ministerio.
               </p>
-              <RequestLetter formData={formData} onDownload={() => {
-              }}
-                />
             </div>
           </div>
         </CardContent>
@@ -139,9 +134,6 @@ const ConfirmationStep = ({ formData, isSubmitting, solicitudEnviada = false, er
         <CardContent className="pt-6">
           <h4 className="font-semibold text-blue-900 mb-2">Próximos pasos</h4>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Debe presentar la instancia y formulario de solicitud descargados
-            y debidamente firmados, junto a la copia de su DIP o PASAPORTE y títulos
-            legalizado/homologados por el Ministerio de Educación</li>
             <li>• Su solicitud será revisada por el comité evaluador</li>
             <li>• Recibirá notificaciones sobre el estado de su solicitud</li>
             <li>• El proceso de evaluación puede tomar de 15 a 30 días hábiles</li>

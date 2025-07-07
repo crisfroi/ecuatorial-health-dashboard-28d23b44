@@ -29,8 +29,8 @@ const categorias_titulacion = [
   "DIPLOMADO", 
   "MASTER",
   "ESPECIALIDAD",
-  "TÉCNICO"
-  "AUXILIAR",
+  "TÉCNICO",
+  "AUXILIAR"
 ];
 
 export const EducationStep = ({ form }: EducationStepProps) => {

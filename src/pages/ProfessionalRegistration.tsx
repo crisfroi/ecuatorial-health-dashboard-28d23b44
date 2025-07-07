@@ -402,7 +402,7 @@ const ProfessionalRegistration = () => {
         </Form>
         
         <PoliticasModal open={showPoliticasModal} onClose={() => setShowPoliticasModal(false)} />
-        <PoliticasModal open={showPoliticasModal} onClose={() => setShowPoliticasModal(false)} />
+        <ProcedureModal isOpen={showProcedureModal} onClose={() => setShowProcedureModal(false)}/>
       </div>
     </div>
   );

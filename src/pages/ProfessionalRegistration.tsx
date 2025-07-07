@@ -388,6 +388,7 @@ const ProfessionalRegistration = () => {
         </Form>
         
         <PoliticasModal open={showPoliticasModal} onClose={() => setShowPoliticasModal(false)} />
+        <ProcedureModal isOpen={false} onClose={() => {}} />
       </div>
     </div>
   );

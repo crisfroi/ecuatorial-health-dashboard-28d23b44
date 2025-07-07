@@ -82,6 +82,7 @@ const ProfessionalRegistration = () => {
   const [fotoCarnetBase64, setFotoCarnetBase64] = useState<string | null>(null);
   const [formDataForPDF, setFormDataForPDF] = useState<any>(null);
   const [showPoliticasModal, setShowPoliticasModal] = React.useState(false);
+  const [showProcedureModal, setShowProcedureModal] = useState(false);
   const [solicitudEnviada, setSolicitudEnviada] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState<string>('');
   

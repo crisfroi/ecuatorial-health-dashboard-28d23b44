@@ -248,6 +248,7 @@ const ProfessionalRegistration = () => {
         title: "¡Solicitud enviada exitosamente!",
         description: `Su solicitud ha sido registrada con código: ${result.codigo_expediente}`,
       });
+      setShowProcedureModal(true);
 
       setCurrentStep(6); // Ir al step de confirmación
     } catch (error: any) {
@@ -387,9 +388,6 @@ const ProfessionalRegistration = () => {
         </Form>
         
         <PoliticasModal open={showPoliticasModal} onClose={() => setShowPoliticasModal(false)} />
-         <button onClick={() => setShowProcedureModal(true)}>
-        Abrir ventana de procedimientos
-      </button>
         <ProcedureModal Open={showProcedureModal} onClose={() => setShowProcedureModal(false)} />
       </div>
     </div>

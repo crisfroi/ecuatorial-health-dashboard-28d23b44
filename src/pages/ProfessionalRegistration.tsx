@@ -28,6 +28,7 @@ import PoliticasModal from '@/components/registration/PoliticasModal';
 import HealthCenters from '@/components/dashboard/HealthCenters';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 import ApplicationProcedureSection from '@/components/registration/ApplicationProcedureSection';
+import ProcedureModal from '@/components/registration/ProcedureModal';
 
 // ...
 

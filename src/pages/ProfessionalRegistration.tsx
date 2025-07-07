@@ -64,7 +64,7 @@ const formSchema = z.object({
 })
   .superRefine((data, ctx) => {
   // Lógica para numero_dip: Es obligatorio si la nacionalidad es "Guinea Ecuatorial"
-  if (data.nacionalidad === "Guinea Ecuatorial") {
+  if (data.nacionalidad === "Ecuatoguineana") {
     if (!data.numero_dip || data.numero_dip.trim() === "") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -128,7 +128,8 @@ const ProfessionalRegistration = () => {
     defaultValues: {
       pertenece_brigada_medica: false,
       acepta_politicas: false,
-      situacion_laboral: 'Activo'
+      situacion_laboral: 'Activo',
+      nacionalidad: "Ecuatoguineana", // Establece "Ecuatoguineana" como valor por defecto
     }
   });
 

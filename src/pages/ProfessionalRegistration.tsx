@@ -40,7 +40,7 @@ const formSchema = z.object({
   fecha_nacimiento: z.string().min(1, "La fecha de nacimiento es requerida"),
   nacionalidad: z.string().min(1, "La nacionalidad es requerida"),
   numero_dip: z.string().min(9, "Verifique su número DIP"),
-  numero_pasaporte: z.string().optional(),
+  numero_pasaporte: z.string().min(1, "Verifique su número de Pasaporte"),
   telefono: z.string().min(9, "El teléfono debe tener al menos 9 dígitos"),
   domicilio: z.string().min(2, "El domicilio es requerido"),
   provincia: z.string().min(1, "La provincia es requerida"),

@@ -24,6 +24,12 @@ import ConfirmationStep from '@/components/registration/ConfirmationStep';
 import { RegistrationProgress } from '@/components/registration/RegistrationProgress';
 import PDFSummary from '@/components/registration/PDFSummary';
 import PoliticasModal from '@/components/registration/PoliticasModal';
+// ... otras importaciones
+import HealthCenters from '@/components/dashboard/HealthCenters';
+import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
+import ApplicationProcedureSection from '@/components/ApplicationProcedureSection';
+
+// ...
 
 // Schema de validación
 const formSchema = z.object({

@@ -62,7 +62,7 @@ const formSchema = z.object({
   documentos: z.any().optional(),
   acepta_politicas: z.boolean().refine(val => val === true, "Debe aceptar las políticas")
 })
-.superRefine((data, ctx) => {
+  .superRefine((data, ctx) => {
   // Lógica para numero_dip: Es obligatorio si la nacionalidad es "Guinea Ecuatorial"
   if (data.nacionalidad === "Guinea Ecuatorial") {
     if (!data.numero_dip || data.numero_dip.trim() === "") {

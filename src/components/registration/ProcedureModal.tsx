@@ -19,7 +19,7 @@ const ProcedureModal = ({ isOpen, onClose }: ProcedureModalProps) => {
 
   // Descarga el archivo PDF de guía estático (si lo necesitas además del PDF dinámico)
   const handleDownloadGuide = () => {
-    const downloadUrl = "/lovable-uploads/Procedimiento Solicitud.pdf";
+    const downloadUrl = "https://wdieynendfjbkbhfovrx.supabase.co/storage/v1/object/public/documentos-descargas/procedimientos/Procedimiento%20Solicitud.pdf";
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.setAttribute('download', 'Procedimiento Solicitud.pdf');

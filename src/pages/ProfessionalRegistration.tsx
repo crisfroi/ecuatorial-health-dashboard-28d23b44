@@ -27,7 +27,6 @@ import PoliticasModal from '@/components/registration/PoliticasModal';
 // ... otras importaciones
 import HealthCenters from '@/components/dashboard/HealthCenters';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
-import ApplicationProcedureSection from '@/components/ApplicationProcedureSection';
 import ProcedureModal from '@/components/registration/ProcedureModal';
 // ...
 

@@ -1,0 +1,1 @@
+npx storybook@latest init

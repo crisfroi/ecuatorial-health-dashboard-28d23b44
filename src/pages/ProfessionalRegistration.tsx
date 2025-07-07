@@ -61,7 +61,7 @@ const formSchema = z.object({
   tipo_cooperacion: z.string().optional(),
   documentos: z.any().optional(),
   acepta_politicas: z.boolean().refine(val => val === true, "Debe aceptar las políticas")
-});
+})
 .superRefine((data, ctx) => {
   // Aquí va tu lógica superRefine para DIP/Pasaporte
   if (!data.nacionalidad || data.nacionalidad.trim() === "") {

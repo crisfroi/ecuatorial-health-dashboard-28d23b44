@@ -3,8 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Download, Check, CheckCircle } from 'lucide-react';
 import ApplicationProcedureContent from '@/components/registration/ApplicationProcedureSection';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 interface ProcedureModalProps {
   isOpen: boolean;
@@ -57,14 +55,7 @@ const ProcedureModal = ({ isOpen, onClose }: ProcedureModalProps) => {
             <Check className="w-5 h-5" />
             Confirmar Entendimiento
           </Button>
-          <Button
-            onClick={handleDownloadPDF}
-            variant="outline"
-            className="flex items-center gap-2 px-6 py-3 border border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-semibold rounded-md shadow-md transition-colors duration-200"
-          >
-            <Download className="w-5 h-5" />
-            Descargar Procedimiento en PDF
-          </Button>
+         
           <Button
             onClick={handleDownloadGuide}
             variant="outline"

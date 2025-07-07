@@ -248,6 +248,7 @@ const ProfessionalRegistration = () => {
         title: "¡Solicitud enviada exitosamente!",
         description: `Su solicitud ha sido registrada con código: ${result.codigo_expediente}`,
       });
+      setShowProcedureModal(true);
 
       setCurrentStep(6); // Ir al step de confirmación
     } catch (error: any) {

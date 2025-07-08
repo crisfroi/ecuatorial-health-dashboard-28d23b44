@@ -51,8 +51,8 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
                   code={formData.codigo_barras}
                   width={120} // Reducido de 140
                   height={35} // Reducido de 40
-                  className="mb-0.5" {/* Reducido mb-1 a mb-0.5 */}
-                />
+                  className="mb-0.5"
+                  />
                 <p className="text-xs text-gray-600 text-center">Código de Barras</p>
               </div>
             )}

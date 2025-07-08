@@ -83,14 +83,14 @@ const PdfViewerModal = ({ isOpen, onClose, formData, pdfType }: PdfViewerModalPr
 
   // Efecto para generar el PDF cuando el modal se abre O cuando el contenido del ref está listo
   useEffect(() => {
-    if (isOpen && pdfType && contentToRenderRef.current) {
+    if (isOpen && pdfType) {
       generatePdfContent();
     } else if (!isOpen && pdfUrl) {
       URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
       setPdfBlob(null);
     }
-  }, [isOpen, pdfType, contentToRenderRef.current, generatePdfContent, pdfUrl]); 
+  }, [isOpen, pdfType, generatePdfContent]); 
 
   const handleDownloadPdf = () => {
     if (pdfBlob) {

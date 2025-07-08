@@ -1,18 +1,11 @@
-import React from 'react'; // Eliminamos Button, Download, jsPDF, html2canvas
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-// Eliminamos: import { Download } from 'lucide-react';
-// Eliminamos: import jsPDF from 'jspdf';
-// Eliminamos: import html2canvas from 'html2canvas';
 
 interface RequestLetterProps {
   formData: any;
-  // Eliminamos onDownload, ya no se usa aquí directamente
 }
 
 const RequestLetter = ({ formData }: RequestLetterProps) => {
-  // Eliminamos generatePDF
-  // const generatePDF = async () => { ... };
-
   const today = new Date().toLocaleDateString('es-ES', {
     year: 'numeric',
     month: 'long',
@@ -20,50 +13,45 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4"> {/* Reducido space-y-6 a space-y-4 */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+        <CardHeader className="py-3 px-4"> {/* Reducido padding */}
+          <CardTitle className="flex items-center justify-between text-base"> {/* Reducido text-lg a text-base */}
             <span>Carta de Instancia de Solicitud</span>
-            {/* Eliminamos el botón de descarga aquí */}
-            {/* <Button onClick={generatePDF} className="flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Descargar Carta
-            </Button> */}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          {/* Mantenemos el contenido que será capturado por html2canvas */}
-          <div id="letter-content" className="max-w-[210mm] mx-auto bg-white" style={{ padding: '30mm', minHeight: '297mm', fontSize: '12px', lineHeight: '1.6' }}>
+        <CardContent className="pt-2 px-4 pb-4"> {/* Reducido padding */}
+          {/* Ajuste de padding para reducir el espacio superior y general */}
+          <div id="letter-content" className="max-w-[210mm] mx-auto bg-white" style={{ padding: '15mm 20mm', minHeight: '297mm', fontSize: '10.5px', lineHeight: '1.4' }}> {/* Ajustado padding de 20mm 25mm a 15mm 20mm, fontSize a 10.5px, lineHeight a 1.4 */}
             
             {/* Membrete */}
-            <div className="text-center mb-8">
-              <h1 className="text-lg font-bold mb-2">REPÚBLICA DE GUINEA ECUATORIAL</h1>
-              <h2 className="text-base font-semibold">MINISTERIO DE SANIDAD Y BIENESTAR SOCIAL</h2>
-              <div className="border-b-2 border-black mt-4 mb-6"></div>
+            <div className="text-center mb-4 mt-0"> {/* Reducido mb-6 a mb-4 */}
+              <h1 className="text-base font-bold mb-0.5">REPÚBLICA DE GUINEA ECUATORIAL</h1> {/* Reducido text-lg a text-base, mb-1 a mb-0.5 */}
+              <h2 className="text-sm font-semibold">MINISTERIO DE SANIDAD Y BIENESTAR SOCIAL</h2> {/* Reducido text-base a text-sm */}
+              <div className="border-b-2 border-black mt-2 mb-3"></div> {/* Reducido mt-3 mb-4 a mt-2 mb-3 */}
             </div>
 
             {/* Fecha y lugar */}
-            <div className="text-right mb-8">
-              <p>Malabo, {today}</p>
+            <div className="text-right mb-4"> {/* Reducido mb-6 a mb-4 */}
+              <p className="text-sm">Malabo, {today}</p> {/* Reducido text-base a text-sm */}
             </div>
 
             {/* Destinatario */}
-            <div className="mb-6">
-              <p className="font-semibold">AL SEÑOR MINISTRO DE SANIDAD Y BIENESTAR SOCIAL</p>
-              <p>REPÚBLICA DE GUINEA ECUATORIAL</p>
-              <p className="mt-2">
+            <div className="mb-3"> {/* Reducido mb-4 a mb-3 */}
+              <p className="font-semibold text-sm">AL SEÑOR MINISTRO DE SANIDAD Y BIENESTAR SOCIAL</p> {/* Reducido text-base a text-sm */}
+              <p className="text-sm">REPÚBLICA DE GUINEA ECUATORIAL</p>
+              <p className="mt-0.5 text-sm"> {/* Reducido mt-1 a mt-0.5 */}
                 <span className="font-semibold">ASUNTO:</span> Solicitud de Acreditación Profesional Sanitaria
               </p>
             </div>
 
             {/* Saludo */}
-            <div className="mb-6">
-              <p>Muy respetuosamente me dirijo a usted para lo siguiente:</p>
+            <div className="mb-3"> {/* Reducido mb-4 a mb-3 */}
+              <p className="text-sm">Muy respetuosamente me dirijo a usted para lo siguiente:</p> {/* Reducido text-base a text-sm */}
             </div>
 
             {/* Cuerpo de la carta */}
-            <div className="mb-8 space-y-4 text-justify">
+            <div className="mb-5 space-y-2.5 text-justify"> {/* Reducido mb-6 a mb-5, space-y-3 a space-y-2.5 */}
               <p>
                 Yo, <span className="font-semibold">{formData.nombre} {formData.apellidos}</span>, 
                 de nacionalidad <span className="font-semibold">{formData.nacionalidad}</span>, 
@@ -80,8 +68,8 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
                   <>, con especialización en <span className="font-semibold">{formData.especialidad}</span></>
                 )}, 
                 habiendo obtenido mi titulación de <span className="font-semibold">{formData.titulacion_especifica_1}</span> 
-                en la institución <span className="font-semibold">{formData.institucion_1}</span> 
-                en <span className="font-semibold">{formData.pais_formacion_1}</span>, 
+                 en la institución <span className="font-semibold">{formData.institucion_1}</span> 
+                 en <span className="font-semibold">{formData.pais_formacion_1}</span>, 
                 durante el período <span className="font-semibold">{formData.periodo_formacion}</span>.
               </p>
 
@@ -89,9 +77,9 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
                 Actualmente, mi situación laboral es <span className="font-semibold">{formData.situacion_laboral}</span>
                 {formData.nombre_centro && (
                   <>, prestando servicios en <span className="font-semibold">{formData.nombre_centro}</span> 
-                  ({formData.categoria_centro}) en el sector <span className="font-semibold">{formData.tipo_sector}</span>
+                   ({formData.categoria_centro}) en el sector <span className="font-semibold">{formData.tipo_sector}</span>
                   {formData.distrito_sanitario && (
-                    <>, correspondiente al distrito sanitario de <span className="font-semibold">{formData.distrito_sanitario}</span></>
+                    <>, correspondiente al <span className="font-semibold">{formData.distrito_sanitario}</span></>
                   )}</>
                 )}.
               </p>
@@ -126,23 +114,23 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
             </div>
 
             {/* Despedida */}
-            <div className="mb-8">
-              <p>Sin otro particular, aprovecho la oportunidad para expresarle las muestras de mi más alta consideración y estima.</p>
+            <div className="mb-5"> {/* Reducido mb-6 a mb-5 */}
+              <p className="text-sm">Sin otro particular, aprovecho la oportunidad para expresarle las muestras de mi más alta consideración y estima.</p> {/* Reducido text-base a text-sm */}
             </div>
 
             {/* Firma */}
             <div className="text-center">
-              <p className="mb-12">Atentamente,</p>
+              <p className="mb-8 text-sm">Atentamente,</p> {/* Reducido mb-10 a mb-8, text-base a text-sm */}
               
-              <div className="border-t border-black w-64 mx-auto mb-2"></div>
-              <p className="font-semibold">{formData.nombre} {formData.apellidos}</p>
-              <p className="text-sm">{formData.area_profesional}</p>
-              <p className="text-sm">{formData.numero_dip ? `DIP: ${formData.numero_dip}` : `Pasaporte: ${formData.numero_pasaporte}`}</p>
-              <p className="text-sm">Tel: {formData.telefono}</p>
+              <div className="border-t border-black w-60 mx-auto mb-1"></div> {/* Reducido w-64 a w-60 */}
+              <p className="font-semibold text-sm">{formData.nombre} {formData.apellidos}</p>
+              <p className="text-xs">{formData.area_profesional}</p>
+              <p className="text-xs">{formData.numero_dip ? `DIP: ${formData.numero_dip}` : `Pasaporte: ${formData.numero_pasaporte}`}</p>
+              <p className="text-xs">Tel: {formData.telefono}</p>
             </div>
 
             {/* Pie de página */}
-            <div className="mt-12 text-xs text-gray-600 text-center">
+            <div className="mt-6 text-xs text-gray-600 text-center"> {/* Reducido mt-8 a mt-6 */}
               <p>Solicitud generada el {today} através del Sistema RENAPROSA</p>
             </div>
           </div>

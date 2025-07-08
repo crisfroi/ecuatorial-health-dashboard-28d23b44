@@ -313,7 +313,7 @@ const ProfessionalRegistration = () => {
       // 5. Enviar Documentos Adicionales a la NUEVA Función Edge
       if (uploadedFiles.length > 0) {
         // ¡IMPORTANTE! Reemplaza [TU-PROYECTO-ID] con el ID real de tu proyecto Supabase.
-        const edgeFunctionDocsUrl = 'https://wdieynendfjbkbhfovrx.supabase.co/functions/v1/upload-additional-documents'; 
+        const edgeFunctionDocsUrl = 'https://wdieynendfjbkbhfovrx.supabase.co/functions/v1/upload-documentos-adicionales'; 
         
         const docsFormData = new FormData();
         // Pasamos el ID generado por la DB a la función Edge

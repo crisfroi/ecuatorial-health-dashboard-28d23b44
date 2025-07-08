@@ -1,70 +1,34 @@
-
-import React, { useRef } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useRef } from 'react'; // Eliminamos Button, Download, jsPDF, html2canvas
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, FileText, User } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import { BarcodeGenerator } from './BarcodeGenerator';
+import { FileText, User } from 'lucide-react'; // Eliminamos Download
+// Eliminamos: import jsPDF from 'jspdf';
+// Eliminamos: import html2canvas from 'html2canvas';
+import { BarcodeGenerator } from './BarcodeGenerator'; // Asegúrate de que esta ruta sea correcta
 
 interface PDFSummaryProps {
   formData: any;
-  onDownload?: () => void;
+  // Eliminamos onDownload, ya no se usa aquí directamente
 }
 
-const PDFSummary = ({ formData, onDownload }: PDFSummaryProps) => {
-  const pdfRef = useRef<HTMLDivElement>(null);
-
-  const generatePDF = async () => {
-    if (!pdfRef.current) return;
-
-    try {
-      const canvas = await html2canvas(pdfRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff'
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      const imgWidth = 210;
-      const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      const fileName = `solicitud_${formData.codigo_expediente || 'pendiente'}_${formData.nombre}_${formData.apellidos}.pdf`;
-      pdf.save(fileName);
-      
-      if (onDownload) onDownload();
-    } catch (error) {
-      console.error('Error generando PDF:', error);
-    }
-  };
+const PDFSummary = ({ formData }: PDFSummaryProps) => {
+  // Eliminamos pdfRef y generatePDF, ya que el modal se encargará de la generación
+  // const pdfRef = useRef<HTMLDivElement>(null);
+  // const generatePDF = async () => { ... };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* Eliminamos el div con h2 y Button de descarga */}
+      {/* <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Resumen de Solicitud</h2>
         <Button onClick={generatePDF} className="flex items-center space-x-2">
           <Download className="w-4 h-4" />
           <span>Descargar PDF</span>
         </Button>
-      </div>
+      </div> */}
 
-      <div ref={pdfRef} className="bg-white p-8 space-y-6" style={{ minHeight: '297mm' }}>
+      {/* Mantenemos el contenido que será capturado por html2canvas */}
+      {/* El ref se pasará desde el modal si es necesario, o el modal lo capturará directamente */}
+      <div /* ref={pdfRef} */ className="bg-white p-8 space-y-6" style={{ minHeight: '297mm' }}>
         {/* Encabezado oficial */}
         <div className="text-center border-b-2 border-gray-300 pb-6 mb-6">
           <h1 className="text-2xl font-bold text-guinea-teal mb-2">

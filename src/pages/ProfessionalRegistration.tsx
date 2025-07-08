@@ -284,7 +284,7 @@ const ProfessionalRegistration = () => {
       console.log('Resultado exitoso de inserción principal:', result);
 
       if (uploadedFiles.length > 0) {
-        const edgeFunctionDocsUrl = 'https://wdieynendfjbkbhfovrx.supabase.co/functions/v1/upload-additional-documents'; 
+        const edgeFunctionDocsUrl = 'https://wdieynendfjbkbhfovrx.supabase.co/functions/v1/upload-documentos-adicionales'; 
         
         const docsFormData = new FormData();
         docsFormData.append('profesional_id', profesionalId);

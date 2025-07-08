@@ -7,30 +7,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form } from '@/components/ui/form';
 import { User, Home, GraduationCap, Briefcase, FileText, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client'; // Tu cliente Supabase ya inicializado
+import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useNacionalidades } from '@/hooks/useNacionalidades';
 import { useDistritosSanitarios } from '@/hooks/useDistritosSanitarios';
-import { useFileUpload } from '@/hooks/useFileUpload'; // Tu hook useFileUpload existente
-import { v4 as uuidv4 } from 'uuid'; // Importa uuid para generar IDs únicos
+import { useFileUpload } from '@/hooks/useFileUpload';
+import { v4 as uuidv4 } from 'uuid';
 
-// Import step components
 import { PersonalInfoStep } from '@/components/registration/PersonalInfoStep';
 import { AddressStep } from '@/components/registration/AddressStep';
 import { EducationStep } from '@/components/registration/EducationStep';
 import { WorkSituationStep } from '@/components/registration/WorkSituationStep';
-import { DocumentsStep } from '@/components/registration/DocumentsStep';
+import { DocumentsStep } from '@/components/registration/Documents/DocumentsStep';
 import ConfirmationStep from '@/components/registration/ConfirmationStep';
 import { RegistrationProgress } from '@/components/registration/RegistrationProgress';
 import PDFSummary from '@/components/registration/PDFSummary';
 import PoliticasModal from '@/components/registration/PoliticasModal';
-// ... otras importaciones
 import HealthCenters from '@/components/dashboard/HealthCenters';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 import ApplicationProcedureSection from '@/components/registration/ApplicationProcedureSection';
 import ProcedureModal from '@/components/registration/ProcedureModal';
 
-// Schema de validación
 const formSchema = z.object({
   nombre: z.string().min(2, "El nombre es requerido"),
   apellidos: z.string().min(2, "Los apellidos son requeridos"),
@@ -58,7 +55,6 @@ const formSchema = z.object({
   pertenece_brigada_medica: z.boolean().default(false),
   tipo_cooperacion: z.string().optional(),
   
-  // Definimos foto_carnet como z.any() y refinamos la validación
   foto_carnet: z.any()
     .refine((files: FileList | undefined) => files && files.length > 0, "La foto de carnet es obligatoria.")
     .refine((files: FileList | undefined) => files?.[0]?.size <= 2 * 1024 * 1024, `La foto debe ser menor de 2MB.`)
@@ -67,20 +63,19 @@ const formSchema = z.object({
       "Formato de foto no válido (solo JPG/PNG)."
     ),
   
-  // Definimos documentos_adicionales como z.any() y refinamos la validación para un array de Files
   documentos_adicionales: z.any()
     .refine((files: File[] | undefined) => {
-      if (!files || files.length === 0) return true; // Es opcional, si no hay archivos, es válido
+      if (!files || files.length === 0) return true;
       return files.every((file: File) => file.size <= 5 * 1024 * 1024);
     }, `Cada documento debe ser menor de 5MB.`)
     .refine(
       (files: File[] | undefined) => {
-        if (!files || files.length === 0) return true; // Es opcional
+        if (!files || files.length === 0) return true;
         return files.every((file: File) => ["application/pdf", "image/jpeg", "image/jpg", "image/png"].includes(file.type));
       },
       "Formato de documento no válido (solo PDF, JPG, PNG)."
     )
-    .optional(), // Marcamos el campo como opcional a nivel de Zod
+    .optional(),
 
   acepta_politicas: z.boolean().refine(val => val === true, "Debe aceptar las políticas")
 })
@@ -131,8 +126,8 @@ const stepFields: { [key: number]: (keyof FormData)[] } = {
 const ProfessionalRegistration = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]); // Estado para previsualización de documentos adicionales
-  const [photoFile, setPhotoFile] = useState<File | null>(null); // Estado para previsualización de foto
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [fotoCarnetBase64, setFotoCarnetBase64] = useState<string | null>(null);
   const [formDataForPDF, setFormDataForPDF] = useState<any>(null);
   const [showPoliticasModal, setShowPoliticasModal] = React.useState(false);
@@ -144,7 +139,7 @@ const ProfessionalRegistration = () => {
   const navigate = useNavigate();
   const { data: nacionalidades = [] } = useNacionalidades();
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
-  const { uploadFile, uploadPDF, isUploading } = useFileUpload(); // Tu hook useFileUpload existente
+  const { uploadFile, uploadPDF, isUploading } = useFileUpload();
 
   console.log('Distritos sanitarios en ProfessionalRegistration:', distritosSanitarios);
 
@@ -160,29 +155,24 @@ const ProfessionalRegistration = () => {
 
   const watchedValues = form.watch();
 
-  // Función para manejar la carga de documentos adicionales (actualiza estado local y react-hook-form)
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     setUploadedFiles(prev => [...prev, ...files]);
-    // Asegurarse de que react-hook-form también tenga estos archivos
     form.setValue('documentos_adicionales', [...(form.getValues('documentos_adicionales') || []), ...files]);
   };
 
-  // Función para eliminar un documento adicional (actualiza estado local y react-hook-form)
   const removeFile = (index: number) => {
     const updatedFiles = uploadedFiles.filter((_, i) => i !== index);
     setUploadedFiles(updatedFiles);
-    // Asegurarse de que react-hook-form también se actualice
     form.setValue('documentos_adicionales', updatedFiles);
   };
 
-  // Función para manejar la carga de la foto de carnet (lógica original)
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       setPhotoFile(null);
       setFotoCarnetBase64(null);
-      form.setValue('foto_carnet', undefined); // Actualizar react-hook-form
+      form.setValue('foto_carnet', undefined);
       return;
     }
 
@@ -193,14 +183,13 @@ const ProfessionalRegistration = () => {
       setFotoCarnetBase64(base64);
     };
     reader.readAsDataURL(file);
-    form.setValue('foto_carnet', [file]); // Actualizar react-hook-form
+    form.setValue('foto_carnet', [file]);
   };
 
-  // Función para eliminar la foto de carnet (lógica original)
   const removePhoto = () => {
     setPhotoFile(null);
     setFotoCarnetBase64(null);
-    form.setValue('foto_carnet', undefined); // Actualizar react-hook-form
+    form.setValue('foto_carnet', undefined);
   };
 
   const onSubmit = async (data: FormData) => {
@@ -215,7 +204,6 @@ const ProfessionalRegistration = () => {
       return;
     }
 
-    // Validación de foto de carnet antes de enviar (lógica original)
     if (!photoFile) { 
       setErrorEnvio("La foto tipo carnet es obligatoria para enviar la solicitud.");
       toast({
@@ -233,26 +221,20 @@ const ProfessionalRegistration = () => {
     try {
       console.log('Iniciando proceso de envío de formulario y documentos...');
       
-      // Generar un ID único para esta solicitud/profesional
       const profesionalId = uuidv4(); 
 
-      // --- 1. Subir Foto de Carnet usando el hook useFileUpload (LÓGICA EXISTENTE) ---
-      // La foto se sube primero y su URL se obtiene.
-      // photoFile es el File object que tu hook espera.
-      const fotoUrl = await uploadFile(photoFile!, `fotos-carnet/${profesionalId}`); // Ruta adaptada para organización
+      const fotoUrl = await uploadFile(photoFile!, `fotos-carnet/${profesionalId}`);
       if (!fotoUrl) {
         throw new Error('Error al subir la foto de carnet.');
       }
       console.log('Foto de carnet subida:', fotoUrl);
 
-      // --- 2. Preparar los datos del formulario principal para la inserción en la DB ---
-      // Estos son los datos que tu API ya inserta.
       const birthDate = new Date(data.fecha_nacimiento);
       const age = new Date().getFullYear() - birthDate.getFullYear();
       const codigoBarras = `GEQ${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
       const submissionData = {
-        id: profesionalId, // Usar el ID generado para la clave primaria
+        id: profesionalId,
         nombre_completo: `${data.nombre} ${data.apellidos}`,
         nombre: data.nombre,
         apellidos: data.apellidos,
@@ -280,8 +262,7 @@ const ProfessionalRegistration = () => {
         distrito_sanitario: data.distrito_sanitario || null,
         pertenece_brigada_medica: data.pertenece_brigada_medica,
         tipo_cooperacion: data.tipo_cooperacion || null,
-        // documentos_cargados: documentosData, // Esto se manejará por la Edge Function
-        foto_carnet: fotoUrl, // URL de la foto ya subida
+        foto_carnet: fotoUrl,
         codigo_barras: codigoBarras,
         estado_solicitud: 'Pendiente' as const,
         fecha_solicitud: new Date().toISOString().split('T')[0]
@@ -289,8 +270,6 @@ const ProfessionalRegistration = () => {
 
       console.log('Datos a insertar en Supabase (registro principal):', submissionData);
 
-      // --- 3. Insertar el registro principal en la base de datos (LÓGICA EXISTENTE) ---
-      // Esto devuelve el registro insertado, incluyendo el codigo_expediente si es autogenerado.
       const { data: result, error } = await supabase
         .from('profesionales_sanitarios')
         .insert([submissionData])
@@ -304,17 +283,13 @@ const ProfessionalRegistration = () => {
 
       console.log('Resultado exitoso de inserción principal:', result);
 
-      // --- 4. Enviar Documentos Adicionales a la NUEVA Función Edge ---
-      // Esta función Edge se encargará de subir los archivos y actualizar el registro existente.
       if (uploadedFiles.length > 0) {
-        // ¡IMPORTANTE! Reemplaza [TU-PROYECTO-ID] con el ID real de tu proyecto Supabase.
         const edgeFunctionDocsUrl = 'https://wdieynendfjbkbhfovrx.supabase.co/functions/v1/upload-additional-documents'; 
         
         const docsFormData = new FormData();
-        docsFormData.append('profesional_id', profesionalId); // Pasar el ID del registro recién creado
+        docsFormData.append('profesional_id', profesionalId);
         
         uploadedFiles.forEach((file, index) => {
-          // El nombre del campo 'documentos_adicionales[]' debe coincidir con lo que espera la función Edge.
           docsFormData.append(`documentos_adicionales[${index}]`, file);
         });
 
@@ -330,11 +305,10 @@ const ProfessionalRegistration = () => {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
           },
-          body: docsFormData, // Envía el objeto FormData con los documentos
+          body: docsFormData,
         });
 
         if (!docsResponse.ok) {
-          // Intentar parsear el error JSON, pero manejar si no es JSON válido
           const docsErrorData = await docsResponse.json().catch(() => ({ message: 'Error desconocido al parsear la respuesta de la función Edge.' }));
           console.error('Error al enviar documentos adicionales a la función Edge:', docsErrorData);
           throw new Error(docsErrorData.message || `Error al subir documentos adicionales: ${docsResponse.statusText}`);
@@ -342,35 +316,31 @@ const ProfessionalRegistration = () => {
 
         const docsResult = await docsResponse.json();
         console.log('Respuesta exitosa de la Función Edge para documentos adicionales:', docsResult);
-        // Actualizar formDataForPDF con las URLs de los documentos adicionales si las devuelve
         setFormDataForPDF(prev => ({
           ...prev,
           documentos_adicionales_urls: docsResult?.uploaded_urls || uploadedFiles.map(f => f.name)
         }));
       } else {
-        // Si no hay documentos adicionales, asegúrate de que el campo en la DB sea un array vacío
         const { error: updateDocsError } = await supabase
           .from('profesionales_sanitarios')
           .update({ documentos_adicionales: [] })
-          .eq('id', profesionalId); // Usar el ID del profesional recién creado
+          .eq('id', profesionalId);
         if (updateDocsError) {
           console.error('Error al actualizar documentos_adicionales a vacío:', updateDocsError);
         }
       }
 
-      // Marcar solicitud como enviada
       setSolicitudEnviada(true);
 
-      // Actualizar el estado interno con los datos para el PDF
       setFormDataForPDF(prev => ({
         ...prev,
         photoFile,
         foto_carnet: fotoUrl,
         foto_carnet_base64: fotoCarnetBase64,
         codigo_barras: codigoBarras,
-        codigo_expediente: result.codigo_expediente, // Usar el código de expediente de la inserción principal
+        codigo_expediente: result.codigo_expediente,
         edad: age,
-        submittedData: result // Guarda la respuesta completa de la inserción principal
+        submittedData: result
       }));
 
       toast({
@@ -379,7 +349,7 @@ const ProfessionalRegistration = () => {
       });
       setShowProcedureModal(true);
 
-      setCurrentStep(6); // Ir al step de confirmación
+      setCurrentStep(6);
     } catch (error: any) {
       console.error('Error completo al enviar formulario:', error);
       const errorMessage = error.message || 'Error desconocido al procesar la solicitud';
@@ -391,7 +361,7 @@ const ProfessionalRegistration = () => {
         variant: "destructive",
       });
       
-      setCurrentStep(6); // Ir al step de confirmación para mostrar el error
+      setCurrentStep(6);
     } finally {
       setIsSubmitting(false);
     }
@@ -400,7 +370,6 @@ const ProfessionalRegistration = () => {
   const nextStep = async () => {
     const fieldsToValidate = stepFields[currentStep];
 
-    // Si no hay campos definidos para el paso actual, simplemente avanza
     if (!fieldsToValidate || fieldsToValidate.length === 0) {
       if (currentStep < steps.length) {
         setCurrentStep(currentStep + 1);
@@ -408,9 +377,6 @@ const ProfessionalRegistration = () => {
       return;
     }
 
-    // Valida solo los campos del paso actual
-    // El cast 'as any' es a menudo necesario aquí debido a las complejidades de tipado
-    // de react-hook-form cuando se usan arrays de nombres de campo dinámicos con 'trigger'.
     const isValid = await form.trigger(fieldsToValidate as any); 
 
     if (isValid) {

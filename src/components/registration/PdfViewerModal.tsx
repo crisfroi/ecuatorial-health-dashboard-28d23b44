@@ -17,58 +17,29 @@ interface PdfViewerModalProps {
 }
 
 const PdfViewerModal = ({ isOpen, onClose, formData, pdfType }: PdfViewerModalProps) => {
-  // Ref para el contenido que se va a convertir a PDF
   const contentToRenderRef = useRef<HTMLDivElement>(null);
-  // Estado para la URL del PDF generado (para el iframe)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  // Estado para el spinner de carga
   const [isLoading, setIsLoading] = useState(true);
-  // Estado para almacenar el blob del PDF para la descarga directa
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
 
   // Función para generar el PDF y obtener su URL/Blob
   const generatePdfContent = useCallback(async () => {
+    // Solo intentar generar si el ref ya tiene un elemento
+    if (!contentToRenderRef.current) {
+      console.warn('contentToRenderRef.current no está disponible aún para generar el PDF.');
+      return; // Salir y esperar al próximo ciclo de efecto
+    }
+
     setIsLoading(true);
     setPdfUrl(null);
     setPdfBlob(null);
 
-    // Renderizamos el componente de contenido en un div oculto para que html2canvas lo capture
-    // Se renderiza directamente en el DOM para que html2canvas pueda acceder a él.
-    // Podríamos usar un portal o renderizarlo condicionalmente en el modal.
-    // Para simplificar, lo renderizamos aquí y lo capturamos.
-    // Nota: En un entorno de producción, para renderizar componentes React en un div temporal
-    // y luego destruirlos, se usaría ReactDOM.render y ReactDOM.unmountComponentAtNode
-    // o un enfoque más avanzado como un portal. Para este ejemplo, confiamos en el ref.
-
-    // Creamos un elemento temporal para renderizar el contenido y capturarlo
-    const tempDiv = document.createElement('div');
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.left = '-9999px'; // Lo movemos fuera de la vista
-    tempDiv.style.width = '210mm'; // Ancho A4 para la captura
-    document.body.appendChild(tempDiv);
-
-    // Renderizamos el componente React dentro del div temporal
-    // No podemos renderizar JSX directamente en un div creado con document.createElement
-    // Necesitaríamos ReactDOM.render, pero eso complica el ejemplo en un solo archivo.
-    // En su lugar, vamos a pasar el ref directamente al componente que se renderiza en el modal.
-    // Y el componente del modal tendrá el ref.
-
-    // La lógica de captura se hará directamente sobre el contenido del modal,
-    // que es donde `contentToRenderRef` apuntará.
-
-    if (!contentToRenderRef.current) {
-      console.error('No se encontró el elemento para generar el PDF.');
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const canvas = await html2canvas(contentToRenderRef.current, {
-        scale: 2, // Aumenta la escala para mejor calidad de texto e imágenes
-        useCORS: true, // Habilita el uso de CORS para imágenes externas
-        allowTaint: true, // Permite "taint" el canvas con contenido de origen cruzado (puede limitar toDataURL)
-        backgroundColor: '#ffffff', // Fondo blanco para el PDF
-        // Ignorar el botón de descarga si está dentro del área a capturar
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
         ignoreElements: (element) => {
           return element.classList.contains('pdf-download-button');
         }
@@ -77,8 +48,8 @@ const PdfViewerModal = ({ isOpen, onClose, formData, pdfType }: PdfViewerModalPr
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       
-      const imgWidth = 210; // Ancho A4 en mm
-      const pageHeight = 295; // Alto A4 en mm
+      const imgWidth = 210;
+      const pageHeight = 295;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
       let position = 0;
@@ -93,35 +64,31 @@ const PdfViewerModal = ({ isOpen, onClose, formData, pdfType }: PdfViewerModalPr
         heightLeft -= pageHeight;
       }
 
-      const pdfOutput = pdf.output('blob'); // Obtiene el PDF como un Blob
-      const url = URL.createObjectURL(pdfOutput); // Crea una URL para el Blob
+      const pdfOutput = pdf.output('blob');
+      const url = URL.createObjectURL(pdfOutput);
       
       setPdfUrl(url);
-      setPdfBlob(pdfOutput); // Guarda el Blob para la descarga directa
+      setPdfBlob(pdfOutput);
     } catch (error) {
       console.error('Error generando PDF para previsualización:', error);
       setPdfUrl(null);
     } finally {
       setIsLoading(false);
-      // No necesitamos eliminar tempDiv si usamos contentToRenderRef directamente en el modal
     }
-  }, [formData, pdfType]); // Regenerar cuando cambien los datos o el tipo de PDF
+  }, [formData, pdfType]); // Dependencias para useCallback
 
-  // Efecto para generar el PDF cuando el modal se abre o cambia el tipo de PDF
+  // Efecto para generar el PDF cuando el modal se abre O cuando el contenido del ref está listo
   useEffect(() => {
-    if (isOpen && pdfType) {
+    if (isOpen && pdfType && contentToRenderRef.current) {
       generatePdfContent();
-    } else {
+    } else if (!isOpen && pdfUrl) {
       // Limpiar URL y Blob cuando el modal se cierra
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-        setPdfUrl(null);
-        setPdfBlob(null);
-      }
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+      setPdfBlob(null);
     }
-  }, [isOpen, pdfType, generatePdfContent, pdfUrl]);
+  }, [isOpen, pdfType, contentToRenderRef.current, generatePdfContent, pdfUrl]); // Añadido contentToRenderRef.current como dependencia
 
-  // Función para descargar el PDF directamente desde el Blob
   const handleDownloadPdf = () => {
     if (pdfBlob) {
       const fileName = `${pdfType === 'summary' ? 'Resumen_Solicitud' : 'Carta_Solicitud'}_${formData.codigo_expediente || 'pendiente'}.pdf`;
@@ -132,7 +99,7 @@ const PdfViewerModal = ({ isOpen, onClose, formData, pdfType }: PdfViewerModalPr
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url); // Limpiar la URL del Blob
+      URL.revokeObjectURL(url);
     } else {
       alert('El PDF no está listo para descargar. Por favor, espere o intente de nuevo.');
     }
@@ -149,18 +116,20 @@ const PdfViewerModal = ({ isOpen, onClose, formData, pdfType }: PdfViewerModalPr
         </DialogHeader>
 
         {/* Contenido oculto para html2canvas */}
-        {/* Este div contendrá el componente PDF real para que html2canvas lo capture */}
-        <div ref={contentToRenderRef} style={{
-          position: 'absolute',
-          left: '-9999px', // Mueve el div fuera de la vista
-          width: '210mm', // Ancho A4 para la captura
-          height: '297mm', // Alto A4 para la captura
-          overflow: 'hidden', // Evita barras de desplazamiento si el contenido es grande
-          backgroundColor: 'white' // Asegura un fondo blanco para la captura
-        }}>
-          {pdfType === 'summary' && <PDFSummary formData={formData} />}
-          {pdfType === 'letter' && <RequestLetter formData={formData} />}
-        </div>
+        {/* Renderiza el componente de contenido solo cuando pdfType no es null */}
+        {pdfType && ( // Renderiza este div solo si hay un pdfType seleccionado
+          <div ref={contentToRenderRef} style={{
+            position: 'absolute',
+            left: '-9999px',
+            width: '210mm',
+            // height: '297mm', // Eliminar height fijo, dejar que el contenido lo defina
+            overflow: 'hidden',
+            backgroundColor: 'white'
+          }}>
+            {pdfType === 'summary' && <PDFSummary formData={formData} />}
+            {pdfType === 'letter' && <RequestLetter formData={formData} />}
+          </div>
+        )}
 
         {/* Área de visualización del PDF */}
         <div className="flex-grow flex items-center justify-center bg-gray-100 rounded-md overflow-hidden">

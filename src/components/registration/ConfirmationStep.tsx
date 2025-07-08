@@ -1,9 +1,10 @@
-
-import React from 'react';
+import React, { useState } from 'react'; // Importamos useState
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, AlertCircle, Download, FileText } from 'lucide-react';
+import { CheckCircle, AlertCircle, Download, FileText, Eye } from 'lucide-react'; // Importamos Eye para previsualizar
 import { Button } from '@/components/ui/button';
-import PDFSummary from './PDFSummary';
+// Eliminamos la importación directa de PDFSummary si solo se renderiza en el modal
+// import PDFSummary from './PDFSummary'; // Ya no se renderiza directamente aquí
+import PdfViewerModal from './PdfViewerModal'; // Importamos el nuevo modal de previsualización
 
 interface ConfirmationStepProps {
   formData: any;
@@ -13,6 +14,33 @@ interface ConfirmationStepProps {
 }
 
 const ConfirmationStep = ({ formData, isSubmitting, solicitudEnviada = false, errorEnvio }: ConfirmationStepProps) => {
+  // Estados para controlar el modal de previsualización
+  const [showPdfPreviewModal, setShowPdfPreviewModal] = useState(false);
+  const [pdfTypeToPreview, setPdfTypeToPreview] = useState<'summary' | 'letter' | null>(null);
+
+  // Función para abrir el modal de previsualización con el tipo de PDF correcto
+  const handlePreviewPdf = (type: 'summary' | 'letter') => {
+    setPdfTypeToPreview(type);
+    setShowPdfPreviewModal(true);
+  };
+
+  // Función para generar y descargar directamente (sin previsualizar)
+  // Esto requiere que PDFSummary y RequestLetter expongan una función para generar el PDF
+  // Para simplificar, podemos reutilizar la lógica de generación del modal,
+  // o si los componentes PDFSummary/RequestLetter tienen una función `generatePdfBlob`
+  // la llamaríamos aquí. Por ahora, asumiremos que el modal es el punto central de generación.
+  // Si el usuario quiere descargar directamente, el modal es la mejor opción para mostrarlo y luego descargarlo.
+  // O podemos replicar la lógica de html2canvas/jspdf aquí, pero sería redundante.
+  // Por simplicidad y para evitar duplicar la lógica de generación, el botón de descarga
+  // en esta vista podría abrir el modal y el usuario descarga desde allí.
+  // O, si es una descarga directa sin previsualización, la lógica de generación
+  // debería estar en un helper o en los propios componentes PDFSummary/RequestLetter
+  // y ser exportada para su uso aquí.
+
+  // Para esta implementación, vamos a hacer que el botón "Descargar" abra el modal de previsualización
+  // y el usuario pueda descargar desde dentro del modal. Si el requisito es una descarga
+  // "instantánea" sin modal, necesitaríamos un helper adicional.
+
   if (isSubmitting) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
@@ -110,24 +138,59 @@ const ConfirmationStep = ({ formData, isSubmitting, solicitudEnviada = false, er
             Ya puede descargar los siguientes documentos relacionados con su solicitud:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border border-gray-200 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-900 mb-2">Resumen de Solicitud</h4>
+            {/* Formulario de Solicitud */}
+            <div className="group relative border border-gray-200 rounded-lg p-4 flex flex-col justify-between items-center text-center overflow-hidden">
+              <h4 className="font-semibold text-gray-900 mb-2">Formulario de Solicitud</h4>
               <p className="text-sm text-gray-600 mb-3">
-                Documento completo con todos los datos de su solicitud.
+                Documento completo con todos los datos de su solicitud el cual debera presentar una copia en el banco y otra en la Delegación de Sanidad.
               </p>
+              <div className="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <Button 
+                  onClick={() => handlePreviewPdf('summary')}
+                  className="flex items-center gap-1 px-3 py-2 text-sm"
+                >
+                  <Eye className="w-4 h-4" /> Previsualizar
+                </Button>
+                {/* El botón de descarga directa podría replicar la lógica de generación o abrir el modal y luego descargar */}
+                {/* Por simplicidad, aquí el botón de descarga también abrirá el modal para que el usuario descargue desde allí */}
+                <Button 
+                  onClick={() => handlePreviewPdf('summary')} // Abre el modal, y desde allí se descarga
+                  variant="outline"
+                  className="flex items-center gap-1 px-3 py-2 text-sm border-blue-600 text-blue-600 hover:bg-blue-50"
+                >
+                  <Download className="w-4 h-4" /> Descargar
+                </Button>
+              </div>
             </div>
-            <div className="border border-gray-200 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-900 mb-2">Carta de Solicitud</h4>
+
+            {/* Instancia de Solicitud */}
+            <div className="group relative border border-gray-200 rounded-lg p-4 flex flex-col justify-between items-center text-center overflow-hidden">
+              <h4 className="font-semibold text-gray-900 mb-2">Instancia de Solicitud</h4>
               <p className="text-sm text-gray-600 mb-3">
-                Documento oficial para presentar en el Ministerio.
+                Documento oficial para presentar en la dDelegación de Sanidad junto a su Expediente debidamente firmado.
               </p>
+              <div className="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <Button 
+                  onClick={() => handlePreviewPdf('letter')}
+                  className="flex items-center gap-1 px-3 py-2 text-sm"
+                >
+                  <Eye className="w-4 h-4" /> Previsualizar
+                </Button>
+                <Button 
+                  onClick={() => handlePreviewPdf('letter')} // Abre el modal, y desde allí se descarga
+                  variant="outline"
+                  className="flex items-center gap-1 px-3 py-2 text-sm border-blue-600 text-blue-600 hover:bg-blue-50"
+                >
+                  <Download className="w-4 h-4" /> Descargar
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Componente PDF para descarga */}
-      <PDFSummary formData={formData} />
+      {/* Eliminamos el componente PDFSummary directo aquí */}
+      {/* <PDFSummary formData={formData} /> */}
 
       {/* Información adicional */}
       <Card className="bg-blue-50 border-blue-200">
@@ -141,6 +204,14 @@ const ConfirmationStep = ({ formData, isSubmitting, solicitudEnviada = false, er
           </ul>
         </CardContent>
       </Card>
+
+      {/* Modal de previsualización de PDF */}
+      <PdfViewerModal
+        isOpen={showPdfPreviewModal}
+        onClose={() => setShowPdfPreviewModal(false)}
+        formData={formData}
+        pdfType={pdfTypeToPreview}
+      />
     </div>
   );
 };

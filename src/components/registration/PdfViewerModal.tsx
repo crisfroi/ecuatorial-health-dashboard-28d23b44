@@ -24,19 +24,15 @@ const PdfViewerModal = ({ isOpen, onClose, formData, pdfType }: PdfViewerModalPr
 
   // Función para generar el PDF y obtener su URL/Blob
   const generatePdfContent = useCallback(async () => {
+    // Solo intentar generar si el ref ya tiene un elemento
+    if (!contentToRenderRef.current) {
+      console.warn('contentToRenderRef.current no está disponible aún para generar el PDF.');
+      return; // Salir y esperar al próximo ciclo de efecto
+    }
+
     setIsLoading(true);
     setPdfUrl(null);
     setPdfBlob(null);
-
-    // Añadimos un pequeño retraso para asegurar que el contenido se ha renderizado
-    // Aumentado a 200ms para mayor robustez
-    await new Promise(resolve => setTimeout(resolve, 200)); 
-
-    if (!contentToRenderRef.current) {
-      console.warn('contentToRenderRef.current no está disponible aún para generar el PDF.');
-      setIsLoading(false); 
-      return;
-    }
 
     try {
       const canvas = await html2canvas(contentToRenderRef.current, {
@@ -52,8 +48,8 @@ const PdfViewerModal = ({ isOpen, onClose, formData, pdfType }: PdfViewerModalPr
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       
-      const imgWidth = 210; 
-      const pageHeight = 295; 
+      const imgWidth = 210;
+      const pageHeight = 295;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
       let position = 0;
@@ -68,29 +64,30 @@ const PdfViewerModal = ({ isOpen, onClose, formData, pdfType }: PdfViewerModalPr
         heightLeft -= pageHeight;
       }
 
-      const pdfOutput = pdf.output('blob'); 
-      const url = URL.createObjectURL(pdfOutput); 
+      const pdfOutput = pdf.output('blob');
+      const url = URL.createObjectURL(pdfOutput);
       
       setPdfUrl(url);
-      setPdfBlob(pdfOutput); 
+      setPdfBlob(pdfOutput);
     } catch (error) {
       console.error('Error generando PDF para previsualización:', error);
       setPdfUrl(null);
     } finally {
       setIsLoading(false);
     }
-  }, [formData, pdfType]); 
+  }, [formData, pdfType]); // Dependencias para useCallback
 
   // Efecto para generar el PDF cuando el modal se abre O cuando el contenido del ref está listo
   useEffect(() => {
     if (isOpen && pdfType && contentToRenderRef.current) {
       generatePdfContent();
     } else if (!isOpen && pdfUrl) {
+      // Limpiar URL y Blob cuando el modal se cierra
       URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
       setPdfBlob(null);
     }
-  }, [isOpen, pdfType, contentToRenderRef.current, generatePdfContent, pdfUrl]); 
+  }, [isOpen, pdfType, contentToRenderRef.current, generatePdfContent, pdfUrl]); // Añadido contentToRenderRef.current como dependencia
 
   const handleDownloadPdf = () => {
     if (pdfBlob) {
@@ -102,7 +99,7 @@ const PdfViewerModal = ({ isOpen, onClose, formData, pdfType }: PdfViewerModalPr
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url); 
+      URL.revokeObjectURL(url);
     } else {
       alert('El PDF no está listo para descargar. Por favor, espere o intente de nuevo.');
     }
@@ -119,13 +116,15 @@ const PdfViewerModal = ({ isOpen, onClose, formData, pdfType }: PdfViewerModalPr
         </DialogHeader>
 
         {/* Contenido oculto para html2canvas */}
-        {pdfType && ( 
+        {/* Renderiza el componente de contenido solo cuando pdfType no es null */}
+        {pdfType && ( // Renderiza este div solo si hay un pdfType seleccionado
           <div ref={contentToRenderRef} style={{
             position: 'absolute',
-            left: '-9999px', 
-            width: '210mm', 
-            overflow: 'hidden', 
-            backgroundColor: 'white' 
+            left: '-9999px',
+            width: '210mm',
+            // height: '297mm', // Eliminar height fijo, dejar que el contenido lo defina
+            overflow: 'hidden',
+            backgroundColor: 'white'
           }}>
             {pdfType === 'summary' && <PDFSummary formData={formData} />}
             {pdfType === 'letter' && <RequestLetter formData={formData} />}
@@ -140,12 +139,7 @@ const PdfViewerModal = ({ isOpen, onClose, formData, pdfType }: PdfViewerModalPr
               <p className="text-gray-700">Cargando previsualización...</p>
             </div>
           ) : pdfUrl ? (
-            <iframe 
-              key={pdfUrl} // <-- ¡Añadido para forzar el re-montaje del iframe!
-              src={pdfUrl} 
-              className="w-full h-full border-none" 
-              title="Previsualización PDF"
-            ></iframe>
+            <iframe src={pdfUrl} className="w-full h-full border-none" title="Previsualización PDF"></iframe>
           ) : (
             <div className="text-center text-red-600">
               <XCircle className="w-12 h-12 mx-auto mb-4" />

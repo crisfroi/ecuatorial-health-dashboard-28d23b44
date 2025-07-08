@@ -1,30 +1,48 @@
-import React from 'react';
+import React, { useRef } from 'react'; // Eliminamos Button, Download, jsPDF, html2canvas
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, User } from 'lucide-react';
-import { BarcodeGenerator } from './BarcodeGenerator';
+import { FileText, User } from 'lucide-react'; // Eliminamos Download
+// Eliminamos: import jsPDF from 'jspdf';
+// Eliminamos: import html2canvas from 'html2canvas';
+import { BarcodeGenerator } from './BarcodeGenerator'; // Asegúrate de que esta ruta sea correcta
 
 interface PDFSummaryProps {
   formData: any;
+  // Eliminamos onDownload, ya no se usa aquí directamente
 }
 
 const PDFSummary = ({ formData }: PDFSummaryProps) => {
+  // Eliminamos pdfRef y generatePDF, ya que el modal se encargará de la generación
+  // const pdfRef = useRef<HTMLDivElement>(null);
+  // const generatePDF = async () => { ... };
+
   return (
-    <div className="space-y-2"> {/* Reducido de space-y-4 a space-y-2 */}
-      <div className="bg-white p-4 space-y-3" style={{ minHeight: '297mm' }}> {/* Reducido de p-6 a p-4 y space-y-4 a space-y-3 */}
+    <div className="space-y-6">
+      {/* Eliminamos el div con h2 y Button de descarga */}
+      {/* <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-900">Resumen de Solicitud</h2>
+        <Button onClick={generatePDF} className="flex items-center space-x-2">
+          <Download className="w-4 h-4" />
+          <span>Descargar PDF</span>
+        </Button>
+      </div> */}
+
+      {/* Mantenemos el contenido que será capturado por html2canvas */}
+      {/* El ref se pasará desde el modal si es necesario, o el modal lo capturará directamente */}
+      <div /* ref={pdfRef} */ className="bg-white p-8 space-y-6" style={{ minHeight: '297mm' }}>
         {/* Encabezado oficial */}
-        <div className="text-center border-b-2 border-gray-300 pb-3 mb-3"> {/* Reducido pb-4 mb-4 a pb-3 mb-3 */}
-          <h1 className="text-lg font-bold text-guinea-teal mb-0.5"> {/* Reducido text-xl a text-lg, mb-1 a mb-0.5 */}
+        <div className="text-center border-b-2 border-gray-300 pb-6 mb-6">
+          <h1 className="text-2xl font-bold text-guinea-teal mb-2">
             MINISTERIO DE SANIDAD Y BIENESTAR SOCIAL
           </h1>
-          <h2 className="text-sm font-semibold text-gray-700 mb-0.5"> {/* Reducido text-base a text-sm, mb-1 a mb-0.5 */}
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">
             REPÚBLICA DE GUINEA ECUATORIAL
           </h2>
-          <h3 className="text-xs font-medium text-gray-600"> {/* Reducido text-sm a text-xs */}
+          <h3 className="text-base font-medium text-gray-600">
             SOLICITUD DE ACREDITACIÓN PROFESIONAL SANITARIA
           </h3>
           {formData.codigo_expediente && (
-            <div className="mt-2"> {/* Reducido mt-3 a mt-2 */}
-              <p className="text-xs font-medium text-gray-600 mb-0.5"> {/* Reducido mb-1 a mb-0.5 */}
+            <div className="mt-4">
+              <p className="text-sm font-medium text-gray-600 mb-2">
                 Código de Expediente: {formData.codigo_expediente}
               </p>
             </div>
@@ -32,11 +50,11 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
         </div>
 
         {/* Layout optimizado: Foto + Datos personales + Código de barras */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4"> {/* Reducido gap-4 a gap-3, mb-6 a mb-4 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Foto carnet */}
-          <div className="flex flex-col items-center space-y-2"> {/* Reducido space-y-3 a space-y-2 */}
+          <div className="flex flex-col items-center space-y-4">
             {formData.foto_carnet_base64 && (
-              <div className="w-24 h-32 border-2 border-gray-300 rounded overflow-hidden"> {/* Reducido w-28 h-36 a w-24 h-32 */}
+              <div className="w-32 h-40 border-2 border-gray-300 rounded overflow-hidden">
                 <img 
                   src={formData.foto_carnet_base64} 
                   alt="Foto carnet"
@@ -49,9 +67,9 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
               <div className="flex flex-col items-center">
                 <BarcodeGenerator 
                   code={formData.codigo_barras}
-                  width={120} // Reducido de 140
-                  height={35} // Reducido de 40
-                  className="mb-0.5" {/* Reducido mb-1 a mb-0.5 */}
+                  width={160}
+                  height={50}
+                  className="mb-2"
                 />
                 <p className="text-xs text-gray-600 text-center">Código de Barras</p>
               </div>
@@ -59,9 +77,9 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
           </div>
 
           {/* Datos personales básicos */}
-          <div className="md:col-span-2 space-y-1.5"> {/* Reducido space-y-2 a space-y-1.5 */}
-            <h4 className="font-semibold text-base text-gray-800 mb-2">Datos Personales</h4> {/* Reducido mb-3 a mb-2 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs"> {/* Reducido gap-2 a gap-1.5 */}
+          <div className="md:col-span-2 space-y-3">
+            <h4 className="font-semibold text-lg text-gray-800 mb-4">Datos Personales</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div><strong>Nombre completo:</strong> {formData.nombre} {formData.apellidos}</div>
               <div><strong>Género:</strong> {formData.genero}</div>
               <div><strong>Fecha de nacimiento:</strong> {formData.fecha_nacimiento}</div>
@@ -75,12 +93,12 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
         </div>
 
         {/* Información de domicilio */}
-        <Card className="mb-2"> {/* Reducido mb-4 a mb-2 */}
-          <CardHeader className="py-2 px-3"> {/* Reducido py-3 px-4 a py-2 px-3 */}
-            <CardTitle className="text-sm">Información de Domicilio</CardTitle> {/* Reducido text-base a text-sm */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Información de Domicilio</CardTitle>
           </CardHeader>
-          <CardContent className="pt-1.5 px-3 pb-3"> {/* Reducido pt-2 px-4 pb-4 a pt-1.5 px-3 pb-3 */}
-            <div className="grid grid-cols-2 gap-1.5 text-xs"> {/* Reducido gap-2 a gap-1.5 */}
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 text-sm">
               <div><strong>Domicilio:</strong> {formData.domicilio}</div>
               <div><strong>Provincia:</strong> {formData.provincia}</div>
               <div><strong>Distrito:</strong> {formData.distrito}</div>
@@ -89,12 +107,12 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
         </Card>
 
         {/* Información profesional */}
-        <Card className="mb-2"> {/* Reducido mb-4 a mb-2 */}
-          <CardHeader className="py-2 px-3">
-            <CardTitle className="text-sm">Información Profesional</CardTitle>
+        <Card>
+          <CardHeader>
+            <CardTitle>Información Profesional</CardTitle>
           </CardHeader>
-          <CardContent className="pt-1.5 px-3 pb-3">
-            <div className="grid grid-cols-2 gap-1.5 text-xs">
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 text-sm">
               <div><strong>Área profesional:</strong> {formData.area_profesional}</div>
               {formData.especialidad && <div><strong>Especialidad:</strong> {formData.especialidad}</div>}
               <div><strong>Categoría titulación:</strong> {formData.categoria_titulacion}</div>
@@ -107,12 +125,12 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
         </Card>
 
         {/* Información laboral */}
-        <Card className="mb-2"> {/* Reducido mb-4 a mb-2 */}
-          <CardHeader className="py-2 px-3">
-            <CardTitle className="text-sm">Información Laboral</CardTitle>
+        <Card>
+          <CardHeader>
+            <CardTitle>Información Laboral</CardTitle>
           </CardHeader>
-          <CardContent className="pt-1.5 px-3 pb-3">
-            <div className="grid grid-cols-2 gap-1.5 text-xs">
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 text-sm">
               <div><strong>Situación laboral:</strong> {formData.situacion_laboral}</div>
               <div><strong>Centro de trabajo:</strong> {formData.nombre_centro}</div>
               <div><strong>Categoría centro:</strong> {formData.categoria_centro}</div>
@@ -126,17 +144,17 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
         </Card>
 
         {/* Fecha y firma */}
-        <div className="mt-6 pt-4 border-t border-gray-300"> {/* Reducido mt-8 pt-6 a mt-6 pt-4 */}
+        <div className="mt-12 pt-8 border-t border-gray-300">
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-xs"><strong>Fecha de solicitud:</strong> {new Date().toLocaleDateString('es-ES')}</p>
+              <p className="text-sm"><strong>Fecha de solicitud:</strong> {new Date().toLocaleDateString('es-ES')}</p>
               {formData.codigo_expediente && (
-                <p className="text-xs"><strong>Código de expediente:</strong> {formData.codigo_expediente}</p>
+                <p className="text-sm"><strong>Código de expediente:</strong> {formData.codigo_expediente}</p>
               )}
             </div>
             <div className="text-center">
-              <div className="border-t border-gray-400 w-36 mb-0.5"></div> {/* Reducido w-40 a w-36, mb-1 a mb-0.5 */}
-              <p className="text-xs">Firma del solicitante</p>
+              <div className="border-t border-gray-400 w-48 mb-2"></div>
+              <p className="text-sm">Firma del solicitante</p>
             </div>
           </div>
         </div>

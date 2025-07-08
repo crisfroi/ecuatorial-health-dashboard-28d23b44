@@ -1,53 +1,17 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
+import React from 'react'; // Eliminamos Button, Download, jsPDF, html2canvas
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+// Eliminamos: import { Download } from 'lucide-react';
+// Eliminamos: import jsPDF from 'jspdf';
+// Eliminamos: import html2canvas from 'html2canvas';
 
 interface RequestLetterProps {
   formData: any;
-  onDownload: () => void;
+  // Eliminamos onDownload, ya no se usa aquí directamente
 }
 
-const RequestLetter = ({ formData, onDownload }: RequestLetterProps) => {
-  const generatePDF = async () => {
-    const element = document.getElementById('letter-content');
-    if (!element) return;
-
-    try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff'
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      const imgWidth = 210;
-      const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      pdf.save(`instancia-solicitud-${formData.nombre}-${formData.apellidos?.replace(/\s+/g, '-') || 'profesional'}.pdf`);
-      onDownload();
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-    }
-  };
+const RequestLetter = ({ formData }: RequestLetterProps) => {
+  // Eliminamos generatePDF
+  // const generatePDF = async () => { ... };
 
   const today = new Date().toLocaleDateString('es-ES', {
     year: 'numeric',
@@ -61,13 +25,15 @@ const RequestLetter = ({ formData, onDownload }: RequestLetterProps) => {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Carta de Instancia de Solicitud</span>
-            <Button onClick={generatePDF} className="flex items-center gap-2">
+            {/* Eliminamos el botón de descarga aquí */}
+            {/* <Button onClick={generatePDF} className="flex items-center gap-2">
               <Download className="w-4 h-4" />
               Descargar Carta
-            </Button>
+            </Button> */}
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Mantenemos el contenido que será capturado por html2canvas */}
           <div id="letter-content" className="max-w-[210mm] mx-auto bg-white" style={{ padding: '30mm', minHeight: '297mm', fontSize: '12px', lineHeight: '1.6' }}>
             
             {/* Membrete */}

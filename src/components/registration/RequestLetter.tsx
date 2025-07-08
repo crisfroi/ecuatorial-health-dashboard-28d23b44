@@ -26,7 +26,8 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
             
             {/* Membrete */}
             <div className="text-center mb-4 mt-0"> {/* Reducido mb-6 a mb-4 */}
-              <h className="text-sm font-semibold">CARTA DE INSTANCIA DE SOLICITUD DE REGISTRO DE PRODESIONAL SANITARIO</h2> {/* Reducido text-base a text-sm */}
+              <h1 className="text-base font-bold mb-0.5">REPÚBLICA DE GUINEA ECUATORIAL</h1> {/* Reducido text-lg a text-base, mb-1 a mb-0.5 */}
+              <h2 className="text-sm font-semibold">MINISTERIO DE SANIDAD Y BIENESTAR SOCIAL</h2> {/* Reducido text-base a text-sm */}
               <div className="border-b-2 border-black mt-2 mb-3"></div> {/* Reducido mt-3 mb-4 a mt-2 mb-3 */}
             </div>
 
@@ -67,8 +68,8 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
                   <>, con especialización en <span className="font-semibold">{formData.especialidad}</span></>
                 )}, 
                 habiendo obtenido mi titulación de <span className="font-semibold">{formData.titulacion_especifica_1}</span> 
-                 en la institución <span className="font-semibold">{formData.institucion_1}</span> 
-                 en <span className="font-semibold">{formData.pais_formacion_1}</span>, 
+                en la institución <span className="font-semibold">{formData.institucion_1}</span> 
+                en <span className="font-semibold">{formData.pais_formacion_1}</span>, 
                 durante el período <span className="font-semibold">{formData.periodo_formacion}</span>.
               </p>
 
@@ -76,7 +77,7 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
                 Actualmente, mi situación laboral es <span className="font-semibold">{formData.situacion_laboral}</span>
                 {formData.nombre_centro && (
                   <>, prestando servicios en <span className="font-semibold">{formData.nombre_centro}</span> 
-                   ({formData.categoria_centro}) en el sector <span className="font-semibold">{formData.tipo_sector}</span>
+                  ({formData.categoria_centro}) en el sector <span className="font-semibold">{formData.tipo_sector}</span>
                   {formData.distrito_sanitario && (
                     <>, correspondiente al distrito sanitario de <span className="font-semibold">{formData.distrito_sanitario}</span></>
                   )}</>
@@ -113,7 +114,7 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
             </div>
 
             {/* Despedida */}
-            <div className="mb-12"> {/* Reducido mb-6 a mb-5 */}
+            <div className="mb-5"> {/* Reducido mb-6 a mb-5 */}
               <p className="text-sm">Sin otro particular, aprovecho la oportunidad para expresarle las muestras de mi más alta consideración y estima.</p> {/* Reducido text-base a text-sm */}
             </div>
 
@@ -129,7 +130,7 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
             </div>
 
             {/* Pie de página */}
-            <div className="mt-8 text-xs text-gray-600 text-center"> {/* Reducido mt-8 a mt-6 */}
+            <div className="mt-6 text-xs text-gray-600 text-center"> {/* Reducido mt-8 a mt-6 */}
               <p>Solicitud generada el {today} através del Sistema RENAPROSA</p>
             </div>
           </div>

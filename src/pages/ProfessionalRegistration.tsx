@@ -58,22 +58,29 @@ const formSchema = z.object({
   pertenece_brigada_medica: z.boolean().default(false),
   tipo_cooperacion: z.string().optional(),
   
-  // Definimos foto_carnet y documentos_adicionales como FileList o array de File
-  foto_carnet: z.any() // Será un FileList de 1 elemento
-    .refine((files) => files && files.length > 0, "La foto de carnet es obligatoria.")
-    .refine((files) => files?.[0]?.size <= 2 * 1024 * 1024, `La foto debe ser menor de 2MB.`)
+  // Definimos foto_carnet como z.any() y refinamos la validación
+  foto_carnet: z.any()
+    .refine((files: FileList | undefined) => files && files.length > 0, "La foto de carnet es obligatoria.")
+    .refine((files: FileList | undefined) => files?.[0]?.size <= 2 * 1024 * 1024, `La foto debe ser menor de 2MB.`)
     .refine(
-      (files) => ["image/jpeg", "image/jpg", "image/png"].includes(files?.[0]?.type),
+      (files: FileList | undefined) => files && ["image/jpeg", "image/jpg", "image/png"].includes(files[0]?.type),
       "Formato de foto no válido (solo JPG/PNG)."
     ),
   
-  documentos_adicionales: z.any() // Será un FileList o un array de Files
-    .refine((files) => files.every((file: File) => file.size <= 5 * 1024 * 1024), `Cada documento debe ser menor de 5MB.`)
+  // Definimos documentos_adicionales como z.any() y refinamos la validación para un array de Files
+  documentos_adicionales: z.any()
+    .refine((files: File[] | undefined) => {
+      if (!files || files.length === 0) return true; // Es opcional, si no hay archivos, es válido
+      return files.every((file: File) => file.size <= 5 * 1024 * 1024);
+    }, `Cada documento debe ser menor de 5MB.`)
     .refine(
-      (files) => files.every((file: File) => ["application/pdf", "image/jpeg", "image/jpg", "image/png"].includes(file.type)),
+      (files: File[] | undefined) => {
+        if (!files || files.length === 0) return true; // Es opcional
+        return files.every((file: File) => ["application/pdf", "image/jpeg", "image/jpg", "image/png"].includes(file.type));
+      },
       "Formato de documento no válido (solo PDF, JPG, PNG)."
     )
-    .optional(),
+    .optional(), // Marcamos el campo como opcional a nivel de Zod
 
   acepta_politicas: z.boolean().refine(val => val === true, "Debe aceptar las políticas")
 })
@@ -208,7 +215,9 @@ const ProfessionalRegistration = () => {
       return;
     }
 
-    if (!photoFile) {
+    // Validación de foto de carnet antes de enviar
+    // Usamos data.foto_carnet directamente que ya está validado por Zod
+    if (!data.foto_carnet || data.foto_carnet.length === 0) { 
       setErrorEnvio("La foto tipo carnet es obligatoria para enviar la solicitud.");
       toast({
         title: "Requisito Faltante",
@@ -230,7 +239,8 @@ const ProfessionalRegistration = () => {
 
       // --- 1. Subir Foto de Carnet usando el hook useFileUpload (LÓGICA EXISTENTE) ---
       // La foto se sube primero y su URL se obtiene.
-      const fotoUrl = await uploadFile(photoFile, `fotos-carnet/${profesionalId}`); // Ruta adaptada para organización
+      // photoFile es el File object que tu hook espera.
+      const fotoUrl = await uploadFile(photoFile!, `fotos-carnet/${profesionalId}`); // Ruta adaptada para organización
       if (!fotoUrl) {
         throw new Error('Error al subir la foto de carnet.');
       }
@@ -281,6 +291,7 @@ const ProfessionalRegistration = () => {
       console.log('Datos a insertar en Supabase (registro principal):', submissionData);
 
       // --- 3. Insertar el registro principal en la base de datos (LÓGICA EXISTENTE) ---
+      // Esto devuelve el registro insertado, incluyendo el codigo_expediente si es autogenerado.
       const { data: result, error } = await supabase
         .from('profesionales_sanitarios')
         .insert([submissionData])
@@ -338,10 +349,11 @@ const ProfessionalRegistration = () => {
         }));
       } else {
         // Si no hay documentos adicionales, asegúrate de que el campo en la DB sea un array vacío
+        // Esto es importante para mantener la consistencia de la DB si el campo es JSONB
         const { error: updateDocsError } = await supabase
           .from('profesionales_sanitarios')
           .update({ documentos_adicionales: [] })
-          .eq('id', profesionalId);
+          .eq('id', profesionalId); // Usar el ID del profesional recién creado
         if (updateDocsError) {
           console.error('Error al actualizar documentos_adicionales a vacío:', updateDocsError);
         }
@@ -389,6 +401,7 @@ const ProfessionalRegistration = () => {
   const nextStep = async () => {
     const fieldsToValidate = stepFields[currentStep];
 
+    // Si no hay campos definidos para el paso actual, simplemente avanza
     if (!fieldsToValidate || fieldsToValidate.length === 0) {
       if (currentStep < steps.length) {
         setCurrentStep(currentStep + 1);
@@ -396,7 +409,10 @@ const ProfessionalRegistration = () => {
       return;
     }
 
-    const isValid = await form.trigger(fieldsToValidate as any);
+    // Valida solo los campos del paso actual
+    // El cast 'as any' es a menudo necesario aquí debido a las complejidades de tipado
+    // de react-hook-form cuando se usan arrays de nombres de campo dinámicos con 'trigger'.
+    const isValid = await form.trigger(fieldsToValidate as any); 
 
     if (isValid) {
       if (currentStep < steps.length) {

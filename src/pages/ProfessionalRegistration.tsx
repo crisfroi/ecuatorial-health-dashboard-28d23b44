@@ -16,7 +16,7 @@ import { v4 as uuidv4 } from 'uuid'; // Importa uuid para generar IDs únicos
 
 // Import step components
 import { PersonalInfoStep } from '@/components/registration/PersonalInfoStep';
-import { AddressStep } => '@/components/registration/AddressStep';
+import { AddressStep } from '@/components/registration/AddressStep';
 import { EducationStep } from '@/components/registration/EducationStep';
 import { WorkSituationStep } from '@/components/registration/WorkSituationStep';
 import { DocumentsStep } from '@/components/registration/DocumentsStep';

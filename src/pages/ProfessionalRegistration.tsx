@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,11 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form } from '@/components/ui/form';
 import { User, Home, GraduationCap, Briefcase, FileText, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client'; // Tu cliente Supabase ya inicializado
 import { useNavigate } from 'react-router-dom';
 import { useNacionalidades } from '@/hooks/useNacionalidades';
 import { useDistritosSanitarios } from '@/hooks/useDistritosSanitarios';
-import { useFileUpload } from '@/hooks/useFileUpload';
+import { useFileUpload } from '@/hooks/useFileUpload'; // Tu hook useFileUpload existente
+import { v4 as uuidv4 } from 'uuid'; // Importa uuid para generar IDs únicos
 
 // Import step components
 import { PersonalInfoStep } from '@/components/registration/PersonalInfoStep';
@@ -29,8 +29,6 @@ import HealthCenters from '@/components/dashboard/HealthCenters';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 import ApplicationProcedureSection from '@/components/registration/ApplicationProcedureSection';
 import ProcedureModal from '@/components/registration/ProcedureModal';
-
-// ...
 
 // Schema de validación
 const formSchema = z.object({
@@ -59,16 +57,32 @@ const formSchema = z.object({
   distrito_sanitario: z.string().optional(),
   pertenece_brigada_medica: z.boolean().default(false),
   tipo_cooperacion: z.string().optional(),
-  documentos: z.any().optional(),
+  
+  // Definimos foto_carnet y documentos_adicionales como FileList o array de File
+  foto_carnet: z.any() // Será un FileList de 1 elemento
+    .refine((files) => files && files.length > 0, "La foto de carnet es obligatoria.")
+    .refine((files) => files?.[0]?.size <= 2 * 1024 * 1024, `La foto debe ser menor de 2MB.`)
+    .refine(
+      (files) => ["image/jpeg", "image/jpg", "image/png"].includes(files?.[0]?.type),
+      "Formato de foto no válido (solo JPG/PNG)."
+    ),
+  
+  documentos_adicionales: z.any() // Será un FileList o un array de Files
+    .refine((files) => files.every((file: File) => file.size <= 5 * 1024 * 1024), `Cada documento debe ser menor de 5MB.`)
+    .refine(
+      (files) => files.every((file: File) => ["application/pdf", "image/jpeg", "image/jpg", "image/png"].includes(file.type)),
+      "Formato de documento no válido (solo PDF, JPG, PNG)."
+    )
+    .optional(),
+
   acepta_politicas: z.boolean().refine(val => val === true, "Debe aceptar las políticas")
 })
 .superRefine((data, ctx) => {
-  // Aquí va tu lógica superRefine para DIP/Pasaporte
   if (!data.nacionalidad || data.nacionalidad.trim() === "") {
     return;
   }
 
-  if (data.nacionalidad === "Ecuatoguineana") { // Asegúrate de que el valor coincida exactamente
+  if (data.nacionalidad === "Ecuatoguineana") {
     if (!data.numero_dip || data.numero_dip.trim() === "") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -86,7 +100,9 @@ const formSchema = z.object({
     }
   }
 });
+
 type FormData = z.infer<typeof formSchema>;
+
 const steps = [
   { id: 1, title: "Datos Personales", icon: User },
   { id: 2, title: "Domicilio", icon: Home },
@@ -99,17 +115,17 @@ const steps = [
 const stepFields: { [key: number]: (keyof FormData)[] } = {
   1: ['nombre', 'apellidos', 'genero', 'fecha_nacimiento', 'nacionalidad', 'numero_dip', 'numero_pasaporte', 'telefono'],
   2: ['domicilio', 'provincia', 'distrito'],
-  3: ['area_profesional', 'categoria_titulacion', 'titulacion_especifica_1', 'institucion_1', 'periodo_formacion', 'pais_formacion_1', 'especialidad'], // Añade 'especialidad' si es parte de este paso y necesitas validarlo
-  4: ['situacion_laboral', 'nombre_centro', 'categoria_centro', 'tipo_sector', 'distrito_sanitario', 'tipo_cooperacion'], // Añade campos condicionales si son validados aquí
-  5: ['documentos', 'acepta_politicas'], // Asumiendo que 'documentos' y 'acepta_politicas' son manejados o validados aquí
-  6: [] // El paso de confirmación generalmente no tiene campos propios para validar al avanzar
+  3: ['area_profesional', 'categoria_titulacion', 'titulacion_especifica_1', 'institucion_1', 'periodo_formacion', 'pais_formacion_1', 'especialidad'],
+  4: ['situacion_laboral', 'nombre_centro', 'categoria_centro', 'tipo_sector', 'distrito_sanitario', 'tipo_cooperacion', 'pertenece_brigada_medica'],
+  5: ['foto_carnet', 'documentos_adicionales', 'acepta_politicas'],
+  6: []
 };
 
 const ProfessionalRegistration = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]); // Estado para previsualización de documentos adicionales
+  const [photoFile, setPhotoFile] = useState<File | null>(null); // Estado para previsualización de foto
   const [fotoCarnetBase64, setFotoCarnetBase64] = useState<string | null>(null);
   const [formDataForPDF, setFormDataForPDF] = useState<any>(null);
   const [showPoliticasModal, setShowPoliticasModal] = React.useState(false);
@@ -121,7 +137,7 @@ const ProfessionalRegistration = () => {
   const navigate = useNavigate();
   const { data: nacionalidades = [] } = useNacionalidades();
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
-  const { uploadFile, uploadPDF, isUploading } = useFileUpload();
+  const { uploadFile, uploadPDF, isUploading } = useFileUpload(); // Tu hook useFileUpload existente
 
   console.log('Distritos sanitarios en ProfessionalRegistration:', distritosSanitarios);
 
@@ -131,44 +147,58 @@ const ProfessionalRegistration = () => {
       pertenece_brigada_medica: false,
       acepta_politicas: false,
       situacion_laboral: 'Activo',
-      nacionalidad: "Ecuatoguineana"
+      nacionalidad: "Ecuatoguineana",
     }
   });
 
   const watchedValues = form.watch();
 
+  // Función para manejar la carga de documentos adicionales (actualiza estado local y react-hook-form)
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     setUploadedFiles(prev => [...prev, ...files]);
+    // Asegurarse de que react-hook-form también tenga estos archivos
+    form.setValue('documentos_adicionales', [...(form.getValues('documentos_adicionales') || []), ...files]);
   };
 
+  // Función para eliminar un documento adicional (actualiza estado local y react-hook-form)
   const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    const updatedFiles = uploadedFiles.filter((_, i) => i !== index);
+    setUploadedFiles(updatedFiles);
+    // Asegurarse de que react-hook-form también se actualice
+    form.setValue('documentos_adicionales', updatedFiles);
   };
 
+  // Función para manejar la carga de la foto de carnet (lógica original)
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      setPhotoFile(null);
+      setFotoCarnetBase64(null);
+      form.setValue('foto_carnet', undefined); // Actualizar react-hook-form
+      return;
+    }
 
     setPhotoFile(file);
-
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result as string;
       setFotoCarnetBase64(base64);
     };
     reader.readAsDataURL(file);
+    form.setValue('foto_carnet', [file]); // Actualizar react-hook-form
   };
 
+  // Función para eliminar la foto de carnet (lógica original)
   const removePhoto = () => {
     setPhotoFile(null);
     setFotoCarnetBase64(null);
+    form.setValue('foto_carnet', undefined); // Actualizar react-hook-form
   };
 
   const onSubmit = async (data: FormData) => {
     console.log('onSubmit called with data:', data);
     
-    // Prevenir envío múltiple
     if (solicitudEnviada) {
       toast({
         title: "Solicitud ya enviada",
@@ -182,42 +212,38 @@ const ProfessionalRegistration = () => {
       setErrorEnvio("La foto tipo carnet es obligatoria para enviar la solicitud.");
       toast({
         title: "Requisito Faltante",
-      description: "Por favor, suba su foto tipo carnet para enviar la solicitud.",
-      variant: "destructive",
+        description: "Por favor, suba su foto tipo carnet para enviar la solicitud.",
+        variant: "destructive",
       });
-      setIsSubmitting(false); // Asegurarse de que el spinner desaparezca
-    return; // Detener el envío
-  }
-      
-
+      setIsSubmitting(false);
+      return;
+    }
+    
     setIsSubmitting(true);
-    setErrorEnvio(''); // Limpiar errores previos
+    setErrorEnvio('');
     
     try {
-      console.log('Iniciando proceso de envío de formulario...');
+      console.log('Iniciando proceso de envío de formulario y documentos...');
       
-      // Subir foto a Supabase Storage
-      const fotoUrl = await uploadFile(photoFile, 'fotos-carnet');
-      if (!fotoUrl) {
-        throw new Error('Error al subir la foto');
-      }
+      // Generar un ID único para esta solicitud/profesional
+      const profesionalId = uuidv4(); 
 
-      // Calcular edad
+      // --- 1. Subir Foto de Carnet usando el hook useFileUpload (LÓGICA EXISTENTE) ---
+      // La foto se sube primero y su URL se obtiene.
+      const fotoUrl = await uploadFile(photoFile, `fotos-carnet/${profesionalId}`); // Ruta adaptada para organización
+      if (!fotoUrl) {
+        throw new Error('Error al subir la foto de carnet.');
+      }
+      console.log('Foto de carnet subida:', fotoUrl);
+
+      // --- 2. Preparar los datos del formulario principal para la inserción en la DB ---
+      // Estos son los datos que tu API ya inserta.
       const birthDate = new Date(data.fecha_nacimiento);
       const age = new Date().getFullYear() - birthDate.getFullYear();
-
-      // Generar código de barras único
       const codigoBarras = `GEQ${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-      // Preparar datos de documentos
-      const documentosData = uploadedFiles.map(file => ({
-        nombre: file.name,
-        tipo: file.type,
-        tamaño: file.size
-      }));
-
-      // Crear objeto con los datos del formulario
       const submissionData = {
+        id: profesionalId, // Usar el ID generado para la clave primaria
         nombre_completo: `${data.nombre} ${data.apellidos}`,
         nombre: data.nombre,
         apellidos: data.apellidos,
@@ -245,15 +271,16 @@ const ProfessionalRegistration = () => {
         distrito_sanitario: data.distrito_sanitario || null,
         pertenece_brigada_medica: data.pertenece_brigada_medica,
         tipo_cooperacion: data.tipo_cooperacion || null,
-        documentos_cargados: documentosData,
-        foto_carnet: fotoUrl,
+        // documentos_cargados: documentosData, // Esto se manejará por la Edge Function
+        foto_carnet: fotoUrl, // URL de la foto ya subida
         codigo_barras: codigoBarras,
         estado_solicitud: 'Pendiente' as const,
         fecha_solicitud: new Date().toISOString().split('T')[0]
       };
 
-      console.log('Datos a enviar a Supabase:', submissionData);
+      console.log('Datos a insertar en Supabase (registro principal):', submissionData);
 
+      // --- 3. Insertar el registro principal en la base de datos (LÓGICA EXISTENTE) ---
       const { data: result, error } = await supabase
         .from('profesionales_sanitarios')
         .insert([submissionData])
@@ -261,26 +288,79 @@ const ProfessionalRegistration = () => {
         .single();
 
       if (error) {
-        console.error('Error de Supabase:', error);
-        throw new Error(`Error de base de datos: ${error.message}`);
+        console.error('Error de Supabase al insertar registro principal:', error);
+        throw new Error(`Error de base de datos al guardar datos: ${error.message}`);
       }
 
-      console.log('Resultado exitoso de Supabase:', result);
+      console.log('Resultado exitoso de inserción principal:', result);
+
+      // --- 4. Enviar Documentos Adicionales a la NUEVA Función Edge ---
+      // Esta función Edge se encargará de subir los archivos y actualizar el registro existente.
+      if (uploadedFiles.length > 0) {
+        const edgeFunctionDocsUrl = 'https://[TU-PROYECTO-ID].supabase.co/functions/v1/upload-additional-documents'; // ¡PON AQUÍ LA URL REAL DE TU NUEVA FUNCIÓN EDGE!
+        
+        const docsFormData = new FormData();
+        docsFormData.append('profesional_id', profesionalId); // Pasar el ID del registro recién creado
+        
+        uploadedFiles.forEach((file, index) => {
+          docsFormData.append(`documentos_adicionales[${index}]`, file);
+        });
+
+        const session = await supabase.auth.getSession();
+        const accessToken = session.data.session?.access_token;
+
+        if (!accessToken) {
+          throw new Error('No se encontró token de autenticación de Supabase para documentos adicionales.');
+        }
+
+        const docsResponse = await fetch(edgeFunctionDocsUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: docsFormData, // Envía el objeto FormData con los documentos
+        });
+
+        if (!docsResponse.ok) {
+          const docsErrorData = await docsResponse.json();
+          console.error('Error al enviar documentos adicionales a la función Edge:', docsErrorData);
+          // Decidir si quieres que esto sea un error fatal o solo un warning
+          // Por ahora, lo lanzamos como error
+          throw new Error(docsErrorData.message || `Error al subir documentos adicionales: ${docsResponse.statusText}`);
+        }
+
+        const docsResult = await docsResponse.json();
+        console.log('Respuesta exitosa de la Función Edge para documentos adicionales:', docsResult);
+        // Puedes actualizar formDataForPDF con las URLs de los documentos adicionales si las devuelve
+        setFormDataForPDF(prev => ({
+          ...prev,
+          documentos_adicionales_urls: docsResult.uploaded_urls || uploadedFiles.map(f => f.name)
+        }));
+      } else {
+        // Si no hay documentos adicionales, asegúrate de que el campo en la DB sea un array vacío
+        const { error: updateDocsError } = await supabase
+          .from('profesionales_sanitarios')
+          .update({ documentos_adicionales: [] })
+          .eq('id', profesionalId);
+        if (updateDocsError) {
+          console.error('Error al actualizar documentos_adicionales a vacío:', updateDocsError);
+        }
+      }
 
       // Marcar solicitud como enviada
       setSolicitudEnviada(true);
 
       // Actualizar el estado interno con los datos para el PDF
-      setFormDataForPDF({
-        ...data,
+      setFormDataForPDF(prev => ({
+        ...prev,
         photoFile,
         foto_carnet: fotoUrl,
         foto_carnet_base64: fotoCarnetBase64,
         codigo_barras: codigoBarras,
-        codigo_expediente: result.codigo_expediente,
+        codigo_expediente: result.codigo_expediente, // Usar el código de expediente de la inserción principal
         edad: age,
-        submittedData: result
-      });
+        submittedData: result // Guarda la respuesta completa de la inserción principal
+      }));
 
       toast({
         title: "¡Solicitud enviada exitosamente!",
@@ -307,32 +387,30 @@ const ProfessionalRegistration = () => {
   };
 
   const nextStep = async () => {
-  const fieldsToValidate = stepFields[currentStep];
+    const fieldsToValidate = stepFields[currentStep];
 
-  // Si no hay campos definidos para el paso actual, simplemente avanza
-  if (!fieldsToValidate || fieldsToValidate.length === 0) {
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
+    if (!fieldsToValidate || fieldsToValidate.length === 0) {
+      if (currentStep < steps.length) {
+        setCurrentStep(currentStep + 1);
+      }
+      return;
     }
-    return;
-  }
 
-  // Valida solo los campos del paso actual
-  const isValid = await form.trigger(fieldsToValidate as any); // 'as any' puede ser necesario por el tipo de 'keyof FormData'
+    const isValid = await form.trigger(fieldsToValidate as any);
 
-  if (isValid) {
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
+    if (isValid) {
+      if (currentStep < steps.length) {
+        setCurrentStep(currentStep + 1);
+      }
+    } else {
+      toast({
+        title: "Campos incompletos o incorrectos",
+        description: "Por favor, complete correctamente todos los campos obligatorios del paso actual antes de avanzar.",
+        variant: "destructive",
+      });
+      console.error("Errores de validación al avanzar de paso:", form.formState.errors);
     }
-  } else {
-    toast({
-      title: "Campos incompletos o incorrectos",
-      description: "Por favor, complete correctamente todos los campos obligatorios del paso actual antes de avanzar.",
-      variant: "destructive",
-    });
-    console.error("Errores de validación al avanzar de paso:", form.formState.errors);
-  }
-};
+  };
 
   const prevStep = () => {
     if (currentStep > 1) {

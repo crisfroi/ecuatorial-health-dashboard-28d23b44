@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, User } from 'lucide-react';
-import { BarcodeGenerator } from './BarcodeGenerator';
+import { BarcodeGenerator } from './BarcodeGenerator'; // Asegúrate de que BarcodeGenerator.tsx está en la misma carpeta
 
 interface PDFSummaryProps {
   formData: any;

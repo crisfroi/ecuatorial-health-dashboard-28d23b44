@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,22 +13,26 @@ import { useNavigate } from 'react-router-dom';
 import { useNacionalidades } from '@/hooks/useNacionalidades';
 import { useDistritosSanitarios } from '@/hooks/useDistritosSanitarios';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { v4 as uuidv4 } from 'uuid';
 
+// Import step components
 import { PersonalInfoStep } from '@/components/registration/PersonalInfoStep';
 import { AddressStep } from '@/components/registration/AddressStep';
 import { EducationStep } from '@/components/registration/EducationStep';
 import { WorkSituationStep } from '@/components/registration/WorkSituationStep';
-import { DocumentsStep } from '@/components/registration/Documents/DocumentsStep';
+import { DocumentsStep } from '@/components/registration/DocumentsStep';
 import ConfirmationStep from '@/components/registration/ConfirmationStep';
 import { RegistrationProgress } from '@/components/registration/RegistrationProgress';
 import PDFSummary from '@/components/registration/PDFSummary';
 import PoliticasModal from '@/components/registration/PoliticasModal';
+// ... otras importaciones
 import HealthCenters from '@/components/dashboard/HealthCenters';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 import ApplicationProcedureSection from '@/components/registration/ApplicationProcedureSection';
 import ProcedureModal from '@/components/registration/ProcedureModal';
 
+// ...
+
+// Schema de validación
 const formSchema = z.object({
   nombre: z.string().min(2, "El nombre es requerido"),
   apellidos: z.string().min(2, "Los apellidos son requeridos"),
@@ -54,37 +59,16 @@ const formSchema = z.object({
   distrito_sanitario: z.string().optional(),
   pertenece_brigada_medica: z.boolean().default(false),
   tipo_cooperacion: z.string().optional(),
-  
-  foto_carnet: z.any()
-    .refine((files: FileList | undefined) => files && files.length > 0, "La foto de carnet es obligatoria.")
-    .refine((files: FileList | undefined) => files?.[0]?.size <= 2 * 1024 * 1024, `La foto debe ser menor de 2MB.`)
-    .refine(
-      (files: FileList | undefined) => files && ["image/jpeg", "image/jpg", "image/png"].includes(files[0]?.type),
-      "Formato de foto no válido (solo JPG/PNG)."
-    ),
-  
-  documentos_adicionales: z.any()
-    .refine((files: File[] | undefined) => {
-      if (!files || files.length === 0) return true;
-      return files.every((file: File) => file.size <= 5 * 1024 * 1024);
-    }, `Cada documento debe ser menor de 5MB.`)
-    .refine(
-      (files: File[] | undefined) => {
-        if (!files || files.length === 0) return true;
-        return files.every((file: File) => ["application/pdf", "image/jpeg", "image/jpg", "image/png"].includes(file.type));
-      },
-      "Formato de documento no válido (solo PDF, JPG, PNG)."
-    )
-    .optional(),
-
+  documentos: z.any().optional(),
   acepta_politicas: z.boolean().refine(val => val === true, "Debe aceptar las políticas")
 })
 .superRefine((data, ctx) => {
+  // Aquí va tu lógica superRefine para DIP/Pasaporte
   if (!data.nacionalidad || data.nacionalidad.trim() === "") {
     return;
   }
 
-  if (data.nacionalidad === "Ecuatoguineana") {
+  if (data.nacionalidad === "Ecuatoguineana") { // Asegúrate de que el valor coincida exactamente
     if (!data.numero_dip || data.numero_dip.trim() === "") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -102,9 +86,7 @@ const formSchema = z.object({
     }
   }
 });
-
 type FormData = z.infer<typeof formSchema>;
-
 const steps = [
   { id: 1, title: "Datos Personales", icon: User },
   { id: 2, title: "Domicilio", icon: Home },
@@ -117,10 +99,10 @@ const steps = [
 const stepFields: { [key: number]: (keyof FormData)[] } = {
   1: ['nombre', 'apellidos', 'genero', 'fecha_nacimiento', 'nacionalidad', 'numero_dip', 'numero_pasaporte', 'telefono'],
   2: ['domicilio', 'provincia', 'distrito'],
-  3: ['area_profesional', 'categoria_titulacion', 'titulacion_especifica_1', 'institucion_1', 'periodo_formacion', 'pais_formacion_1', 'especialidad'],
-  4: ['situacion_laboral', 'nombre_centro', 'categoria_centro', 'tipo_sector', 'distrito_sanitario', 'tipo_cooperacion', 'pertenece_brigada_medica'],
-  5: ['foto_carnet', 'documentos_adicionales', 'acepta_politicas'],
-  6: []
+  3: ['area_profesional', 'categoria_titulacion', 'titulacion_especifica_1', 'institucion_1', 'periodo_formacion', 'pais_formacion_1', 'especialidad'], // Añade 'especialidad' si es parte de este paso y necesitas validarlo
+  4: ['situacion_laboral', 'nombre_centro', 'categoria_centro', 'tipo_sector', 'distrito_sanitario', 'tipo_cooperacion'], // Añade campos condicionales si son validados aquí
+  5: ['documentos', 'acepta_politicas'], // Asumiendo que 'documentos' y 'acepta_politicas' son manejados o validados aquí
+  6: [] // El paso de confirmación generalmente no tiene campos propios para validar al avanzar
 };
 
 const ProfessionalRegistration = () => {
@@ -149,7 +131,7 @@ const ProfessionalRegistration = () => {
       pertenece_brigada_medica: false,
       acepta_politicas: false,
       situacion_laboral: 'Activo',
-      nacionalidad: "Ecuatoguineana",
+      nacionalidad: "Ecuatoguineana"
     }
   });
 
@@ -158,43 +140,35 @@ const ProfessionalRegistration = () => {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     setUploadedFiles(prev => [...prev, ...files]);
-    form.setValue('documentos_adicionales', [...(form.getValues('documentos_adicionales') || []), ...files]);
   };
 
   const removeFile = (index: number) => {
-    const updatedFiles = uploadedFiles.filter((_, i) => i !== index);
-    setUploadedFiles(updatedFiles);
-    form.setValue('documentos_adicionales', updatedFiles);
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) {
-      setPhotoFile(null);
-      setFotoCarnetBase64(null);
-      form.setValue('foto_carnet', undefined);
-      return;
-    }
+    if (!file) return;
 
     setPhotoFile(file);
+
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result as string;
       setFotoCarnetBase64(base64);
     };
     reader.readAsDataURL(file);
-    form.setValue('foto_carnet', [file]);
   };
 
   const removePhoto = () => {
     setPhotoFile(null);
     setFotoCarnetBase64(null);
-    form.setValue('foto_carnet', undefined);
   };
 
   const onSubmit = async (data: FormData) => {
     console.log('onSubmit called with data:', data);
     
+    // Prevenir envío múltiple
     if (solicitudEnviada) {
       toast({
         title: "Solicitud ya enviada",
@@ -204,37 +178,46 @@ const ProfessionalRegistration = () => {
       return;
     }
 
-    if (!photoFile) { 
+    if (!photoFile) {
       setErrorEnvio("La foto tipo carnet es obligatoria para enviar la solicitud.");
       toast({
         title: "Requisito Faltante",
-        description: "Por favor, suba su foto tipo carnet para enviar la solicitud.",
-        variant: "destructive",
+      description: "Por favor, suba su foto tipo carnet para enviar la solicitud.",
+      variant: "destructive",
       });
-      setIsSubmitting(false);
-      return;
-    }
-    
+      setIsSubmitting(false); // Asegurarse de que el spinner desaparezca
+    return; // Detener el envío
+  }
+      
+
     setIsSubmitting(true);
-    setErrorEnvio('');
+    setErrorEnvio(''); // Limpiar errores previos
     
     try {
-      console.log('Iniciando proceso de envío de formulario y documentos...');
+      console.log('Iniciando proceso de envío de formulario...');
       
-      const profesionalId = uuidv4(); 
-
-      const fotoUrl = await uploadFile(photoFile!, `fotos-carnet/${profesionalId}`);
+      // Subir foto a Supabase Storage
+      const fotoUrl = await uploadFile(photoFile, 'fotos-carnet');
       if (!fotoUrl) {
-        throw new Error('Error al subir la foto de carnet.');
+        throw new Error('Error al subir la foto');
       }
-      console.log('Foto de carnet subida:', fotoUrl);
 
+      // Calcular edad
       const birthDate = new Date(data.fecha_nacimiento);
       const age = new Date().getFullYear() - birthDate.getFullYear();
+
+      // Generar código de barras único
       const codigoBarras = `GEQ${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
+      // Preparar datos de documentos
+      const documentosData = uploadedFiles.map(file => ({
+        nombre: file.name,
+        tipo: file.type,
+        tamaño: file.size
+      }));
+
+      // Crear objeto con los datos del formulario
       const submissionData = {
-        id: profesionalId,
         nombre_completo: `${data.nombre} ${data.apellidos}`,
         nombre: data.nombre,
         apellidos: data.apellidos,
@@ -262,13 +245,14 @@ const ProfessionalRegistration = () => {
         distrito_sanitario: data.distrito_sanitario || null,
         pertenece_brigada_medica: data.pertenece_brigada_medica,
         tipo_cooperacion: data.tipo_cooperacion || null,
+        documentos_cargados: documentosData,
         foto_carnet: fotoUrl,
         codigo_barras: codigoBarras,
         estado_solicitud: 'Pendiente' as const,
         fecha_solicitud: new Date().toISOString().split('T')[0]
       };
 
-      console.log('Datos a insertar en Supabase (registro principal):', submissionData);
+      console.log('Datos a enviar a Supabase:', submissionData);
 
       const { data: result, error } = await supabase
         .from('profesionales_sanitarios')
@@ -277,63 +261,18 @@ const ProfessionalRegistration = () => {
         .single();
 
       if (error) {
-        console.error('Error de Supabase al insertar registro principal:', error);
-        throw new Error(`Error de base de datos al guardar datos: ${error.message}`);
+        console.error('Error de Supabase:', error);
+        throw new Error(`Error de base de datos: ${error.message}`);
       }
 
-      console.log('Resultado exitoso de inserción principal:', result);
+      console.log('Resultado exitoso de Supabase:', result);
 
-      if (uploadedFiles.length > 0) {
-        const edgeFunctionDocsUrl = 'https://wdieynendfjbkbhfovrx.supabase.co/functions/v1/upload-documentos-adicionales'; 
-        
-        const docsFormData = new FormData();
-        docsFormData.append('profesional_id', profesionalId);
-        
-        uploadedFiles.forEach((file, index) => {
-          docsFormData.append(`documentos_adicionales[${index}]`, file);
-        });
-
-        const session = await supabase.auth.getSession();
-        const accessToken = session.data.session?.access_token;
-
-        if (!accessToken) {
-          throw new Error('No se encontró token de autenticación de Supabase para documentos adicionales.');
-        }
-
-        const docsResponse = await fetch(edgeFunctionDocsUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: docsFormData,
-        });
-
-        if (!docsResponse.ok) {
-          const docsErrorData = await docsResponse.json().catch(() => ({ message: 'Error desconocido al parsear la respuesta de la función Edge.' }));
-          console.error('Error al enviar documentos adicionales a la función Edge:', docsErrorData);
-          throw new Error(docsErrorData.message || `Error al subir documentos adicionales: ${docsResponse.statusText}`);
-        }
-
-        const docsResult = await docsResponse.json();
-        console.log('Respuesta exitosa de la Función Edge para documentos adicionales:', docsResult);
-        setFormDataForPDF(prev => ({
-          ...prev,
-          documentos_adicionales_urls: docsResult?.uploaded_urls || uploadedFiles.map(f => f.name)
-        }));
-      } else {
-        const { error: updateDocsError } = await supabase
-          .from('profesionales_sanitarios')
-          .update({ documentos_adicionales: [] })
-          .eq('id', profesionalId);
-        if (updateDocsError) {
-          console.error('Error al actualizar documentos_adicionales a vacío:', updateDocsError);
-        }
-      }
-
+      // Marcar solicitud como enviada
       setSolicitudEnviada(true);
 
-      setFormDataForPDF(prev => ({
-        ...prev,
+      // Actualizar el estado interno con los datos para el PDF
+      setFormDataForPDF({
+        ...data,
         photoFile,
         foto_carnet: fotoUrl,
         foto_carnet_base64: fotoCarnetBase64,
@@ -341,7 +280,7 @@ const ProfessionalRegistration = () => {
         codigo_expediente: result.codigo_expediente,
         edad: age,
         submittedData: result
-      }));
+      });
 
       toast({
         title: "¡Solicitud enviada exitosamente!",
@@ -349,7 +288,7 @@ const ProfessionalRegistration = () => {
       });
       setShowProcedureModal(true);
 
-      setCurrentStep(6);
+      setCurrentStep(6); // Ir al step de confirmación
     } catch (error: any) {
       console.error('Error completo al enviar formulario:', error);
       const errorMessage = error.message || 'Error desconocido al procesar la solicitud';
@@ -361,37 +300,39 @@ const ProfessionalRegistration = () => {
         variant: "destructive",
       });
       
-      setCurrentStep(6);
+      setCurrentStep(6); // Ir al step de confirmación para mostrar el error
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const nextStep = async () => {
-    const fieldsToValidate = stepFields[currentStep];
+  const fieldsToValidate = stepFields[currentStep];
 
-    if (!fieldsToValidate || fieldsToValidate.length === 0) {
-      if (currentStep < steps.length) {
-        setCurrentStep(currentStep + 1);
-      }
-      return;
+  // Si no hay campos definidos para el paso actual, simplemente avanza
+  if (!fieldsToValidate || fieldsToValidate.length === 0) {
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1);
     }
+    return;
+  }
 
-    const isValid = await form.trigger(fieldsToValidate as any); 
+  // Valida solo los campos del paso actual
+  const isValid = await form.trigger(fieldsToValidate as any); // 'as any' puede ser necesario por el tipo de 'keyof FormData'
 
-    if (isValid) {
-      if (currentStep < steps.length) {
-        setCurrentStep(currentStep + 1);
-      }
-    } else {
-      toast({
-        title: "Campos incompletos o incorrectos",
-        description: "Por favor, complete correctamente todos los campos obligatorios del paso actual antes de avanzar.",
-        variant: "destructive",
-      });
-      console.error("Errores de validación al avanzar de paso:", form.formState.errors);
+  if (isValid) {
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1);
     }
-  };
+  } else {
+    toast({
+      title: "Campos incompletos o incorrectos",
+      description: "Por favor, complete correctamente todos los campos obligatorios del paso actual antes de avanzar.",
+      variant: "destructive",
+    });
+    console.error("Errores de validación al avanzar de paso:", form.formState.errors);
+  }
+};
 
   const prevStep = () => {
     if (currentStep > 1) {

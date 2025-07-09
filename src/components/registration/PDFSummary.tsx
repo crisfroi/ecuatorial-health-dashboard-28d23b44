@@ -1,137 +1,295 @@
-import React from 'react';
-import { BarcodeGenerator } from '@/components/BarcodeGenerator'; // Importa ang iyong BarcodeGenerator component
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Ipinapalagay na ginagamit mo ang mga UI component na ito
+ import React from 'react';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+import { FileText, User } from 'lucide-react';
+
+import { BarcodeGenerator } from './BarcodeGenerator'; // Asegúrate de que BarcodeGenerator.tsx está en la misma carpeta
+
+
 
 interface PDFSummaryProps {
-  formData: any; // Ang data ng buong form
+
+  formData: any;
+
 }
 
-const PDFSummary: React.FC<PDFSummaryProps> = ({ formData }) => {
-  // Siguraduhin na ang formData.codigo_expediente ay umiiral bago subukang gamitin ito
-  const codigoExpediente = formData?.codigo_expediente;
-  const fotoCarnetUrl = formData?.foto_carnet; // Ang URL ng larawang na-upload sa Supabase
-  const documentosAdicionalesUrls = formData?.documentos_adicionales_urls || []; // Mga URL ng karagdagang dokumento
 
-  return (
-    <div className="p-6 bg-white rounded-lg shadow-md max-w-2xl mx-auto my-8">
-      <h1 className="text-3xl font-bold text-center text-gray-900 mb-6">Resumen de Solicitud</h1>
-      <p className="text-center text-gray-600 mb-8">
-        Dito mo maaaring suriin ang lahat ng data ng iyong aplikasyon bago magtapos.
-      </p>
 
-      {/* Seksyon ng Código de Expediente at Barcode */}
-      {codigoExpediente && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold text-gray-800">Código de Expediente</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-2xl font-mono font-bold text-blue-700 mb-4">{codigoExpediente}</p>
-            <div className="flex justify-center">
-              {/* Ginagamit ang iyong BarcodeGenerator dito, ipinapasa ang codigoExpediente */}
-              <BarcodeGenerator code={codigoExpediente} width={250} height={80} className="border p-2 rounded" />
-            </div>
-            <p className="text-sm text-gray-500 mt-2">Ito ang iyong natatanging identifier ng aplikasyon.</p>
-          </CardContent>
-        </Card>
-      )}
+const PDFSummary = ({ formData }: PDFSummaryProps) => {
 
-      {/* Personal Data */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold text-gray-800">Datos Personales</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
-          <p><strong>Nombre Completo:</strong> {formData.nombre_completo}</p>
-          <p><strong>Género:</strong> {formData.genero}</p>
-          <p><strong>Fecha de Nacimiento:</strong> {formData.fecha_nacimiento}</p>
-          <p><strong>Edad:</strong> {formData.edad} años</p>
-          <p><strong>Nacionalidad:</strong> {formData.nacionalidad}</p>
-          {formData.numero_dip && <p><strong>Número DIP:</strong> {formData.numero_dip}</p>}
-          {formData.numero_pasaporte && <p><strong>Número Pasaporte:</strong> {formData.numero_pasaporte}</p>}
-          <p><strong>Teléfono:</strong> {formData.telefono}</p>
-        </CardContent>
-      </Card>
+  return (
 
-      {/* Address */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold text-gray-800">Domicilio</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
-          <p><strong>Domicilio:</strong> {formData.domicilio}</p>
-          <p><strong>Provincia:</strong> {formData.provincia}</p>
-          <p><strong>Distrito:</strong> {formData.distrito}</p>
-        </CardContent>
-      </Card>
+    <div className="space-y-2"> {/* Reducido de space-y-4 a space-y-2 */}
 
-      {/* Education */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold text-gray-800">Formación</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
-          <p><strong>Área Profesional:</strong> {formData.area_profesional}</p>
-          {formData.especialidad && <p><strong>Especialidad:</strong> {formData.especialidad}</p>}
-          <p><strong>Categoría Titulación:</strong> {formData.categoria_titulacion}</p>
-          <p><strong>Titulación Específica:</strong> {formData.titulacion_especifica_1}</p>
-          <p><strong>Institución:</strong> {formData.institucion_1}</p>
-          <p><strong>Período de Formación:</strong> {formData.periodo_formacion}</p>
-          <p><strong>País de Formación:</strong> {formData.pais_formacion_1}</p>
-        </CardContent>
-      </Card>
+      <div className="bg-white p-4 space-y-3" style={{ minHeight: '297mm' }}> {/* Reducido de p-6 a p-4 y space-y-4 a space-y-3 */}
 
-      {/* Work Situation */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold text-gray-800">Situación Laboral</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
-          <p><strong>Situación Laboral:</strong> {formData.situacion_laboral}</p>
-          {formData.nombre_centro && <p><strong>Nombre del Centro:</strong> {formData.nombre_centro}</p>}
-          {formData.categoria_centro && <p><strong>Categoría del Centro:</strong> {formData.categoria_centro}</p>}
-          {formData.tipo_sector && <p><strong>Tipo de Sector:</strong> {formData.tipo_sector}</p>}
-          {formData.distrito_sanitario && <p><strong>Distrito Sanitario:</strong> {formData.distrito_sanitario}</p>}
-          <p><strong>Pertenece a Brigada Médica:</strong> {formData.pertenece_brigada_medica ? 'Sí' : 'No'}</p>
-          {formData.tipo_cooperacion && <p><strong>Tipo de Cooperación:</strong> {formData.tipo_cooperacion}</p>}
-        </CardContent>
-      </Card>
+        {/* Encabezado oficial */}
 
-      {/* Documents */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold text-gray-800">Documentos</CardTitle>
-        </CardHeader>
-        <CardContent className="text-gray-700">
-          <p className="mb-3"><strong>Foto de Carnet:</strong></p>
-          {fotoCarnetUrl ? (
-            <img src={fotoCarnetUrl} alt="Foto de Carnet" className="max-w-[150px] max-h-[150px] rounded-md shadow-sm mb-4" />
-          ) : (
-            <p className="text-red-500">Hindi na-load ang larawan ng ID.</p>
-          )}
+        <div className="text-center border-b-2 border-gray-300 pb-3 mb-3"> {/* Reducido pb-4 mb-4 a pb-3 mb-3 */}
 
-          <p className="mb-3 mt-4"><strong>Karagdagang Dokumento:</strong></p>
-          {documentosAdicionalesUrls.length > 0 ? (
-            <ul className="list-disc pl-5 space-y-1">
-              {documentosAdicionalesUrls.map((url: string, index: number) => (
-                <li key={index}>
-                  <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                    Dokumento {index + 1}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Walang karagdagang dokumento na nakalakip.</p>
-          )}
-        </CardContent>
-      </Card>
+          <h1 className="text-lg font-bold text-guinea-teal mb-0.5"> {/* Reducido text-xl a text-lg, mb-1 a mb-0.5 */}
 
-      <p className="text-center text-gray-500 text-sm mt-8">
-        Pagtanggap ng mga patakaran: {formData.acepta_politicas ? 'Oo' : 'Hindi'}
-      </p>
-    </div>
-  );
+            MINISTERIO DE SANIDAD Y BIENESTAR SOCIAL
+
+          </h1>
+
+          <h2 className="text-sm font-semibold text-gray-700 mb-0.5"> {/* Reducido text-base a text-sm, mb-1 a mb-0.5 */}
+
+            REPÚBLICA DE GUINEA ECUATORIAL
+
+          </h2>
+
+          <h3 className="text-xs font-medium text-gray-600"> {/* Reducido text-sm a text-xs */}
+
+            SOLICITUD DE ACREDITACIÓN PROFESIONAL SANITARIA
+
+          </h3>
+
+          {formData.codigo_expediente && (
+
+            <div className="mt-2"> {/* Reducido mt-3 a mt-2 */}
+
+              <p className="text-xs font-medium text-gray-600 mb-0.5"> {/* Reducido mb-1 a mb-0.5 */}
+
+                Código de Expediente: {formData.codigo_expediente}
+
+              </p>
+
+            </div>
+
+          )}
+
+        </div>
+
+
+
+        {/* Layout optimizado: Foto + Datos personales + Código de barras */}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4"> {/* Reducido gap-4 a gap-3, mb-6 a mb-4 */}
+
+          {/* Foto carnet */}
+
+          <div className="flex flex-col items-center space-y-2"> {/* Reducido space-y-3 a space-y-2 */}
+
+            {formData.foto_carnet_base64 && (
+
+              <div className="w-24 h-32 border-2 border-gray-300 rounded overflow-hidden"> {/* Reducido w-28 h-36 a w-24 h-32 */}
+
+                <img 
+
+                  src={formData.foto_carnet_base64} 
+
+                  alt="Foto carnet"
+
+                  className="w-full h-full object-cover"
+
+                />
+
+              </div>
+
+            )}
+
+            {/* Código de barras debajo de la foto */}
+
+            {formData.codigo_barras && (
+
+              <div className="flex flex-col items-center">
+
+                <BarcodeGenerator 
+
+                  code={formData.codigo_barras}
+
+                  width={120} // Reducido de 140
+
+                  height={35} // Reducido de 40
+
+                  className="mb-0.5"
+
+                  />
+
+                <p className="text-xs text-gray-600 text-center">Código de Barras</p>
+
+              </div>
+
+            )}
+
+          </div>
+
+
+
+          {/* Datos personales básicos */}
+
+          <div className="md:col-span-2 space-y-1.5"> {/* Reducido space-y-2 a space-y-1.5 */}
+
+            <h4 className="font-semibold text-base text-gray-800 mb-2">Datos Personales</h4> {/* Reducido mb-3 a mb-2 */}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs"> {/* Reducido gap-2 a gap-1.5 */}
+
+              <div><strong>Nombre completo:</strong> {formData.nombre} {formData.apellidos}</div>
+
+              <div><strong>Género:</strong> {formData.genero}</div>
+
+              <div><strong>Fecha de nacimiento:</strong> {formData.fecha_nacimiento}</div>
+
+              <div><strong>Edad:</strong> {formData.edad} años</div>
+
+              <div><strong>Nacionalidad:</strong> {formData.nacionalidad}</div>
+
+              <div><strong>Teléfono:</strong> {formData.telefono}</div>
+
+              {formData.numero_dip && <div><strong>Número DIP:</strong> {formData.numero_dip}</div>}
+
+              {formData.numero_pasaporte && <div><strong>Número Pasaporte:</strong> {formData.numero_pasaporte}</div>}
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        {/* Información de domicilio */}
+
+        <Card className="mb-2"> {/* Reducido mb-4 a mb-2 */}
+
+          <CardHeader className="py-2 px-3"> {/* Reducido py-3 px-4 a py-2 px-3 */}
+
+            <CardTitle className="text-sm">Información de Domicilio</CardTitle> {/* Reducido text-base a text-sm */}
+
+          </CardHeader>
+
+          <CardContent className="pt-1.5 px-3 pb-3"> {/* Reducido pt-2 px-4 pb-4 a pt-1.5 px-3 pb-3 */}
+
+            <div className="grid grid-cols-2 gap-1.5 text-xs"> {/* Reducido gap-2 a gap-1.5 */}
+
+              <div><strong>Domicilio:</strong> {formData.domicilio}</div>
+
+              <div><strong>Provincia:</strong> {formData.provincia}</div>
+
+              <div><strong>Distrito:</strong> {formData.distrito}</div>
+
+            </div>
+
+          </CardContent>
+
+        </Card>
+
+
+
+        {/* Información profesional */}
+
+        <Card className="mb-2"> {/* Reducido mb-4 a mb-2 */}
+
+          <CardHeader className="py-2 px-3">
+
+            <CardTitle className="text-sm">Información Profesional</CardTitle>
+
+          </CardHeader>
+
+          <CardContent className="pt-1.5 px-3 pb-3">
+
+            <div className="grid grid-cols-2 gap-1.5 text-xs">
+
+              <div><strong>Área profesional:</strong> {formData.area_profesional}</div>
+
+              {formData.especialidad && <div><strong>Especialidad:</strong> {formData.especialidad}</div>}
+
+              <div><strong>Categoría titulación:</strong> {formData.categoria_titulacion}</div>
+
+              <div><strong>Titulación:</strong> {formData.titulacion_especifica_1}</div>
+
+              <div><strong>Institución:</strong> {formData.institucion_1}</div>
+
+              <div><strong>Período formación:</strong> {formData.periodo_formacion}</div>
+
+              <div><strong>País formación:</strong> {formData.pais_formacion_1}</div>
+
+            </div>
+
+          </CardContent>
+
+        </Card>
+
+
+
+        {/* Información laboral */}
+
+        <Card className="mb-2"> {/* Reducido mb-4 a mb-2 */}
+
+          <CardHeader className="py-2 px-3">
+
+            <CardTitle className="text-sm">Información Laboral</CardTitle>
+
+          </CardHeader>
+
+          <CardContent className="pt-1.5 px-3 pb-3">
+
+            <div className="grid grid-cols-2 gap-1.5 text-xs">
+
+              <div><strong>Situación laboral:</strong> {formData.situacion_laboral}</div>
+
+              <div><strong>Centro de trabajo:</strong> {formData.nombre_centro}</div>
+
+              <div><strong>Categoría centro:</strong> {formData.categoria_centro}</div>
+
+              <div><strong>Tipo sector:</strong> {formData.tipo_sector}</div>
+
+              {formData.distrito_sanitario && <div><strong>Distrito sanitario:</strong> {formData.distrito_sanitario}</div>}
+
+              {formData.pertenece_brigada_medica && (
+
+                <div><strong>Brigada médica:</strong> {formData.tipo_cooperacion}</div>
+
+              )}
+
+            </div>
+
+          </CardContent>
+
+        </Card>
+
+
+
+        {/* Fecha y firma */}
+
+        <div className="mt-6 pt-4 border-t border-gray-300"> {/* Reducido mt-8 pt-6 a mt-6 pt-4 */}
+
+          <div className="flex justify-between items-end">
+
+            <div>
+
+              <p className="text-xs"><strong>Fecha de solicitud:</strong> {new Date().toLocaleDateString('es-ES')}</p>
+
+              {formData.codigo_expediente && (
+
+                <p className="text-xs"><strong>Código de expediente:</strong> {formData.codigo_expediente}</p>
+
+              )}
+
+            </div>
+
+            <div className="text-center">
+
+              <div className="border-t border-gray-400 w-36 mb-0.5"></div> {/* Reducido w-40 a w-36, mb-1 a mb-0.5 */}
+
+              <p className="text-xs">Firma del solicitante</p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  );
+
 };
+
+
 
 export default PDFSummary;

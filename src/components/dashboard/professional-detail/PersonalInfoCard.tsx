@@ -86,7 +86,7 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
         
         <div className="text-center">
           <div className="inline-block bg-gray-100 p-4 rounded-lg">
-            <div className="font-mono text-sm">{professional.codigo_barras || 'No generado'}</div>
+            <div className="font-mono text-sm">{professional.url_codigo_barras || 'No generado'}</div>
             <div className="text-xs text-gray-600 mt-1">Código de barras único</div>
           </div>
         </div>

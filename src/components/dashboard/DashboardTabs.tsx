@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Activity, FileText, Users, TrendingUp, MessageCircle, AlertTriangle, Settings, UserCheck, Building2 } from 'lucide-react';
 
@@ -34,7 +33,14 @@ const DashboardTabs = ({ activeTab, onTabChange, userRole }: DashboardTabsProps)
             key={tab.id}
             variant={activeTab === tab.id ? "default" : "ghost"}
             onClick={() => onTabChange(tab.id)}
-            className="flex items-center space-x-2 h-10"
+            // AQUI ESTÁ EL CAMBIO: Añadimos clases para el hover
+            className={`
+              flex items-center space-x-2 h-10
+              ${activeTab === tab.id
+                ? '' // No clases adicionales si es la pestaña activa (ya tiene variant="default")
+                : 'hover:bg-primary/10 hover:text-primary' // Clases para hover si no es la pestaña activa
+              }
+            `}
           >
             <Icon className="w-4 h-4" />
             <span className="hidden sm:inline">{tab.label}</span>

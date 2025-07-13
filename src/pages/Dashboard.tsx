@@ -19,8 +19,8 @@ import {
   UserCog,
   Building2,
   AlertTriangle,
-  ChevronUp, // Icono para replegar
-  ChevronDown // Icono para desplegar
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -68,7 +68,7 @@ const Dashboard = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [dashboardFilters, setDashboardFilters] = useState<Filtros>({});
   const [activeTab, setActiveTab] = useState('overview');
-  const [showStatsCards, setShowStatsCards] = useState(true); // **Nuevo estado para las StatsCards**
+  const [showStatsCards, setShowStatsCards] = useState(true);
 
   const userRole = 'administrador';
   const userName = 'Admin User';
@@ -140,97 +140,10 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Contenedor del encabezado y la barra de pestañas (fija) */}
+      {/* Contenedor del TabsList (único elemento fijo) */}
       <div className="sticky top-0 z-50 bg-gray-50 shadow-md">
-        <div className="container mx-auto p-6 pb-0 space-y-6">
-          {/* Header */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard de Gestión</h1>
-              <p className="text-gray-600 mt-1">
-                Sistema de gestión de profesionales sanitarios
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* Botón para desplegar/replegar StatsCards */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowStatsCards(!showStatsCards)}
-                className="flex items-center gap-2"
-              >
-                {showStatsCards ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                {showStatsCards ? 'Replegar Estadísticas' : 'Desplegar Estadísticas'}
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2"
-              >
-                <Filter className="w-4 h-4" />
-                {showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
-              </Button>
-
-              {(Object.keys(appliedFilters).length > 0 || Object.keys(dashboardFilters).length > 0) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearFilters}
-                  className="flex items-center gap-2 text-red-600 hover:text-red-700"
-                >
-                  <X className="w-4 h-4" />
-                  Limpiar Filtros
-                </Button>
-              )}
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    <span className="hidden sm:inline">{userName}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleUserSettings}>
-                    <UserCog className="mr-2 h-4 w-4" />
-                    <span>Configuración</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-700 focus:bg-red-50">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Cerrar Sesión</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-
-          {/* Filters */}
-          {showFilters && (
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-lg">Filtros de Búsqueda</CardTitle>
-                <CardDescription>
-                  Filtra los datos del dashboard según tus criterios
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <DashboardFilters
-                  filters={appliedFilters}
-                  onFiltersChange={handleFiltersChange}
-                  onClearFilters={handleClearFilters}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Main Content con Tabs y TabsContent */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 mt-6">
+        <div className="container mx-auto p-4"> {/* Reducido el padding para que sea más compacto */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0"> {/* Eliminado mt-6 aquí */}
             <TabsList className="grid w-full grid-cols-5 md:grid-cols-10">
               {tabsConfig.map((tab) => {
                 const Icon = tab.icon;
@@ -256,19 +169,105 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Contenido de la página (desplazable) */}
-      <div className="container mx-auto p-6 pt-0 flex-grow">
-        {/* Stats Cards (AHORA FUERA DEL STICKY HEADER Y CONDICIONAL) */}
+      {/* Contenido principal de la página (desplazable) */}
+      <div className="container mx-auto p-6 pt-0 flex-grow"> {/* Añadido pt-0 para evitar doble padding */}
+
+        {/* Header y Botones de acción (ahora desplazables) */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard de Gestión</h1>
+            <p className="text-gray-600 mt-1">
+              Sistema de gestión de profesionales sanitarios
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Botón para desplegar/replegar StatsCards */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowStatsCards(!showStatsCards)}
+              className="flex items-center gap-2"
+            >
+              {showStatsCards ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {showStatsCards ? 'Replegar Estadísticas' : 'Desplegar Estadísticas'}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              {showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
+            </Button>
+
+            {(Object.keys(appliedFilters).length > 0 || Object.keys(dashboardFilters).length > 0) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+                className="flex items-center gap-2 text-red-600 hover:text-red-700"
+              >
+                <X className="w-4 h-4" />
+                Limpiar Filtros
+              </Button>
+            )}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  <span className="hidden sm:inline">{userName}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleUserSettings}>
+                  <UserCog className="mr-2 h-4 w-4" />
+                  <span>Configuración</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-700 focus:bg-red-50">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Cerrar Sesión</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Filters (ahora desplazables) */}
+        {showFilters && (
+          <Card className="mb-6"> {/* Ajustado a mb-6 para espacio */}
+            <CardHeader>
+              <CardTitle className="text-lg">Filtros de Búsqueda</CardTitle>
+              <CardDescription>
+                Filtra los datos del dashboard según tus criterios
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DashboardFilters
+                filters={appliedFilters}
+                onFiltersChange={handleFiltersChange}
+                onClearFilters={handleClearFilters}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Stats Cards (desplegables y desplazables) */}
         {showStatsCards && (
-          <div className="mb-6"> {/* Añadido margen inferior para separación */}
+          <div className="mb-6">
             <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
           </div>
         )}
 
+        {/* Contenido de las pestañas (se mantiene en el mismo componente Tabs) */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          {/* TabsContent debe estar en el mismo nivel que el componente Tabs */}
-          {/* TabsList ya está en el sticky header, no va aquí. */}
-
+          {/* Los TabsContent deben estar aquí */}
           <TabsContent value="overview" className="space-y-6">
             <DashboardCharts onChartClick={handleChartClick} />
           </TabsContent>

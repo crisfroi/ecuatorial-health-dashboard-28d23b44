@@ -20,19 +20,6 @@ const ProfessionalCardInfo = ({ professional, daysUntilRenewal, isRenewalSoon }:
           <span>Carnet Profesional</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Foto del profesional */}
-        {professional.foto_carnet && (
-          <div className="text-center">
-            <img 
-              src={professional.foto_carnet} 
-              alt="Foto profesional"
-              className="w-24 h-32 object-cover border-2 border-gray-300 rounded-lg mx-auto mb-2"
-            />
-            <p className="text-xs text-gray-500">Foto oficial</p>
-          </div>
-        )}
-
         <div className="text-center">
           <p className="text-sm font-medium text-gray-600 mb-1">Número de Carnet</p>
           <p className="font-mono text-lg font-bold text-blue-600">

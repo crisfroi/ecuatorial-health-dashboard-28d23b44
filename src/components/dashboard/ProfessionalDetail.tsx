@@ -109,9 +109,9 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
 
     let mensaje = '';
     if (tipoNotificacion === '30_dias_antes') {
-      mensaje = `Estimado/a ${professional.nombre_completo}, su carnet profesional vence el ${professional.fecha_validez_carnet || 'pronto'}. Por favor, renueve antes del vencimiento. Ministerio de Sanidad - Guinea Ecuatorial`;
+      mensaje = `Estimado/a ${professional.nombre_completo}, su carnet profesional vence el ${professional.fecha_caducidad || 'pronto'}. Por favor, renueve antes del vencimiento. Ministerio de Sanidad - Guinea Ecuatorial`;
     } else if (tipoNotificacion === '10_dias_despues') {
-      mensaje = `Estimado/a ${professional.nombre_completo}, su carnet profesional venció el ${professional.fecha_validez_carnet || 'recientemente'}. Debe renovar urgentemente. Contacte al Ministerio de Sanidad - Guinea Ecuatorial`;
+      mensaje = `Estimado/a ${professional.nombre_completo}, su carnet profesional venció el ${professional.fecha_caducidad || 'recientemente'}. Debe renovar urgentemente. Contacte al Ministerio de Sanidad - Guinea Ecuatorial`;
     }
 
     try {
@@ -176,7 +176,7 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
           <NotificationAlerts
             isRenewalSoon={isRenewalSoon}
             daysUntilRenewal={daysUntilRenewal}
-            validityDate={professional.fecha_validez_carnet}
+            validityDate={professional.fecha_caducidad}
             notificationCount={notificationCount}
             onSendSMS={handleSendSMS}
           />

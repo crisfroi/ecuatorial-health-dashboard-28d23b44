@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // ¡Mantener estas importaciones!
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
   BarChart3,
@@ -17,8 +17,10 @@ import {
   User,
   LogOut,
   UserCog,
-  Building2, // Asegúrate de que Building2 esté importado aquí
-  AlertTriangle // Asegúrate de que AlertTriangle esté importado aquí
+  Building2,
+  AlertTriangle,
+  ChevronUp, // Icono para replegar
+  ChevronDown // Icono para desplegar
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -45,11 +47,6 @@ import HospitalIncidents from '@/components/dashboard/HospitalIncidents';
 import HealthCenters from '@/components/dashboard/HealthCenters';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 
-// Ya no necesitamos importar DashboardTabsComponent aquí si sus 'tabs' se usan directamente en TabsList
-// O podemos adaptar DashboardTabsComponent para que solo devuelva los TabsTrigger
-// Por simplicidad, volveremos a un enfoque más integrado para TabsList y TabsTrigger.
-
-// Types - using the full database type
 import type { Tables } from '@/integrations/supabase/types';
 
 type Profesional = Tables<'profesionales_sanitarios'>;
@@ -71,8 +68,9 @@ const Dashboard = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [dashboardFilters, setDashboardFilters] = useState<Filtros>({});
   const [activeTab, setActiveTab] = useState('overview');
+  const [showStatsCards, setShowStatsCards] = useState(true); // **Nuevo estado para las StatsCards**
 
-  const userRole = 'administrador'; // o 'comite', 'revisor'
+  const userRole = 'administrador';
   const userName = 'Admin User';
 
   const handleSelectProfessional = (professional: Profesional) => {
@@ -125,27 +123,26 @@ const Dashboard = () => {
     console.log("Configuración de usuario");
   };
 
-  // Definición de las pestañas (similar a como lo tenías en DashboardTabsComponent)
   const tabsConfig = [
-    { id: 'overview', label: 'Panel Principal', icon: BarChart3 }, // Cambiado a BarChart3
+    { id: 'overview', label: 'General', icon: BarChart3 },
     { id: 'professionals', label: 'Profesionales', icon: Users },
     { id: 'requests', label: 'Solicitudes', icon: FileText },
-    { id: 'renewals', label: 'Renovaciones', icon: Calendar }, // Mantener Calendar
+    { id: 'renewals', label: 'Renovaciones', icon: Calendar },
     { id: 'analytics', label: 'Analíticas', icon: TrendingUp },
     { id: 'ai-chat', label: 'IA Chat', icon: MessageSquare },
-    { id: 'ministerial', label: 'Ministerial', icon: Settings }, // Usar Settings
-    { id: 'incidents', label: 'Incidencias', icon: Activity }, // Usar Activity
-    { id: 'health-centers', label: 'Centros', icon: MapPin }, // Usar MapPin
+    { id: 'ministerial', label: 'Ministerial', icon: Settings },
+    { id: 'incidents', label: 'Incidencias', icon: Activity },
+    { id: 'health-centers', label: 'Centros', icon: MapPin },
     ...(userRole === 'administrador' ? [
-        { id: 'users', label: 'Usuarios', icon: Users } // Usar Users para usuarios
+        { id: 'users', label: 'Usuarios', icon: Users }
     ] : [])
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col"> {/* AÑADIDO: flex flex-col */}
-      {/* Contenedor del encabezado y la barra de pestañas para hacerla fija */}
-      <div className="sticky top-0 z-50 bg-gray-50 shadow-md"> {/* CLASE PRINCIPAL PARA FIJAR */}
-        <div className="container mx-auto p-6 pb-0 space-y-6"> {/* Ajustado padding */}
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Contenedor del encabezado y la barra de pestañas (fija) */}
+      <div className="sticky top-0 z-50 bg-gray-50 shadow-md">
+        <div className="container mx-auto p-6 pb-0 space-y-6">
           {/* Header */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
@@ -156,6 +153,17 @@ const Dashboard = () => {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Botón para desplegar/replegar StatsCards */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowStatsCards(!showStatsCards)}
+                className="flex items-center gap-2"
+              >
+                {showStatsCards ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                {showStatsCards ? 'Replegar Estadísticas' : 'Desplegar Estadísticas'}
+              </Button>
+
               <Button
                 variant="outline"
                 size="sm"
@@ -178,7 +186,6 @@ const Dashboard = () => {
                 </Button>
               )}
 
-              {/* Dropdown de usuario */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="flex items-center gap-2">
@@ -205,7 +212,7 @@ const Dashboard = () => {
 
           {/* Filters */}
           {showFilters && (
-            <Card className="mt-6"> {/* Añadido mt-6 para espacio */}
+            <Card className="mt-6">
               <CardHeader>
                 <CardTitle className="text-lg">Filtros de Búsqueda</CardTitle>
                 <CardDescription>
@@ -222,15 +229,9 @@ const Dashboard = () => {
             </Card>
           )}
 
-          {/* Stats Cards (Mantenemos aquí, pero puedes moverlo si no quieres que sea fijo) */}
-          <div className="mt-6"> {/* Margen superior para separar de los filtros */}
-            <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
-          </div>
-
           {/* Main Content con Tabs y TabsContent */}
-          {/* El componente Tabs ahora engloba todo el sistema de pestañas */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 mt-6"> {/* Añadido mt-6 */}
-            <TabsList className="grid w-full grid-cols-5 md:grid-cols-10"> {/* Ajusta grid-cols según necesites, 5 o 10 */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 mt-6">
+            <TabsList className="grid w-full grid-cols-5 md:grid-cols-10">
               {tabsConfig.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -240,8 +241,8 @@ const Dashboard = () => {
                     className={`
                       flex items-center gap-2
                       ${activeTab === tab.id
-                        ? '' // No clases adicionales si es la pestaña activa (ya tiene variant="default" implícito en TabsTrigger)
-                        : 'hover:bg-primary/10 hover:text-primary' // Clases para hover si no es la pestaña activa
+                        ? ''
+                        : 'hover:bg-primary/10 hover:text-primary'
                       }
                     `}
                   >
@@ -252,14 +253,21 @@ const Dashboard = () => {
               })}
             </TabsList>
           </Tabs>
-        </div> {/* Fin container para el sticky header */}
-      </div> {/* Fin sticky div */}
+        </div>
+      </div>
 
-      {/* Contenido de las pestañas (Fuera del contenedor fijo del encabezado) */}
-      <div className="container mx-auto p-6 pt-0 flex-grow"> {/* pt-0 para evitar doble padding, flex-grow para ocupar espacio */}
+      {/* Contenido de la página (desplazable) */}
+      <div className="container mx-auto p-6 pt-0 flex-grow">
+        {/* Stats Cards (AHORA FUERA DEL STICKY HEADER Y CONDICIONAL) */}
+        {showStatsCards && (
+          <div className="mb-6"> {/* Añadido margen inferior para separación */}
+            <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
+          </div>
+        )}
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          {/* Nota: TabsList ya está en el sticky header, no va aquí. */}
-          {/* Los TabsContent deben estar dentro del mismo componente Tabs */}
+          {/* TabsContent debe estar en el mismo nivel que el componente Tabs */}
+          {/* TabsList ya está en el sticky header, no va aquí. */}
 
           <TabsContent value="overview" className="space-y-6">
             <DashboardCharts onChartClick={handleChartClick} />

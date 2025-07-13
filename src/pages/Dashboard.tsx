@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // Mantendremos TabsList y TabsTrigger si no usas el componente DashboardTabs directamente aquí para las Tabs
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // ¡Mantener estas importaciones!
 import { Button } from '@/components/ui/button';
 import {
   BarChart3,
@@ -14,13 +14,14 @@ import {
   MessageSquare,
   Filter,
   X,
-  User, // Añadido para el botón de usuario
-  LogOut, // Añadido para cerrar sesión
-  UserCog // Añadido para configuración de usuario
+  User,
+  LogOut,
+  UserCog,
+  Building2, // Asegúrate de que Building2 esté importado aquí
+  AlertTriangle // Asegúrate de que AlertTriangle esté importado aquí
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-// Importar componentes de DropdownMenu
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,8 +45,9 @@ import HospitalIncidents from '@/components/dashboard/HospitalIncidents';
 import HealthCenters from '@/components/dashboard/HealthCenters';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 
-// Suponiendo que has movido el componente de pestañas a su propio archivo
-import DashboardTabsComponent from '@/components/dashboard/DashboardTabs'; // Importamos tu nuevo componente de pestañas
+// Ya no necesitamos importar DashboardTabsComponent aquí si sus 'tabs' se usan directamente en TabsList
+// O podemos adaptar DashboardTabsComponent para que solo devuelva los TabsTrigger
+// Por simplicidad, volveremos a un enfoque más integrado para TabsList y TabsTrigger.
 
 // Types - using the full database type
 import type { Tables } from '@/integrations/supabase/types';
@@ -68,11 +70,10 @@ const Dashboard = () => {
   const [appliedFilters, setAppliedFilters] = useState<Filtros>({});
   const [showFilters, setShowFilters] = useState(false);
   const [dashboardFilters, setDashboardFilters] = useState<Filtros>({});
-  const [activeTab, setActiveTab] = useState('overview'); // **Nuevo estado para la pestaña activa**
+  const [activeTab, setActiveTab] = useState('overview');
 
-  // Simular rol de usuario (en una app real vendría de auth)
   const userRole = 'administrador'; // o 'comite', 'revisor'
-  const userName = 'Admin User'; // Simulación del nombre de usuario logueado
+  const userName = 'Admin User';
 
   const handleSelectProfessional = (professional: Profesional) => {
     setSelectedProfessional(professional);
@@ -95,7 +96,6 @@ const Dashboard = () => {
     console.log('Dashboard: Stats card clicked with filter:', filter);
     setDashboardFilters(filter);
     setAppliedFilters(filter);
-    // **Ahora cambiamos la pestaña activa a través del estado**
     setActiveTab('professionals');
   };
 
@@ -113,28 +113,39 @@ const Dashboard = () => {
 
     setDashboardFilters(filter);
     setAppliedFilters(filter);
-    // **Ahora cambiamos la pestaña activa a través del estado**
     setActiveTab('professionals');
   };
 
-  // Funciones para el botón de usuario (simuladas)
   const handleLogout = () => {
     console.log("Cerrar sesión");
-    // Lógica para cerrar sesión (e.g., limpiar token, redirigir)
-    navigate('/login'); // Redirigir a la página de login
+    navigate('/login');
   };
 
   const handleUserSettings = () => {
     console.log("Configuración de usuario");
-    // Lógica para abrir modal o redirigir a página de configuración
-    // navigate('/user-settings');
   };
 
+  // Definición de las pestañas (similar a como lo tenías en DashboardTabsComponent)
+  const tabsConfig = [
+    { id: 'overview', label: 'Panel Principal', icon: BarChart3 }, // Cambiado a BarChart3
+    { id: 'professionals', label: 'Profesionales', icon: Users },
+    { id: 'requests', label: 'Solicitudes', icon: FileText },
+    { id: 'renewals', label: 'Renovaciones', icon: Calendar }, // Mantener Calendar
+    { id: 'analytics', label: 'Analíticas', icon: TrendingUp },
+    { id: 'ai-chat', label: 'IA Chat', icon: MessageSquare },
+    { id: 'ministerial', label: 'Ministerial', icon: Settings }, // Usar Settings
+    { id: 'incidents', label: 'Incidencias', icon: Activity }, // Usar Activity
+    { id: 'health-centers', label: 'Centros', icon: MapPin }, // Usar MapPin
+    ...(userRole === 'administrador' ? [
+        { id: 'users', label: 'Usuarios', icon: Users } // Usar Users para usuarios
+    ] : [])
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col"> {/* AÑADIDO: flex flex-col */}
       {/* Contenedor del encabezado y la barra de pestañas para hacerla fija */}
-      <div className="sticky top-0 z-50 bg-gray-50 pb-4 shadow-md"> {/* AÑADIDO: sticky top-0 z-50 y pb-4 shadow-md */}
-        <div className="container mx-auto p-6 space-y-6">
+      <div className="sticky top-0 z-50 bg-gray-50 shadow-md"> {/* CLASE PRINCIPAL PARA FIJAR */}
+        <div className="container mx-auto p-6 pb-0 space-y-6"> {/* Ajustado padding */}
           {/* Header */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
@@ -167,7 +178,7 @@ const Dashboard = () => {
                 </Button>
               )}
 
-              {/* AÑADIDO: Dropdown de usuario */}
+              {/* Dropdown de usuario */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="flex items-center gap-2">
@@ -194,7 +205,7 @@ const Dashboard = () => {
 
           {/* Filters */}
           {showFilters && (
-            <Card>
+            <Card className="mt-6"> {/* Añadido mt-6 para espacio */}
               <CardHeader>
                 <CardTitle className="text-lg">Filtros de Búsqueda</CardTitle>
                 <CardDescription>
@@ -211,23 +222,44 @@ const Dashboard = () => {
             </Card>
           )}
 
-          {/* Stats Cards (Mantenemos aquí o mueves fuera del sticky si prefieres) */}
-          <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
+          {/* Stats Cards (Mantenemos aquí, pero puedes moverlo si no quieres que sea fijo) */}
+          <div className="mt-6"> {/* Margen superior para separar de los filtros */}
+            <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
+          </div>
 
-          {/* **Nuevo componente de pestañas (DashboardTabsComponent) para la fijeza** */}
-          <DashboardTabsComponent
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            userRole={userRole}
-          />
-        </div>
-      </div>
+          {/* Main Content con Tabs y TabsContent */}
+          {/* El componente Tabs ahora engloba todo el sistema de pestañas */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 mt-6"> {/* Añadido mt-6 */}
+            <TabsList className="grid w-full grid-cols-5 md:grid-cols-10"> {/* Ajusta grid-cols según necesites, 5 o 10 */}
+              {tabsConfig.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <TabsTrigger
+                    key={tab.id}
+                    value={tab.id}
+                    className={`
+                      flex items-center gap-2
+                      ${activeTab === tab.id
+                        ? '' // No clases adicionales si es la pestaña activa (ya tiene variant="default" implícito en TabsTrigger)
+                        : 'hover:bg-primary/10 hover:text-primary' // Clases para hover si no es la pestaña activa
+                      }
+                    `}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </Tabs>
+        </div> {/* Fin container para el sticky header */}
+      </div> {/* Fin sticky div */}
 
-      {/* Contenido principal del dashboard (Fuera del contenedor fijo) */}
-      <div className="container mx-auto p-6 pt-0 space-y-6"> {/* Añadido pt-0 para compensar el padding del sticky */}
+      {/* Contenido de las pestañas (Fuera del contenedor fijo del encabezado) */}
+      <div className="container mx-auto p-6 pt-0 flex-grow"> {/* pt-0 para evitar doble padding, flex-grow para ocupar espacio */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          {/* Ya no necesitamos TabsList y TabsTrigger aquí porque los maneja DashboardTabsComponent */}
-          {/* <TabsList className="grid w-full grid-cols-10">...</TabsList> */}
+          {/* Nota: TabsList ya está en el sticky header, no va aquí. */}
+          {/* Los TabsContent deben estar dentro del mismo componente Tabs */}
 
           <TabsContent value="overview" className="space-y-6">
             <DashboardCharts onChartClick={handleChartClick} />
@@ -304,7 +336,6 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="ministerial" className="space-y-6">
-            {/* Solo se muestra si el rol lo permite */}
             {(userRole === 'administrador' || userRole === 'comite') && <MinisterialPanel />}
           </TabsContent>
 
@@ -316,8 +347,7 @@ const Dashboard = () => {
             <HealthCenters />
           </TabsContent>
 
-          <TabsContent value="user-management" className="space-y-6">
-            {/* Solo se muestra si el rol lo permite */}
+          <TabsContent value="users" className="space-y-6">
             {userRole === 'administrador' && <UserRoleManagement />}
           </TabsContent>
         </Tabs>

@@ -35,7 +35,7 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
             <img
               src={professional.foto_carnet}
               alt="Foto del Carnet Profesional"
-              className="w-[162px] h-[212px] object-contain border-3 border-gray-300 rounded-lg mx-auto mb-2 shadow-lg"
+              className="w-[162px] h-[212px] object-contain border-3 border-gray-300 rounded-lg mx-auto mb-2"
               onError={(e) => {
                 // Fallback en caso de que la imagen no cargue
                 e.currentTarget.onerror = null; // Evita bucles infinitos
@@ -76,18 +76,12 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
               <p className="font-mono">{documentInfo.numero}</p>
             </div>
           </div>
-          
-          <div>
-            <span className="text-sm font-medium text-gray-600">ID Profesional:</span>
-            <p>{professional.genero || 'No especificado'}</p>
-          </div>
-          
-        </div>
+
           <div>
             <span className="text-sm font-medium text-gray-600">Teléfono:</span>
             <div className="flex items-center space-x-2">
               <Phone className="w-4 h-4 text-gray-500" />
-              <p>{professional.id_profesional_unico || 'No especificado'}</p>
+              <p>{professional.telefono || 'No especificado'}</p>
             </div>
           </div>
 

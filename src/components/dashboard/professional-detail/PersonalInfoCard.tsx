@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Globe, CreditCard, Phone } from 'lucide-react';
+import { User, Globe, CreditCard, Phone, Venus, Mars } from 'lucide-react';
 import type { Profesional } from '@/hooks/useProfesionales';
+
 
 interface PersonalInfoCardProps {
   professional: Profesional;
@@ -98,12 +99,14 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
             <span className="text-sm font-medium text-gray-600">Edad:</span>
             <p>{professional.edad || 'No especificado'} años</p>
           </div>
-
+          
           <div>
             <span className="text-sm font-medium text-gray-600">Género:</span>
-            <p>{professional.genero || 'No especificado'}</p>
-          </div>
-        </div>
+            <div className="flex items-center space-x-2">
+              {professional.genero? === 'Femenino' ? (<Venus className="w-4 h-4 text-pink-500" />  ) : professional.genero? === 'Masculino' ? (  <Mars className="w-4 h-4 text-blue-600" />  ) : null}
+    <p>{professional.genero || 'No especificado'}</p> 
+                </div>
+                </div>
 
         <Separator />
 

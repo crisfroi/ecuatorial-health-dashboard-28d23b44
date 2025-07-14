@@ -65,7 +65,7 @@ interface Filtros {
   // Añadimos los filtros que pueden venir de StatsCards para RenewalAlerts
   vencimiento_proximo?: boolean;
   carnet_vencido?: boolean;
-  prioridad_renovacion?: 'alta' | 'media' | 'baja' | 'vencido' | 'todos';
+  prioridad_renovacion?: 'alta' | 'media' | 'baja' | 'vencido' | 'all'; // 'todos' cambiado a 'all' para consistencia con RenewalAlerts
 }
 
 const Dashboard = () => {
@@ -107,7 +107,21 @@ const Dashboard = () => {
     console.log('Dashboard: Stats card clicked. Filtro recibido:', filter);
 
     // 1. Establecer los filtros visuales (appliedFilters) con los filtros de la tarjeta
-    setAppliedFilters(filter);
+    // Es importante que si un filtro de renovación se activa, los otros se desactiven si no están presentes.
+    // Esto asegura que appliedFilters solo contenga el filtro relevante de la tarjeta.
+    const newAppliedFilters: Filtros = {};
+    if (filter.vencimiento_proximo) {
+      newAppliedFilters.vencimiento_proximo = true;
+    } else if (filter.carnet_vencido) {
+      newAppliedFilters.carnet_vencido = true;
+    } else if (filter.prioridad_renovacion) {
+      newAppliedFilters.prioridad_renovacion = filter.prioridad_renovacion;
+    } else {
+      // Si no es un filtro de renovación específico, aplica el filtro tal cual
+      Object.assign(newAppliedFilters, filter);
+    }
+    setAppliedFilters(newAppliedFilters);
+
 
     // 2. Determinar la pestaña activa basada en el tipo de filtro de la tarjeta
     if (filter.estado_solicitud && filter.estado_solicitud !== 'Aprobado') {
@@ -388,10 +402,9 @@ const Dashboard = () => {
 
           <TabsContent value="renewals" className="space-y-6">
             {/* RenewalAlerts necesita los filtros de vencimiento/prioridad de dashboardFilters */}
+            {/* CORRECCIÓN APLICADA AQUÍ: Se pasa el objeto 'dashboardFilters' completo como un solo prop */}
             <RenewalAlerts
-                initialPriorityFilter={dashboardFilters.prioridad_renovacion}
-                initialVencimientoProximo={dashboardFilters.vencimiento_proximo}
-                initialCarnetVencido={dashboardFilters.carnet_vencido}
+                dashboardFilters={dashboardFilters} // <-- CAMBIO CLAVE AQUÍ
                 onSelectProfessional={handleSelectProfessional}
             />
           </TabsContent>

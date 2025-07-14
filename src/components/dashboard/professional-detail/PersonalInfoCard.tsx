@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Globe, CreditCard, Phone, Woman, Man } from 'lucide-react'; // Eliminamos Venus/Mars si no se usan, para limpiar imports
+import { User, Globe, CreditCard, Phone, venus, mars } from 'lucide-react'; // Eliminamos Venus/Mars si no se usan, para limpiar imports
 import type { Profesional } from '@/hooks/useProfesionales';
 
 interface PersonalInfoCardProps {
@@ -106,9 +106,9 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
             <span className="text-sm font-medium text-gray-600">Género:</span>
             <div className="flex items-center space-x-2">
               {normalizedGenero === 'femenino' ? ( // Ahora comparamos con 'femenino' en minúsculas
-                <Woman className="w-4 h-4 text-pink-500" />
+                <venus className="w-4 h-4 text-pink-500" />
               ) : normalizedGenero === 'masculino' ? ( // Y 'masculino' en minúsculas
-                <Man className="w-4 h-4 text-blue-600" />
+                <mars className="w-4 h-4 text-blue-600" />
               ) : null}
               {/* Mostramos el valor original o normalizado si prefieres */}
               <span className="font-medium">{professional.genero || 'No especificado'}</span>

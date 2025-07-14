@@ -291,7 +291,7 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
                             Información completa de {selectedProfessional.nombre_completo}.
                           </DialogDescription>
                         </DialogHeader>
-                        <ProfessionalDetail professionalId={selectedProfessional.id_profesional_unico!} />
+                        <ProfessionalDetail professional={selectedProfessional!} onClose={() => setSelectedProfessional(null)} />
                       </DialogContent>
                     )}
                   </Dialog>

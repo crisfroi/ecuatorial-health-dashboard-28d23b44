@@ -98,7 +98,7 @@ const ProfessionalCardInfo = ({ professional, daysUntilRenewal, isRenewalSoon }:
         <div className="text-center">
           <p className="text-sm font-medium text-gray-600 mb-1">Número de Carnet</p>
           <p className="font-mono text-lg font-bold text-blue-600">
-            {professional.id_profesiona_unico || 'Pendiente de asignación'}
+            {professional.id_profesional_unico || 'Pendiente de asignación'}
           </p>
         </div>
 

@@ -51,6 +51,8 @@ import type { Tables } from '@/integrations/supabase/types';
 
 type Profesional = Tables<'profesionales_sanitarios'>;
 
+// Definición de tipos para los filtros
+// Ampliamos Filtros para incluir los campos específicos de las StatsCards (vencimiento/prioridad)
 interface Filtros {
   area_profesional?: string;
   estado_solicitud?: string;
@@ -59,6 +61,10 @@ interface Filtros {
   tipo_sector?: string;
   distrito?: string;
   anoGraduacion?: string;
+  // Añadimos los filtros que pueden venir de StatsCards para RenewalAlerts
+  vencimiento_proximo?: boolean;
+  carnet_vencido?: boolean;
+  prioridad_renovacion?: 'alta' | 'media' | 'baja' | 'vencido' | 'todos';
 }
 
 const Dashboard = () => {
@@ -70,32 +76,76 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showStatsCards, setShowStatsCards] = useState(true);
 
+  // Manteniendo userRole y userName como están en tu código original
   const userRole = 'administrador';
   const userName = 'Admin User';
 
   const handleSelectProfessional = (professional: Profesional) => {
+    console.log('Dashboard: Profesional seleccionado para ver detalle:', professional.id);
     setSelectedProfessional(professional);
   };
 
+  // Esta función se llama cuando DashboardFilters cambia sus filtros
   const handleFiltersChange = (filters: Filtros) => {
-    console.log('Dashboard: Applying filters:', filters);
+    console.log('Dashboard: handleFiltersChange llamado. Nuevos filtros recibidos:', filters);
     setAppliedFilters(filters);
-    setDashboardFilters(filters);
+    // dashboardFilters se actualizará en el useEffect que observa appliedFilters
   };
 
   const handleClearFilters = () => {
-    console.log('Dashboard: Clearing filters');
+    console.log('Dashboard: Limpiando todos los filtros.');
     setAppliedFilters({});
-    setDashboardFilters({});
+    // dashboardFilters se actualizará en el useEffect
     setShowFilters(false);
   };
 
+  // **FUNCIÓN CLAVE: handleNavigateToProfessionals**
+  // Se invoca cuando se hace clic en una StatsCard.
   const handleNavigateToProfessionals = (filter: Filtros) => {
-    console.log('Dashboard: Stats card clicked with filter:', filter);
-    setDashboardFilters(filter);
+    console.log('Dashboard: Stats card clicked. Filtro recibido:', filter);
+
+    // 1. Establecer los filtros visuales (appliedFilters) con los filtros de la tarjeta
     setAppliedFilters(filter);
-    setActiveTab('professionals');
+
+    // 2. Determinar la pestaña activa basada en el tipo de filtro de la tarjeta
+    if (filter.estado_solicitud && filter.estado_solicitud !== 'Aprobado') {
+      // Si el filtro es sobre el estado de una solicitud (ej. Pendiente, Rechazado)
+      console.log(`Dashboard: Navegando a la pestaña 'requests' para estado: ${filter.estado_solicitud}`);
+      setActiveTab('requests');
+    } else if (filter.vencimiento_proximo || filter.carnet_vencido || filter.prioridad_renovacion) {
+      // Si el filtro es sobre vencimiento o prioridad de renovación
+      console.log('Dashboard: Navegando a la pestaña "renewals" por filtro de vencimiento/prioridad.');
+      setActiveTab('renewals');
+    } else {
+      // Para cualquier otro filtro (ej. area_profesional, o estado_solicitud 'Aprobado')
+      console.log('Dashboard: Navegando a la pestaña "professionals" por filtro general.');
+      setActiveTab('professionals');
+    }
+    // NOTA: dashboardFilters se actualizará gracias al useEffect que observa appliedFilters.
   };
+
+  // **useEffect para sincronizar appliedFilters con dashboardFilters**
+  // Este useEffect es vital para que dashboardFilters (lo que se pasa a las tablas)
+  // siempre refleje el estado actual de appliedFilters.
+  useEffect(() => {
+    console.log('Dashboard: useEffect activado. Sincronizando appliedFilters con dashboardFilters.');
+    // Creamos una copia para evitar mutaciones directas y para limpiar filtros si es necesario
+    let finalFilters: Filtros = { ...appliedFilters };
+
+    // Lógica para asegurar que los filtros de renovación solo se pasen a RenewalAlerts
+    if (activeTab !== 'renewals') {
+        // Si no estamos en la pestaña de renovaciones, eliminamos estos filtros del objeto final
+        // para que no afecten a ProfessionalsTable o RequestsPanel innecesariamente.
+        delete finalFilters.vencimiento_proximo;
+        delete finalFilters.carnet_vencido;
+        delete finalFilters.prioridad_renovacion;
+        console.log('Dashboard: Se eliminaron filtros de renovación porque la pestaña activa no es "renewals".');
+    }
+
+    setDashboardFilters(finalFilters);
+    console.log('Dashboard: dashboardFilters actualizado a:', finalFilters);
+  }, [appliedFilters, activeTab]); // Se ejecuta cuando appliedFilters o activeTab cambian
+
 
   const handleChartClick = (data: any, chartType: string) => {
     console.log('Dashboard: Chart clicked:', data, chartType);
@@ -109,19 +159,32 @@ const Dashboard = () => {
       filter.estado_solicitud = data.estado;
     }
 
-    setDashboardFilters(filter);
+    // Aplicar los filtros del gráfico a appliedFilters
     setAppliedFilters(filter);
-    setActiveTab('professionals');
+
+    // Navegar a la pestaña correspondiente
+    if (filter.estado_solicitud && filter.estado_solicitud !== 'Aprobado') {
+      console.log(`Dashboard: Chart click: Navegando a la pestaña 'requests' para estado: ${filter.estado_solicitud}`);
+      setActiveTab('requests');
+    } else {
+      console.log('Dashboard: Chart click: Navegando a la pestaña "professionals" por filtro general.');
+      setActiveTab('professionals');
+    }
+    // dashboardFilters se actualizará en el useEffect
   };
 
   const handleLogout = () => {
-    console.log("Cerrar sesión");
+    console.log("Dashboard: Cerrar sesión.");
     navigate('/login');
   };
 
   const handleUserSettings = () => {
-    console.log("Configuración de usuario");
+    console.log("Dashboard: Configuración de usuario.");
   };
+
+  // Determinar si hay filtros activos para el botón "Limpiar Filtros"
+  const hasActiveFilters = Object.keys(appliedFilters).length > 0;
+
 
   const tabsConfig = [
     { id: 'overview', label: 'General', icon: BarChart3 },
@@ -142,8 +205,8 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Contenedor del TabsList (único elemento fijo) */}
       <div className="sticky top-0 z-50 bg-gray-50 shadow-md">
-        <div className="container mx-auto p-4"> {/* Reducido el padding para que sea más compacto */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0"> {/* Eliminado mt-6 aquí */}
+        <div className="container mx-auto p-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0">
             <TabsList className="grid w-full grid-cols-5 md:grid-cols-10">
               {tabsConfig.map((tab) => {
                 const Icon = tab.icon;
@@ -170,7 +233,7 @@ const Dashboard = () => {
       </div>
 
       {/* Contenido principal de la página (desplazable) */}
-      <div className="container mx-auto p-6 pt-0 flex-grow"> {/* Añadido pt-0 para evitar doble padding */}
+      <div className="container mx-auto p-6 pt-0 flex-grow">
 
         {/* Header y Botones de acción (ahora desplazables) */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
@@ -186,7 +249,10 @@ const Dashboard = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowStatsCards(!showStatsCards)}
+              onClick={() => {
+                setShowStatsCards(!showStatsCards);
+                console.log(`Dashboard: Alternando visibilidad de StatsCards a: ${!showStatsCards}`);
+              }}
               className="flex items-center gap-2"
             >
               {showStatsCards ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -196,14 +262,17 @@ const Dashboard = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowFilters(!showFilters)}
+              onClick={() => {
+                setShowFilters(!showFilters);
+                console.log(`Dashboard: Alternando visibilidad de Filtros a: ${!showFilters}`);
+              }}
               className="flex items-center gap-2"
             >
               <Filter className="w-4 h-4" />
               {showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
             </Button>
 
-            {(Object.keys(appliedFilters).length > 0 || Object.keys(dashboardFilters).length > 0) && (
+            {hasActiveFilters && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -241,7 +310,7 @@ const Dashboard = () => {
 
         {/* Filters (ahora desplazables) */}
         {showFilters && (
-          <Card className="mb-6"> {/* Ajustado a mb-6 para espacio */}
+          <Card className="mb-6">
             <CardHeader>
               <CardTitle className="text-lg">Filtros de Búsqueda</CardTitle>
               <CardDescription>
@@ -252,7 +321,7 @@ const Dashboard = () => {
               <DashboardFilters
                 filters={appliedFilters}
                 onFiltersChange={handleFiltersChange}
-                onClearFilters={handleClearFilters}
+                // onClearFilters se maneja a nivel de Dashboard ahora
               />
             </CardContent>
           </Card>
@@ -267,7 +336,6 @@ const Dashboard = () => {
 
         {/* Contenido de las pestañas (se mantiene en el mismo componente Tabs) */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          {/* Los TabsContent deben estar aquí */}
           <TabsContent value="overview" className="space-y-6">
             <DashboardCharts onChartClick={handleChartClick} />
           </TabsContent>
@@ -277,33 +345,50 @@ const Dashboard = () => {
               <div className="space-y-4">
                 <Button
                   variant="outline"
-                  onClick={() => setSelectedProfessional(null)}
+                  onClick={() => {
+                    setSelectedProfessional(null);
+                    console.log('Dashboard: Volviendo a la lista de profesionales.');
+                  }}
                   className="flex items-center gap-2"
                 >
                   ← Volver a la lista
                 </Button>
                 <ProfessionalDetail
                   professional={selectedProfessional}
-                  onClose={() => setSelectedProfessional(null)}
+                  onClose={() => {
+                    setSelectedProfessional(null);
+                    console.log('Dashboard: Cerrando detalle de profesional.');
+                  }}
                 />
               </div>
             ) : (
               <ProfessionalsTable
                 onSelectProfessional={handleSelectProfessional}
                 userRole={userRole}
-                appliedFilters={appliedFilters}
+                appliedFilters={dashboardFilters} // ProfessionalsTable usa dashboardFilters
                 onClearFilters={handleClearFilters}
-                dashboardFilters={dashboardFilters}
+                // dashboardFilters ya está establecido en el estado, no es necesario pasarlo explícitamente de nuevo si appliedFilters es el que se observa.
               />
             )}
           </TabsContent>
 
           <TabsContent value="requests" className="space-y-6">
-            <RequestsPanel userRole={userRole} />
+            {/* RequestsPanel necesita el filtro de estado_solicitud de dashboardFilters */}
+            <RequestsPanel
+                userRole={userRole}
+                initialStatusFilter={dashboardFilters.estado_solicitud} // Pasa el filtro de estado específico
+                onSelectProfessional={handleSelectProfessional}
+            />
           </TabsContent>
 
           <TabsContent value="renewals" className="space-y-6">
-            <RenewalAlerts />
+            {/* RenewalAlerts necesita los filtros de vencimiento/prioridad de dashboardFilters */}
+            <RenewalAlerts
+                initialPriorityFilter={dashboardFilters.prioridad_renovacion}
+                initialVencimientoProximo={dashboardFilters.vencimiento_proximo}
+                initialCarnetVencido={dashboardFilters.carnet_vencido}
+                onSelectProfessional={handleSelectProfessional}
+            />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">

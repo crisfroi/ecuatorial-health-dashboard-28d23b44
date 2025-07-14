@@ -13,23 +13,34 @@ import { useToast } from '@/hooks/use-toast';
 interface ProfessionalsTableProps {
   onSelectProfessional: (professional: any) => void;
   userRole: string;
-  appliedFilters?: any;
+  appliedFilters?: any; // Esto se usará para mostrar los filtros activos, pero no para inicializar el estado
   onClearFilters?: () => void;
-  dashboardFilters?: any;
+  // Prop actualizada para recibir los filtros del dashboard, incluyendo los de vencimiento
+  dashboardFilters?: {
+    area_profesional?: string;
+    estado_solicitud?: string;
+    provincia?: string;
+    genero?: string;
+    tipo_sector?: string;
+    vencimiento_proximo?: boolean; // Nuevo
+    carnet_vencido?: boolean;     // Nuevo
+    prioridad_renovacion?: 'alta' | 'media' | 'baja' | 'vencido' | 'all'; // Nuevo
+    // Puedes añadir otros filtros si los usas
+  };
 }
 
-const ProfessionalsTable = ({ 
-  onSelectProfessional, 
-  userRole, 
-  appliedFilters, 
+const ProfessionalsTable = ({
+  onSelectProfessional,
+  userRole,
+  appliedFilters,
   onClearFilters,
-  dashboardFilters 
+  dashboardFilters
 }: ProfessionalsTableProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingStates, setEditingStates] = useState<Record<string, string>>({});
   const [filters, setFilters] = useState({
     area_profesional: 'todos',
-    estado_solicitud: 'Aprobado', // Solo mostrar aprobados por defecto
+    estado_solicitud: 'Aprobado', // Por defecto, mostrar aprobados
     provincia: 'todos',
     genero: 'todos',
     tipo_sector: 'todos'
@@ -38,22 +49,56 @@ const ProfessionalsTable = ({
   const { toast } = useToast();
   const { updateProfesional } = useProfesionalesMutations();
 
-  // Combinar filtros aplicados desde el dashboard con filtros locales
-  const combinedFilters = {
-    ...filters,
-    ...dashboardFilters,
-    ...appliedFilters
+  // **ACTUALIZACIÓN CLAVE**: Sincroniza los filtros internos con `dashboardFilters`
+  useEffect(() => {
+    console.log('ProfessionalsTable: dashboardFilters received in useEffect:', dashboardFilters);
+    setFilters(prev => {
+      const newFilters = { ...prev };
+
+      // Aplica los filtros específicos del dashboard
+      if (dashboardFilters?.area_profesional !== undefined) newFilters.area_profesional = dashboardFilters.area_profesional || 'todos';
+      if (dashboardFilters?.provincia !== undefined) newFilters.provincia = dashboardFilters.provincia || 'todos';
+      if (dashboardFilters?.genero !== undefined) newFilters.genero = dashboardFilters.genero || 'todos';
+      if (dashboardFilters?.tipo_sector !== undefined) newFilters.tipo_sector = dashboardFilters.tipo_sector || 'todos';
+
+      // Manejar estado_solicitud: Si viene del dashboard, úsalo; de lo contrario, 'Aprobado'
+      if (dashboardFilters?.estado_solicitud !== undefined) {
+        newFilters.estado_solicitud = dashboardFilters.estado_solicitud || 'todos';
+      } else {
+        newFilters.estado_solicitud = 'Aprobado'; // Si no hay estado_solicitud en dashboardFilters, por defecto Aprobado
+      }
+
+      // Los filtros de vencimiento (vencimiento_proximo, carnet_vencido, prioridad_renovacion)
+      // no se guardan en el estado `filters` directamente porque no corresponden a los `Select` de la tabla,
+      // pero sí se pasarán al `useProfesionales` hook a través de `queryFilters`.
+
+      return newFilters;
+    });
+    // Limpiar el término de búsqueda si los filtros cambian desde el dashboard
+    setSearchTerm('');
+  }, [dashboardFilters]);
+
+
+  // Combinar filtros locales y los recibidos del dashboard para la consulta.
+  // Es importante que dashboardFilters anule los valores por defecto o locales cuando sea necesario.
+  const combinedQueryFilters = {
+    ...Object.fromEntries(
+      Object.entries(filters).map(([key, value]) => [
+        key,
+        value === 'todos' ? '' : value // Convertir 'todos' a string vacío para la query
+      ])
+    ),
+    // **ACTUALIZACIÓN CLAVE**: Incluir los filtros de vencimiento directamente aquí para el hook
+    vencimiento_proximo: dashboardFilters?.vencimiento_proximo || undefined,
+    carnet_vencido: dashboardFilters?.carnet_vencido || undefined,
+    prioridad_renovacion: dashboardFilters?.prioridad_renovacion || undefined,
+    // Asegurarse de que estado_solicitud del dashboard tenga prioridad si se estableció
+    estado_solicitud: dashboardFilters?.estado_solicitud === undefined
+      ? (filters.estado_solicitud === 'todos' ? '' : filters.estado_solicitud)
+      : (dashboardFilters.estado_solicitud === 'todos' ? '' : dashboardFilters.estado_solicitud),
   };
 
-  // Convertir "todos" a empty string para la query
-  const queryFilters = Object.fromEntries(
-    Object.entries(combinedFilters).map(([key, value]) => [
-      key, 
-      value === 'todos' ? '' : value
-    ])
-  );
-
-  const { data: profesionales = [], isLoading, error, refetch } = useProfesionales(queryFilters);
+  const { data: profesionales = [], isLoading, error, refetch } = useProfesionales(combinedQueryFilters);
 
   const filteredProfesionales = profesionales.filter(prof =>
     prof.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -61,30 +106,18 @@ const ProfessionalsTable = ({
     prof.numero_carnet_profesional?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  useEffect(() => {
-    if (dashboardFilters) {
-      console.log('ProfessionalsTable: Dashboard filters received:', dashboardFilters);
-      setFilters(prev => ({
-        ...prev,
-        ...Object.fromEntries(
-          Object.entries(dashboardFilters).map(([key, value]) => [key, value || 'todos'])
-        )
-      }));
-    }
-  }, [dashboardFilters]);
-
   const handleClearAllFilters = () => {
-    console.log('Clearing all filters');
+    console.log('Clearing all filters in ProfessionalsTable');
     setSearchTerm('');
     setFilters({
       area_profesional: 'todos',
-      estado_solicitud: 'Aprobado', // Mantener solo aprobados
+      estado_solicitud: 'Aprobado', // Volver a 'Aprobado' por defecto
       provincia: 'todos',
       genero: 'todos',
       tipo_sector: 'todos'
     });
     if (onClearFilters) {
-      onClearFilters();
+      onClearFilters(); // Llama a la función del padre para limpiar los filtros globales
     }
   };
 
@@ -116,8 +149,17 @@ const ProfessionalsTable = ({
       });
 
       refetch();
+      toast({
+        title: "Estado actualizado",
+        description: `El estado del profesional ha sido cambiado a "${newState}".`,
+      });
     } catch (error) {
       console.error('Error updating professional state:', error);
+      toast({
+        title: "Error al actualizar",
+        description: "Hubo un problema al cambiar el estado del profesional.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -145,8 +187,13 @@ const ProfessionalsTable = ({
     return new Date(dateString).toLocaleDateString('es-ES');
   };
 
-  const hasActiveFilters = searchTerm || 
-    Object.values(combinedFilters).some(value => value && value !== 'todos' && value !== 'Aprobado');
+  // Determinar si hay filtros activos para mostrar la tarjeta de filtros aplicados
+  const hasActiveFilters = searchTerm ||
+    Object.values(filters).some(value => value && value !== 'todos' && value !== 'Aprobado') ||
+    dashboardFilters?.vencimiento_proximo ||
+    dashboardFilters?.carnet_vencido ||
+    dashboardFilters?.prioridad_renovacion;
+
 
   if (isLoading) {
     return (
@@ -202,10 +249,11 @@ const ProfessionalsTable = ({
             <div className="flex flex-wrap gap-2">
               {searchTerm && (
                 <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
-                  búsqueda: {searchTerm}
+                  Búsqueda: {searchTerm}
                 </Badge>
               )}
-              {Object.entries(combinedFilters).map(([key, value]) => {
+              {/* Muestra los filtros locales */}
+              {Object.entries(filters).map(([key, value]) => {
                 if (!value || value === 'todos' || (key === 'estado_solicitud' && value === 'Aprobado')) return null;
                 return (
                   <Badge key={key} variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
@@ -213,6 +261,22 @@ const ProfessionalsTable = ({
                   </Badge>
                 );
               })}
+              {/* Mostrar filtros de vencimiento si vienen del dashboard */}
+              {dashboardFilters?.vencimiento_proximo && (
+                  <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
+                      Vencimiento: Próximo
+                  </Badge>
+              )}
+              {dashboardFilters?.carnet_vencido && (
+                  <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
+                      Vencimiento: Vencido
+                  </Badge>
+              )}
+              {dashboardFilters?.prioridad_renovacion && dashboardFilters.prioridad_renovacion !== 'all' && (
+                  <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
+                      Prioridad Renovación: {dashboardFilters.prioridad_renovacion}
+                  </Badge>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -225,7 +289,7 @@ const ProfessionalsTable = ({
               <span>Profesionales Aprobados</span>
               <Badge variant="outline">{filteredProfesionales.length}</Badge>
             </CardTitle>
-            
+
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -236,7 +300,7 @@ const ProfessionalsTable = ({
                   className="pl-10 w-full sm:w-64"
                 />
               </div>
-              
+
               <div className="flex gap-2">
                 <Select value={filters.area_profesional} onValueChange={(value) => setFilters({...filters, area_profesional: value})}>
                   <SelectTrigger className="w-40">
@@ -274,7 +338,7 @@ const ProfessionalsTable = ({
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent>
           <div className="rounded-md border overflow-x-auto">
             <Table>
@@ -311,9 +375,35 @@ const ProfessionalsTable = ({
                         {profesional.numero_carnet_profesional || 'Pendiente'}
                       </TableCell>
                       <TableCell>
-                        <Badge className={getEstadoBadge(profesional.estado_solicitud || 'Pendiente')}>
-                          {profesional.estado_solicitud || 'Pendiente'}
-                        </Badge>
+                        {editingStates[profesional.id!] ? (
+                          <div className="flex items-center space-x-2">
+                            <Select
+                              value={editingStates[profesional.id!]}
+                              onValueChange={(value) => setEditingStates(prev => ({ ...prev, [profesional.id!]: value }))}
+                            >
+                              <SelectTrigger className="w-[180px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Aprobado">Aprobado</SelectItem>
+                                <SelectItem value="Pendiente">Pendiente</SelectItem>
+                                <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
+                                <SelectItem value="Rechazado">Rechazado</SelectItem>
+                                <SelectItem value="Revisando">Revisando</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button size="icon" variant="ghost" onClick={() => handleSaveState(profesional.id!)} disabled={updateProfesional.isLoading}>
+                              <Save className="w-4 h-4 text-green-600" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => handleCancelEdit(profesional.id!)}>
+                              <X className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Badge className={getEstadoBadge(profesional.estado_solicitud || 'Pendiente')}>
+                            {profesional.estado_solicitud || 'Pendiente'}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>{profesional.provincia || 'N/A'}</TableCell>
                       <TableCell>{formatDate(profesional.created_at)}</TableCell>
@@ -326,6 +416,15 @@ const ProfessionalsTable = ({
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
+                          {userRole === 'administrador' && ( // Solo el administrador puede editar el estado
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditState(profesional.id!, profesional.estado_solicitud || 'Pendiente')}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

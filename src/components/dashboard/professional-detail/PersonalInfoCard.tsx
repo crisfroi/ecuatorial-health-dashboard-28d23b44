@@ -103,7 +103,7 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
             <span className="text-sm font-medium text-gray-600">Género:</span>
               <div className="flex items-center space-x-2">
     {professional.genero === 'Femenino' ? (
-      <Women className="w-4 h-4 text-pink-500" />
+      <Woman className="w-4 h-4 text-pink-500" />
     ) : professional.genero === 'Masculino' ? (
       <Man className="w-4 h-4 text-blue-600" />
     ) : null}

@@ -101,15 +101,12 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
 
           <div>
              <span className="text-sm font-medium text-gray-600">Género:</span>
-  <div className="flex items-center space-x-2">
-    {professional.genero === 'Femenino' ? (
-      <Phone className="w-4 h-4 text-pink-500" />
-    ) : professional.genero === 'Masculino' ? (
-      <Globe className="w-4 h-4 text-blue-600" />
-    ) : null}
-    <p>{professional.genero || 'No especificado'}</p>
-  </div>
-</div>
+            <div className="flex items-center space-x-2">
+              {professional.genero === 'Femenino' ? (<Phone className="w-4 h-4 text-pink-500" />) : professional.genero === 'Masculino' ? 
+                (<Globe className="w-4 h-4 text-blue-600" />) : null}
+              <p>{professional.genero || 'No especificado'}</p>
+            </div>
+          </div>
 
         <Separator />
 

@@ -24,6 +24,8 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client'; // Importar Supabase client para Edge Function
+import { useToast } from '@/components/ui/use-toast'; // Importar useToast para notificaciones al usuario
 
 import {
   DropdownMenu,
@@ -53,7 +55,6 @@ import type { Tables } from '@/integrations/supabase/types';
 type Profesional = Tables<'profesionales_sanitarios'>;
 
 // Definición de tipos para los filtros
-// Ampliamos Filtros para incluir los campos específicos de las StatsCards (vencimiento/prioridad)
 interface Filtros {
   area_profesional?: string;
   estado_solicitud?: string;
@@ -65,7 +66,7 @@ interface Filtros {
   // Añadimos los filtros que pueden venir de StatsCards para RenewalAlerts
   vencimiento_proximo?: boolean;
   carnet_vencido?: boolean;
-  prioridad_renovacion?: 'alta' | 'media' | 'baja' | 'vencido' | 'all'; // 'todos' cambiado a 'all' para consistencia con RenewalAlerts
+  prioridad_renovacion?: 'alta' | 'media' | 'baja' | 'vencido' | 'all';
 }
 
 const Dashboard = () => {
@@ -77,6 +78,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showStatsCards, setShowStatsCards] = useState(true);
   const queryClient = useQueryClient();
+  const { toast } = useToast(); // Inicializar useToast
 
   // Manteniendo userRole y userName como están en tu código original
   const userRole = 'administrador';
@@ -87,28 +89,21 @@ const Dashboard = () => {
     setSelectedProfessional(professional);
   };
 
-  // Esta función se llama cuando DashboardFilters cambia sus filtros
   const handleFiltersChange = (filters: Filtros) => {
     console.log('Dashboard: handleFiltersChange llamado. Nuevos filtros recibidos:', filters);
     setAppliedFilters(filters);
-    // dashboardFilters se actualizará en el useEffect que observa appliedFilters
   };
 
   const handleClearFilters = () => {
     console.log('Dashboard: Limpiando todos los filtros.');
     setAppliedFilters({});
-    // dashboardFilters se actualizará en el useEffect
     setShowFilters(false);
   };
 
   // **FUNCIÓN CLAVE: handleNavigateToProfessionals**
-  // Se invoca cuando se hace clic en una StatsCard.
   const handleNavigateToProfessionals = (filter: Filtros) => {
     console.log('Dashboard: Stats card clicked. Filtro recibido:', filter);
 
-    // 1. Establecer los filtros visuales (appliedFilters) con los filtros de la tarjeta
-    // Es importante que si un filtro de renovación se activa, los otros se desactiven si no están presentes.
-    // Esto asegura que appliedFilters solo contenga el filtro relevante de la tarjeta.
     const newAppliedFilters: Filtros = {};
     if (filter.vencimiento_proximo) {
       newAppliedFilters.vencimiento_proximo = true;
@@ -117,54 +112,38 @@ const Dashboard = () => {
     } else if (filter.prioridad_renovacion) {
       newAppliedFilters.prioridad_renovacion = filter.prioridad_renovacion;
     } else {
-      // Si no es un filtro de renovación específico, aplica el filtro tal cual
       Object.assign(newAppliedFilters, filter);
     }
     setAppliedFilters(newAppliedFilters);
 
-
-    // 2. Determinar la pestaña activa basada en el tipo de filtro de la tarjeta
     if (filter.estado_solicitud && filter.estado_solicitud !== 'Aprobado') {
-      // Si el filtro es sobre el estado de una solicitud (ej. Pendiente, Rechazado)
       console.log(`Dashboard: Navegando a la pestaña 'requests' para estado: ${filter.estado_solicitud}`);
       setActiveTab('requests');
     } else if (filter.vencimiento_proximo || filter.carnet_vencido || filter.prioridad_renovacion) {
-      // Si el filtro es sobre vencimiento o prioridad de renovación
       console.log('Dashboard: Navegando a la pestaña "renewals" por filtro de vencimiento/prioridad.');
       setActiveTab('renewals');
-        // **ACTUALIZACIÓN CRUCIAL:** Invalida la caché de 'renewalAlerts'
       queryClient.invalidateQueries({ queryKey: ['renewalAlerts'] });
       console.log('Dashboard: Invalidated "renewalAlerts" query cache.');
     } else {
-      // Para cualquier otro filtro (ej. area_profesional, o estado_solicitud 'Aprobado')
       console.log('Dashboard: Navegando a la pestaña "professionals" por filtro general.');
       setActiveTab('professionals');
     }
-    // NOTA: dashboardFilters se actualizará gracias al useEffect que observa appliedFilters.
   };
 
-  // **useEffect para sincronizar appliedFilters con dashboardFilters**
-  // Este useEffect es vital para que dashboardFilters (lo que se pasa a las tablas)
-  // siempre refleje el estado actual de appliedFilters.
   useEffect(() => {
     console.log('Dashboard: useEffect activado. Sincronizando appliedFilters con dashboardFilters.');
-    // Creamos una copia para evitar mutaciones directas y para limpiar filtros si es necesario
     let finalFilters: Filtros = { ...appliedFilters };
 
-    // Lógica para asegurar que los filtros de renovación solo se pasen a RenewalAlerts
     if (activeTab !== 'renewals') {
-        // Si no estamos en la pestaña de renovaciones, eliminamos estos filtros del objeto final
-        // para que no afecten a ProfessionalsTable o RequestsPanel innecesariamente.
-        delete finalFilters.vencimiento_proximo;
-        delete finalFilters.carnet_vencido;
-        delete finalFilters.prioridad_renovacion;
-        console.log('Dashboard: Se eliminaron filtros de renovación porque la pestaña activa no es "renewals".');
+      delete finalFilters.vencimiento_proximo;
+      delete finalFilters.carnet_vencido;
+      delete finalFilters.prioridad_renovacion;
+      console.log('Dashboard: Se eliminaron filtros de renovación porque la pestaña activa no es "renewals".');
     }
 
     setDashboardFilters(finalFilters);
     console.log('Dashboard: dashboardFilters actualizado a:', finalFilters);
-  }, [appliedFilters, activeTab]); // Se ejecuta cuando appliedFilters o activeTab cambian
-
+  }, [appliedFilters, activeTab]);
 
   const handleChartClick = (data: any, chartType: string) => {
     console.log('Dashboard: Chart clicked:', data, chartType);
@@ -178,10 +157,8 @@ const Dashboard = () => {
       filter.estado_solicitud = data.estado;
     }
 
-    // Aplicar los filtros del gráfico a appliedFilters
     setAppliedFilters(filter);
 
-    // Navegar a la pestaña correspondiente
     if (filter.estado_solicitud && filter.estado_solicitud !== 'Aprobado') {
       console.log(`Dashboard: Chart click: Navegando a la pestaña 'requests' para estado: ${filter.estado_solicitud}`);
       setActiveTab('requests');
@@ -189,7 +166,6 @@ const Dashboard = () => {
       console.log('Dashboard: Chart click: Navegando a la pestaña "professionals" por filtro general.');
       setActiveTab('professionals');
     }
-    // dashboardFilters se actualizará en el useEffect
   };
 
   const handleLogout = () => {
@@ -201,9 +177,84 @@ const Dashboard = () => {
     console.log("Dashboard: Configuración de usuario.");
   };
 
+  // *** NUEVA FUNCIÓN: Envío de notificación SMS a través de Edge Function ***
+  const sendSmsNotification = async (
+    profesionalId: string,
+    telefono: string | null,
+    nombreCompleto: string,
+    fechaValidezCarnet: string | null,
+    tipoNotificacion: 'manual_proximo' | 'manual_vencido'
+  ) => {
+    console.log(`Dashboard: Intentando enviar SMS a ${nombreCompleto} (${telefono}) para ${tipoNotificacion}.`);
+
+    if (!telefono) {
+      toast({
+        title: "Error de Notificación",
+        description: "El profesional no tiene un número de teléfono registrado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Formatear la fecha para el mensaje
+    const formattedDate = fechaValidezCarnet ? new Date(fechaValidezCarnet).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'una fecha desconocida';
+
+    // Construir el mensaje basado en el tipo de notificación
+    let messageBody = '';
+    if (tipoNotificacion === 'manual_proximo') {
+      messageBody = `Recordatorio de Renovación: Estimado/a ${nombreCompleto}, su carnet profesional vence el ${formattedDate}. Por favor, inicie su proceso de renovación.`;
+    } else if (tipoNotificacion === 'manual_vencido') {
+      messageBody = `Alerta de Carnet Vencido: Estimado/a ${nombreCompleto}, su carnet profesional venció el ${formattedDate}. Por favor, renueve su carnet lo antes posible.`;
+    }
+
+    // Llamar a la Edge Function
+    try {
+      const { data, error } = await supabase.functions.invoke('send-sms', {
+        body: JSON.stringify({
+          to: telefono,
+          body: messageBody,
+          profesionalId: profesionalId, // Pasar el ID del profesional
+          notificationType: tipoNotificacion, // Pasar el tipo de notificación para registro
+        }),
+        method: 'POST',
+      });
+
+      if (error) {
+        console.error('Error al invocar Edge Function para SMS:', error);
+        toast({
+          title: "Error al Enviar SMS",
+          description: `No se pudo enviar el SMS a ${nombreCompleto}. Detalles: ${error.message}`,
+          variant: "destructive",
+        });
+      } else {
+        console.log('Respuesta de Edge Function para SMS:', data);
+        if (data && data.success) {
+          toast({
+            title: "SMS Enviado Exitosamente",
+            description: `Se ha enviado un SMS a ${nombreCompleto}.`,
+          });
+        } else {
+          // Si data existe pero success es falso, puede haber un error reportado por la función
+          toast({
+            title: "Error al Enviar SMS",
+            description: `Hubo un problema al enviar el SMS a ${nombreCompleto}: ${data?.message || 'Error desconocido'}`,
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (apiError: any) {
+      console.error('Error general al enviar SMS:', apiError);
+      toast({
+        title: "Error de Conexión",
+        description: `No se pudo conectar con el servicio de SMS. ${apiError.message || ''}`,
+        variant: "destructive",
+      });
+    }
+  };
+  // --- FIN NUEVA FUNCIÓN ---
+
   // Determinar si hay filtros activos para el botón "Limpiar Filtros"
   const hasActiveFilters = Object.keys(appliedFilters).length > 0;
-
 
   const tabsConfig = [
     { id: 'overview', label: 'General', icon: BarChart3 },
@@ -216,13 +267,12 @@ const Dashboard = () => {
     { id: 'incidents', label: 'Incidencias', icon: Activity },
     { id: 'health-centers', label: 'Centros', icon: MapPin },
     ...(userRole === 'administrador' ? [
-        { id: 'users', label: 'Usuarios', icon: Users }
+      { id: 'users', label: 'Usuarios', icon: Users }
     ] : [])
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Contenedor del TabsList (único elemento fijo) */}
       <div className="sticky top-0 z-50 bg-gray-50 shadow-md">
         <div className="container mx-auto p-4">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0">
@@ -251,10 +301,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Contenido principal de la página (desplazable) */}
       <div className="container mx-auto p-6 pt-0 flex-grow">
-
-        {/* Header y Botones de acción (ahora desplazables) */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Dashboard de Gestión</h1>
@@ -264,7 +311,6 @@ const Dashboard = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Botón para desplegar/replegar StatsCards */}
             <Button
               variant="outline"
               size="sm"
@@ -327,7 +373,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Filters (ahora desplazables) */}
         {showFilters && (
           <Card className="mb-6">
             <CardHeader>
@@ -340,20 +385,17 @@ const Dashboard = () => {
               <DashboardFilters
                 filters={appliedFilters}
                 onFiltersChange={handleFiltersChange}
-                // onClearFilters se maneja a nivel de Dashboard ahora
               />
             </CardContent>
           </Card>
         )}
 
-        {/* Stats Cards (desplegables y desplazables) */}
         {showStatsCards && (
           <div className="mb-6">
             <StatsCards onNavigateToProfessionals={handleNavigateToProfessionals} />
           </div>
         )}
 
-        {/* Contenido de las pestañas (se mantiene en el mismo componente Tabs) */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsContent value="overview" className="space-y-6">
             <DashboardCharts onChartClick={handleChartClick} />
@@ -384,28 +426,26 @@ const Dashboard = () => {
               <ProfessionalsTable
                 onSelectProfessional={handleSelectProfessional}
                 userRole={userRole}
-                appliedFilters={dashboardFilters} // ProfessionalsTable usa dashboardFilters
+                appliedFilters={dashboardFilters}
                 onClearFilters={handleClearFilters}
-                // dashboardFilters ya está establecido en el estado, no es necesario pasarlo explícitamente de nuevo si appliedFilters es el que se observa.
               />
             )}
           </TabsContent>
 
           <TabsContent value="requests" className="space-y-6">
-            {/* RequestsPanel necesita el filtro de estado_solicitud de dashboardFilters */}
             <RequestsPanel
-                userRole={userRole}
-                initialStatusFilter={dashboardFilters.estado_solicitud} // Pasa el filtro de estado específico
-                onSelectProfessional={handleSelectProfessional}
+              userRole={userRole}
+              initialStatusFilter={dashboardFilters.estado_solicitud}
+              onSelectProfessional={handleSelectProfessional}
             />
           </TabsContent>
 
           <TabsContent value="renewals" className="space-y-6">
-            {/* RenewalAlerts necesita los filtros de vencimiento/prioridad de dashboardFilters */}
-            {/* CORRECCIÓN APLICADA AQUÍ: Se pasa el objeto 'dashboardFilters' completo como un solo prop */}
+            {/* Se pasa la nueva función sendSmsNotification al componente RenewalAlerts */}
             <RenewalAlerts
-                dashboardFilters={dashboardFilters} // <-- CAMBIO CLAVE AQUÍ
-                onSelectProfessional={handleSelectProfessional}
+              dashboardFilters={dashboardFilters}
+              onSelectProfessional={handleSelectProfessional}
+              onSendSmsNotification={sendSmsNotification} {/* <-- CAMBIO CLAVE AQUÍ */}
             />
           </TabsContent>
 

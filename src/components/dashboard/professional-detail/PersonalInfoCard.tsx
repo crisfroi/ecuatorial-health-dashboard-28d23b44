@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Globe, CreditCard, Phone, Venus, Mars, Man, Woman } from 'lucide-react';
+import { User, Globe, CreditCard, Phone, Woman, Man } from 'lucide-react'; // Eliminamos Venus/Mars si no se usan, para limpiar imports
 import type { Profesional } from '@/hooks/useProfesionales';
 
 interface PersonalInfoCardProps {
@@ -9,6 +9,7 @@ interface PersonalInfoCardProps {
 }
 
 const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
+  // Determinar qué documento mostrar
   const getDocumentInfo = () => {
     if (professional.numero_dip) {
       return { tipo: 'DIP', numero: professional.numero_dip };
@@ -21,6 +22,10 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
   };
 
   const documentInfo = getDocumentInfo();
+
+  // NORMALIZACIÓN DEL GÉNERO
+  // Convertimos a minúsculas y eliminamos espacios en blanco para asegurar la comparación
+  const normalizedGenero = professional.genero?.trim().toLowerCase();
 
   return (
     <Card>
@@ -37,7 +42,7 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
               onError={(e) => {
                 e.currentTarget.onerror = null;
                 e.currentTarget.src = 'https://via.placeholder.com/166x216/f0f4f8/888888?text=No+Foto';
-                e.currentTarget.className = "w-32 h-32 rounded-full flex items-center justify-center bg-gray-200 text-gray-400"; // Fallback a estilo de icono
+                e.currentTarget.className = "w-32 h-32 rounded-full flex items-center justify-center bg-gray-200 text-gray-400";
               }}
             />
           ) : (
@@ -96,17 +101,16 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
             <p>{professional.edad || 'No especificado'} años</p>
           </div>
 
-          {/* ESTE ES EL BLOQUE CORREGIDO DEL GÉNERO */}
+          {/* Bloque de Género actualizado con normalización */}
           <div>
             <span className="text-sm font-medium text-gray-600">Género:</span>
-            {/* El texto del género ya no está dentro de una etiqueta <p> aquí */}
             <div className="flex items-center space-x-2">
-              {professional.genero === 'Femenino' ? (
+              {normalizedGenero === 'femenino' ? ( // Ahora comparamos con 'femenino' en minúsculas
                 <Woman className="w-4 h-4 text-pink-500" />
-              ) : professional.genero === 'Masculino' ? (
+              ) : normalizedGenero === 'masculino' ? ( // Y 'masculino' en minúsculas
                 <Man className="w-4 h-4 text-blue-600" />
               ) : null}
-              {/* Aquí usamos un <span> o directamente el texto para que se alinee con el icono */}
+              {/* Mostramos el valor original o normalizado si prefieres */}
               <span className="font-medium">{professional.genero || 'No especificado'}</span>
             </div>
           </div>
@@ -138,4 +142,4 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
 };
 
 export default PersonalInfoCard;
-      
+  

@@ -39,7 +39,7 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
     return diffDays;
   };
 
-  const daysUntilRenewal = calculateDaysUntilRenewal(professional.fecha_validez_carnet);
+  const daysUntilRenewal = calculateDaysUntilRenewal(professional.fecha_caducidad);
   const isRenewalSoon = daysUntilRenewal !== null && daysUntilRenewal <= 30;
 
   const handleDownload = async (format: 'pdf' | 'png') => {

@@ -350,6 +350,8 @@ export type Database = {
           fecha_alta: string | null
           fecha_aprobacion: string | null
           fecha_aprobacion_carnet: string | null
+          fecha_caducidad?: string | null
+          fecha_emision?: string | null
           fecha_creacion_solicitud: string | null
           fecha_nacimiento: string | null
           fecha_revision: string | null
@@ -524,7 +526,9 @@ export type Database = {
           fecha_alta?: string | null
           fecha_aprobacion?: string | null
           fecha_aprobacion_carnet?: string | null
+          fecha_caducidad?: string | null
           fecha_creacion_solicitud?: string | null
+          fecha_emision?: string | null
           fecha_nacimiento?: string | null
           fecha_revision?: string | null
           fecha_solicitud?: string | null

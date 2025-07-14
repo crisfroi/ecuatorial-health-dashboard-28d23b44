@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -6,37 +5,51 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Eye, Edit, Save, X, RefreshCw } from 'lucide-react';
-import { useProfesionales } from '@/hooks/useProfesionales';
+import { useProfesionales, type Profesional } from '@/hooks/useProfesionales'; // Importa el tipo Profesional
 import { useProfesionalesMutations } from '@/hooks/useProfesionalesMutations';
 import { useToast } from '@/hooks/use-toast';
 
 interface RequestsPanelProps {
   userRole: string;
+  // **MODIFICACIÓN**: Nuevo prop para el filtro de estado inicial desde el dashboard
+  initialStatusFilter?: string;
+  // Añadimos una prop para ver los detalles del profesional, igual que en ProfessionalsTable
+  onSelectProfessional?: (professional: Profesional) => void;
 }
 
-const RequestsPanel = ({ userRole }: RequestsPanelProps) => {
-  const [statusFilter, setStatusFilter] = useState('todos');
+const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: RequestsPanelProps) => {
+  // **MODIFICACIÓN CLAVE**: Inicializa el estado con `initialStatusFilter` o 'Pendiente' por defecto
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'Pendiente');
   const [editingStates, setEditingStates] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const { updateProfesional } = useProfesionalesMutations();
 
-  // Obtener solicitudes con refetch automático
-  const { data: allRequests = [], isLoading, refetch, error } = useProfesionales({});
-
-  // Forzar actualización cada vez que cambie el filtro
+  // **MODIFICACIÓN CLAVE**: `useEffect` para sincronizar `statusFilter` con `initialStatusFilter`
+  // Esto asegura que si el Dashboard cambia el filtro (ej. al hacer clic en una tarjeta de estadísticas),
+  // este componente reaccione y actualice su filtro interno.
   useEffect(() => {
-    refetch();
-  }, [statusFilter, refetch]);
+    console.log('RequestsPanel: initialStatusFilter received in useEffect:', initialStatusFilter);
+    if (initialStatusFilter !== undefined && initialStatusFilter !== statusFilter) {
+      setStatusFilter(initialStatusFilter);
+    } else if (initialStatusFilter === undefined && statusFilter !== 'Pendiente') {
+      // Si initialStatusFilter se limpia desde el padre (undefined), volvemos al estado por defecto
+      setStatusFilter('Pendiente');
+    }
+  }, [initialStatusFilter]); // Solo depende de initialStatusFilter, no de statusFilter para evitar bucles.
 
-  // Filtrar solo las solicitudes que NO son "Aprobado"
-  const filteredRequests = allRequests.filter(req => {
-    const isNotApproved = req.estado_solicitud !== 'Aprobado';
-    const matchesFilter = statusFilter === 'todos' || req.estado_solicitud === statusFilter;
-    return isNotApproved && matchesFilter;
+  // **MODIFICACIÓN CLAVE**: Pasa directamente `statusFilter` al hook `useProfesionales`
+  // Esto permite que el hook realice el filtrado directamente en la base de datos,
+  // en lugar de traer todos los datos y filtrarlos en el frontend.
+  const { data: profesionales = [], isLoading, refetch, error } = useProfesionales({
+    estado_solicitud: statusFilter === 'todos' ? '' : statusFilter, // Pasa el filtro actual
   });
 
-  console.log('Total requests from DB:', allRequests.length);
-  console.log('Filtered requests (non-approved):', filteredRequests.length);
+  // La lógica de `filteredRequests` ahora es mucho más simple porque el hook ya filtra por estado.
+  // Solo necesitamos filtrar para excluir "Aprobado" si el filtro es 'todos' o no se especifica.
+  const filteredRequests = profesionales.filter(req => req.estado_solicitud !== 'Aprobado');
+
+  console.log('Total professionals from DB (filtered by hook):', profesionales.length);
+  console.log('Filtered requests (non-approved, post-hook):', filteredRequests.length);
   console.log('Applied status filter:', statusFilter);
 
   const getStatusColor = (status: string) => {
@@ -67,14 +80,14 @@ const RequestsPanel = ({ userRole }: RequestsPanelProps) => {
 
     try {
       console.log('Updating request state:', requestId, 'to:', newState);
-      
+
       await updateProfesional.mutateAsync({
         id: requestId,
         updates: {
           estado_solicitud: newState,
           fecha_revision: newState !== 'Pendiente' ? new Date().toISOString().split('T')[0] : null,
           fecha_aprobacion: newState === 'Aprobado' ? new Date().toISOString().split('T')[0] : null,
-          revisor_solicitud: newState !== 'Pendiente' ? 'Sistema' : null
+          revisor_solicitud: newState !== 'Pendiente' ? 'Sistema' : null // Considera usar el ID del usuario actual aquí
         }
       });
 
@@ -85,7 +98,7 @@ const RequestsPanel = ({ userRole }: RequestsPanelProps) => {
         return newStates;
       });
 
-      // Forzar refetch de datos
+      // Forzar refetch de datos para reflejar el cambio
       await refetch();
 
       toast({
@@ -179,6 +192,7 @@ const RequestsPanel = ({ userRole }: RequestsPanelProps) => {
               </Badge>
             </CardTitle>
             <div className="flex items-center space-x-2">
+              {/* No incluimos "Aprobado" en este select porque este panel es para solicitudes no aprobadas */}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Filtrar por estado" />
@@ -191,9 +205,9 @@ const RequestsPanel = ({ userRole }: RequestsPanelProps) => {
                   <SelectItem value="Rechazado">Rechazado</SelectItem>
                 </SelectContent>
               </Select>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleRefresh}
                 disabled={isLoading}
               >
@@ -220,8 +234,8 @@ const RequestsPanel = ({ userRole }: RequestsPanelProps) => {
                 {filteredRequests.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                      {statusFilter === 'todos' 
-                        ? 'No hay solicitudes pendientes' 
+                      {statusFilter === 'todos'
+                        ? 'No hay solicitudes pendientes'
                         : `No hay solicitudes con estado: ${statusFilter}`
                       }
                     </TableCell>
@@ -294,10 +308,13 @@ const RequestsPanel = ({ userRole }: RequestsPanelProps) => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <Button variant="outline" size="sm" className="hover:bg-gray-50">
-                            <Eye className="w-4 h-4 mr-1" />
-                            Ver Detalles
-                          </Button>
+                          {/* **MODIFICACIÓN**: Usamos la prop onSelectProfessional */}
+                          {onSelectProfessional && (
+                            <Button variant="outline" size="sm" className="hover:bg-gray-50" onClick={() => onSelectProfessional(request)}>
+                              <Eye className="w-4 h-4 mr-1" />
+                              Ver Detalles
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

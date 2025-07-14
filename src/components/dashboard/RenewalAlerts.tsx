@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 // Asume que ProfessionalDetail está en esta ruta. Ajusta si es diferente.
-import ProfessionalDetail from './ProfessionalDetail'; 
+import ProfessionalDetail from '@/components/dashboard/ProfessionalDetail'; 
 
 interface RenewalAlertsProps {
   onNavigateToProfessionals?: (filters: any) => void;

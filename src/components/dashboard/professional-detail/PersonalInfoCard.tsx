@@ -78,6 +78,15 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
           </div>
 
           <div>
+            <span className="text-sm font-medium text-gray-600">ID Profesional:</span>
+            <div className="flex items-center space-x-2">
+              <Badge variant="outline" className="text-gray-800 font-mono">
+                {professional.id_profesional_unico || 'Pendiente'}
+              </Badge>
+            </div>
+          </div>
+          
+          <div>
             <span className="text-sm font-medium text-gray-600">Teléfono:</span>
             <div className="flex items-center space-x-2">
               <Phone className="w-4 h-4 text-gray-500" />

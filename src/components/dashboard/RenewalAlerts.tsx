@@ -36,8 +36,7 @@ interface ProfesionalAlert extends Profesional {
 }
 
 interface RenewalAlertsProps {
-  onNavigateToProfessionals?: (filters: any) => void;
-  // **ACTUALIZACIÓN CLAVE**: Nuevo prop para recibir los filtros del dashboard
+  // onNavigateToProfessionals?: (filters: any) => void; // Este prop no se usa en este componente, puedes quitarlo si quieres
   dashboardFilters?: {
     vencimiento_proximo?: boolean;
     carnet_vencido?: boolean;
@@ -45,24 +44,27 @@ interface RenewalAlertsProps {
   };
 }
 
-const RenewalAlerts = ({ onNavigateToProfessionals, dashboardFilters }: RenewalAlertsProps) => {
+const RenewalAlerts = ({ dashboardFilters }: RenewalAlertsProps) => {
   console.log('RenewalAlerts component rendered.');
+  console.log('RenewalAlerts: Initial dashboardFilters received:', dashboardFilters);
 
   // **ACTUALIZACIÓN CLAVE**: Inicializar y actualizar el filtro interno según `dashboardFilters`
+  // Usamos un estado interno para el filtro que se mostrará en el dropdown
   const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<ProfesionalAlert['prioridad'] | 'all'>(() => {
+    // Lógica para inicializar el filtro al cargar el componente
     if (dashboardFilters?.prioridad_renovacion) {
       return dashboardFilters.prioridad_renovacion;
     }
     if (dashboardFilters?.vencimiento_proximo) {
-        return 'alta'; // O el filtro que consideres para "próximos" por defecto
+      return 'alta'; // Muestra "Alta Urgencia" para "Próximos a Vencer"
     }
     if (dashboardFilters?.carnet_vencido) {
-        return 'vencido';
+      return 'vencido'; // Muestra "Vencidos" para "Carnets Vencidos"
     }
-    return 'all'; // Por defecto, si no hay filtros específicos
+    return 'all'; // Por defecto, si no hay filtros específicos de dashboard
   });
 
-  // **ACTUALIZACIÓN CLAVE**: useEffect para reaccionar a cambios en dashboardFilters
+  // **ACTUALIZACIÓN CLAVE**: useEffect para reaccionar a cambios en dashboardFilters y actualizar el estado interno
   useEffect(() => {
     console.log('RenewalAlerts: Dashboard filters updated in useEffect:', dashboardFilters);
     if (dashboardFilters) {
@@ -73,7 +75,7 @@ const RenewalAlerts = ({ onNavigateToProfessionals, dashboardFilters }: RenewalA
       } else if (dashboardFilters.carnet_vencido) {
         setSelectedPriorityFilter('vencido');
       } else {
-        // Si no hay filtros específicos de renovación, se resetea al valor por defecto
+        // Si no hay filtros específicos de renovación en dashboardFilters, resetea
         setSelectedPriorityFilter('all');
       }
     } else {
@@ -92,7 +94,7 @@ const RenewalAlerts = ({ onNavigateToProfessionals, dashboardFilters }: RenewalA
 
     const today = new Date();
     const expiryDate = new Date(professional.fecha_caducidad);
-    expiryDate.setHours(23, 59, 59, 999);
+    expiryDate.setHours(23, 59, 59, 999); // Asegura que la fecha de caducidad incluya todo el día
 
     const diffTime = expiryDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -108,8 +110,10 @@ const RenewalAlerts = ({ onNavigateToProfessionals, dashboardFilters }: RenewalA
       prioridad = 'baja';
     }
 
-    // Solo devolver profesionales que vencen en los próximos 90 días o están vencidos
-    if (diffDays <= 90 || diffDays <= 0) {
+    // Aquí mantenemos la lógica para procesar solo los que vencen en los próximos 90 días o están vencidos.
+    // La consulta de Supabase ahora será más precisa, por lo que esta capa sigue siendo un "filtro de seguridad"
+    // y para asignar la prioridad.
+    if (diffDays <= 90 || diffDays <= 0) { // Incluye vencidos y los próximos 90 días
       return {
         ...professional,
         diasRestantes: diffDays,
@@ -119,26 +123,56 @@ const RenewalAlerts = ({ onNavigateToProfessionals, dashboardFilters }: RenewalA
     return null;
   };
 
-  const { data: professionalsData = [], isLoading, isError } = useQuery<ProfesionalAlert[]>({
-    queryKey: ['renewalAlerts'],
+  // **ACTUALIZACIÓN CLAVE**: Modificar queryKey y queryFn para que sean dinámicos
+  const { data: professionalsData = [], isLoading, isError, refetch } = useQuery<ProfesionalAlert[]>({
+    // El queryKey ahora incluye los filtros del dashboard, lo que hará que la consulta se re-ejecute
+    // cuando estos filtros cambien.
+    queryKey: ['renewalAlerts', dashboardFilters],
     queryFn: async () => {
-      console.log('Starting Supabase data fetch for renewal alerts...');
+      console.log('RenewalAlerts: Starting Supabase data fetch with dashboardFilters:', dashboardFilters);
+
       const today = new Date();
-      const futureDate = new Date(today);
-      futureDate.setDate(today.getDate() + 90);
+      let query = supabase.from('profesionales_sanitarios').select('*');
 
-      const todayIso = today.toISOString().split('T')[0];
-      const futureDateIso = futureDate.toISOString().split('T')[0];
+      // Siempre filtramos por 'Aprobado'
+      query = query.eq('estado_solicitud', 'Aprobado');
 
-      console.log(`Fetching data from Supabase for fecha_caducidad between ${todayIso} and ${futureDateIso}, and estado_solicitud = 'Aprobado'.`);
+      if (dashboardFilters?.carnet_vencido) {
+        // Si el filtro es para carnets vencidos, busca solo los que ya caducaron (fecha_caducidad <= hoy)
+        const todayIso = today.toISOString().split('T')[0];
+        query = query.lte('fecha_caducidad', todayIso);
+        console.log(`RenewalAlerts: Applying carnet_vencido filter: fecha_caducidad <= ${todayIso}`);
+      } else if (dashboardFilters?.vencimiento_proximo) {
+        // Si el filtro es para próximos a vencer (ej. 30 días),
+        // busca entre hoy y una fecha futura (ej. hoy + 30 días)
+        const futureDate = new Date(today);
+        futureDate.setDate(today.getDate() + 30); // Define un rango de "próximos a vencer", aquí 30 días
+        const todayIso = today.toISOString().split('T')[0];
+        const futureDateIso = futureDate.toISOString().split('T')[0];
+        query = query
+          .gte('fecha_caducidad', todayIso)
+          .lte('fecha_caducidad', futureDateIso);
+        console.log(`RenewalAlerts: Applying vencimiento_proximo filter: fecha_caducidad between ${todayIso} and ${futureDateIso}`);
+      } else {
+        // Por defecto o si no hay filtros específicos, carga todos los que vencen en 90 días o están vencidos
+        // Esto es lo que teníamos originalmente para la vista general de alertas
+        const futureDate = new Date(today);
+        futureDate.setDate(today.getDate() + 90);
+        const todayIso = today.toISOString().split('T')[0];
+        const futureDateIso = futureDate.toISOString().split('T')[0];
+        query = query
+          .lte('fecha_caducidad', futureDateIso); // Incluye hasta 90 días en el futuro
+          // .or(`fecha_caducidad.lte.${todayIso},fecha_caducidad.gte.${todayIso}`); // Asegura que se incluyen los vencidos también
+                                                                               // La lógica de calculateRenewalInfo maneja esto mejor después
+          console.log(`RenewalAlerts: No specific dashboard filter, fetching fecha_caducidad <= ${futureDateIso}`);
 
-      const { data, error } = await supabase
-        .from('profesionales_sanitarios')
-        .select('*')
-        .lte('fecha_caducidad', futureDateIso)
-        .gte('fecha_caducidad', todayIso)
-        .eq('estado_solicitud', 'Aprobado')
-        .order('fecha_caducidad', { ascending: true });
+      }
+      
+      // Siempre ordenar por fecha de caducidad
+      query = query.order('fecha_caducidad', { ascending: true });
+
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching renewal alerts from Supabase:', error);
@@ -146,6 +180,7 @@ const RenewalAlerts = ({ onNavigateToProfessionals, dashboardFilters }: RenewalA
       }
       console.log(`Successfully fetched ${data ? data.length : 0} raw professionals from Supabase.`);
 
+      // Post-procesamiento para calcular días restantes y prioridad
       const processedAlerts: ProfesionalAlert[] = [];
       data.forEach(prof => {
         const alertInfo = calculateRenewalInfo(prof);
@@ -155,9 +190,12 @@ const RenewalAlerts = ({ onNavigateToProfessionals, dashboardFilters }: RenewalA
       });
       console.log(`Finished processing raw data. ${processedAlerts.length} alerts generated.`);
       return processedAlerts;
-    }
+    },
+    // La consulta se ejecutará automáticamente cuando dashboardFilters cambie
   });
 
+  // El filtro final en el cliente se aplica sobre los datos ya obtenidos,
+  // usando selectedPriorityFilter que se inicializa/actualiza desde dashboardFilters o el dropdown.
   const filteredRenewalAlerts = professionalsData.filter(alert => {
     // console.log(`Filtering alert for ${alert.nombre_completo}: current priority ${alert.prioridad}, selected filter ${selectedPriorityFilter}`);
     if (selectedPriorityFilter === 'all') {
@@ -165,7 +203,7 @@ const RenewalAlerts = ({ onNavigateToProfessionals, dashboardFilters }: RenewalA
     }
     return alert.prioridad === selectedPriorityFilter;
   });
-  console.log(`Displaying ${filteredRenewalAlerts.length} alerts after filter by priority.`);
+  console.log(`Displaying ${filteredRenewalAlerts.length} alerts after client-side filter by priority.`);
 
   const getPriorityColor = (prioridad: string) => {
     switch (prioridad) {
@@ -178,7 +216,6 @@ const RenewalAlerts = ({ onNavigateToProfessionals, dashboardFilters }: RenewalA
   };
 
   // Ajustado para que el dropdown de "Ver Todos" solo afecte el filtro interno de RenewalAlerts
-  // No llamamos a onNavigateToProfessionals aquí, ya que el dashboard ya nos ha dirigido.
   const handleViewAll = (prioridad?: ProfesionalAlert['prioridad'] | 'all') => {
     console.log('RenewalAlerts: Dropdown filter changed to:', prioridad || 'all');
     setSelectedPriorityFilter(prioridad || 'all');

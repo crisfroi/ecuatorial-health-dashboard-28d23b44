@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Globe, CreditCard, Phone, venus, mars } from 'lucide-react'; // Eliminamos Venus/Mars si no se usan, para limpiar imports
+import { User, Globe, CreditCard, Phone } from 'lucide-react';
 import type { Profesional } from '@/hooks/useProfesionales';
 
 interface PersonalInfoCardProps {
@@ -23,10 +23,6 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
 
   const documentInfo = getDocumentInfo();
 
-  // NORMALIZACIÓN DEL GÉNERO
-  // Convertimos a minúsculas y eliminamos espacios en blanco para asegurar la comparación
-  const normalizedGenero = professional.genero?.trim().toLowerCase();
-
   return (
     <Card>
       <CardHeader>
@@ -34,14 +30,16 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex justify-center mb-4">
+          {/* AQUI ESTÁ EL CAMBIO: Mostrar foto_carnet o icono User */}
           {professional.foto_carnet ? (
             <img
               src={professional.foto_carnet}
               alt="Foto del Carnet Profesional"
               className="w-[166px] h-[216px] object-cover border-4 border-gray-300 rounded-lg mx-auto mb-2 shadow-lg"
               onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = 'https://via.placeholder.com/166x216/f0f4f8/888888?text=No+Foto';
+                // Fallback en caso de que la imagen no cargue
+                e.currentTarget.onerror = null; // Evita bucles infinitos
+                e.currentTarget.src = 'https://via.placeholder.com/128/f0f4f8/888888?text=No+Foto'; // Puedes usar un placeholder más genérico o un icono
                 e.currentTarget.className = "w-32 h-32 rounded-full flex items-center justify-center bg-gray-200 text-gray-400";
               }}
             />
@@ -87,7 +85,7 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
               </Badge>
             </div>
           </div>
-
+          
           <div>
             <span className="text-sm font-medium text-gray-600">Teléfono:</span>
             <div className="flex items-center space-x-2">
@@ -101,45 +99,37 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
             <p>{professional.edad || 'No especificado'} años</p>
           </div>
 
-          {/* Bloque de Género actualizado con normalización */}
           <div>
             <span className="text-sm font-medium text-gray-600">Género:</span>
-            <div className="flex items-center space-x-2">
-              {normalizedGenero === 'femenino' ? ( // Ahora comparamos con 'femenino' en minúsculas
-                <venus className="w-4 h-4 text-pink-500" />
-              ) : normalizedGenero === 'masculino' ? ( // Y 'masculino' en minúsculas
-                <mars className="w-4 h-4 text-blue-600" />
-              ) : null}
-              {/* Mostramos el valor original o normalizado si prefieres */}
-              <span className="font-medium">{professional.genero || 'No especificado'}</span>
-            </div>
+            <p>{professional.genero || 'No especificado'}</p>
           </div>
+        </div>
 
-          <Separator />
+        <Separator />
 
-          <div className="text-center">
-            <div className="inline-block bg-gray-100 p-4 rounded-lg">
-              {professional.url_codigo_barras ? (
-                <img
-                  src={professional.url_codigo_barras}
-                  alt="Código de Barras"
-                  className="w-full h-auto max-w-[200px] mx-auto"
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.alt = "Error al cargar código de barras";
-                    e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiB2aWV3Qm94PSIwIDAgMjAwIDUwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iNTAiIHJ4PSI0IiBmaWxsPSIjRjNGNEY4Ii8+PHRleHQgeD0iMTAwIiB5PSIzMCIgZm9udC1mYW1pbHk9ImFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNjc2NzY3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ObwogY2w0ZGlndW88L3RleHQ+PC9zdmc+"
-                  }}
-                />
-              ) : (
-                <div className="font-mono text-sm">{professional.codigo_barras || 'No generado'}</div>
-              )}
-              <div className="text-xs text-gray-600 mt-1">Código de barras único</div>
-            </div>
+        <div className="text-center">
+          <div className="inline-block bg-gray-100 p-4 rounded-lg">
+            {/* AQUI ESTÁ EL CAMBIO: Mostrar el código de barras como imagen */}
+            {professional.url_codigo_barras ? (
+              <img
+                src={professional.url_codigo_barras}
+                alt="Código de Barras"
+                className="w-full h-auto max-w-[200px] mx-auto"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.alt = "Error al cargar código de barras";
+                  e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiB2aWV3Qm94PSIwIDAgMjAwIDUwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iNTAiIHJ4PSI0IiBmaWxsPSIjRjNGNEY4Ii8+PHRleHQgeD0iMTAwIiB5PSIzMCIgZm9udC1mYW1pbHk9ImFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNjc2NzY3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ObwogY2w0ZGlndW88L3RleHQ+PC9zdmc+"
+                }}
+              />
+            ) : (
+              <div className="font-mono text-sm">{professional.codigo_barras || 'No generado'}</div>
+            )}
+            <div className="text-xs text-gray-600 mt-1">Código de barras único</div>
           </div>
-        </CardContent>
+        </div>
+      </CardContent>
     </Card>
   );
 };
 
 export default PersonalInfoCard;
-  

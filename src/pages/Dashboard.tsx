@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -48,11 +48,9 @@ import HealthCenters from '@/components/dashboard/HealthCenters';
 import UserRoleManagement from '@/components/dashboard/UserRoleManagement';
 
 import type { Tables } from '@/integrations/supabase/types';
-import { useAuth } from '@/context/AuthContext'; // Importar useAuth para el rol del usuario
 
 type Profesional = Tables<'profesionales_sanitarios'>;
 
-// Definición de tipos para los filtros. Incluimos todos los posibles para el dashboard.
 interface Filtros {
   area_profesional?: string;
   estado_solicitud?: string;
@@ -61,128 +59,46 @@ interface Filtros {
   tipo_sector?: string;
   distrito?: string;
   anoGraduacion?: string;
-  search?: string; // Filtro de búsqueda global
-  // Filtros específicos para RenewalAlerts que Dashboard podría pasar
-  vencimiento_proximo?: boolean;
-  carnet_vencido?: boolean;
-  prioridad_renovacion?: 'alta' | 'media' | 'baja' | 'vencido' | 'todos';
 }
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth(); // Obtener el usuario del contexto de autenticación
-
-  // Determinar el rol del usuario. Si no hay usuario o rol, por defecto 'profesional'.
-  const userRole = user?.user_metadata?.role || 'profesional';
-  const userName = user?.user_metadata?.nombre || 'Usuario'; // Nombre del usuario logueado
-
   const [selectedProfessional, setSelectedProfessional] = useState<Profesional | null>(null);
-  // appliedFilters: Los filtros que se muestran en el componente DashboardFilters
   const [appliedFilters, setAppliedFilters] = useState<Filtros>({});
   const [showFilters, setShowFilters] = useState(false);
-  // dashboardFilters: Los filtros finales que se pasan a los componentes de tabla/panel
   const [dashboardFilters, setDashboardFilters] = useState<Filtros>({});
   const [activeTab, setActiveTab] = useState('overview');
   const [showStatsCards, setShowStatsCards] = useState(true);
-  const [globalSearchText, setGlobalSearchText] = useState<string>(''); // Nuevo estado para la búsqueda global
 
-  // Callback para seleccionar un profesional y mostrar su detalle
-  const handleSelectProfessional = useCallback((professional: Profesional) => {
-    console.log('Dashboard: Professional selected for detail view:', professional.id);
+  const userRole = 'administrador';
+  const userName = 'Admin User';
+
+  const handleSelectProfessional = (professional: Profesional) => {
     setSelectedProfessional(professional);
-  }, []);
+  };
 
-  // Callback para cerrar la vista de detalle del profesional
-  const handleCloseProfessionalDetail = useCallback(() => {
-    console.log('Dashboard: Closing professional detail view.');
-    setSelectedProfessional(null);
-  }, []);
-
-  // Función para consolidar y aplicar los filtros
-  const applyCurrentFilters = useCallback(() => {
-    console.log('Dashboard: Applying current filters...');
-    const currentCombinedFilters: Filtros = { ...appliedFilters };
-
-    // Si la búsqueda global tiene texto, añadirlo a los filtros combinados
-    if (globalSearchText.trim() !== '') {
-      currentCombinedFilters.search = globalSearchText.trim();
-      console.log('Dashboard: Global search text applied:', globalSearchText.trim());
-    } else {
-      // Asegurarse de que el campo de búsqueda se limpia si el texto está vacío
-      delete currentCombinedFilters.search;
-    }
-
-    // Asegurarse de que `estado_solicitud: 'todos'` no se pase como filtro real
-    if (currentCombinedFilters.estado_solicitud === 'todos') {
-      delete currentCombinedFilters.estado_solicitud;
-      console.log('Dashboard: Removed "todos" from estado_solicitud filter.');
-    }
-
-    // Los filtros de vencimiento y prioridad solo se pasan a RenewalAlerts.
-    // Aquí nos aseguramos de que no se mezclen si no son relevantes para la pestaña.
-    if (activeTab !== 'renewals') {
-        delete currentCombinedFilters.vencimiento_proximo;
-        delete currentCombinedFilters.carnet_vencido;
-        delete currentCombinedFilters.prioridad_renovacion;
-        console.log('Dashboard: Cleared renewal-specific filters as not on renewals tab.');
-    }
-
-    setDashboardFilters(currentCombinedFilters);
-    console.log('Dashboard: Final dashboardFilters set:', currentCombinedFilters);
-  }, [appliedFilters, globalSearchText, activeTab]);
-
-
-  // useEffect para aplicar filtros cuando `appliedFilters`, `globalSearchText` o `activeTab` cambian
-  useEffect(() => {
-    console.log('Dashboard: Effect triggered due to filter/tab change. Recalculating dashboardFilters...');
-    applyCurrentFilters();
-  }, [appliedFilters, globalSearchText, activeTab, applyCurrentFilters]); // Dependencia de applyCurrentFilters es importante para useCallback
-
-
-  // Manejador para los cambios en DashboardFilters
-  const handleFiltersChange = useCallback((filters: Filtros) => {
-    console.log('Dashboard: Filters changed by DashboardFilters component:', filters);
+  const handleFiltersChange = (filters: Filtros) => {
+    console.log('Dashboard: Applying filters:', filters);
     setAppliedFilters(filters);
-    // applyCurrentFilters se llamará por el useEffect
-  }, []);
+    setDashboardFilters(filters);
+  };
 
-  // Manejador para limpiar todos los filtros
-  const handleClearFilters = useCallback(() => {
-    console.log('Dashboard: Clearing all filters.');
+  const handleClearFilters = () => {
+    console.log('Dashboard: Clearing filters');
     setAppliedFilters({});
-    setGlobalSearchText(''); // Limpiar también la búsqueda global
-    // applyCurrentFilters se llamará por el useEffect
-    setShowFilters(false); // Opcional: Ocultar los filtros al limpiar
-  }, []);
+    setDashboardFilters({});
+    setShowFilters(false);
+  };
 
-  // Manejador para la navegación desde las StatsCards
-  const handleNavigateToProfessionals = useCallback((filter: Filtros) => {
+  const handleNavigateToProfessionals = (filter: Filtros) => {
     console.log('Dashboard: Stats card clicked with filter:', filter);
+    setDashboardFilters(filter);
+    setAppliedFilters(filter);
+    setActiveTab('professionals');
+  };
 
-    // Reinicia los filtros y aplica los de la tarjeta, manteniendo la búsqueda global
-    const newAppliedFilters: Filtros = {
-      ...filter,
-      search: globalSearchText // Mantiene la búsqueda global
-    };
-    setAppliedFilters(newAppliedFilters);
-
-    // Decide a qué pestaña ir según el filtro de la tarjeta
-    if (filter.estado_solicitud && filter.estado_solicitud !== 'Aprobado') {
-      console.log(`Dashboard: Navigating to 'requests' tab for status: ${filter.estado_solicitud}`);
-      setActiveTab('requests');
-    } else if (filter.vencimiento_proximo || filter.carnet_vencido || filter.prioridad_renovacion) {
-      console.log('Dashboard: Navigating to "renewals" tab for expiration/priority filter.');
-      setActiveTab('renewals');
-    } else {
-      console.log('Dashboard: Navigating to "professionals" tab for general filter.');
-      setActiveTab('professionals');
-    }
-    // applyCurrentFilters se llamará por el useEffect
-  }, [globalSearchText]);
-
-  // Manejador para clics en los gráficos (para aplicar filtros)
-  const handleChartClick = useCallback((data: any, chartType: string) => {
-    console.log('Dashboard: Chart clicked:', data, 'Type:', chartType);
+  const handleChartClick = (data: any, chartType: string) => {
+    console.log('Dashboard: Chart clicked:', data, chartType);
     const filter: Filtros = {};
 
     if (chartType === 'area_profesional' && data.area) {
@@ -190,81 +106,44 @@ const Dashboard = () => {
     } else if (chartType === 'provincia' && data.provincia) {
       filter.provincia = data.provincia;
     } else if (chartType === 'estado_solicitud' && data.estado) {
-      // Si el gráfico es de estado de solicitud, se aplica al filtro
       filter.estado_solicitud = data.estado;
     }
 
-    const newAppliedFilters: Filtros = {
-      ...filter,
-      search: globalSearchText // Mantiene la búsqueda global
-    };
+    setDashboardFilters(filter);
+    setAppliedFilters(filter);
+    setActiveTab('professionals');
+  };
 
-    setAppliedFilters(newAppliedFilters);
-    // Si el filtro es de estado de solicitud y no es 'Aprobado', ir a la pestaña de solicitudes
-    if (filter.estado_solicitud && filter.estado_solicitud !== 'Aprobado') {
-      setActiveTab('requests');
-      console.log(`Dashboard: Chart click navigating to 'requests' tab for status: ${filter.estado_solicitud}`);
-    } else {
-      setActiveTab('professionals');
-      console.log('Dashboard: Chart click navigating to "professionals" tab.');
-    }
-    // applyCurrentFilters se llamará por el useEffect
-  }, [globalSearchText]);
+  const handleLogout = () => {
+    console.log("Cerrar sesión");
+    navigate('/login');
+  };
 
-  // Funciones de usuario
-  const handleLogout = useCallback(() => {
-    console.log("Dashboard: User logging out.");
-    navigate('/login'); // O la ruta de cierre de sesión de tu aplicación
-  }, [navigate]);
+  const handleUserSettings = () => {
+    console.log("Configuración de usuario");
+  };
 
-  const handleUserSettings = useCallback(() => {
-    console.log("Dashboard: User settings accessed.");
-    // Lógica para navegar a la configuración de usuario o abrir un modal
-  }, []);
-
-  // Determinar si hay algún filtro activo para mostrar el botón de "Limpiar filtros"
-  const hasActiveFilters = useCallback(() => {
-    const isAppliedFiltersEmpty = Object.keys(appliedFilters).every(key => {
-      const value = (appliedFilters as any)[key];
-      return value === undefined || value === '' || value === 'todos' || value === null;
-    });
-    return !isAppliedFiltersEmpty || globalSearchText.trim() !== '';
-  }, [appliedFilters, globalSearchText]);
-
-
-  // Configuración de las pestañas
   const tabsConfig = [
     { id: 'overview', label: 'General', icon: BarChart3 },
     { id: 'professionals', label: 'Profesionales', icon: Users },
-    // Las pestañas de 'requests' y 'users' solo se muestran para roles específicos
-    ...(userRole === 'administrador' || userRole === 'comite' ? [{ id: 'requests', label: 'Solicitudes', icon: FileText }] : []),
+    { id: 'requests', label: 'Solicitudes', icon: FileText },
     { id: 'renewals', label: 'Renovaciones', icon: Calendar },
     { id: 'analytics', label: 'Analíticas', icon: TrendingUp },
     { id: 'ai-chat', label: 'IA Chat', icon: MessageSquare },
     { id: 'ministerial', label: 'Ministerial', icon: Settings },
     { id: 'incidents', label: 'Incidencias', icon: Activity },
-    { id: 'health-centers', label: 'Centros', icon: Building2 }, // Icono cambiado de MapPin a Building2
-    ...(userRole === 'administrador' ? [{ id: 'users', label: 'Usuarios', icon: UserCog }] : []) // Icono cambiado de Users a UserCog
+    { id: 'health-centers', label: 'Centros', icon: MapPin },
+    ...(userRole === 'administrador' ? [
+        { id: 'users', label: 'Usuarios', icon: Users }
+    ] : [])
   ];
-
-
-  // Si hay un profesional seleccionado, muestra el detalle en lugar del dashboard completo
-  if (selectedProfessional) {
-    console.log('Dashboard: Rendering ProfessionalDetail component.');
-    return (
-      <ProfessionalDetail
-        professional={selectedProfessional}
-        onClose={handleCloseProfessionalDetail}
-      />
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Contenedor del TabsList (único elemento fijo) */}
       <div className="sticky top-0 z-50 bg-gray-50 shadow-md">
-        <div className="container mx-auto p-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0">
+        <div className="container mx-auto p-4"> {/* Reducido el padding para que sea más compacto */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-0"> {/* Eliminado mt-6 aquí */}
             <TabsList className="grid w-full grid-cols-5 md:grid-cols-10">
               {tabsConfig.map((tab) => {
                 const Icon = tab.icon;
@@ -291,7 +170,8 @@ const Dashboard = () => {
       </div>
 
       {/* Contenido principal de la página (desplazable) */}
-      <div className="container mx-auto p-6 pt-0 flex-grow">
+      <div className="container mx-auto p-6 pt-0 flex-grow"> {/* Añadido pt-0 para evitar doble padding */}
+
         {/* Header y Botones de acción (ahora desplazables) */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
           <div>
@@ -306,10 +186,7 @@ const Dashboard = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setShowStatsCards(!showStatsCards);
-                console.log(`Dashboard: Toggling StatsCards visibility to: ${!showStatsCards}`);
-              }}
+              onClick={() => setShowStatsCards(!showStatsCards)}
               className="flex items-center gap-2"
             >
               {showStatsCards ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -319,18 +196,14 @@ const Dashboard = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setShowFilters(!showFilters);
-                console.log(`Dashboard: Toggling filters visibility to: ${!showFilters}`);
-              }}
+              onClick={() => setShowFilters(!showFilters)}
               className="flex items-center gap-2"
             >
               <Filter className="w-4 h-4" />
               {showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
             </Button>
 
-            {/* Botón Limpiar Filtros */}
-            {hasActiveFilters() && (
+            {(Object.keys(appliedFilters).length > 0 || Object.keys(dashboardFilters).length > 0) && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -368,7 +241,7 @@ const Dashboard = () => {
 
         {/* Filters (ahora desplazables) */}
         {showFilters && (
-          <Card className="mb-6">
+          <Card className="mb-6"> {/* Ajustado a mb-6 para espacio */}
             <CardHeader>
               <CardTitle className="text-lg">Filtros de Búsqueda</CardTitle>
               <CardDescription>
@@ -376,24 +249,10 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Nuevo Input de búsqueda global dentro de DashboardFilters */}
-              <div className="mb-4">
-                <label htmlFor="global-search-input" className="text-sm font-medium sr-only">Búsqueda Global</label>
-                <Input
-                  id="global-search-input"
-                  placeholder="Buscar por nombre, DNI, número de colegiado..."
-                  value={globalSearchText}
-                  onChange={(e) => {
-                    setGlobalSearchText(e.target.value);
-                    console.log('Dashboard: Global search text changed:', e.target.value);
-                  }}
-                  className="mb-4" // Espacio entre este input y los filtros de DashboardFilters
-                />
-              </div>
               <DashboardFilters
                 filters={appliedFilters}
                 onFiltersChange={handleFiltersChange}
-                // onClearFilters se manejará por el botón global de Limpiar Filtros
+                onClearFilters={handleClearFilters}
               />
             </CardContent>
           </Card>
@@ -408,38 +267,43 @@ const Dashboard = () => {
 
         {/* Contenido de las pestañas (se mantiene en el mismo componente Tabs) */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          {/* Los TabsContent deben estar aquí */}
           <TabsContent value="overview" className="space-y-6">
             <DashboardCharts onChartClick={handleChartClick} />
           </TabsContent>
 
           <TabsContent value="professionals" className="space-y-6">
-            {/* ProfessionalsTable recibe dashboardFilters, que incluye search y los filtros de DashboardFilters */}
-            <ProfessionalsTable
-              onSelectProfessional={handleSelectProfessional}
-              userRole={userRole}
-              appliedFilters={dashboardFilters} // Pass dashboardFilters here
-            />
+            {selectedProfessional ? (
+              <div className="space-y-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedProfessional(null)}
+                  className="flex items-center gap-2"
+                >
+                  ← Volver a la lista
+                </Button>
+                <ProfessionalDetail
+                  professional={selectedProfessional}
+                  onClose={() => setSelectedProfessional(null)}
+                />
+              </div>
+            ) : (
+              <ProfessionalsTable
+                onSelectProfessional={handleSelectProfessional}
+                userRole={userRole}
+                appliedFilters={appliedFilters}
+                onClearFilters={handleClearFilters}
+                dashboardFilters={dashboardFilters}
+              />
+            )}
           </TabsContent>
 
-          {(userRole === 'administrador' || userRole === 'comite') && (
-            <TabsContent value="requests" className="space-y-6">
-              {/* RequestsPanel recibe initialStatusFilter del dashboardFilters */}
-              <RequestsPanel
-                userRole={userRole}
-                initialStatusFilter={dashboardFilters.estado_solicitud}
-                onSelectProfessional={handleSelectProfessional}
-              />
-            </TabsContent>
-          )}
+          <TabsContent value="requests" className="space-y-6">
+            <RequestsPanel userRole={userRole} />
+          </TabsContent>
 
           <TabsContent value="renewals" className="space-y-6">
-            {/* RenewalAlerts recibe los filtros de vencimiento del dashboardFilters */}
-            <RenewalAlerts
-              initialPriorityFilter={dashboardFilters.prioridad_renovacion}
-              initialVencimientoProximo={dashboardFilters.vencimiento_proximo}
-              initialCarnetVencido={dashboardFilters.carnet_vencido}
-              onSelectProfessional={handleSelectProfessional}
-            />
+            <RenewalAlerts />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
@@ -490,11 +354,9 @@ const Dashboard = () => {
             <HealthCenters />
           </TabsContent>
 
-          {userRole === 'administrador' && (
-            <TabsContent value="users" className="space-y-6">
-              <UserRoleManagement />
-            </TabsContent>
-          )}
+          <TabsContent value="users" className="space-y-6">
+            {userRole === 'administrador' && <UserRoleManagement />}
+          </TabsContent>
         </Tabs>
       </div>
     </div>

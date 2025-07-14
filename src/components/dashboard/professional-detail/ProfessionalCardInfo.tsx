@@ -56,17 +56,6 @@ const ProfessionalCardInfo = ({ professional, daysUntilRenewal, isRenewalSoon }:
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Foto del profesional (tu original) */}
-        {professional.foto_carnet && (
-          <div className="text-center">
-            <img 
-              src={professional.foto_carnet} 
-              alt="Foto profesional"
-              className="w-24 h-32 object-cover border-2 border-gray-300 rounded-lg mx-auto mb-2"
-            />
-            <p className="text-xs text-gray-500">Foto oficial</p>
-          </div>
-        )}
 
         {/* Sección para la visualización del Carnet SVG */}
         {professional.url_carnet && (
@@ -90,7 +79,7 @@ const ProfessionalCardInfo = ({ professional, daysUntilRenewal, isRenewalSoon }:
         <div className="text-center">
           <p className="text-sm font-medium text-gray-600 mb-1">Número de Carnet</p>
           <p className="font-mono text-lg font-bold text-blue-600">
-            {professional.numero_carnet_profesional || 'Pendiente de asignación'}
+            {professional.id_profesional_unico || 'Pendiente de asignación'}
           </p>
         </div>
         
@@ -102,7 +91,7 @@ const ProfessionalCardInfo = ({ professional, daysUntilRenewal, isRenewalSoon }:
             <div className="flex items-center space-x-2">
               <Calendar className="w-4 h-4 text-gray-500" />
               <p className={`font-medium ${isRenewalSoon ? 'text-orange-600' : 'text-green-600'}`}>
-                {professional.fecha_validez_carnet || 'No especificado'}
+                {professional.fecha_caducidad || 'No especificado'}
               </p>
             </div>
           </div>

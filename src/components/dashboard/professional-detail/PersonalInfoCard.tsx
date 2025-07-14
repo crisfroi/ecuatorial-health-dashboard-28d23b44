@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Globe, CreditCard, Phone } from 'lucide-react';
+import { User, Globe, CreditCard, Phone, Venus } from 'lucide-react';
 import type { Profesional } from '@/hooks/useProfesionales';
 
 interface PersonalInfoCardProps {
@@ -59,7 +59,7 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
           <div>
             <span className="text-sm font-medium text-gray-600">Nacionalidad:</span>
             <div className="flex items-center space-x-2">
-              <Globe className="w-4 h-4 text-gray-500" />
+              <Venus className="w-4 h-4 text-gray-500" />
               <p>{professional.nacionalidad || 'No especificado'}</p>
               {professional.pertenece_brigada_medica && (
                 <Badge variant="secondary" className="bg-blue-100 text-blue-800">

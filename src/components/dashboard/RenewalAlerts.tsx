@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Calendar, User, Phone, Mail, MapPin, ChevronDown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Profesional } from '@/hooks/useProfesionales';
+import type { Profesional } from '@/hooks/useProfesionales'; // Tu tipo Profesional
 
 import {
   Dialog,
@@ -25,29 +25,44 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// ***************************************************************
+// REVISADO: Asegúrate que esta ruta sea la correcta para tu proyecto
+// y que el componente ProfessionalDetail acepte 'professional: Profesional'
+// y 'onClose: () => void' como props.
 import ProfessionalDetail from '@/components/dashboard/ProfessionalDetail.tsx'; 
+// ***************************************************************
 
 interface RenewalAlertsProps {
   onNavigateToProfessionals?: (filters: any) => void;
 }
 
+// Extender el tipo Profesional para incluir los campos calculados para las alertas
+// y asegurar que los campos usados existan (ya sea por tu DB o aquí temporalmente)
 interface ProfesionalAlert extends Profesional {
   diasRestantes: number;
   prioridad: 'alta' | 'media' | 'baja' | 'vencido';
-  distrito_sanitario?: string | null;
+  // Estos campos deben venir de tu tipo base 'Profesional' si están en Supabase.
+  // Los incluimos aquí solo como un recordatorio si tu tipo Profesional no los tuviera aún.
+  distrito_sanitario?: string | null; 
   area_profesional?: string | null;
-  email?: string | null;
+  telefono?: string | null;
+  fecha_caducidad?: string | null; // Usado aquí, asegúrate que esté en tu DB
 }
 
 const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
-  console.log('RenewalAlerts component rendered.'); // Log de renderizado inicial
+  console.log('RenewalAlerts component rendered.');
   const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<ProfesionalAlert['prioridad'] | 'all' | undefined>('all');
+  // ***************************************************************
+  // REVISADO: El estado debe guardar el objeto completo 'ProfesionalAlert'
+  // para pasarlo a ProfessionalDetail.
   const [selectedProfessional, setSelectedProfessional] = useState<ProfesionalAlert | null>(null);
+  // ***************************************************************
 
   const calculateRenewalInfo = (professional: Profesional): ProfesionalAlert | null => {
-    console.log('Calculating renewal info for professional:', professional.id_profesional_unico); // Log de inicio de cálculo
+    console.log('Calculating renewal info for professional ID:', professional.id_profesional_unico);
+    // Usar 'fecha_caducidad' que es la que se consulta en este componente.
     if (!professional.fecha_caducidad) {
-      console.log('Professional has no fecha_caducidad. Skipping.'); // Log si no hay fecha de caducidad
+      console.log('Professional has no fecha_caducidad. Skipping.');
       return null;
     }
 
@@ -70,21 +85,21 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
     }
 
     if (diffDays <= 90 || diffDays <= 0) {
-      console.log(`Professional ${professional.id_profesional_unico} - Days remaining: ${diffDays}, Priority: ${prioridad}`); // Log de resultado de cálculo
+      console.log(`Professional ${professional.id_profesional_unico} - Days remaining: ${diffDays}, Priority: ${prioridad}`);
       return {
         ...professional,
         diasRestantes: diffDays,
         prioridad: prioridad,
       };
     }
-    console.log('Professional not within 90-day alert range. Skipping.'); // Log si está fuera del rango
+    console.log('Professional not within 90-day alert range. Skipping.');
     return null;
   };
 
   const { data: professionalsData = [], isLoading, isError } = useQuery<ProfesionalAlert[]>({
     queryKey: ['renewalAlerts'],
     queryFn: async () => {
-      console.log('Starting Supabase data fetch for renewal alerts...'); // Log de inicio de fetch
+      console.log('Starting Supabase data fetch for renewal alerts...');
       const today = new Date();
       const futureDate = new Date(today);
       futureDate.setDate(today.getDate() + 90);
@@ -92,21 +107,21 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
       const todayIso = today.toISOString().split('T')[0];
       const futureDateIso = futureDate.toISOString().split('T')[0];
 
-      console.log(`Fetching data from Supabase for fecha_caducidad between ${todayIso} and ${futureDateIso}, and estado_solicitud = 'Aprobado'.`); // Log de parámetros de consulta
+      console.log(`Fetching data from Supabase for fecha_caducidad between ${todayIso} and ${futureDateIso}, and estado_solicitud = 'Aprobado'.`);
 
       const { data, error } = await supabase
         .from('profesionales_sanitarios')
-        .select('*')
+        .select('*') // Select all columns to ensure you get all needed fields
         .lte('fecha_caducidad', futureDateIso)
         .gte('fecha_caducidad', todayIso)
         .eq('estado_solicitud', 'Aprobado')
         .order('fecha_caducidad', { ascending: true });
 
       if (error) {
-        console.error('Error fetching renewal alerts from Supabase:', error); // Log de error de Supabase
+        console.error('Error fetching renewal alerts from Supabase:', error);
         throw error;
       }
-      console.log(`Successfully fetched ${data ? data.length : 0} raw professionals from Supabase.`); // Log de datos brutos obtenidos
+      console.log(`Successfully fetched ${data ? data.length : 0} raw professionals from Supabase.`);
 
       const processedAlerts: ProfesionalAlert[] = [];
       data.forEach(prof => {
@@ -115,22 +130,21 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
           processedAlerts.push(alertInfo);
         }
       });
-      console.log(`Finished processing raw data. ${processedAlerts.length} alerts generated.`); // Log de procesamiento de alertas
+      console.log(`Finished processing raw data. ${processedAlerts.length} alerts generated.`);
       return processedAlerts;
     }
   });
 
   const filteredRenewalAlerts = professionalsData.filter(alert => {
-    console.log(`Filtering alert for ${alert.nombre_completo}: current priority ${alert.prioridad}, selected filter ${selectedPriorityFilter}`); // Log de filtrado por alerta
+    console.log(`Filtering alert for ${alert.nombre_completo}: current priority ${alert.prioridad}, selected filter ${selectedPriorityFilter}`);
     if (selectedPriorityFilter === 'all') {
       return true;
     }
     return alert.prioridad === selectedPriorityFilter;
   });
-  console.log(`Displaying ${filteredRenewalAlerts.length} alerts after filter by priority.`); // Log de alertas finales a mostrar
+  console.log(`Displaying ${filteredRenewalAlerts.length} alerts after filter by priority.`);
 
   const getPriorityColor = (prioridad: string) => {
-    // console.log('Getting color for priority:', prioridad); // Este log puede ser muy ruidoso, úsalo si es necesario
     switch (prioridad) {
       case 'alta': return 'bg-red-100 text-red-800 border-red-200';
       case 'media': return 'bg-orange-100 text-orange-800 border-orange-200';
@@ -141,10 +155,10 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
   };
 
   const handleViewAll = (prioridad?: ProfesionalAlert['prioridad'] | 'all') => {
-    console.log('Handle View All clicked. Setting filter to:', prioridad || 'all'); // Log de clic en "Ver Todos"
+    console.log('Handle View All clicked. Setting filter to:', prioridad || 'all');
     setSelectedPriorityFilter(prioridad || 'all');
     if (onNavigateToProfessionals) {
-      console.log('Calling onNavigateToProfessionals with:', { type: 'renewal', value: prioridad || 'all_upcoming_renewals' }); // Log de navegación
+      console.log('Calling onNavigateToProfessionals with:', { type: 'renewal', value: prioridad || 'all_upcoming_renewals' });
       onNavigateToProfessionals({
         type: 'renewal',
         value: prioridad || 'all_upcoming_renewals'
@@ -153,11 +167,11 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
   };
 
   const handleViewProfessionalDetail = (professional: ProfesionalAlert) => {
-    console.log('Opening professional detail for:', professional.id_profesional_unico); // Log de apertura de detalles
+    console.log('Opening professional detail for:', professional.id_profesional_unico);
     setSelectedProfessional(professional);
   };
 
-  console.log(`Component rendering complete. Is loading: ${isLoading}, Is error: ${isError}.`); // Log antes del return final
+  console.log(`Component rendering complete. Is loading: ${isLoading}, Is error: ${isError}.`);
 
   return (
     <Card>
@@ -283,6 +297,8 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
                         Ver Detalle
                       </Button>
                     </DialogTrigger>
+                    {/* *************************************************************** */}
+                    {/* REVISADO: Pasar el objeto 'professional' completo y la función 'onClose' */}
                     {selectedProfessional && (
                       <DialogContent className="sm:max-w-[700px] h-[90vh] overflow-y-auto">
                         <DialogHeader>
@@ -291,9 +307,13 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
                             Información completa de {selectedProfessional.nombre_completo}.
                           </DialogDescription>
                         </DialogHeader>
-                        <ProfessionalDetail professional={selectedProfessional!} onClose={() => setSelectedProfessional(null)} />
+                        <ProfessionalDetail 
+                          professional={selectedProfessional} // Pasar el objeto completo
+                          onClose={() => setSelectedProfessional(null)} // Función para cerrar el diálogo desde ProfessionalDetail (opcional si ya manejas con onOpenChange)
+                        />
                       </DialogContent>
                     )}
+                    {/* *************************************************************** */}
                   </Dialog>
                 </div>
               </div>

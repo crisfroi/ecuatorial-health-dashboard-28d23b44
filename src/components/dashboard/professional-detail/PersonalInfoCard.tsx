@@ -35,7 +35,7 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
             <img
               src={professional.foto_carnet}
               alt="Foto del Carnet Profesional"
-              className="w-32 h-32 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+              className="w-40 h-40 rounded-full object-cover object-top border-2 border-gray-200 shadow-sm"
               onError={(e) => {
                 // Fallback en caso de que la imagen no cargue
                 e.currentTarget.onerror = null; // Evita bucles infinitos

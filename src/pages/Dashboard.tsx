@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -75,6 +76,7 @@ const Dashboard = () => {
   const [dashboardFilters, setDashboardFilters] = useState<Filtros>({});
   const [activeTab, setActiveTab] = useState('overview');
   const [showStatsCards, setShowStatsCards] = useState(true);
+  const queryClient = useQueryClient();
 
   // Manteniendo userRole y userName como están en tu código original
   const userRole = 'administrador';
@@ -116,6 +118,10 @@ const Dashboard = () => {
       // Si el filtro es sobre vencimiento o prioridad de renovación
       console.log('Dashboard: Navegando a la pestaña "renewals" por filtro de vencimiento/prioridad.');
       setActiveTab('renewals');
+        // **ACTUALIZACIÓN CRUCIAL:** Invalida la caché de 'renewalAlerts'
+      queryClient.invalidateQueries({ queryKey: ['renewalAlerts'] });
+      console.log('Dashboard: Invalidated "renewalAlerts" query cache.');
+    }
     } else {
       // Para cualquier otro filtro (ej. area_profesional, o estado_solicitud 'Aprobado')
       console.log('Dashboard: Navegando a la pestaña "professionals" por filtro general.');

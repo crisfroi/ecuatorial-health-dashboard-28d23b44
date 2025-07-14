@@ -3,18 +3,97 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Calendar, User, Phone, Mail } from 'lucide-react';
-// Importamos el hook y el tipo que devuelve
-import { useProfesionales, type ProfesionalAlert } from '@/hooks/useProfesionales'; 
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client'; // Tu cliente de Supabase
+import type { Profesional } from '@/hooks/useProfesionales'; // Tu tipo Profesional
 
 interface RenewalAlertsProps {
   onNavigateToProfessionals?: (filters: any) => void;
 }
 
+// Extender el tipo Profesional para incluir los campos calculados para las alertas
+interface ProfesionalAlert extends Profesional {
+  diasRestantes: number;
+  prioridad: 'alta' | 'media' | 'baja' | 'vencido';
+}
+
 const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
 
-  // Usa el hook con el nuevo filtro para obtener solo las alertas
-  const { data: renewalAlerts = [], isLoading, isError } = useProfesionales({
-    filterByRenewalAlerts: true, // ¡Activa el filtro de alertas en el hook!
+  // Función para calcular los días restantes y la prioridad de renovación
+  const calculateRenewalInfo = (professional: Profesional): ProfesionalAlert | null => {
+    if (!professional.fecha_caducidad) {
+      return null; // No se puede calcular si no hay fecha de caducidad
+    }
+
+    const today = new Date();
+    // Asegurarse de que la fecha de caducidad se trate al final del día para un cálculo inclusivo
+    const expiryDate = new Date(professional.fecha_caducidad);
+    expiryDate.setHours(23, 59, 59, 999); // Establecer al final del día
+
+    // Calcular la diferencia en milisegundos y luego convertir a días
+    const diffTime = expiryDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Redondeamos hacia arriba para incluir el día actual
+
+    let prioridad: 'alta' | 'media' | 'baja' | 'vencido';
+    if (diffDays <= 0) {
+      prioridad = 'vencido';
+    } else if (diffDays < 30) {
+      prioridad = 'alta';
+    } else if (diffDays >= 30 && diffDays < 60) {
+      prioridad = 'media';
+    } else { // diffDays >= 60 && diffDays <= 90
+      prioridad = 'baja';
+    }
+
+    // Solo devolver si está dentro del rango de interés (hasta 90 días o vencido)
+    if (diffDays <= 90) {
+      return {
+        ...professional,
+        diasRestantes: diffDays,
+        prioridad: prioridad,
+      };
+    }
+    return null;
+  };
+
+  // Hook de React Query para obtener los profesionales con alerta de renovación
+  const { data: renewalAlerts = [], isLoading, isError } = useQuery<ProfesionalAlert[]>({
+    queryKey: ['renewalAlerts'],
+    queryFn: async () => {
+      const today = new Date();
+      // Calcular la fecha límite (hoy + 90 días)
+      const futureDate = new Date(today);
+      futureDate.setDate(today.getDate() + 90);
+
+      // Formatear fechas a ISO string para la consulta de Supabase (ej. 'YYYY-MM-DD')
+      const todayIso = today.toISOString().split('T')[0];
+      const futureDateIso = futureDate.toISOString().split('T')[0];
+
+      // Consulta a Supabase para obtener profesionales cuya fecha de caducidad
+      // esté entre hoy y los próximos 90 días, Y CON ESTADO 'Aprobado'
+      const { data, error } = await supabase
+        .from('profesionales_sanitarios') // Tu tabla de profesionales
+        .select('*')
+        .lte('fecha_caducidad', futureDateIso) // Menor o igual a la fecha futura
+        .gte('fecha_caducidad', todayIso)    // Mayor o igual a hoy (incluye vencidos hoy)
+        .eq('estado_solicitud', 'Aprobado') // <--- ¡NUEVO FILTRO AQUÍ!
+        .order('fecha_caducidad', { ascending: true }); // Ordenar por fecha de caducidad
+
+      if (error) {
+        console.error('Error fetching renewal alerts:', error);
+        throw error;
+      }
+
+      // Procesar los datos para calcular diasRestantes y prioridad
+      const processedAlerts: ProfesionalAlert[] = [];
+      data.forEach(prof => {
+        const alertInfo = calculateRenewalInfo(prof);
+        if (alertInfo) {
+          processedAlerts.push(alertInfo);
+        }
+      });
+      return processedAlerts;
+    }
   });
 
   const getPriorityColor = (prioridad: string) => {
@@ -25,8 +104,8 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
         return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'baja':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'vencido':
-        return 'bg-gray-200 text-gray-700 border-gray-300 line-through';
+      case 'vencido': // Nuevo color para vencidos
+        return 'bg-gray-200 text-gray-700 border-gray-300 line-through'; // Tachado para indicar que está vencido
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }

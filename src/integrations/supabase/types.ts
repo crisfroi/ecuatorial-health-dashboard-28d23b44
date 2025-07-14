@@ -586,6 +586,95 @@ export type Database = {
           url_codigo_barras?: string | null
           url_pdf?: string | null
         }
+         Update: {
+          año_fin_formacion?: number | null
+          año_graduacion?: number | null
+          año_inicio_paro?: number | null
+          apellidos?: string | null
+          area_profesional?: string | null
+          autonumerico_interno?: number | null
+          brigada_cooperacion?: string | null
+          categoria_centro?: string | null
+          categoria_titulacion?: string | null
+          centro_salud_id?: string | null
+          codigo_barras?: string | null
+          codigo_expediente?: string | null
+          copia_dip?: string | null
+          copia_pasaporte?: string | null
+          creada?: string | null
+          created_at?: string | null
+          created_time?: string | null
+          distrito?: string | null
+          distrito_sanitario?: string | null
+          documentos_cargados?: Json | null
+          domicilio?: string | null
+          edad?: number | null
+          especialidad?: string | null
+          estado_solicitud?: string | null
+          estado_trabajo?: string | null
+          fecha_alta?: string | null
+          fecha_aprobacion?: string | null
+          fecha_aprobacion_carnet?: string | null
+          fecha_caducidad?: string | null
+          fecha_creacion_solicitud?: string | null
+          fecha_emision?: string | null
+          fecha_nacimiento?: string | null
+          fecha_revision?: string | null
+          fecha_solicitud?: string | null
+          fecha_validez_carnet?: string | null
+          foto_carnet?: string | null
+          genero?: string | null
+          genero_interesado?: string | null
+          gentilicio_femenino?: string | null
+          id?: string
+          id_distrito?: string | null
+          id_profesional_unico?: string | null
+          institucion_1?: string | null
+          institucion_2?: string | null
+          meses_en_paro?: number | null
+          motivo_rechazo?: string | null
+          nacionalidad?: string | null
+          nombre?: string | null
+          nombre_centro?: string | null
+          nombre_completo?: string
+          notas_revision?: string | null
+          numero_autonumerico_correlativo?: number | null
+          numero_carnet_profesional?: string | null
+          numero_correlativo?: number | null
+          numero_dip?: string | null
+          numero_documento?: string | null
+          numero_pasaporte?: string | null
+          pais_formacion_1?: string | null
+          pais_formacion_2?: string | null
+          pdf_formulario?: string | null
+          periodo_formacion?: string | null
+          periodo_formacion_1?: string | null
+          periodo_formacion_2?: string | null
+          pertenece_brigada_medica?: boolean | null
+          prefijo_area?: string | null
+          provincia?: string | null
+          puesto_responsabilidad?: string | null
+          referencia_articulo_genero?: string | null
+          revisor_solicitud?: string | null
+          situacion_laboral?: string | null
+          telefono?: string | null
+          tipo_cooperacion?: string | null
+          tipo_documento?: string | null
+          tipo_formacion_1?: string | null
+          tipo_formacion_2?: string | null
+          tipo_sector?: string | null
+          titulacion_especifica_1?: string | null
+          titulacion_especifica_2?: string | null
+          titulo_adjunto_1?: string | null
+          titulo_adjunto_2?: string | null
+          tratamiento_genero?: string | null
+          ultima_modificacion_por?: string | null
+          updated_at?: string | null
+          urgencia_solicitud?: string | null
+          url_carta_resolucion?: string | null
+          url_codigo_barras?: string | null
+          url_pdf?: string | null
+        }
         Relationships: [
           {
             foreignKeyName: "fk_profesionales_centro_salud"

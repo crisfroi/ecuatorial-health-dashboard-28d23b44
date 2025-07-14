@@ -98,7 +98,7 @@ const ProfessionalCardInfo = ({ professional, daysUntilRenewal, isRenewalSoon }:
         <div className="text-center">
           <p className="text-sm font-medium text-gray-600 mb-1">Número de Carnet</p>
           <p className="font-mono text-lg font-bold text-blue-600">
-            {professional.numero_carnet_profesional || 'Pendiente de asignación'}
+            {professional.id_profesiona_unico || 'Pendiente de asignación'}
           </p>
         </div>
 
@@ -110,7 +110,7 @@ const ProfessionalCardInfo = ({ professional, daysUntilRenewal, isRenewalSoon }:
             <div className="flex items-center space-x-2">
               <Calendar className="w-4 h-4 text-gray-500" />
               <p className={`font-medium ${isRenewalSoon ? 'text-orange-600' : 'text-green-600'}`}>
-                {professional.fecha_validez_carnet || 'No especificado'}
+                {professional.fecha_caducidad || 'No especificado'}
               </p>
             </div>
           </div>

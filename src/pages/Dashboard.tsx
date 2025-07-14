@@ -24,8 +24,8 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client'; // Importar Supabase client para Edge Function
-import { useToast } from '@/components/ui/use-toast'; // Importar useToast para notificaciones al usuario
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 import {
   DropdownMenu,
@@ -66,6 +66,7 @@ interface Filtros {
   // Añadimos los filtros que pueden venir de StatsCards para RenewalAlerts
   vencimiento_proximo?: boolean;
   carnet_vencido?: boolean;
+  // --- CORRECCIÓN AQUÍ: HACER PRIORIDAD_RENOVACION OPCIONAL ---
   prioridad_renovacion?: 'alta' | 'media' | 'baja' | 'vencido' | 'all';
 }
 
@@ -78,9 +79,8 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showStatsCards, setShowStatsCards] = useState(true);
   const queryClient = useQueryClient();
-  const { toast } = useToast(); // Inicializar useToast
+  const { toast } = useToast();
 
-  // Manteniendo userRole y userName como están en tu código original
   const userRole = 'administrador';
   const userName = 'Admin User';
 
@@ -100,7 +100,6 @@ const Dashboard = () => {
     setShowFilters(false);
   };
 
-  // **FUNCIÓN CLAVE: handleNavigateToProfessionals**
   const handleNavigateToProfessionals = (filter: Filtros) => {
     console.log('Dashboard: Stats card clicked. Filtro recibido:', filter);
 
@@ -112,6 +111,7 @@ const Dashboard = () => {
     } else if (filter.prioridad_renovacion) {
       newAppliedFilters.prioridad_renovacion = filter.prioridad_renovacion;
     } else {
+      // Usar Object.assign para copiar propiedades si no son filtros de renovación
       Object.assign(newAppliedFilters, filter);
     }
     setAppliedFilters(newAppliedFilters);
@@ -177,7 +177,6 @@ const Dashboard = () => {
     console.log("Dashboard: Configuración de usuario.");
   };
 
-  // *** NUEVA FUNCIÓN: Envío de notificación SMS a través de Edge Function ***
   const sendSmsNotification = async (
     profesionalId: string,
     telefono: string | null,
@@ -196,10 +195,8 @@ const Dashboard = () => {
       return;
     }
 
-    // Formatear la fecha para el mensaje
     const formattedDate = fechaValidezCarnet ? new Date(fechaValidezCarnet).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'una fecha desconocida';
 
-    // Construir el mensaje basado en el tipo de notificación
     let messageBody = '';
     if (tipoNotificacion === 'manual_proximo') {
       messageBody = `Recordatorio de Renovación: Estimado/a ${nombreCompleto}, su carnet profesional vence el ${formattedDate}. Por favor, inicie su proceso de renovación.`;
@@ -207,14 +204,13 @@ const Dashboard = () => {
       messageBody = `Alerta de Carnet Vencido: Estimado/a ${nombreCompleto}, su carnet profesional venció el ${formattedDate}. Por favor, renueve su carnet lo antes posible.`;
     }
 
-    // Llamar a la Edge Function
     try {
       const { data, error } = await supabase.functions.invoke('send-sms', {
         body: JSON.stringify({
           to: telefono,
           body: messageBody,
-          profesionalId: profesionalId, // Pasar el ID del profesional
-          notificationType: tipoNotificacion, // Pasar el tipo de notificación para registro
+          profesionalId: profesionalId,
+          notificationType: tipoNotificacion,
         }),
         method: 'POST',
       });
@@ -234,7 +230,6 @@ const Dashboard = () => {
             description: `Se ha enviado un SMS a ${nombreCompleto}.`,
           });
         } else {
-          // Si data existe pero success es falso, puede haber un error reportado por la función
           toast({
             title: "Error al Enviar SMS",
             description: `Hubo un problema al enviar el SMS a ${nombreCompleto}: ${data?.message || 'Error desconocido'}`,
@@ -251,9 +246,7 @@ const Dashboard = () => {
       });
     }
   };
-  // --- FIN NUEVA FUNCIÓN ---
 
-  // Determinar si hay filtros activos para el botón "Limpiar Filtros"
   const hasActiveFilters = Object.keys(appliedFilters).length > 0;
 
   const tabsConfig = [
@@ -441,11 +434,10 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="renewals" className="space-y-6">
-            {/* Se pasa la nueva función sendSmsNotification al componente RenewalAlerts */}
             <RenewalAlerts
               dashboardFilters={dashboardFilters}
               onSelectProfessional={handleSelectProfessional}
-              onSendSmsNotification={sendSmsNotification} {/* <-- CAMBIO CLAVE AQUÍ */}
+              onSendSmsNotification={sendSmsNotification}
             />
           </TabsContent>
 

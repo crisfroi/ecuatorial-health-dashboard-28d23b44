@@ -121,7 +121,6 @@ const Dashboard = () => {
         // **ACTUALIZACIÓN CRUCIAL:** Invalida la caché de 'renewalAlerts'
       queryClient.invalidateQueries({ queryKey: ['renewalAlerts'] });
       console.log('Dashboard: Invalidated "renewalAlerts" query cache.');
-    }
     } else {
       // Para cualquier otro filtro (ej. area_profesional, o estado_solicitud 'Aprobado')
       console.log('Dashboard: Navegando a la pestaña "professionals" por filtro general.');

@@ -50,40 +50,32 @@ const RenewalAlerts = ({ dashboardFilters }: RenewalAlertsProps) => {
 
   // **ACTUALIZACIÓN CLAVE**: Inicializar y actualizar el filtro interno según `dashboardFilters`
   // Usamos un estado interno para el filtro que se mostrará en el dropdown
-  const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<ProfesionalAlert['prioridad'] | 'all'>(() => {
-    // Lógica para inicializar el filtro al cargar el componente
-    if (dashboardFilters?.prioridad_renovacion) {
-      return dashboardFilters.prioridad_renovacion;
-    }
-    if (dashboardFilters?.vencimiento_proximo) {
-      return 'alta'; // Muestra "Alta Urgencia" para "Próximos a Vencer"
-    }
-    if (dashboardFilters?.carnet_vencido) {
-      return 'vencido'; // Muestra "Vencidos" para "Carnets Vencidos"
-    }
-    return 'all'; // Por defecto, si no hay filtros específicos de dashboard
+  const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<ProfesionalAlert['prioridad'] | 'all'>('all');
   });
 
   // **ACTUALIZACIÓN CLAVE**: useEffect para reaccionar a cambios en dashboardFilters y actualizar el estado interno
-  useEffect(() => {
+useEffect(() => {
     console.log('RenewalAlerts: Dashboard filters updated in useEffect:', dashboardFilters);
     if (dashboardFilters) {
       if (dashboardFilters.prioridad_renovacion) {
+        // Si hay un filtro de prioridad específico desde el dashboard
         setSelectedPriorityFilter(dashboardFilters.prioridad_renovacion);
       } else if (dashboardFilters.vencimiento_proximo) {
+        // Si es "próximos a vencer" de StatsCard, muestra "alta"
         setSelectedPriorityFilter('alta');
       } else if (dashboardFilters.carnet_vencido) {
+        // Si es "carnet vencido" de StatsCard, muestra "vencido"
         setSelectedPriorityFilter('vencido');
       } else {
-        // Si no hay filtros específicos de renovación en dashboardFilters, resetea
+        // Si dashboardFilters existe pero no tiene filtros específicos de renovación
+        // Esto cubre casos donde se podría pasar un objeto vacío o filtros para otras secciones
         setSelectedPriorityFilter('all');
       }
     } else {
-      // Si dashboardFilters es undefined (ej. cuando se limpian todos los filtros en el Dashboard)
+      // Si dashboardFilters es undefined o null (no hay filtros aplicados desde el Dashboard)
       setSelectedPriorityFilter('all');
     }
   }, [dashboardFilters]);
-
 
   const [selectedProfessional, setSelectedProfessional] = useState<ProfesionalAlert | null>(null);
 
@@ -196,8 +188,8 @@ const RenewalAlerts = ({ dashboardFilters }: RenewalAlertsProps) => {
 
   // El filtro final en el cliente se aplica sobre los datos ya obtenidos,
   // usando selectedPriorityFilter que se inicializa/actualiza desde dashboardFilters o el dropdown.
-  const filteredRenewalAlerts = professionalsData.filter(alert => {
-    // console.log(`Filtering alert for ${alert.nombre_completo}: current priority ${alert.prioridad}, selected filter ${selectedPriorityFilter}`);
+
+const filteredRenewalAlerts = professionalsData.filter(alert => {
     if (selectedPriorityFilter === 'all') {
       return true;
     }

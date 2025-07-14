@@ -1,100 +1,48 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Calendar, User, Phone, Mail } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client'; // Tu cliente de Supabase
-import type { Profesional } from '@/hooks/useProfesionales'; // Tu tipo Profesional
 
 interface RenewalAlertsProps {
   onNavigateToProfessionals?: (filters: any) => void;
 }
 
-// Extender el tipo Profesional para incluir los campos calculados para las alertas
-interface ProfesionalAlert extends Profesional {
-  diasRestantes: number;
-  prioridad: 'alta' | 'media' | 'baja' | 'vencido';
-}
-
 const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
-
-  // Función para calcular los días restantes y la prioridad de renovación
-  const calculateRenewalInfo = (professional: Profesional): ProfesionalAlert | null => {
-    if (!professional.fecha_caducidad) {
-      return null; // No se puede calcular si no hay fecha de caducidad
+  // Datos simulados de profesionales con renovaciones próximas
+  const renewalAlerts = [
+    {
+      id: 1,
+      nombre: 'Dr. Carlos Mendez',
+      profesion: 'Médico Especialista',
+      fechaVencimiento: '2024-07-15',
+      diasRestantes: 15,
+      telefono: '+240 222 123 456',
+      email: 'carlos.mendez@salud.gq',
+      prioridad: 'alta'
+    },
+    {
+      id: 2,
+      nombre: 'Enf. María González',
+      profesion: 'Enfermera',
+      fechaVencimiento: '2024-07-28',
+      diasRestantes: 28,
+      telefono: '+240 222 234 567',
+      email: 'maria.gonzalez@salud.gq',
+      prioridad: 'media'
+    },
+    {
+      id: 3,
+      nombre: 'Farm. José Martín',
+      profesion: 'Farmacéutico',
+      fechaVencimiento: '2024-08-05',
+      diasRestantes: 36,
+      telefono: '+240 222 345 678',
+      email: 'jose.martin@salud.gq',
+      prioridad: 'baja'
     }
-
-    const today = new Date();
-    // Asegurarse de que la fecha de caducidad se trate al final del día para un cálculo inclusivo
-    const expiryDate = new Date(professional.fecha_caducidad);
-    expiryDate.setHours(23, 59, 59, 999); // Establecer al final del día
-
-    // Calcular la diferencia en milisegundos y luego convertir a días
-    const diffTime = expiryDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Redondeamos hacia arriba para incluir el día actual
-
-    let prioridad: 'alta' | 'media' | 'baja' | 'vencido';
-    if (diffDays <= 0) {
-      prioridad = 'vencido';
-    } else if (diffDays < 30) {
-      prioridad = 'alta';
-    } else if (diffDays >= 30 && diffDays < 60) {
-      prioridad = 'media';
-    } else { // diffDays >= 60 && diffDays <= 90
-      prioridad = 'baja';
-    }
-
-    // Solo devolver si está dentro del rango de interés (hasta 90 días o vencido)
-    if (diffDays <= 90) {
-      return {
-        ...professional,
-        diasRestantes: diffDays,
-        prioridad: prioridad,
-      };
-    }
-    return null;
-  };
-
-  // Hook de React Query para obtener los profesionales con alerta de renovación
-  const { data: renewalAlerts = [], isLoading, isError } = useQuery<ProfesionalAlert[]>({
-    queryKey: ['renewalAlerts'],
-    queryFn: async () => {
-      const today = new Date();
-      // Calcular la fecha límite (hoy + 90 días)
-      const futureDate = new Date(today);
-      futureDate.setDate(today.getDate() + 90);
-
-      // Formatear fechas a ISO string para la consulta de Supabase (ej. 'YYYY-MM-DD')
-      const todayIso = today.toISOString().split('T')[0];
-      const futureDateIso = futureDate.toISOString().split('T')[0];
-
-      // Consulta a Supabase para obtener profesionales cuya fecha de caducidad
-      // esté entre hoy y los próximos 90 días, Y CON ESTADO 'Aprobado'
-      const { data, error } = await supabase
-        .from('profesionales_sanitarios') // Tu tabla de profesionales
-        .select('*')
-        .lte('fecha_caducidad', futureDateIso) // Menor o igual a la fecha futura
-        .gte('fecha_caducidad', todayIso)    // Mayor o igual a hoy (incluye vencidos hoy)
-        .eq('estado_solicitud', 'Aprobado') // <--- ¡NUEVO FILTRO AQUÍ!
-        .order('fecha_caducidad', { ascending: true }); // Ordenar por fecha de caducidad
-
-      if (error) {
-        console.error('Error fetching renewal alerts:', error);
-        throw error;
-      }
-
-      // Procesar los datos para calcular diasRestantes y prioridad
-      const processedAlerts: ProfesionalAlert[] = [];
-      data.forEach(prof => {
-        const alertInfo = calculateRenewalInfo(prof);
-        if (alertInfo) {
-          processedAlerts.push(alertInfo);
-        }
-      });
-      return processedAlerts;
-    }
-  });
+  ];
 
   const getPriorityColor = (prioridad: string) => {
     switch (prioridad) {
@@ -104,8 +52,6 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
         return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'baja':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'vencido': // Nuevo color para vencidos
-        return 'bg-gray-200 text-gray-700 border-gray-300 line-through'; // Tachado para indicar que está vencido
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -113,20 +59,20 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
 
   const handleViewAll = () => {
     if (onNavigateToProfessionals) {
-      console.log('Navigating to all renewal alerts');
+      console.log('Navigating to renewals');
       onNavigateToProfessionals({
         type: 'renewal',
-        value: 'all_upcoming_renewals'
+        value: 'proxima'
       });
     }
   };
 
-  const handleViewProfessional = (professionalId: string) => {
+  const handleViewProfessional = (professional: any) => {
     if (onNavigateToProfessionals) {
-      console.log('Navigating to specific professional with ID:', professionalId);
+      console.log('Navigating to specific professional:', professional.nombre);
       onNavigateToProfessionals({
-        type: 'detail',
-        id: professionalId
+        type: 'search',
+        value: professional.nombre
       });
     }
   };
@@ -150,67 +96,54 @@ const RenewalAlerts = ({ onNavigateToProfessionals }: RenewalAlertsProps) => {
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading && <p className="text-center text-gray-500">Cargando alertas...</p>}
-        {isError && <p className="text-center text-red-500">Error al cargar las alertas.</p>}
-        {!isLoading && !isError && renewalAlerts.length === 0 && (
-          <p className="text-center text-gray-500">No hay alertas de renovación próximas.</p>
-        )}
         <div className="space-y-4">
           {renewalAlerts.map((alert) => (
-            <Alert
-              key={alert.id_profesional_unico}
+            <Alert 
+              key={alert.id} 
               className={`${getPriorityColor(alert.prioridad)} cursor-pointer hover:shadow-md transition-shadow`}
-              onClick={() => handleViewProfessional(alert.id_profesional_unico!)}
+              onClick={() => handleViewProfessional(alert)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
                     <User className="w-4 h-4" />
-                    <span className="font-medium">{alert.nombre_completo}</span>
+                    <span className="font-medium">{alert.nombre}</span>
                     <Badge variant="outline" className="text-xs">
-                      {alert.area_profesional || 'Sin profesión'}
+                      {alert.profesion}
                     </Badge>
                   </div>
-
+                  
                   <AlertDescription className="space-y-1">
                     <div className="flex items-center space-x-2 text-sm">
                       <Calendar className="w-3 h-3" />
-                      <span>
-                        Vence: {alert.fecha_caducidad ? new Date(alert.fecha_caducidad).toLocaleDateString('es-ES') : 'N/A'}
-                      </span>
-                      <span className="font-medium">
-                        {alert.diasRestantes <= 0 ? '(Vencido)' : `(${alert.diasRestantes} días)`}
-                      </span>
+                      <span>Vence: {alert.fechaVencimiento}</span>
+                      <span className="font-medium">({alert.diasRestantes} días)</span>
                     </div>
-
+                    
                     <div className="flex items-center space-x-4 text-xs text-gray-600">
-                      {alert.telefono && (
-                        <div className="flex items-center space-x-1">
-                          <Phone className="w-3 h-3" />
-                          <span>{alert.telefono}</span>
-                        </div>
-                      )}
-                      {alert.email && (
-                        <div className="flex items-center space-x-1">
-                          <Mail className="w-3 h-3" />
-                          <span>{alert.email}</span>
-                        </div>
-                      )}
+                      <div className="flex items-center space-x-1">
+                        <Phone className="w-3 h-3" />
+                        <span>{alert.telefono}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Mail className="w-3 h-3" />
+                        <span>{alert.email}</span>
+                      </div>
                     </div>
                   </AlertDescription>
                 </div>
-
+                
                 <div className="flex flex-col space-y-1">
                   <Button variant="outline" size="sm" className="text-xs">
                     Notificar
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
                     className="text-xs"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleViewProfessional(alert.id_profesional_unico!);
+                      handleViewProfessional(alert);
                     }}
                   >
                     Ver Detalle

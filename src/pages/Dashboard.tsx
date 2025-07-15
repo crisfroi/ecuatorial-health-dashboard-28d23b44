@@ -99,42 +99,51 @@ const Dashboard = () => {
     setAppliedFilters({});
     setShowFilters(false);
   };
-
-  const handleNavigateToProfessionals = (filter: Filtros) => {
+ const handleNavigateToProfessionals = (filter: Filtros) => {
     console.log('Dashboard: Stats card clicked. Filtro recibido:', filter);
 
-    const newAppliedFilters: Filtros = {};
+    let newAppliedFilters: Filtros = {};
+
+    // Prioridad para filtros de renovación (siempre envían a la pestaña 'renewals')
     if (filter.vencimiento_proximo) {
       newAppliedFilters.vencimiento_proximo = true;
+      setActiveTab('renewals');
+      console.log('Dashboard: Navegando a la pestaña "renewals" por filtro de "Próximos a Vencer".');
+      queryClient.invalidateQueries({ queryKey: ['renewalAlerts'] });
     } else if (filter.carnet_vencido) {
       newAppliedFilters.carnet_vencido = true;
+      setActiveTab('renewals');
+      console.log('Dashboard: Navegando a la pestaña "renewals" por filtro de "Carnets Vencidos".');
+      queryClient.invalidateQueries({ queryKey: ['renewalAlerts'] });
     } else if (filter.prioridad_renovacion) {
       newAppliedFilters.prioridad_renovacion = filter.prioridad_renovacion;
-    } else {
-      // Usar Object.assign para copiar propiedades si no son filtros de renovación
-      Object.assign(newAppliedFilters, filter);
-    }
-    setAppliedFilters(newAppliedFilters);
-
-    if (filter.estado_solicitud && filter.estado_solicitud !== 'Aprobado') {
-      console.log(`Dashboard: Navegando a la pestaña 'requests' para estado: ${filter.estado_solicitud}`);
-      setActiveTab('requests');
-    } else if (filter.vencimiento_proximo || filter.carnet_vencido || filter.prioridad_renovacion) {
-      console.log('Dashboard: Navegando a la pestaña "renewals" por filtro de vencimiento/prioridad.');
       setActiveTab('renewals');
+      console.log('Dashboard: Navegando a la pestaña "renewals" por filtro de "Prioridad de Renovación".');
       queryClient.invalidateQueries({ queryKey: ['renewalAlerts'] });
-      console.log('Dashboard: Invalidated "renewalAlerts" query cache.');
-       else if (filter.genero) {
+    } 
+    // NUEVO: Manejar el filtro de género explícitamente
+    else if (filter.genero) {
       newAppliedFilters.genero = filter.genero;
       setActiveTab('professionals'); // Los profesionales por género van a la pestaña de profesionales
       console.log(`Dashboard: Navegando a la pestaña "professionals" por filtro de género: ${filter.genero}`);
     }
-    } else {
+    // Manejar el filtro de estado de solicitud (envía a 'requests' si no es Aprobado)
+    else if (filter.estado_solicitud && filter.estado_solicitud !== 'Aprobado') {
+      newAppliedFilters.estado_solicitud = filter.estado_solicitud;
+      setActiveTab('requests');
+      console.log(`Dashboard: Navegando a la pestaña 'requests' para estado: ${filter.estado_solicitud}`);
+    } 
+    // Si no es un filtro especial de renovación, género o estado específico, aplica otros filtros generales
+    else {
+      // Para cualquier otro filtro (ej. estado_solicitud 'Aprobado', o área_profesional)
+      newAppliedFilters = { ...filter }; // Copia todas las propiedades del objeto filter
+      setActiveTab('professionals'); // Estos irán a la pestaña de profesionales
       console.log('Dashboard: Navegando a la pestaña "professionals" por filtro general.');
-      setActiveTab('professionals');
     }
+    
+    setAppliedFilters(newAppliedFilters);
+    console.log('Dashboard: appliedFilters actualizado a:', newAppliedFilters);
   };
-
   useEffect(() => {
     console.log('Dashboard: useEffect activado. Sincronizando appliedFilters con dashboardFilters.');
     let finalFilters: Filtros = { ...appliedFilters };

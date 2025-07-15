@@ -135,7 +135,6 @@ const Dashboard = () => {
     console.log('Dashboard: appliedFilters actualizado a:', newAppliedFilters);
   };
 
-  // ✅ BLOQUE CORREGIDO
   useEffect(() => {
     console.log('Dashboard: useEffect activado. Sincronizando appliedFilters con dashboardFilters.');
     let finalFilters: Filtros = { ...appliedFilters };

@@ -154,7 +154,7 @@ const Dashboard = () => {
       delete finalFilters.prioridad_renovacion;
       console.log('Dashboard: Se eliminaron filtros de renovación porque la pestaña activa no es "renewals".');
     }
-    NUEVO: Limpiar filtro de género si no estamos en la pestaña de profesionales
+    
     if (activeTab !== 'professionals') {
       delete finalFilters.genero;
       console.log('Dashboard: Se eliminó el filtro de género porque la pestaña activa no es "professionals".');

@@ -73,8 +73,8 @@ export function useEstadisticasAvanzadas() {
       en30Dias.setHours(23,59,59,999); // Normalizar a fin del día
 
       const vencimientosProximos = profesionales.filter(prof => {
-        if (!prof.fecha_validez_carnet) return false; // Usar fecha_validez_carnet
-        const fechaVencimiento = new Date(prof.fecha_validez_carnet);
+        if (!prof.fecha_caducidad) return false; // Usar fecha_validez_carnet
+        const fechaVencimiento = new Date(prof.fecha_caducidad);
         fechaVencimiento.setHours(0,0,0,0); // Normalizar para la comparación
 
         return fechaVencimiento >= hoy && fechaVencimiento <= en30Dias;
@@ -82,8 +82,8 @@ export function useEstadisticasAvanzadas() {
 
       // Calcular carnets vencidos
       const carnetVencidos = profesionales.filter(prof => {
-        if (!prof.fecha_validez_carnet) return false; // Usar fecha_validez_carnet
-        const fechaVencimiento = new Date(prof.fecha_validez_carnet);
+        if (!prof.fecha_caducidad) return false; // Usar fecha_validez_carnet
+        const fechaVencimiento = new Date(prof.fecha_caducidad);
         fechaVencimiento.setHours(0,0,0,0); // Normalizar para la comparación
 
         return fechaVencimiento < hoy;

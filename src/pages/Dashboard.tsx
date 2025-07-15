@@ -205,7 +205,7 @@ const Dashboard = () => {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('send-sms', {
+      const { data, error } = await supabase.functions.invoke('send-sms-notification', {
         body: JSON.stringify({
           to: telefono,
           body: messageBody,

@@ -194,6 +194,7 @@ const Dashboard = () => {
       });
       return;
     }
+    console.log('Teléfono recibido:', telefono);
 
     const formattedDate = fechaValidezCarnet ? new Date(fechaValidezCarnet).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'una fecha desconocida';
 

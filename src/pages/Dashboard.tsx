@@ -162,7 +162,7 @@ const Dashboard = () => {
     setDashboardFilters(finalFilters);
     console.log('Dashboard: dashboardFilters actualizado a:', finalFilters);
   }
-    [appliedFilters, activeTab]);
+    [appliedFilters, activeTab];
 
   const handleChartClick = (data: any, chartType: string) => {
     console.log('Dashboard: Chart clicked:', data, chartType);

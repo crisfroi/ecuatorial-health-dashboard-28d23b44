@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -10,7 +9,7 @@ export function useEstadisticasAvanzadas() {
       
       const { data, error } = await supabase
         .from('profesionales_sanitarios')
-        .select('*');
+        .select('*'); // Selecciona todas las columnas para los cálculos en el frontend
 
       if (error) {
         console.error('Error fetching estadísticas avanzadas:', error);
@@ -46,6 +45,11 @@ export function useEstadisticasAvanzadas() {
         acc[genero] = (acc[genero] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
+      
+      // Extraer conteos específicos para género
+      const generoMasculino = porGenero['Masculino'] || 0;
+      const generoFemenino = porGenero['Femenino'] || 0;
+
 
       // Estadísticas por tipo de sector
       const porTipoSector = profesionales.reduce((acc, prof) => {
@@ -63,19 +67,25 @@ export function useEstadisticasAvanzadas() {
 
       // Calcular vencimientos próximos (próximos 30 días)
       const hoy = new Date();
+      hoy.setHours(0,0,0,0); // Normalizar a inicio del día para comparaciones precisas
       const en30Dias = new Date();
       en30Dias.setDate(hoy.getDate() + 30);
-      
+      en30Dias.setHours(23,59,59,999); // Normalizar a fin del día
+
       const vencimientosProximos = profesionales.filter(prof => {
-        if (!prof.fecha_caducidad) return false;
-        const fechaVencimiento = new Date(prof.fecha_caducidad);
+        if (!prof.fecha_validez_carnet) return false; // Usar fecha_validez_carnet
+        const fechaVencimiento = new Date(prof.fecha_validez_carnet);
+        fechaVencimiento.setHours(0,0,0,0); // Normalizar para la comparación
+
         return fechaVencimiento >= hoy && fechaVencimiento <= en30Dias;
       }).length;
 
       // Calcular carnets vencidos
       const carnetVencidos = profesionales.filter(prof => {
-        if (!prof.fecha_caducidad) return false;
-        const fechaVencimiento = new Date(prof.fecha_caducidad);
+        if (!prof.fecha_validez_carnet) return false; // Usar fecha_validez_carnet
+        const fechaVencimiento = new Date(prof.fecha_validez_carnet);
+        fechaVencimiento.setHours(0,0,0,0); // Normalizar para la comparación
+
         return fechaVencimiento < hoy;
       }).length;
 
@@ -88,7 +98,7 @@ export function useEstadisticasAvanzadas() {
         return acc;
       }, {} as Record<string, number>);
 
-      // Tendencias mensuales (últimos 12 meses)
+      // Tendencias mensuales (últimos 12 meses) - Basado en 'created_at'
       const tendenciasMensuales = [];
       for (let i = 11; i >= 0; i--) {
         const fecha = new Date();
@@ -121,11 +131,14 @@ export function useEstadisticasAvanzadas() {
         // Distribuciones
         porArea,
         porProvincia,
-        porGenero,
+        // Añadir los conteos específicos de género aquí
+        generoMasculino, // Nuevo
+        generoFemenino,  // Nuevo
+        porGenero,       // Mantener el objeto completo si es necesario para otros gráficos/usos
         porTipoSector,
         porDistrito,
         porAnoGraduacion,
-        porDistritoSanitario,
+        // porDistritoSanitario, // Eliminado o añadir lógica de cálculo si existe en DB
         
         // Tendencias
         tendenciasMensuales,

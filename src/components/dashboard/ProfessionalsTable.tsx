@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,9 +54,11 @@ const ProfessionalsTable = ({
 
   // useEffect para limpiar el searchTerm cuando los filtros del dashboard cambian
   useEffect(() => {
-    // Cuando los filtros del dashboard cambian, asumimos un nuevo contexto de búsqueda.
+     console.log("ProfessionalsTable: Received dashboardFilters prop:", dashboardFilters); // Log 3
     setSearchTerm('');
-
+   
+    setSearchTerm('');
+    
     // Ajustar los selectores locales para reflejar los dashboardFilters.
     // Solo si el dashboardFilter *realmente* especifica algo diferente a 'todos' o 'Aprobado' para estado_solicitud.
     setLocalFilters(prevLocalFilters => {
@@ -100,9 +102,7 @@ const ProfessionalsTable = ({
         } else if (!dashboardFilters?.estado_solicitud) { // Si dashboard no envía estado_solicitud, forzar a Aprobado
             newLocalFilters.estado_solicitud = 'Aprobado';
         }
-        // Si dashboardFilters.estado_solicitud es 'todos', no hacemos nada,
-        // porque localFilters.estado_solicitud ya es 'Aprobado' por defecto.
-
+      console.log("ProfessionalsTable: Updated localFilters based on dashboardFilters (inside useEffect):", newLocalFilters);
         return newLocalFilters;
     });
 

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, UserCheck, Clock, FileText, AlertTriangle, TrendingUp, Venus, Mars } from 'lucide-react'; // Importar iconos de género
+// CAMBIO AQUÍ: Importamos PersonStanding en lugar de Male y Female
+import { Users, UserCheck, Clock, FileText, AlertTriangle, TrendingUp, PersonStanding } from 'lucide-react'; 
 import { useEstadisticasAvanzadas } from '@/hooks/useEstadisticasAvanzadas';
 
 interface StatsCardsProps {
@@ -128,7 +129,6 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           <AlertTriangle className="h-4 w-4 text-yellow-600" />
         </CardHeader>
         <CardContent>
-          {/* Los datos de vencimientosProximos deberían venir de useEstadisticasAvanzadas */}
           <div className="text-2xl font-bold text-yellow-600">{stats?.vencimientosProximos || 0}</div>
           <p className="text-xs text-muted-foreground">
             Carnets vencen en 30 días
@@ -148,7 +148,6 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           <AlertTriangle className="h-4 w-4 text-red-600" />
         </CardHeader>
         <CardContent>
-          {/* Los datos de carnetVencidos deberían venir de useEstadisticasAvanzadas */}
           <div className="text-2xl font-bold text-red-600">{stats?.carnetVencidos || 0}</div>
           <p className="text-xs text-muted-foreground">
             Requieren renovación
@@ -175,7 +174,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
                 handleCardClick({ genero: 'Masculino' });
               }}
             >
-              <Mars className="h-5 w-5 text-blue-600" />
+              <PersonStanding className="h-5 w-5 text-blue-600" /> {/* Usamos PersonStanding */}
               <span className="font-semibold text-blue-600">{stats?.generoMasculino || 0}</span>
               <Badge variant="secondary">Masculino</Badge>
             </div>
@@ -187,7 +186,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
                 handleCardClick({ genero: 'Femenino' });
               }}
             >
-              <Venus className="h-5 w-5 text-pink-600" />
+              <PersonStanding className="h-5 w-5 text-pink-600" /> {/* Usamos PersonStanding */}
               <span className="font-semibold text-pink-600">{stats?.generoFemenino || 0}</span>
               <Badge variant="secondary">Femenino</Badge>
             </div>

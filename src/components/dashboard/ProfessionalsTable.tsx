@@ -52,49 +52,37 @@ const ProfessionalsTable = ({
   const { toast } = useToast();
   const { updateProfesional } = useProfesionalesMutations();
 
-  // useEffect para sincronizar localFilters con dashboardFilters y limpiar searchTerm
+  // useEffect para limpiar el searchTerm y asegurar que localFilters.estado_solicitud sea 'Aprobado'
+  // y que los filtros locales se reinicien si el dashboardFilters se vacía.
   useEffect(() => {
     console.log("ProfessionalsTable: Received dashboardFilters prop:", dashboardFilters); // Log 3
     setSearchTerm('');
     
-    // Ajustar los selectores locales para reflejar los dashboardFilters.
+    // Si el dashboard está "limpiando" todos los filtros (por ejemplo, al cambiar de pestaña),
+    // queremos que los filtros locales vuelvan a su estado predeterminado.
+    // Una forma de detectarlo es si dashboardFilters se vuelve un objeto vacío o solo tiene propiedades indefinidas.
+    const isDashboardFiltersEmpty = !dashboardFilters || Object.keys(dashboardFilters).every(key => dashboardFilters[key as keyof typeof dashboardFilters] === undefined || dashboardFilters[key as keyof typeof dashboardFilters] === 'todos' || dashboardFilters[key as keyof typeof dashboardFilters] === 'all');
+
     setLocalFilters(prevLocalFilters => {
         const newLocalFilters = { ...prevLocalFilters };
 
-        // Sincronizar 'area_profesional'
-        if (dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos') {
-            newLocalFilters.area_profesional = dashboardFilters.area_profesional;
-        } else {
-            newLocalFilters.area_profesional = 'todos'; // Restablecer si no hay filtro de dashboard o es 'todos'
+        // Solo restablece los filtros locales si el dashboard no tiene un filtro específico para ellos
+        // y si el filtro local actual no es 'todos' (o 'Aprobado' para estado_solicitud)
+        if (!dashboardFilters?.area_profesional || dashboardFilters.area_profesional === 'todos') {
+            newLocalFilters.area_profesional = 'todos';
         }
-
-        // Sincronizar 'provincia'
-        if (dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos') {
-            newLocalFilters.provincia = dashboardFilters.provincia;
-        } else {
-            newLocalFilters.provincia = 'todos'; // Restablecer si no hay filtro de dashboard o es 'todos'
+        if (!dashboardFilters?.provincia || dashboardFilters.provincia === 'todos') {
+            newLocalFilters.provincia = 'todos';
         }
-
-        // Sincronizar 'genero'
-        if (dashboardFilters?.genero && dashboardFilters.genero !== 'todos') {
-            newLocalFilters.genero = dashboardFilters.genero;
-        } else {
-            newLocalFilters.genero = 'todos'; // Restablecer si no hay filtro de dashboard o es 'todos'
+        if (!dashboardFilters?.genero || dashboardFilters.genero === 'todos') {
+            newLocalFilters.genero = 'todos';
         }
-
-        // Sincronizar 'tipo_sector'
-        if (dashboardFilters?.tipo_sector && dashboardFilters.tipo_sector !== 'todos') {
-            newLocalFilters.tipo_sector = dashboardFilters.tipo_sector;
-        } else {
-            newLocalFilters.tipo_sector = 'todos'; // Restablecer si no hay filtro de dashboard o es 'todos'
+        if (!dashboardFilters?.tipo_sector || dashboardFilters.tipo_sector === 'todos') {
+            newLocalFilters.tipo_sector = 'todos';
         }
-
-        // Sincronizar `estado_solicitud`: Si dashboardFilters lo trae y no es 'todos', úsalo.
-        // Si no lo trae o es 'todos', asegúrate de que local sea 'Aprobado' (comportamiento por defecto de esta tabla).
-        if (dashboardFilters?.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos') {
-            newLocalFilters.estado_solicitud = dashboardFilters.estado_solicitud;
-        } else {
-            newLocalFilters.estado_solicitud = 'Aprobado'; // Volver al valor por defecto de la tabla
+        // Para estado_solicitud, si el dashboard no lo especifica o es 'todos', siempre será 'Aprobado' en localFilters
+        if (!dashboardFilters?.estado_solicitud || dashboardFilters.estado_solicitud === 'todos') {
+            newLocalFilters.estado_solicitud = 'Aprobado';
         }
         
         console.log("ProfessionalsTable: Updated localFilters based on dashboardFilters (inside useEffect):", newLocalFilters); // Log 4

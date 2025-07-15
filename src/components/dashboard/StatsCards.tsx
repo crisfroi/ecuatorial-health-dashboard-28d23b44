@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, UserCheck, Clock, FileText, AlertTriangle, TrendingUp, Male, Female } from 'lucide-react'; // Importar iconos de género
+import { Users, UserCheck, Clock, FileText, AlertTriangle, TrendingUp, Venus, Mars } from 'lucide-react'; // Importar iconos de género
 import { useEstadisticasAvanzadas } from '@/hooks/useEstadisticasAvanzadas';
 
 interface StatsCardsProps {
@@ -175,7 +175,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
                 handleCardClick({ genero: 'Masculino' });
               }}
             >
-              <Male className="h-5 w-5 text-blue-600" />
+              <Mars className="h-5 w-5 text-blue-600" />
               <span className="font-semibold text-blue-600">{stats?.generoMasculino || 0}</span>
               <Badge variant="secondary">Masculino</Badge>
             </div>
@@ -187,7 +187,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
                 handleCardClick({ genero: 'Femenino' });
               }}
             >
-              <Female className="h-5 w-5 text-pink-600" />
+              <Venus className="h-5 w-5 text-pink-600" />
               <span className="font-semibold text-pink-600">{stats?.generoFemenino || 0}</span>
               <Badge variant="secondary">Femenino</Badge>
             </div>

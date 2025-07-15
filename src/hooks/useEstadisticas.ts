@@ -45,8 +45,8 @@ export function useEstadisticasProfesionales() {
       en30Dias.setDate(hoy.getDate() + 30);
       
       const vencimientosProximos = profesionales.filter(prof => {
-        if (!prof.fecha_validez_carnet) return false;
-        const fechaVencimiento = new Date(prof.fecha_validez_carnet);
+        if (!prof.fecha_caducidad) return false;
+        const fechaVencimiento = new Date(prof.fecha_caducidad);
         return fechaVencimiento >= hoy && fechaVencimiento <= en30Dias;
       }).length;
 

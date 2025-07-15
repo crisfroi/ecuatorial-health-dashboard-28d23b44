@@ -124,6 +124,11 @@ const Dashboard = () => {
       setActiveTab('renewals');
       queryClient.invalidateQueries({ queryKey: ['renewalAlerts'] });
       console.log('Dashboard: Invalidated "renewalAlerts" query cache.');
+       else if (filter.genero) {
+      newAppliedFilters.genero = filter.genero;
+      setActiveTab('professionals'); // Los profesionales por género van a la pestaña de profesionales
+      console.log(`Dashboard: Navegando a la pestaña "professionals" por filtro de género: ${filter.genero}`);
+    }
     } else {
       console.log('Dashboard: Navegando a la pestaña "professionals" por filtro general.');
       setActiveTab('professionals');

@@ -23,7 +23,7 @@ interface ProfessionalsTableProps {
     genero?: string; // Ahora manejado directamente
     tipo_sector?: string;
     vencimiento_proximo?: boolean; // Nuevo
-    carnet_vencido?: boolean;      // Nuevo
+    carnet_vencido?: boolean;     // Nuevo
     prioridad_renovacion?: 'alta' | 'media' | 'baja' | 'vencido' | 'all'; // Nuevo
     // Puedes añadir otros filtros si los usas
   };
@@ -52,15 +52,12 @@ const ProfessionalsTable = ({
   const { toast } = useToast();
   const { updateProfesional } = useProfesionalesMutations();
 
-  // useEffect para limpiar el searchTerm cuando los filtros del dashboard cambian
+  // useEffect para sincronizar localFilters con dashboardFilters y limpiar searchTerm
   useEffect(() => {
-     console.log("ProfessionalsTable: Received dashboardFilters prop:", dashboardFilters); // Log 3
-    setSearchTerm('');
-   
+    console.log("ProfessionalsTable: Received dashboardFilters prop:", dashboardFilters); // Log 3
     setSearchTerm('');
     
     // Ajustar los selectores locales para reflejar los dashboardFilters.
-    // Solo si el dashboardFilter *realmente* especifica algo diferente a 'todos' o 'Aprobado' para estado_solicitud.
     setLocalFilters(prevLocalFilters => {
         const newLocalFilters = { ...prevLocalFilters };
 
@@ -68,41 +65,39 @@ const ProfessionalsTable = ({
         if (dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos') {
             newLocalFilters.area_profesional = dashboardFilters.area_profesional;
         } else {
-            newLocalFilters.area_profesional = 'todos'; // Restablecer si no hay filtro de dashboard
+            newLocalFilters.area_profesional = 'todos'; // Restablecer si no hay filtro de dashboard o es 'todos'
         }
 
         // Sincronizar 'provincia'
         if (dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos') {
             newLocalFilters.provincia = dashboardFilters.provincia;
         } else {
-            newLocalFilters.provincia = 'todos'; // Restablecer si no hay filtro de dashboard
+            newLocalFilters.provincia = 'todos'; // Restablecer si no hay filtro de dashboard o es 'todos'
         }
 
         // Sincronizar 'genero'
         if (dashboardFilters?.genero && dashboardFilters.genero !== 'todos') {
             newLocalFilters.genero = dashboardFilters.genero;
         } else {
-            newLocalFilters.genero = 'todos'; // Restablecer si no hay filtro de dashboard
+            newLocalFilters.genero = 'todos'; // Restablecer si no hay filtro de dashboard o es 'todos'
         }
 
         // Sincronizar 'tipo_sector'
         if (dashboardFilters?.tipo_sector && dashboardFilters.tipo_sector !== 'todos') {
             newLocalFilters.tipo_sector = dashboardFilters.tipo_sector;
         } else {
-            newLocalFilters.tipo_sector = 'todos'; // Restablecer si no hay filtro de dashboard
+            newLocalFilters.tipo_sector = 'todos'; // Restablecer si no hay filtro de dashboard o es 'todos'
         }
 
-        // NO sincronizar `estado_solicitud` aquí directamente en `localFilters` a menos que sea explícito
-        // El estado 'Aprobado' es el comportamiento por defecto de esta tabla.
-        // Si dashboardFilters tiene un estado_solicitud, se manejará en combinedQueryFilters.
-        // Si no tiene, el valor por defecto de 'Aprobado' de localFilters prevalecerá.
-        // Si el dashboardFilter trae un estado_solicitud explícito para esta tabla, lo reflejamos.
+        // Sincronizar `estado_solicitud`: Si dashboardFilters lo trae y no es 'todos', úsalo.
+        // Si no lo trae o es 'todos', asegúrate de que local sea 'Aprobado' (comportamiento por defecto de esta tabla).
         if (dashboardFilters?.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos') {
             newLocalFilters.estado_solicitud = dashboardFilters.estado_solicitud;
-        } else if (!dashboardFilters?.estado_solicitud) { // Si dashboard no envía estado_solicitud, forzar a Aprobado
-            newLocalFilters.estado_solicitud = 'Aprobado';
+        } else {
+            newLocalFilters.estado_solicitud = 'Aprobado'; // Volver al valor por defecto de la tabla
         }
-      console.log("ProfessionalsTable: Updated localFilters based on dashboardFilters (inside useEffect):", newLocalFilters);
+        
+        console.log("ProfessionalsTable: Updated localFilters based on dashboardFilters (inside useEffect):", newLocalFilters); // Log 4
         return newLocalFilters;
     });
 
@@ -111,34 +106,43 @@ const ProfessionalsTable = ({
 
   // Combinar filtros locales y los recibidos del dashboard para la consulta.
   const combinedQueryFilters = {
-    // Empezamos con los filtros de localFilters.
-    // estado_solicitud: 'Aprobado' por defecto desde localFilters.
-    area_profesional: localFilters.area_profesional === 'todos' ? '' : localFilters.area_profesional,
-    provincia: localFilters.provincia === 'todos' ? '' : localFilters.provincia,
-    genero: localFilters.genero === 'todos' ? '' : localFilters.genero,
-    tipo_sector: localFilters.tipo_sector === 'todos' ? '' : localFilters.tipo_sector,
-    estado_solicitud: localFilters.estado_solicitud, // Ya es 'Aprobado' por defecto
+    // Género: Dar prioridad al dashboardFilter. Si no está definido o es 'todos', usa el localFilter.
+    // Si el localFilter es 'todos', conviértelo a cadena vacía para la consulta.
+    genero: (dashboardFilters?.genero && dashboardFilters.genero !== 'todos')
+      ? dashboardFilters.genero
+      : (localFilters.genero === 'todos' ? '' : localFilters.genero),
 
-    // Luego, SOBRESCRIBIMOS selectivamente con los dashboardFilters si son *específicos*.
-    // Si dashboardFilters trae un género, ese debe ser el que se use.
-    ...(dashboardFilters?.genero && dashboardFilters.genero !== 'todos' && { genero: dashboardFilters.genero }),
-    
-    // Si dashboardFilters trae un estado_solicitud, tiene prioridad
-    ...(dashboardFilters?.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos' && { estado_solicitud: dashboardFilters.estado_solicitud }),
+    // Estado de Solicitud: Dar prioridad al dashboardFilter. Si no está definido o es 'todos', usa el localFilter.
+    // El localFilter de estado_solicitud debería ser 'Aprobado' por defecto.
+    estado_solicitud: (dashboardFilters?.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos')
+      ? dashboardFilters.estado_solicitud
+      : localFilters.estado_solicitud, // localFilters.estado_solicitud es 'Aprobado' por defecto
 
-    // Otros filtros del dashboard que no son parte de los selectores locales principales
-    ...(dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos' && { area_profesional: dashboardFilters.area_profesional }),
-    ...(dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos' && { provincia: dashboardFilters.provincia }),
-    ...(dashboardFilters?.tipo_sector && dashboardFilters.tipo_sector !== 'todos' && { tipo_sector: dashboardFilters.tipo_sector }),
+    // Área Profesional: Similar, prioridad a dashboardFilter.
+    area_profesional: (dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos')
+      ? dashboardFilters.area_profesional
+      : (localFilters.area_profesional === 'todos' ? '' : localFilters.area_profesional),
 
-    // Filtros de vencimiento (estos no son parte de localFilters, vienen directos del dashboard)
+    // Provincia: Similar, prioridad a dashboardFilter.
+    provincia: (dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos')
+      ? dashboardFilters.provincia
+      : (localFilters.provincia === 'todos' ? '' : localFilters.provincia),
+
+    // Tipo de Sector: Similar, prioridad a dashboardFilter.
+    tipo_sector: (dashboardFilters?.tipo_sector && dashboardFilters.tipo_sector !== 'todos')
+      ? dashboardFilters.tipo_sector
+      : (localFilters.tipo_sector === 'todos' ? '' : localFilters.tipo_sector),
+
+    // Filtros de vencimiento (estos no tienen un equivalente local de "todos", vienen directos del dashboard)
     vencimiento_proximo: dashboardFilters?.vencimiento_proximo || undefined,
     carnet_vencido: dashboardFilters?.carnet_vencido || undefined,
-    prioridad_renovacion: dashboardFilters?.prioridad_renovacion || undefined,
+    prioridad_renovacion: (dashboardFilters?.prioridad_renovacion && dashboardFilters.prioridad_renovacion !== 'all')
+      ? dashboardFilters.prioridad_renovacion
+      : undefined, // Si es 'all' o no está definido, no se pasa el filtro
   };
 
   // Log para depuración: Muestra los filtros finales que se pasan al hook
-  console.log('ProfessionalsTable: combinedQueryFilters passed to useProfesionales:', combinedQueryFilters);
+  console.log('ProfessionalsTable: Final combinedQueryFilters passed to useProfesionales:', combinedQueryFilters); // Log 5
 
   const { data: profesionales = [], isLoading, error, refetch } = useProfesionales(combinedQueryFilters);
 
@@ -364,7 +368,7 @@ const ProfessionalsTable = ({
                   Estado Solicitud: Aprobado
                 </Badge>
               )}
-               {/* Mostrar el filtro local de estado si existe y no es Aprobado, y no hay filtro de dashboard */}
+                {/* Mostrar el filtro local de estado si existe y no es Aprobado, y no hay filtro de dashboard */}
               {!dashboardFilters?.estado_solicitud && localFilters.estado_solicitud !== 'todos' && localFilters.estado_solicitud !== 'Aprobado' && (
                 <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
                   Estado Solicitud: {localFilters.estado_solicitud}

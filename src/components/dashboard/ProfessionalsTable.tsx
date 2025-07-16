@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'; // Agregamos useMemo
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,40 +10,50 @@ import { useProfesionales, type Profesional } from '@/hooks/useProfesionales';
 import { useProfesionalesMutations } from '@/hooks/useProfesionalesMutations';
 import { useToast } from '@/hooks/use-toast';
 
+// Definimos los tipos de filtros para una mayor claridad y seguridad de tipos.
+interface DashboardFilters {
+  area_profesional?: string;
+  estado_solicitud?: string;
+  provincia?: string;
+  genero?: string;
+  tipo_sector?: string;
+  vencimiento_proximo?: boolean;
+  carnet_vencido?: boolean;
+  prioridad_renovacion?: 'alta' | 'media' | 'baja' | 'vencido' | 'all';
+}
+
 interface ProfessionalsTableProps {
   onSelectProfessional: (professional: any) => void;
   userRole: string;
-  appliedFilters?: any; 
+  // Renombramos directamente appliedFilters a dashboardFilters aquí en la interfaz
+  // para que sea más claro qué prop se espera del Dashboard.
+  appliedFilters?: DashboardFilters;
   onClearFilters?: () => void;
-  dashboardFilters?: {
-    area_profesional?: string;
-    estado_solicitud?: string;
-    provincia?: string;
-    genero?: string; 
-    tipo_sector?: string;
-    vencimiento_proximo?: boolean; 
-    carnet_vencido?: boolean;     
-    prioridad_renovacion?: 'alta' | 'media' | 'baja' | 'vencido' | 'all';
-  };
 }
 
-const ProfessionalsTable = ({
-  onSelectProfessional,
-  userRole,
-  appliedFilters,
-  onClearFilters,
-  dashboardFilters 
-}: ProfessionalsTableProps) => {
-  console.log('ProfessionalsTable: OBJETO PROPS COMPLETO RECIBIDO:', props); // ¡Este es el log clave!
-  console.log('ProfessionalsTable: Prop appliedFilters específica:', props.appliedFilters);
+// Cambiamos la forma en que se reciben las props para poder loguear el objeto 'props' completo.
+const ProfessionalsTable = (props: ProfessionalsTableProps) => {
+  // Desestructuramos las props DENTRO de la función, después de los logs.
+  const { onSelectProfessional, userRole, appliedFilters, onClearFilters } = props;
+
+  // Usa 'appliedFilters' directamente como 'dashboardFilters' o renómbralo
+  // para mantener la consistencia con tu lógica interna.
+  const dashboardFilters = appliedFilters;
+
+  // --- LOGS CLAVE PARA LA DEPURACIÓN ---
+  console.log('ProfessionalsTable: OBJETO PROPS COMPLETO RECIBIDO:', props);
+  console.log('ProfessionalsTable: Prop appliedFilters específica:', appliedFilters); // Usamos appliedFilters directamente
+  console.log('ProfessionalsTable: Filtros desestructurados (dashboardFilters):', dashboardFilters); // Y el renombrado
+  // --- FIN LOGS CLAVE ---
+
   const [searchTerm, setSearchTerm] = useState('');
   const [editingStates, setEditingStates] = useState<Record<string, string>>({});
-  
+
   // localFilters NO incluye 'genero' y se inicializa con los valores por defecto
   // Estos son para los selectores que el Dashboard NO controla directamente.
   const [localFilters, setLocalFilters] = useState({
     area_profesional: 'todos',
-    estado_solicitud: 'Aprobado', 
+    estado_solicitud: 'Aprobado',
     provincia: 'todos',
     tipo_sector: 'todos'
   });
@@ -54,35 +64,36 @@ const ProfessionalsTable = ({
   // useEffect para limpiar el searchTerm y restablecer *solo* los filtros locales
   // que no están siendo controlados por dashboardFilters.
   useEffect(() => {
-    console.log("ProfessionalsTable: Received dashboardFilters prop:", dashboardFilters); // Log 3
-    setSearchTerm('');
-    
-    setLocalFilters(prevLocalFilters => {
-        const newLocalFilters = { ...prevLocalFilters };
+    // Ya tenemos dashboardFilters disponible directamente
+    console.log("ProfessionalsTable: Received dashboardFilters prop in useEffect:", dashboardFilters);
 
-        // Restablece el filtro local a 'todos' solo si el dashboardFilters no tiene un valor específico
-        // o si el valor del dashboard es 'todos'.
-        if (!dashboardFilters?.area_profesional || dashboardFilters.area_profesional === 'todos') {
-            newLocalFilters.area_profesional = 'todos';
-        }
-        if (!dashboardFilters?.provincia || dashboardFilters.provincia === 'todos') {
-            newLocalFilters.provincia = 'todos';
-        }
-        // 'genero' no se maneja en localFilters, así que no se toca aquí.
-        if (!dashboardFilters?.tipo_sector || dashboardFilters.tipo_sector === 'todos') {
-            newLocalFilters.tipo_sector = 'todos';
-        }
-        // Para estado_solicitud, si el dashboard no lo especifica o es 'todos', siempre será 'Aprobado' en localFilters
-        if (!dashboardFilters?.estado_solicitud || dashboardFilters.estado_solicitud === 'todos') {
-            newLocalFilters.estado_solicitud = 'Aprobado';
-        }
-        
-        console.log("ProfessionalsTable: Updated localFilters based on dashboardFilters (inside useEffect):", newLocalFilters); // Log 4
-        return newLocalFilters;
+    setSearchTerm('');
+
+    setLocalFilters(prevLocalFilters => {
+      const newLocalFilters = { ...prevLocalFilters };
+
+      // Restablece el filtro local a 'todos' solo si el dashboardFilters no tiene un valor específico
+      // o si el valor del dashboard es 'todos'.
+      if (!dashboardFilters?.area_profesional || dashboardFilters.area_profesional === 'todos') {
+        newLocalFilters.area_profesional = 'todos';
+      }
+      if (!dashboardFilters?.provincia || dashboardFilters.provincia === 'todos') {
+        newLocalFilters.provincia = 'todos';
+      }
+      // 'genero' no se maneja en localFilters, así que no se toca aquí.
+      if (!dashboardFilters?.tipo_sector || dashboardFilters.tipo_sector === 'todos') {
+        newLocalFilters.tipo_sector = 'todos';
+      }
+      // Para estado_solicitud, si el dashboard no lo especifica o es 'todos', siempre será 'Aprobado' en localFilters
+      if (!dashboardFilters?.estado_solicitud || dashboardFilters.estado_solicitud === 'todos') {
+        newLocalFilters.estado_solicitud = 'Aprobado';
+      }
+
+      console.log("ProfessionalsTable: Updated localFilters based on dashboardFilters (inside useEffect):", newLocalFilters);
+      return newLocalFilters;
     });
 
-  }, [dashboardFilters]);
-  console.log('ProfessionalsTable: Filtros desestructurados (dashboardFilters):', dashboardFilters);
+  }, [dashboardFilters]); // Dependencia dashboardFilters
 
   // Usa useMemo para asegurar que los filtros combinados solo cambien cuando sus dependencias lo hagan.
   // Esto puede ayudar a prevenir re-renderizaciones innecesarias y asegurar que los valores sean estables.
@@ -90,12 +101,12 @@ const ProfessionalsTable = ({
     const filters = {
       // Género: Leer directamente de dashboardFilters. Si no es específico, pasa ''
       genero: (dashboardFilters?.genero && dashboardFilters.genero !== 'todos')
-        ? dashboardFilters.genero 
-        : '', 
+        ? dashboardFilters.genero
+        : '',
 
       estado_solicitud: (dashboardFilters?.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos')
         ? dashboardFilters.estado_solicitud
-        : localFilters.estado_solicitud, 
+        : localFilters.estado_solicitud,
 
       area_profesional: (dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos')
         ? dashboardFilters.area_profesional
@@ -113,9 +124,9 @@ const ProfessionalsTable = ({
       carnet_vencido: dashboardFilters?.carnet_vencido || undefined,
       prioridad_renovacion: (dashboardFilters?.prioridad_renovacion && dashboardFilters.prioridad_renovacion !== 'all')
         ? dashboardFilters.prioridad_renovacion
-        : undefined, 
+        : undefined,
     };
-    console.log('ProfessionalsTable: Final combinedQueryFilters passed to useProfesionales (from useMemo):', filters); // Log 5
+    console.log('ProfessionalsTable: Final combinedQueryFilters passed to useProfesionales (from useMemo):', filters);
     return filters;
   }, [dashboardFilters, localFilters]); // Dependencias: dashboardFilters y localFilters
 
@@ -133,7 +144,7 @@ const ProfessionalsTable = ({
     setSearchTerm('');
     setLocalFilters({
       area_profesional: 'todos',
-      estado_solicitud: 'Aprobado', 
+      estado_solicitud: 'Aprobado',
       provincia: 'todos',
       tipo_sector: 'todos'
     });
@@ -213,14 +224,14 @@ const ProfessionalsTable = ({
     Object.entries(localFilters).some(([key, value]) => {
         if (key === 'estado_solicitud') {
             return (dashboardFilters?.estado_solicitud === 'todos' && value !== 'Aprobado') ||
-                   (!dashboardFilters?.estado_solicitud && value !== 'Aprobado');
+                    (!dashboardFilters?.estado_solicitud && value !== 'Aprobado');
         }
         return (!dashboardFilters?.[key as keyof typeof dashboardFilters] || dashboardFilters?.[key as keyof typeof dashboardFilters] === 'todos') && value !== 'todos';
     }) ||
     // Mostrar filtros del dashboard si son específicos
     (dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos') ||
     (dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos') ||
-    (dashboardFilters?.genero && dashboardFilters.genero !== 'todos') || 
+    (dashboardFilters?.genero && dashboardFilters.genero !== 'todos') ||
     (dashboardFilters?.tipo_sector && dashboardFilters.tipo_sector !== 'todos') ||
     (dashboardFilters?.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos') ||
     dashboardFilters?.vencimiento_proximo ||
@@ -385,7 +396,7 @@ const ProfessionalsTable = ({
                 <Select
                   value={dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos' ? dashboardFilters.area_profesional : localFilters.area_profesional}
                   onValueChange={(value) => setLocalFilters(prev => ({...prev, area_profesional: value}))}
-                  disabled={!!(dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos')} 
+                  disabled={!!(dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos')}
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Área" />
@@ -429,7 +440,7 @@ const ProfessionalsTable = ({
                   value={dashboardFilters?.genero && dashboardFilters.genero !== 'todos' ? dashboardFilters.genero : 'todos'}
                   // No hay onValueChange aquí porque este selector solo *muestra* el filtro del dashboard, no lo modifica localmente.
                   // Si el usuario necesita cambiarlo, deberá hacerlo desde el dashboard o se necesita un callback al padre.
-                  disabled={!!(dashboardFilters?.genero && dashboardFilters.genero !== 'todos')} 
+                  disabled={!!(dashboardFilters?.genero && dashboardFilters.genero !== 'todos')}
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Género" />
@@ -559,7 +570,7 @@ const ProfessionalsTable = ({
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
-                          {userRole === 'administrador' && ( 
+                          {userRole === 'administrador' && (
                             <Button
                               variant="ghost"
                               size="sm"

@@ -34,6 +34,8 @@ const ProfessionalsTable = ({
   onClearFilters,
   dashboardFilters 
 }: ProfessionalsTableProps) => {
+  console.log('ProfessionalsTable: OBJETO PROPS COMPLETO RECIBIDO:', props); // ¡Este es el log clave!
+  console.log('ProfessionalsTable: Prop appliedFilters específica:', props.appliedFilters);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingStates, setEditingStates] = useState<Record<string, string>>({});
   
@@ -80,7 +82,7 @@ const ProfessionalsTable = ({
     });
 
   }, [dashboardFilters]);
-
+  console.log('ProfessionalsTable: Filtros desestructurados (dashboardFilters):', dashboardFilters);
 
   // Usa useMemo para asegurar que los filtros combinados solo cambien cuando sus dependencias lo hagan.
   // Esto puede ayudar a prevenir re-renderizaciones innecesarias y asegurar que los valores sean estables.

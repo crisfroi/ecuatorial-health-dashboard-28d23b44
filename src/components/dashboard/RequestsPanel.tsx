@@ -1,26 +1,36 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input'; // Importamos Input para las fechas
-import { Textarea } from '@/components/ui/textarea'; // Para el motivo de rechazo
-import { FileText, Eye, Edit, Save, X, RefreshCw, ChevronDown } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { FileText, Eye, Edit, Save, X, RefreshCw, MoreVertical, Download } from 'lucide-react'; // Añadimos MoreVertical y Download
 import { useProfesionales, type Profesional } from '@/hooks/useProfesionales';
 import { useProfesionalesMutations } from '@/hooks/useProfesionalesMutations';
 import { useToast } from '@/hooks/use-toast';
-import { Checkbox } from '@/components/ui/checkbox'; // Para los checkboxes de selección masiva
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"; // Para el dropdown de acciones masivas
+  DropdownMenuSeparator, // Añadimos separador para mejor UX
+} from "@/components/ui/dropdown-menu";
+
+// Importamos el nuevo modal y los componentes de generación de PDF
+import ProfessionalDetailsModal from '@/components/requests/ProfessionalDetailsModal'; // Ajusta el path si es diferente
+import ApprovalLetter from '@/components/requests/ApprovalLetter'; // Para generación oculta
+import PDFSummary from '@/components/requests/PDFSummary';     // Para generación oculta
+
+import jsPDF from 'jspdf'; // Necesario para la generación de PDFs
+import html2canvas from 'html2canvas'; // Necesario para la generación de PDFs
+
 
 // Definimos los estados válidos y su orden para el flujo
 const STATUS_ORDER = [
-  'Recibido',
+  'Pendiente',
   'Revisando',
   'Pendiente de Firma',
   'Aprobado',
@@ -36,16 +46,23 @@ interface RequestsPanelProps {
 const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: RequestsPanelProps) => {
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'Pendiente');
   const [editingStates, setEditingStates] = useState<Record<string, string>>({});
-  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({}); // Nuevo estado para motivos de rechazo
+  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
 
-  // --- Nuevos estados para el filtro por rango de fechas ---
+  // --- Estados para el filtro por rango de fechas ---
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
-  // --- Nuevo estado para la selección masiva ---
+  // --- Estados para la selección masiva ---
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
   const [bulkUpdateStatus, setBulkUpdateStatus] = useState<string>('');
   const [bulkRejectionReason, setBulkRejectionReason] = useState<string>('');
+
+  // --- Estados para el modal de detalles ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProfessionalForModal, setSelectedProfessionalForModal] = useState<Profesional | null>(null);
+
+  // --- Refs para la generación oculta de PDFs ---
+  const hiddenPdfContainerRef = useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
   const { updateProfesional } = useProfesionalesMutations();
@@ -58,7 +75,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
     } else if (initialStatusFilter === undefined && statusFilter !== 'Pendiente') {
       setStatusFilter('Pendiente'); // Vuelve al estado por defecto si el padre limpia el filtro
     }
-    // Limpia los filtros de fecha cuando el filtro de estado del dashboard cambia
     setStartDate('');
     setEndDate('');
   }, [initialStatusFilter]);
@@ -69,10 +85,10 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
       estado_solicitud: statusFilter === 'todos' ? '' : statusFilter,
     };
     if (startDate) {
-      filters.fecha_solicitud_gte = startDate; // Asumiendo que tu hook espera esto
+      filters.fecha_solicitud_gte = startDate;
     }
     if (endDate) {
-      filters.fecha_solicitud_lte = endDate; // Asumiendo que tu hook espera esto
+      filters.fecha_solicitud_lte = endDate;
     }
     console.log('RequestsPanel: Query filters for useProfesionales:', filters);
     return filters;
@@ -81,12 +97,11 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
   const { data: profesionales = [], isLoading, refetch, error } = useProfesionales(queryFilters);
 
   // Filtra los profesionales para excluir "Aprobado" si el filtro general es 'todos'
-  // O para mostrar solo el estado específico si statusFilter está activo
   const filteredRequests = useMemo(() => {
     if (statusFilter === 'todos') {
       return profesionales.filter(req => req.estado_solicitud !== 'Aprobado');
     }
-    return profesionales; // Si hay un filtro específico, ya viene filtrado del hook
+    return profesionales;
   }, [profesionales, statusFilter]);
 
   console.log('Total professionals from DB (filtered by hook):', profesionales.length);
@@ -95,26 +110,18 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
 
   // --- Lógica para el flujo de estado no regresivo ---
   const getAvailableStatusOptions = useCallback((currentStatus: string | undefined) => {
-    const currentStatusIndex = STATUS_ORDER.indexOf(currentStatus || 'Recibido');
-    const options = ['Revisando','Rechazado', 'Pendiente de Firma', 'Aprobado' ]; // Todas las opciones posibles
+    const currentStatusIndex = STATUS_ORDER.indexOf(currentStatus || 'Pendiente');
+    const options = ['Revisando', 'Pendiente de Firma', 'Aprobado', 'Rechazado'];
 
-    // Filtra las opciones basándose en el flujo
     return options.filter(option => {
       const optionIndex = STATUS_ORDER.indexOf(option);
 
-      // Regla 1: No regresión de 'Revisando' a 'Recibido'
-      // Si el estado actual es 'Revisando', no permitir 'Recibido' (que ya no está en el select de todas formas)
-      // Pero si el 'Revisando' es un estado intermedio, no debería volver atrás en general.
-      if (currentStatus === 'Revisando' && option === 'Recibido') return false; // Redundante si Pendiente no está en el select
-
-      // Regla 2: No saltar de 'Pendiente' a 'Aprobado'
-      if (currentStatus === 'Recibido' && option === 'Aprobado') return false;
+      if (currentStatus === 'Pendiente' && option === 'Aprobado') return false; // No saltar de Pendiente a Aprobado
 
       // Restricción general de no ir hacia atrás, excepto si el destino es "Rechazado"
       if (optionIndex < currentStatusIndex && option !== 'Rechazado') {
         return false;
       }
-
       return true;
     });
   }, []);
@@ -129,7 +136,7 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
         return 'bg-orange-100 text-orange-800 border-orange-300';
       case 'Rechazado':
         return 'bg-red-100 text-red-800 border-red-300';
-      case 'Aprobado': // Aunque no se muestren aquí, es bueno tener el color
+      case 'Aprobado':
         return 'bg-green-100 text-green-800 border-green-300';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-300';
@@ -141,7 +148,7 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
       ...prev,
       [requestId]: currentState
     }));
-    setRejectionReasons(prev => { // Limpiar motivo de rechazo si se edita de nuevo
+    setRejectionReasons(prev => {
       const newReasons = { ...prev };
       delete newReasons[requestId];
       return newReasons;
@@ -153,29 +160,18 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
     if (!newState) return;
 
     const currentProfesional = profesionales.find(p => p.id === requestId);
-    const currentStatus = currentProfesional?.estado_solicitud || 'Recibido';
+    const currentStatus = currentProfesional?.estado_solicitud || 'Pendiente';
 
-    // Validación de flujo no regresivo (individual)
     const availableOptions = getAvailableStatusOptions(currentStatus);
     if (!availableOptions.includes(newState) && newState !== currentStatus) {
-      // Manejar casos especiales donde el usuario intenta un salto no permitido
-      if (currentStatus === 'Recibido' && newState === 'Aprobado') {
+      if (currentStatus === 'Pendiente' && newState === 'Aprobado') {
         toast({
           title: "Error de Flujo",
-          description: "No se puede pasar de 'Recibido' a 'Aprobado' directamente. Debe pasar por 'Pendiente de Firma'.",
+          description: "No se puede pasar de 'Pendiente' a 'Aprobado' directamente. Debe pasar por 'Pendiente de Firma'.",
           variant: "destructive",
         });
         return;
       }
-       if (currentStatus === 'Recibido' && newState === 'Aprobado') {
-        toast({
-          title: "Error de Flujo",
-          description: "No se puede pasar de 'Recibido' a 'Recibido' directamente. Debe pasar por 'Pendiente de Firma'.",
-          variant: "destructive",
-        });
-        return;
-      }
-      // Si hay otras reglas que no son solo de regresión, se pueden añadir aquí
     }
 
     if (newState === 'Rechazado' && !rejectionReasons[requestId]) {
@@ -194,14 +190,13 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
         id: requestId,
         updates: {
           estado_solicitud: newState,
-          fecha_revision: (newState !== 'Recibido' && newState !== 'Revisando' && newState !== 'Rechazado') ? new Date().toISOString().split('T')[0] : null,
+          fecha_revision: (newState !== 'Pendiente' && newState !== 'Revisando' && newState !== 'Rechazado') ? new Date().toISOString().split('T')[0] : null,
           fecha_aprobacion: newState === 'Aprobado' ? new Date().toISOString().split('T')[0] : null,
-          revisor_solicitud: newState !== 'Recibido' ? 'Sistema' : null, // Considera usar el ID del usuario actual aquí
-          motivo_rechazo: newState === 'Rechazado' ? rejectionReasons[requestId] : null, // Guarda el motivo si es rechazo
+          revisor_solicitud: newState !== 'Pendiente' ? 'Sistema' : null,
+          motivo_rechazo: newState === 'Rechazado' ? rejectionReasons[requestId] : null,
         }
       });
 
-      // Limpiar estados de edición y motivo de rechazo
       setEditingStates(prev => {
         const newStates = { ...prev };
         delete newStates[requestId];
@@ -213,7 +208,7 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
         return newReasons;
       });
 
-      await refetch(); // Forzar refetch de datos para reflejar el cambio
+      await refetch();
 
       toast({
         title: "Estado actualizado",
@@ -236,7 +231,7 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
       delete newStates[requestId];
       return newStates;
     });
-    setRejectionReasons(prev => { // Limpiar motivo de rechazo si se cancela
+    setRejectionReasons(prev => {
       const newReasons = { ...prev };
       delete newReasons[requestId];
       return newReasons;
@@ -245,9 +240,8 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    // Asegurarse de que el formato sea 'YYYY-MM-DD' si viene de la DB
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'N/A'; // Manejar fechas inválidas
+    if (isNaN(date.getTime())) return 'N/A';
     return date.toLocaleDateString('es-ES');
   };
 
@@ -313,22 +307,14 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
 
     const updates = selectedRequestIds.map(async (id) => {
       const currentProfesional = profesionales.find(p => p.id === id);
-      const currentStatus = currentProfesional?.estado_solicitud || 'Recibido';
+      const currentStatus = currentProfesional?.estado_solicitud || 'Pendiente';
 
-      // Validación de flujo no regresivo (masiva)
       const availableOptions = getAvailableStatusOptions(currentStatus);
       if (!availableOptions.includes(bulkUpdateStatus) && bulkUpdateStatus !== currentStatus) {
-        if (currentStatus === 'Recibido' && bulkUpdateStatus === 'Aprobado') {
-          // Loggear o notificar específicamente para el usuario sobre este error de flujo
-          console.warn(`Saltando actualización para ${id}: No se puede pasar de 'Recibido' a 'Aprobado'.`);
+        if (currentStatus === 'Pendiente' && bulkUpdateStatus === 'Aprobado') {
+          console.warn(`Saltando actualización para ${id}: No se puede pasar de 'Pendiente' a 'Aprobado'.`);
           return { id, success: false, reason: "Invalid status transition" };
         }
-       if (currentStatus === 'Recibido' && bulkUpdateStatus === 'Rechazado') {
-          // Loggear o notificar específicamente para el usuario sobre este error de flujo
-          console.warn(`Saltando actualización para ${id}: No se puede pasar de 'Recibido' a 'Rechazado'.`);
-          return { id, success: false, reason: "Invalid status transition" };
-        } 
-         // Puedes añadir más lógica para otros casos no permitidos
       }
 
       try {
@@ -336,9 +322,9 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
           id: id,
           updates: {
             estado_solicitud: bulkUpdateStatus,
-            fecha_revision: (bulkUpdateStatus !== 'Recibido' && bulkUpdateStatus !== 'Revisando' && bulkUpdateStatus !== 'Rechazado') ? new Date().toISOString().split('T')[0] : null,
+            fecha_revision: (bulkUpdateStatus !== 'Pendiente' && bulkUpdateStatus !== 'Revisando' && bulkUpdateStatus !== 'Rechazado') ? new Date().toISOString().split('T')[0] : null,
             fecha_aprobacion: bulkUpdateStatus === 'Aprobado' ? new Date().toISOString().split('T')[0] : null,
-            revisor_solicitud: bulkUpdateStatus !== 'Recibido' ? 'Sistema' : null,
+            revisor_solicitud: bulkUpdateStatus !== 'Pendiente' ? 'Sistema' : null,
             motivo_rechazo: bulkUpdateStatus === 'Rechazado' ? bulkRejectionReason : null,
           }
         });
@@ -370,6 +356,230 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
       });
     }
   };
+
+  // --- Lógica para abrir el modal de detalles ---
+  const handleOpenDetailsModal = (professional: Profesional) => {
+    setSelectedProfessionalForModal(professional);
+    setIsModalOpen(true);
+  };
+
+  // --- Lógica de Generación de PDFs Ocultos (para descargas directas) ---
+  const generatePdfFromHiddenElement = useCallback(async (
+    professional: Profesional,
+    Component: React.ComponentType<{ formData: any }>,
+    elementId: string,
+    filenamePrefix: string
+  ) => {
+    if (!hiddenPdfContainerRef.current) {
+      toast({ title: "Error", description: "Contenedor de PDF no disponible.", variant: "destructive" });
+      return;
+    }
+
+    const formDataForDocuments = {
+      ...professional,
+      nombre: professional.nombre || '',
+      apellidos: professional.apellidos || '',
+      numero_dip: professional.numero_dip || '',
+      numero_pasaporte: professional.numero_pasaporte || '',
+      area_profesional: professional.area_profesional || '',
+      especialidad: professional.especialidad || 'No especificada',
+      titulacion_especifica_1: professional.titulacion_especifica_1 || '',
+      institucion_1: professional.institucion_1 || '',
+      pais_formacion_1: professional.pais_formacion_1 || '',
+      genero: professional.genero || '',
+      nacionalidad: professional.nacionalidad || '',
+      fecha_nacimiento: professional.fecha_nacimiento ? new Date(professional.fecha_nacimiento).toLocaleDateString('es-ES') : 'N/A',
+      edad: professional.fecha_nacimiento ? Math.floor((new Date().getTime() - new Date(professional.fecha_nacimiento).getTime()) / (31557600000)) : 'N/A',
+      telefono: professional.telefono || '',
+      domicilio: professional.domicilio || '',
+      provincia: professional.provincia || '',
+      distrito: professional.distrito || '',
+      categoria_titulacion: professional.categoria_titulacion || '',
+      periodo_formacion: professional.periodo_formacion || '',
+      situacion_laboral: professional.situacion_laboral || '',
+      nombre_centro: professional.nombre_centro || '',
+      categoria_centro: professional.categoria_centro || '',
+      tipo_sector: professional.tipo_sector || '',
+      distrito_sanitario: professional.distrito_sanitario || '',
+      pertenece_brigada_medica: professional.pertenece_brigada_medica,
+      tipo_cooperacion: professional.tipo_cooperacion || '',
+      codigo_expediente: professional.id,
+      foto_carnet_base64: professional.foto_carnet_base64,
+      codigo_barras: professional.id,
+    };
+
+    // Renderizar el componente en el contenedor oculto
+    const tempDiv = document.createElement('div');
+    tempDiv.id = elementId;
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.width = '210mm'; // Ancho A4
+    hiddenPdfContainerRef.current.appendChild(tempDiv);
+
+    // Renderizar el componente React dentro del div temporal
+    // Esto es un truco, en React 18+ con root, necesitarías un createRoot.
+    // Para entornos no SSR o simples, esto puede funcionar:
+    const root = (window as any).ReactDOM.createRoot ? (window as any).ReactDOM.createRoot(tempDiv) : null;
+    if (root) {
+      root.render(<Component formData={formDataForDocuments} onDownload={() => {}} />);
+    } else {
+      // Fallback para React 17 o versiones anteriores, o si createRoot no está disponible
+      (window as any).ReactDOM.render(<Component formData={formDataForDocuments} onDownload={() => {}} />, tempDiv);
+    }
+    
+    // Esperar un poco para que el renderizado se complete
+    await new Promise(resolve => setTimeout(resolve, 50)); 
+
+    try {
+      const canvas = await html2canvas(tempDiv, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`${filenamePrefix}-${professional.nombre || ''}-${professional.apellidos?.replace(/\s+/g, '-') || 'profesional'}.pdf`);
+      toast({
+        title: "Descarga Exitosa",
+        description: `"${filenamePrefix}" para ${professional.nombre} ha sido generado y descargado.`,
+      });
+      return { id: professional.id, success: true };
+    } catch (error) {
+      console.error(`Error generating PDF for ${professional.id}:`, error);
+      toast({
+        title: "Error de Generación",
+        description: `Hubo un problema al generar el ${filenamePrefix} para ${professional.nombre}.`,
+        variant: "destructive",
+      });
+      return { id: professional.id, success: false, reason: (error as Error).message };
+    } finally {
+      // Desmontar el componente y limpiar el div temporal
+      if (root) {
+        root.unmount();
+      } else {
+        (window as any).ReactDOM.unmountComponentAtNode(tempDiv);
+      }
+      hiddenPdfContainerRef.current.removeChild(tempDiv);
+    }
+  }, []);
+
+  const handleDownloadSingleLetter = (professional: Profesional) => {
+    generatePdfFromHiddenElement(professional, ApprovalLetter, 'hidden-approval-letter-content', 'carta-aprobacion');
+  };
+
+  const handleDownloadSingleSummary = (professional: Profesional) => {
+    generatePdfFromHiddenElement(professional, PDFSummary, 'hidden-pdf-summary-content', 'resumen-profesional');
+  };
+
+  const handleDownloadSingleCarnet = (professional: Profesional) => {
+    if (professional.url_carnet) {
+      window.open(professional.url_carnet, '_blank');
+      toast({
+        title: "Carnet Abierto",
+        description: "El carnet se ha abierto en una nueva pestaña para su visualización/descarga.",
+      });
+    } else {
+      toast({
+        title: "Carnet No Disponible",
+        description: "La URL del carnet no está disponible para este profesional.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // --- Funciones para Descarga Masiva ---
+  const handleBulkDownloadCarnets = () => {
+    const pendingFirmSelected = filteredRequests.filter(req => 
+      selectedRequestIds.includes(req.id) && req.estado_solicitud === 'Pendiente de Firma' && req.url_carnet
+    );
+
+    if (pendingFirmSelected.length === 0) {
+      toast({ title: "Advertencia", description: "No hay carnets seleccionados disponibles para descarga masiva en estado 'Pendiente de Firma'." });
+      return;
+    }
+
+    toast({ title: "Iniciando Descarga Masiva", description: `Abriendo ${pendingFirmSelected.length} carnets... Puede que su navegador requiera permiso.` });
+
+    pendingFirmSelected.forEach(professional => {
+      window.open(professional.url_carnet, '_blank');
+    });
+    setSelectedRequestIds([]); // Limpiar selección después de la acción
+  };
+
+  const handleBulkDownloadDocuments = async (
+    Component: React.ComponentType<{ formData: any }>,
+    elementIdPrefix: string,
+    filenamePrefix: string,
+    maxDownloads: number = 5
+  ) => {
+    const pendingFirmSelected = filteredRequests.filter(req => 
+      selectedRequestIds.includes(req.id) && req.estado_solicitud === 'Pendiente de Firma'
+    );
+
+    if (pendingFirmSelected.length === 0) {
+      toast({ title: "Advertencia", description: `No hay solicitudes seleccionadas en estado 'Pendiente de Firma' para descargar ${filenamePrefix}.` });
+      return;
+    }
+
+    if (pendingFirmSelected.length > maxDownloads) {
+      toast({ 
+        title: "Demasiadas Solicitudes", 
+        description: `Se han seleccionado ${pendingFirmSelected.length} solicitudes. Por favor, selecciona un máximo de ${maxDownloads} para la descarga masiva de ${filenamePrefix}s para evitar problemas de rendimiento.`, 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    toast({ title: "Preparando Descarga Masiva", description: `Generando ${filenamePrefix}s para ${pendingFirmSelected.length} solicitudes... Esto puede tardar.` });
+
+    let successfulDownloads = 0;
+    for (const professional of pendingFirmSelected) {
+      const result = await generatePdfFromHiddenElement(
+        professional,
+        Component,
+        `${elementIdPrefix}-${professional.id}`, // ID único para cada renderizado
+        filenamePrefix
+      );
+      if (result.success) {
+        successfulDownloads++;
+      }
+      // Pequeña pausa para no sobrecargar el navegador
+      await new Promise(resolve => setTimeout(resolve, 200)); 
+    }
+
+    toast({
+      title: "Descarga Masiva Completa",
+      description: `Se descargaron ${successfulDownloads} ${filenamePrefix}s exitosamente.`,
+    });
+    setSelectedRequestIds([]);
+  };
+
+  const isAllSelected = filteredRequests.length > 0 && selectedRequestIds.length === filteredRequests.length;
+  const isIndeterminate = selectedRequestIds.length > 0 && selectedRequestIds.length < filteredRequests.length;
+
+  // Determinar si todas las solicitudes seleccionadas están en "Pendiente de Firma"
+  const allSelectedArePendingFirm = selectedRequestIds.length > 0 && 
+    selectedRequestIds.every(id => 
+      filteredRequests.find(req => req.id === id)?.estado_solicitud === 'Pendiente de Firma'
+    );
 
 
   if (error) {
@@ -405,9 +615,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
       </Card>
     );
   }
-
-  const isAllSelected = filteredRequests.length > 0 && selectedRequestIds.length === filteredRequests.length;
-  const isIndeterminate = selectedRequestIds.length > 0 && selectedRequestIds.length < filteredRequests.length;
 
   return (
     <div className="space-y-6">
@@ -449,13 +656,10 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos los estados</SelectItem>
-                    {/* Excluimos Aprobado aquí porque este panel es para NO aprobadas,
-                        y 'Pendiente' porque es el estado por defecto o no se retorna a el */}
-                    <SelectItem value="Recibido">Recibido</SelectItem> {/* Mantener Pendiente aquí para poder filtrar */}
+                    <SelectItem value="Pendiente">Pendiente</SelectItem>
                     <SelectItem value="Revisando">Revisando</SelectItem>
                     <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
                     <SelectItem value="Rechazado">Rechazado</SelectItem>
-                    {/* No ofrecemos "Aprobado" en este filtro principal, ya que el panel es para "solicitudes" */}
                   </SelectContent>
                 </Select>
                 <Button
@@ -483,7 +687,7 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                     <SelectValue placeholder="Cambiar estado a..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {getAvailableStatusOptions(undefined).map(option => ( // Pasamos undefined para mostrar todas las opciones iniciales
+                    {getAvailableStatusOptions(undefined).map(option => (
                       <SelectItem key={option} value={option}>
                         {option}
                       </SelectItem>
@@ -501,6 +705,31 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                 <Button onClick={handleBulkUpdate} disabled={updateProfesional.isLoading || !bulkUpdateStatus || (bulkUpdateStatus === 'Rechazado' && !bulkRejectionReason)}>
                   Aplicar <Save className="w-4 h-4 ml-2" />
                 </Button>
+
+                {/* Nuevo: Dropdown para Descargas Masivas */}
+                {allSelectedArePendingFirm && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="flex items-center gap-2">
+                        <Download className="w-4 h-4" />
+                        Descargar Seleccionados
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuItem onClick={handleBulkDownloadCarnets}>
+                        <Download className="w-4 h-4 mr-2" /> Descargar Carnets
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleBulkDownloadDocuments(ApprovalLetter, 'hidden-bulk-approval-letter', 'carta-aprobacion', 5)}>
+                        <Download className="w-4 h-4 mr-2" /> Descargar Cartas (Max 5)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleBulkDownloadDocuments(PDFSummary, 'hidden-bulk-summary', 'resumen-profesional', 5)}>
+                        <Download className="w-4 h-4 mr-2" /> Descargar Resúmenes (Max 5)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             </div>
           )}
@@ -574,7 +803,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                                   ...prev,
                                   [request.id]: value
                                 }));
-                                // Limpia/establece motivo de rechazo al cambiar el estado
                                 if (value !== 'Rechazado') {
                                   setRejectionReasons(prev => {
                                     const newReasons = { ...prev };
@@ -582,7 +810,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                                     return newReasons;
                                   });
                                 } else {
-                                  // Inicializa el motivo si se cambia a Rechazado y no existe
                                   setRejectionReasons(prev => ({
                                     ...prev,
                                     [request.id]: prev[request.id] || ''
@@ -594,7 +821,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {/* Opciones dinámicas según el flujo */}
                                 {getAvailableStatusOptions(request.estado_solicitud).map(option => (
                                   <SelectItem key={option} value={option}>
                                     {option}
@@ -635,31 +861,56 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                           </div>
                         ) : (
                           <div className="flex items-center space-x-2">
-                            <Badge className={`${getStatusColor(request.estado_solicitud || 'Recibido')} border`}>
-                              {request.estado_solicitud || 'Recibido'}
+                            <Badge className={`${getStatusColor(request.estado_solicitud || 'Pendiente')} border`}>
+                              {request.estado_solicitud || 'Pendiente'}
                             </Badge>
                             {(userRole === 'administrador' || userRole === 'comite') && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleEditState(request.id, request.estado_solicitud || 'Recibido')}
-                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              >
-                                <Edit className="w-3 h-3" />
-                              </Button>
+                              <div className="flex space-x-1">
+                                {/* Botón de Editar Estado */}
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleEditState(request.id, request.estado_solicitud || 'Pendiente')}
+                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </Button>
+
+                                {/* Dropdown de Acciones (Ver Detalles, Descargas) */}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                      <span className="sr-only">Abrir menú</span>
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleOpenDetailsModal(request)}>
+                                      <Eye className="mr-2 h-4 w-4" /> Ver Detalles
+                                    </DropdownMenuItem>
+                                    
+                                    {request.estado_solicitud === 'Pendiente de Firma' && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => handleDownloadSingleLetter(request)}>
+                                          <Download className="mr-2 h-4 w-4" /> Descargar Carta
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleDownloadSingleSummary(request)}>
+                                          <Download className="mr-2 h-4 w-4" /> Descargar Resumen
+                                        </DropdownMenuItem>
+                                        {request.url_carnet && (
+                                          <DropdownMenuItem onClick={() => handleDownloadSingleCarnet(request)}>
+                                            <Download className="mr-2 h-4 w-4" /> Descargar Carnet
+                                          </DropdownMenuItem>
+                                        )}
+                                      </>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             )}
                           </div>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          {onSelectProfessional && (
-                            <Button variant="outline" size="sm" className="hover:bg-gray-50" onClick={() => onSelectProfessional(request)}>
-                              <Eye className="w-4 h-4 mr-1" />
-                              Ver Detalles
-                            </Button>
-                          )}
-                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -669,6 +920,21 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de Detalles del Profesional */}
+      {selectedProfessionalForModal && (
+        <ProfessionalDetailsModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          professional={selectedProfessionalForModal}
+        />
+      )}
+
+      {/* Contenedor oculto para la generación de PDFs (html2canvas necesita elementos en el DOM) */}
+      <div ref={hiddenPdfContainerRef} style={{ position: 'fixed', left: '-9999px', top: '-9999px', width: '210mm', height: '297mm', overflow: 'hidden', zIndex: -1 }}>
+        {/* Los componentes para generar PDFs se renderizarán aquí temporalmente */}
+      </div>
+
     </div>
   );
 };

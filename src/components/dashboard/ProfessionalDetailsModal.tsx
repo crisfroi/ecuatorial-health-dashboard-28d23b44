@@ -1,4 +1,3 @@
-// src/components/requests/ProfessionalDetailsModal.jsx
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import {
   Dialog,
@@ -45,7 +44,7 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
           setSvgContent(null); // Clear content on error
           toast({
             title: "Error al cargar Carnet Digital",
-            description: "No se pudo cargar la imagen SVG del carnet. Verifique la URL o configuraciones CORS.",
+            description: "No se pudo cargar la imagen SVG del carnet. Por favor, revise la consola para más detalles (errores CORS, 404, etc.).",
             variant: "destructive",
           });
         }
@@ -76,8 +75,8 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
       const tempContainer = document.createElement('div');
       tempContainer.style.position = 'absolute';
       tempContainer.style.left = '-9999px';
-      tempContainer.style.width = '210mm';
-      tempContainer.style.height = '297mm';
+      tempContainer.style.width = '210mm'; // A4 width
+      tempContainer.style.height = '297mm'; // A4 height
       tempContainer.style.overflow = 'hidden';
       const contentToPrint = element.cloneNode(true) as HTMLElement;
       tempContainer.appendChild(contentToPrint);
@@ -141,22 +140,6 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
       'approval-letter-content-modal',
       `carta-aprobacion-${professional.nombre || ''}-${professional.apellidos?.replace(/\s+/g, '-') || 'profesional'}.pdf`
     );
-  };
-
-  const handleDownloadCarnet = () => {
-    if (professional.url_carnet) {
-      window.open(professional.url_carnet, '_blank');
-      toast({
-        title: "Carnet Abierto",
-        description: "El carnet se ha abierto en una nueva pestaña para su visualización/descarga.",
-      });
-    } else {
-      toast({
-        title: "Carnet No Disponible",
-        description: "La URL del carnet no está disponible para este profesional.",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleDownloadCarnetAsPdf = useCallback(async () => {
@@ -264,7 +247,30 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
             document.body.removeChild(tempDiv);
         }
     }
-  }, [professional, svgContent]); // Dependencies for useCallback
+  }, [professional, svgContent]);
+
+  // New function for direct SVG download
+  const handleDownloadCarnetSvg = () => {
+    if (professional.url_carnet) {
+      const link = document.createElement('a');
+      link.href = professional.url_carnet;
+      const filename = professional.url_carnet.split('/').pop() || `carnet-${professional.id}.svg`;
+      link.download = filename; // Forces download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast({
+        title: "Descarga Iniciada",
+        description: "El carnet digital (SVG) se está descargando.",
+      });
+    } else {
+      toast({
+        title: "Carnet No Disponible",
+        description: "La URL del carnet no está disponible para este profesional.",
+        variant: "destructive",
+      });
+    }
+  };
 
 
   const formDataForDocuments = {
@@ -316,10 +322,10 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
             <TabsTrigger value="carnet" disabled={!professional.url_carnet || professional.estado_solicitud !== 'Pendiente de Firma'}>Carnet Digital</TabsTrigger>
           </TabsList>
 
-          <div className="flex-grow overflow-hidden mt-4">
+          {/* Eliminado overflow-hidden de este div para permitir que ScrollArea gestione su propio desbordamiento */}
+          <div className="flex-grow mt-4">
             <TabsContent value="details" className="h-full">
-              {/* Added min-h-0 to ScrollArea for proper scrolling behavior */}
-              <ScrollArea className="h-full p-4 rounded-md border min-h-0">
+              <ScrollArea className="h-full p-4 rounded-md border min-h-0 max-h-[calc(90vh-200px)]">
                 <h3 className="text-lg font-semibold mb-3">Información Completa del Profesional</h3>
                 {professional.foto_carnet && (
                   <div className="mb-4 text-center">
@@ -363,7 +369,7 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
                   Descargar Carta
                 </Button>
               </div>
-              <ScrollArea className="flex-grow p-4 rounded-md border bg-gray-50 min-h-0">
+              <ScrollArea className="flex-grow p-4 rounded-md border bg-gray-50 min-h-0 max-h-[calc(90vh-200px)]">
                 <div id="approval-letter-content-modal" className="max-w-[210mm] mx-auto bg-white" style={{ padding: '20mm', minHeight: '297mm', fontSize: '11px', lineHeight: '1.4' }}>
                   <ApprovalLetter formData={formDataForDocuments} onDownload={() => {}} />
                 </div>
@@ -376,14 +382,13 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
                   <Download className="w-4 h-4" />
                   Descargar Carnet (PDF)
                 </Button>
-                {professional.url_carnet && (
-                  <Button variant="outline" onClick={() => window.open(professional.url_carnet, '_blank')} className="ml-2 flex items-center gap-2">
-                    <ExternalLink className="w-4 h-4" />
-                    Abrir en Nueva Pestaña
-                  </Button>
-                )}
+                {/* Nuevo botón para descargar el SVG directamente */}
+                <Button onClick={handleDownloadCarnetSvg} className="ml-2 flex items-center gap-2" disabled={!professional.url_carnet || !professional.url_carnet.endsWith('.svg')}>
+                  <Download className="w-4 h-4" />
+                  Descargar Carnet (SVG)
+                </Button>
               </div>
-              <ScrollArea className="flex-grow p-4 rounded-md border bg-gray-50 flex items-center justify-center min-h-0">
+              <ScrollArea className="flex-grow p-4 rounded-md border bg-gray-50 flex items-center justify-center min-h-0 max-h-[calc(90vh-200px)]">
                 {professional.url_carnet ? (
                   professional.url_carnet.endsWith('.svg') && svgContent ? (
                     // Render SVG inline if fetched successfully to bypass CORS issues

@@ -94,7 +94,7 @@ const PdfViewerModal = ({ isOpen, onClose, formData, pdfType }: PdfViewerModalPr
 
   const handleDownloadPdf = () => {
     if (pdfBlob) {
-      const fileName = `${pdfType === 'summary' ? 'Resumen_Solicitud' : 'Carta_Solicitud'}_${formData.codigo_expediente || 'pendiente'}.pdf`;
+      const fileName = `${pdfType === 'summary' ? 'Resumen_Solicitud' : 'Carta_Solicitud'}_${formData.codigo_expediente || 'Recibido'}.pdf`;
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;

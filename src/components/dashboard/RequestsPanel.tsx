@@ -20,7 +20,7 @@ import {
 
 // Definimos los estados válidos y su orden para el flujo
 const STATUS_ORDER = [
-  'Pendiente',
+  'Recibido',
   'Revisando',
   'Pendiente de Firma',
   'Aprobado',
@@ -95,20 +95,20 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
 
   // --- Lógica para el flujo de estado no regresivo ---
   const getAvailableStatusOptions = useCallback((currentStatus: string | undefined) => {
-    const currentStatusIndex = STATUS_ORDER.indexOf(currentStatus || 'Pendiente');
-    const options = ['Revisando', 'Pendiente de Firma', 'Aprobado', 'Rechazado']; // Todas las opciones posibles
+    const currentStatusIndex = STATUS_ORDER.indexOf(currentStatus || 'Recibido');
+    const options = ['Revisando','Rechazado', 'Pendiente de Firma', 'Aprobado' ]; // Todas las opciones posibles
 
     // Filtra las opciones basándose en el flujo
     return options.filter(option => {
       const optionIndex = STATUS_ORDER.indexOf(option);
 
-      // Regla 1: No regresión de 'Revisando' a 'Pendiente'
-      // Si el estado actual es 'Revisando', no permitir 'Pendiente' (que ya no está en el select de todas formas)
+      // Regla 1: No regresión de 'Revisando' a 'Recibido'
+      // Si el estado actual es 'Revisando', no permitir 'Recibido' (que ya no está en el select de todas formas)
       // Pero si el 'Revisando' es un estado intermedio, no debería volver atrás en general.
-      if (currentStatus === 'Revisando' && option === 'Pendiente') return false; // Redundante si Pendiente no está en el select
+      if (currentStatus === 'Revisando' && option === 'Recibido') return false; // Redundante si Pendiente no está en el select
 
       // Regla 2: No saltar de 'Pendiente' a 'Aprobado'
-      if (currentStatus === 'Pendiente' && option === 'Aprobado') return false;
+      if (currentStatus === 'Recibido' && option === 'Aprobado') return false;
 
       // Restricción general de no ir hacia atrás, excepto si el destino es "Rechazado"
       if (optionIndex < currentStatusIndex && option !== 'Rechazado') {
@@ -153,16 +153,16 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
     if (!newState) return;
 
     const currentProfesional = profesionales.find(p => p.id === requestId);
-    const currentStatus = currentProfesional?.estado_solicitud || 'Pendiente';
+    const currentStatus = currentProfesional?.estado_solicitud || 'Recibido';
 
     // Validación de flujo no regresivo (individual)
     const availableOptions = getAvailableStatusOptions(currentStatus);
     if (!availableOptions.includes(newState) && newState !== currentStatus) {
       // Manejar casos especiales donde el usuario intenta un salto no permitido
-      if (currentStatus === 'Pendiente' && newState === 'Aprobado') {
+      if (currentStatus === 'Recibido' && newState === 'Aprobado') {
         toast({
           title: "Error de Flujo",
-          description: "No se puede pasar de 'Pendiente' a 'Aprobado' directamente. Debe pasar por 'Pendiente de Firma'.",
+          description: "No se puede pasar de 'Recibido' a 'Aprobado' directamente. Debe pasar por 'Pendiente de Firma'.",
           variant: "destructive",
         });
         return;

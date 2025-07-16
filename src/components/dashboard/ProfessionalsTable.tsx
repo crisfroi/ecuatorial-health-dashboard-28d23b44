@@ -7,10 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, X, Eye, Edit, Download, Save } from 'lucide-react';
 import { useProfesionales, type Profesional } from '@/hooks/useProfesionales';
-import { useProfesionalesMutations } from '@/hooks/useProfesionalesMutations';
+import { useProfesionalesMutations } => '@/hooks/useProfesionalesMutations';
 import { useToast } from '@/hooks/use-toast';
 
-// Definimos los tipos de filtros para una mayor claridad y seguridad de tipos.
 interface DashboardFilters {
   area_profesional?: string;
   estado_solicitud?: string;
@@ -25,46 +24,36 @@ interface DashboardFilters {
 interface ProfessionalsTableProps {
   onSelectProfessional: (professional: any) => void;
   userRole: string;
-  // Renombramos directamente appliedFilters a dashboardFilters aquí en la interfaz
-  // para que sea más claro qué prop se espera del Dashboard.
   appliedFilters?: DashboardFilters;
   onClearFilters?: () => void;
 }
 
-// Cambiamos la forma en que se reciben las props para poder loguear el objeto 'props' completo.
 const ProfessionalsTable = (props: ProfessionalsTableProps) => {
-  // Desestructuramos las props DENTRO de la función, después de los logs.
   const { onSelectProfessional, userRole, appliedFilters, onClearFilters } = props;
+  const dashboardFilters = appliedFilters; // Esto sigue siendo el filtro que viene del Dashboard
 
-  // Usa 'appliedFilters' directamente como 'dashboardFilters' o renómbralo
-  // para mantener la consistencia con tu lógica interna.
-  const dashboardFilters = appliedFilters;
-
-  // --- LOGS CLAVE PARA LA DEPURACIÓN ---
+  // --- LOGS CLAVE PARA LA DEPURACIÓN (Mantenemos estos para que veas que el appliedFilters del dashboard llega) ---
   console.log('ProfessionalsTable: OBJETO PROPS COMPLETO RECIBIDO:', props);
-  console.log('ProfessionalsTable: Prop appliedFilters específica:', appliedFilters); // Usamos appliedFilters directamente
-  console.log('ProfessionalsTable: Filtros desestructurados (dashboardFilters):', dashboardFilters); // Y el renombrado
+  console.log('ProfessionalsTable: Prop appliedFilters específica:', appliedFilters);
+  console.log('ProfessionalsTable: Filtros desestructurados (dashboardFilters):', dashboardFilters);
   // --- FIN LOGS CLAVE ---
 
   const [searchTerm, setSearchTerm] = useState('');
   const [editingStates, setEditingStates] = useState<Record<string, string>>({});
 
-  // localFilters NO incluye 'genero' y se inicializa con los valores por defecto
-  // Estos son para los selectores que el Dashboard NO controla directamente.
+  // Ahora 'genero' se incluye en localFilters y se inicializa con 'todos'
   const [localFilters, setLocalFilters] = useState({
     area_profesional: 'todos',
     estado_solicitud: 'Aprobado',
     provincia: 'todos',
+    genero: 'todos', // <<< CAMBIO CLAVE 1: Género ahora es parte de localFilters
     tipo_sector: 'todos'
   });
 
   const { toast } = useToast();
   const { updateProfesional } = useProfesionalesMutations();
 
-  // useEffect para limpiar el searchTerm y restablecer *solo* los filtros locales
-  // que no están siendo controlados por dashboardFilters.
   useEffect(() => {
-    // Ya tenemos dashboardFilters disponible directamente
     console.log("ProfessionalsTable: Received dashboardFilters prop in useEffect:", dashboardFilters);
 
     setSearchTerm('');
@@ -72,54 +61,36 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     setLocalFilters(prevLocalFilters => {
       const newLocalFilters = { ...prevLocalFilters };
 
-      // Restablece el filtro local a 'todos' solo si el dashboardFilters no tiene un valor específico
-      // o si el valor del dashboard es 'todos'.
-      if (!dashboardFilters?.area_profesional || dashboardFilters.area_profesional === 'todos') {
-        newLocalFilters.area_profesional = 'todos';
-      }
-      if (!dashboardFilters?.provincia || dashboardFilters.provincia === 'todos') {
-        newLocalFilters.provincia = 'todos';
-      }
-      // 'genero' no se maneja en localFilters, así que no se toca aquí.
-      if (!dashboardFilters?.tipo_sector || dashboardFilters.tipo_sector === 'todos') {
-        newLocalFilters.tipo_sector = 'todos';
-      }
-      // Para estado_solicitud, si el dashboard no lo especifica o es 'todos', siempre será 'Aprobado' en localFilters
-      if (!dashboardFilters?.estado_solicitud || dashboardFilters.estado_solicitud === 'todos') {
-        newLocalFilters.estado_solicitud = 'Aprobado';
-      }
+      // Se aplican los filtros del dashboard si existen, de lo contrario, se usa 'todos' o el valor por defecto.
+      // Si el dashboard NO proporciona un filtro de género, se mantendrá 'todos' en localFilters
+      // Si el dashboard SÍ proporciona un filtro de género, se actualizará localFilters.genero con ese valor
+      newLocalFilters.area_profesional = (dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos') ? dashboardFilters.area_profesional : 'todos';
+      newLocalFilters.provincia = (dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos') ? dashboardFilters.provincia : 'todos';
+      newLocalFilters.genero = (dashboardFilters?.genero && dashboardFilters.genero !== 'todos') ? dashboardFilters.genero : 'todos'; // <<< CAMBIO CLAVE 2: Se sincroniza género desde el dashboard
+      newLocalFilters.tipo_sector = (dashboardFilters?.tipo_sector && dashboardFilters.tipo_sector !== 'todos') ? dashboardFilters.tipo_sector : 'todos';
+      newLocalFilters.estado_solicitud = (dashboardFilters?.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos') ? dashboardFilters.estado_solicitud : 'Aprobado';
 
       console.log("ProfessionalsTable: Updated localFilters based on dashboardFilters (inside useEffect):", newLocalFilters);
       return newLocalFilters;
     });
 
-  }, [dashboardFilters]); // Dependencia dashboardFilters
+  }, [dashboardFilters]);
 
-  // Usa useMemo para asegurar que los filtros combinados solo cambien cuando sus dependencias lo hagan.
-  // Esto puede ayudar a prevenir re-renderizaciones innecesarias y asegurar que los valores sean estables.
   const combinedQueryFilters = useMemo(() => {
     const filters = {
-      // Género: Leer directamente de dashboardFilters. Si no es específico, pasa ''
-      genero: (dashboardFilters?.genero && dashboardFilters.genero !== 'todos')
-        ? dashboardFilters.genero
-        : '',
+      // Género: Ahora siempre se lee de localFilters
+      genero: (localFilters.genero === 'todos') ? '' : localFilters.genero, // <<< CAMBIO CLAVE 3: Leer de localFilters
 
-      estado_solicitud: (dashboardFilters?.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos')
-        ? dashboardFilters.estado_solicitud
+      estado_solicitud: (localFilters.estado_solicitud === 'todos' || localFilters.estado_solicitud === 'Aprobado')
+        ? 'Aprobado' // Siempre 'Aprobado' si es 'todos' o 'Aprobado' en localFilters
         : localFilters.estado_solicitud,
 
-      area_profesional: (dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos')
-        ? dashboardFilters.area_profesional
-        : (localFilters.area_profesional === 'todos' ? '' : localFilters.area_profesional),
+      area_profesional: (localFilters.area_profesional === 'todos' ? '' : localFilters.area_profesional),
+      provincia: (localFilters.provincia === 'todos' ? '' : localFilters.provincia),
+      tipo_sector: (localFilters.tipo_sector === 'todos' ? '' : localFilters.tipo_sector),
 
-      provincia: (dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos')
-        ? dashboardFilters.provincia
-        : (localFilters.provincia === 'todos' ? '' : localFilters.provincia),
-
-      tipo_sector: (dashboardFilters?.tipo_sector && dashboardFilters.tipo_sector !== 'todos')
-        ? dashboardFilters.tipo_sector
-        : (localFilters.tipo_sector === 'todos' ? '' : localFilters.tipo_sector),
-
+      // Los filtros específicos del dashboard (vencimiento_proximo, carnet_vencido, prioridad_renovacion)
+      // se siguen tomando directamente de dashboardFilters, ya que no son parte de los selectores locales.
       vencimiento_proximo: dashboardFilters?.vencimiento_proximo || undefined,
       carnet_vencido: dashboardFilters?.carnet_vencido || undefined,
       prioridad_renovacion: (dashboardFilters?.prioridad_renovacion && dashboardFilters.prioridad_renovacion !== 'all')
@@ -128,8 +99,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     };
     console.log('ProfessionalsTable: Final combinedQueryFilters passed to useProfesionales (from useMemo):', filters);
     return filters;
-  }, [dashboardFilters, localFilters]); // Dependencias: dashboardFilters y localFilters
-
+  }, [dashboardFilters, localFilters]); // Mantenemos ambas dependencias por los filtros específicos del dashboard
 
   const { data: profesionales = [], isLoading, error, refetch } = useProfesionales(combinedQueryFilters);
 
@@ -146,10 +116,11 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
       area_profesional: 'todos',
       estado_solicitud: 'Aprobado',
       provincia: 'todos',
+      genero: 'todos', // <<< CAMBIO CLAVE 4: Resetear género también
       tipo_sector: 'todos'
     });
     if (onClearFilters) {
-      onClearFilters(); // Llama a la función del padre para limpiar los filtros globales (dashboardFilters)
+      onClearFilters();
     }
   };
 
@@ -220,24 +191,20 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   };
 
   // Determinar si hay filtros activos para mostrar la tarjeta de filtros aplicados
+  // Se ha simplificado ligeramente la lógica de los localFilters
   const hasActiveFilters = searchTerm ||
     Object.entries(localFilters).some(([key, value]) => {
-        if (key === 'estado_solicitud') {
-            return (dashboardFilters?.estado_solicitud === 'todos' && value !== 'Aprobado') ||
-                    (!dashboardFilters?.estado_solicitud && value !== 'Aprobado');
-        }
-        return (!dashboardFilters?.[key as keyof typeof dashboardFilters] || dashboardFilters?.[key as keyof typeof dashboardFilters] === 'todos') && value !== 'todos';
+      // Para estado_solicitud, solo lo consideramos activo si no es 'Aprobado'
+      if (key === 'estado_solicitud') {
+        return value !== 'Aprobado';
+      }
+      // Para los demás, si no es 'todos'
+      return value !== 'todos';
     }) ||
-    // Mostrar filtros del dashboard si son específicos
-    (dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos') ||
-    (dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos') ||
-    (dashboardFilters?.genero && dashboardFilters.genero !== 'todos') ||
-    (dashboardFilters?.tipo_sector && dashboardFilters.tipo_sector !== 'todos') ||
-    (dashboardFilters?.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos') ||
+    // Los filtros que solo pueden venir del dashboard
     dashboardFilters?.vencimiento_proximo ||
     dashboardFilters?.carnet_vencido ||
     (dashboardFilters?.prioridad_renovacion && dashboardFilters.prioridad_renovacion !== 'all');
-
 
   if (isLoading) {
     return (
@@ -296,61 +263,33 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   Búsqueda: {searchTerm}
                 </Badge>
               )}
-              {/* Mostrar los filtros del dashboard si son específicos y no 'todos' */}
-              {dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos' && (
-                <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
-                  Área: {dashboardFilters.area_profesional}
-                </Badge>
-              )}
-              {dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos' && (
-                <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
-                  Provincia: {dashboardFilters.provincia}
-                </Badge>
-              )}
-              {dashboardFilters?.genero && dashboardFilters.genero !== 'todos' && (
-                <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
-                  Género: {dashboardFilters.genero}
-                </Badge>
-              )}
-              {dashboardFilters?.tipo_sector && dashboardFilters.tipo_sector !== 'todos' && (
-                <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
-                  Tipo Sector: {dashboardFilters.tipo_sector}
-                </Badge>
-              )}
-              {dashboardFilters?.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos' && (
-                <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
-                  Estado Solicitud: {dashboardFilters.estado_solicitud}
-                </Badge>
-              )}
-
-              {/* Mostrar filtros locales SOLO si no son anulados por un filtro específico del dashboard */}
-              {(!dashboardFilters?.area_profesional || dashboardFilters.area_profesional === 'todos') && localFilters.area_profesional !== 'todos' && (
+              {/* Ahora los filtros de dashboard se muestran si tienen un valor,
+                  y los locales si no son 'todos' (ya que género está aquí ahora) */}
+              {localFilters.area_profesional !== 'todos' && (
                 <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
                   Área: {localFilters.area_profesional}
                 </Badge>
               )}
-              {(!dashboardFilters?.provincia || dashboardFilters.provincia === 'todos') && localFilters.provincia !== 'todos' && (
+              {localFilters.provincia !== 'todos' && (
                 <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
                   Provincia: {localFilters.provincia}
                 </Badge>
               )}
-              {(!dashboardFilters?.tipo_sector || dashboardFilters.tipo_sector === 'todos') && localFilters.tipo_sector !== 'todos' && (
+              {localFilters.genero !== 'todos' && ( // <<< CAMBIO CLAVE 5: Mostrar género de localFilters
+                <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
+                  Género: {localFilters.genero}
+                </Badge>
+              )}
+              {localFilters.tipo_sector !== 'todos' && (
                 <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
                   Tipo Sector: {localFilters.tipo_sector}
                 </Badge>
               )}
-              {/* Mostrar "Estado: Aprobado" por defecto si no hay un filtro de estado específico del dashboard */}
-              {(!dashboardFilters?.estado_solicitud || dashboardFilters.estado_solicitud === 'todos') && localFilters.estado_solicitud === 'Aprobado' && (
-                <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
-                  Estado Solicitud: Aprobado
-                </Badge>
-              )}
-              {(!dashboardFilters?.estado_solicitud || dashboardFilters.estado_solicitud === 'todos') && localFilters.estado_solicitud !== 'todos' && localFilters.estado_solicitud !== 'Aprobado' && (
+              {localFilters.estado_solicitud !== 'Aprobado' && (
                 <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
                   Estado Solicitud: {localFilters.estado_solicitud}
                 </Badge>
               )}
-
 
               {dashboardFilters?.vencimiento_proximo && (
                   <Badge variant="secondary" className="bg-guinea-light-teal text-guinea-dark-teal">
@@ -392,11 +331,10 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
               </div>
 
               <div className="flex gap-2">
-                {/* Selector de Área Profesional */}
+                {/* Selector de Área Profesional (sin cambios) */}
                 <Select
-                  value={dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos' ? dashboardFilters.area_profesional : localFilters.area_profesional}
+                  value={localFilters.area_profesional}
                   onValueChange={(value) => setLocalFilters(prev => ({...prev, area_profesional: value}))}
-                  disabled={!!(dashboardFilters?.area_profesional && dashboardFilters.area_profesional !== 'todos')}
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Área" />
@@ -414,11 +352,10 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   </SelectContent>
                 </Select>
 
-                {/* Selector de Provincia */}
+                {/* Selector de Provincia (sin cambios) */}
                 <Select
-                  value={dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos' ? dashboardFilters.provincia : localFilters.provincia}
+                  value={localFilters.provincia}
                   onValueChange={(value) => setLocalFilters(prev => ({...prev, provincia: value}))}
-                  disabled={!!(dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos')}
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Provincia" />
@@ -435,12 +372,11 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   </SelectContent>
                 </Select>
 
-                {/* Selector de Género: Completamente controlado por dashboardFilters */}
+                {/* Selector de Género: Ahora es controlable localmente */}
                 <Select
-                  value={dashboardFilters?.genero && dashboardFilters.genero !== 'todos' ? dashboardFilters.genero : 'todos'}
-                  // No hay onValueChange aquí porque este selector solo *muestra* el filtro del dashboard, no lo modifica localmente.
-                  // Si el usuario necesita cambiarlo, deberá hacerlo desde el dashboard o se necesita un callback al padre.
-                  disabled={!!(dashboardFilters?.genero && dashboardFilters.genero !== 'todos')}
+                  value={localFilters.genero} // <<< CAMBIO CLAVE 6: El valor viene de localFilters
+                  onValueChange={(value) => setLocalFilters(prev => ({...prev, genero: value}))} // <<< CAMBIO CLAVE 7: Actualizar localFilters
+                  // disabled ya no está aquí, así que siempre es editable
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Género" />
@@ -453,11 +389,10 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   </SelectContent>
                 </Select>
 
-                {/* Selector de Tipo de Sector */}
+                {/* Selector de Tipo de Sector (sin cambios) */}
                 <Select
-                  value={dashboardFilters?.tipo_sector && dashboardFilters.tipo_sector !== 'todos' ? dashboardFilters.tipo_sector : localFilters.tipo_sector}
+                  value={localFilters.tipo_sector}
                   onValueChange={(value) => setLocalFilters(prev => ({...prev, tipo_sector: value}))}
-                  disabled={!!(dashboardFilters?.tipo_sector && dashboardFilters.tipo_sector !== 'todos')}
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Sector" />
@@ -469,11 +404,10 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   </SelectContent>
                 </Select>
 
-                {/* Selector de Estado de Solicitud */}
+                {/* Selector de Estado de Solicitud (sin cambios) */}
                 <Select
-                  value={dashboardFilters?.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos' ? dashboardFilters.estado_solicitud : localFilters.estado_solicitud}
+                  value={localFilters.estado_solicitud}
                   onValueChange={(value) => setLocalFilters(prev => ({...prev, estado_solicitud: value}))}
-                  disabled={!!(dashboardFilters?.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos')}
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Estado" />

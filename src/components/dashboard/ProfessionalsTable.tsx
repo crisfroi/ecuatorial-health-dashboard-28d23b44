@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, X, Eye, Edit, Download, Save } from 'lucide-react';
 import { useProfesionales, type Profesional } from '@/hooks/useProfesionales';
-import { useProfesionalesMutations } => '@/hooks/useProfesionalesMutations';
+import { useProfesionalesMutations } from '@/hooks/useProfesionalesMutations';
 import { useToast } from '@/hooks/use-toast';
 
 interface DashboardFilters {

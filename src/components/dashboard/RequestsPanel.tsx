@@ -20,9 +20,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 // Importamos el nuevo modal y los componentes de generación de PDF
-import ProfessionalDetailsModal from '@/components/requests/ProfessionalDetailsModal'; // Ajusta el path si es diferente
-import ApprovalLetter from '@/components/requests/ApprovalLetter'; // Para generación oculta
-import PDFSummary from '@/components/requests/PDFSummary';     // Para generación oculta
+import ProfessionalDetailsModal from '@/components/dashboard/ProfessionalDetailsModal'; // Ajusta el path si es diferente
+import ApprovalLetter from '@/components/registration/ApprovalLetter'; // Para generación oculta
+import PDFSummary from '@/components/registration/PDFSummary';     // Para generación oculta
 
 import jsPDF from 'jspdf'; // Necesario para la generación de PDFs
 import html2canvas from 'html2canvas'; // Necesario para la generación de PDFs

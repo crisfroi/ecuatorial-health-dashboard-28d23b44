@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { FileText, Eye, Edit, Save, X, RefreshCw, MoreVertical, Download } from 'lucide-react'; // Añadimos MoreVertical y Download
+import { FileText, Eye, Edit, Save, X, RefreshCw, MoreVertical, Download, ChevronDown } from 'lucide-react';
 import { useProfesionales, type Profesional } from '@/hooks/useProfesionales';
 import { useProfesionalesMutations } from '@/hooks/useProfesionalesMutations';
 import { useToast } from '@/hooks/use-toast';
@@ -16,16 +16,16 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator, // Añadimos separador para mejor UX
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 // Importamos el nuevo modal y los componentes de generación de PDF
 import ProfessionalDetailsModal from '@/components/dashboard/ProfessionalDetailsModal'; // Ajusta el path si es diferente
 import ApprovalLetter from '@/components/registration/ApprovalLetter'; // Para generación oculta
-import PDFSummary from '@/components/registration/PDFSummary';     // Para generación oculta
+// PDFSummary ya no se importa ni se usa aquí
 
-import jsPDF from 'jspdf'; // Necesario para la generación de PDFs
-import html2canvas from 'html2canvas'; // Necesario para la generación de PDFs
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 
 // Definimos los estados válidos y su orden para el flujo
@@ -48,38 +48,32 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
   const [editingStates, setEditingStates] = useState<Record<string, string>>({});
   const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
 
-  // --- Estados para el filtro por rango de fechas ---
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
-  // --- Estados para la selección masiva ---
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
   const [bulkUpdateStatus, setBulkUpdateStatus] = useState<string>('');
   const [bulkRejectionReason, setBulkRejectionReason] = useState<string>('');
 
-  // --- Estados para el modal de detalles ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProfessionalForModal, setSelectedProfessionalForModal] = useState<Profesional | null>(null);
 
-  // --- Refs para la generación oculta de PDFs ---
   const hiddenPdfContainerRef = useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
   const { updateProfesional } = useProfesionalesMutations();
 
-  // Sincroniza `statusFilter` con `initialStatusFilter` del Dashboard
   useEffect(() => {
     console.log('RequestsPanel: initialStatusFilter received in useEffect:', initialStatusFilter);
     if (initialStatusFilter !== undefined && initialStatusFilter !== statusFilter) {
       setStatusFilter(initialStatusFilter);
     } else if (initialStatusFilter === undefined && statusFilter !== 'Pendiente') {
-      setStatusFilter('Pendiente'); // Vuelve al estado por defecto si el padre limpia el filtro
+      setStatusFilter('Pendiente');
     }
     setStartDate('');
     setEndDate('');
   }, [initialStatusFilter]);
 
-  // Construye los filtros para el hook useProfesionales
   const queryFilters = useMemo(() => {
     const filters: { [key: string]: any } = {
       estado_solicitud: statusFilter === 'todos' ? '' : statusFilter,
@@ -96,7 +90,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
 
   const { data: profesionales = [], isLoading, refetch, error } = useProfesionales(queryFilters);
 
-  // Filtra los profesionales para excluir "Aprobado" si el filtro general es 'todos'
   const filteredRequests = useMemo(() => {
     if (statusFilter === 'todos') {
       return profesionales.filter(req => req.estado_solicitud !== 'Aprobado');
@@ -108,7 +101,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
   console.log('Filtered requests (non-approved, post-hook):', filteredRequests.length);
   console.log('Applied status filter:', statusFilter);
 
-  // --- Lógica para el flujo de estado no regresivo ---
   const getAvailableStatusOptions = useCallback((currentStatus: string | undefined) => {
     const currentStatusIndex = STATUS_ORDER.indexOf(currentStatus || 'Pendiente');
     const options = ['Revisando', 'Pendiente de Firma', 'Aprobado', 'Rechazado'];
@@ -116,9 +108,8 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
     return options.filter(option => {
       const optionIndex = STATUS_ORDER.indexOf(option);
 
-      if (currentStatus === 'Pendiente' && option === 'Aprobado') return false; // No saltar de Pendiente a Aprobado
+      if (currentStatus === 'Pendiente' && option === 'Aprobado') return false;
 
-      // Restricción general de no ir hacia atrás, excepto si el destino es "Rechazado"
       if (optionIndex < currentStatusIndex && option !== 'Rechazado') {
         return false;
       }
@@ -263,9 +254,13 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
 
   // --- Lógica de Selección Masiva ---
   const handleCheckboxChange = (requestId: string, isChecked: boolean) => {
-    setSelectedRequestIds(prev =>
-      isChecked ? [...prev, requestId] : prev.filter(id => id !== requestId)
-    );
+    setSelectedRequestIds(prev => {
+      if (isChecked) {
+        return [...prev, requestId];
+      } else {
+        return prev.filter(id => id !== requestId);
+      }
+    });
   };
 
   const handleSelectAll = (isChecked: boolean) => {
@@ -366,13 +361,13 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
   // --- Lógica de Generación de PDFs Ocultos (para descargas directas) ---
   const generatePdfFromHiddenElement = useCallback(async (
     professional: Profesional,
-    Component: React.ComponentType<{ formData: any }>,
+    Component: React.ComponentType<{ formData: any, onDownload?: () => void }>, // Added onDownload as optional
     elementId: string,
     filenamePrefix: string
   ) => {
     if (!hiddenPdfContainerRef.current) {
       toast({ title: "Error", description: "Contenedor de PDF no disponible.", variant: "destructive" });
-      return;
+      return { id: professional.id, success: false, reason: "Hidden container not found" };
     }
 
     const formDataForDocuments = {
@@ -406,29 +401,36 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
       codigo_expediente: professional.id,
       foto_carnet_base64: professional.foto_carnet_base64,
       codigo_barras: professional.id,
+      foto_carnet: professional.foto_carnet, // Ensure this property is passed
     };
 
-    // Renderizar el componente en el contenedor oculto
     const tempDiv = document.createElement('div');
-    tempDiv.id = elementId;
+    tempDiv.id = elementId; // Using the unique ID passed
     tempDiv.style.position = 'absolute';
     tempDiv.style.left = '-9999px';
-    tempDiv.style.width = '210mm'; // Ancho A4
+    tempDiv.style.width = '210mm'; // A4 width
+    tempDiv.style.height = '297mm'; // A4 height
+    tempDiv.style.overflow = 'hidden'; // Prevents scrollbars in temp div
     hiddenPdfContainerRef.current.appendChild(tempDiv);
 
-    // Renderizar el componente React dentro del div temporal
-    // Esto es un truco, en React 18+ con root, necesitarías un createRoot.
-    // Para entornos no SSR o simples, esto puede funcionar:
-    const root = (window as any).ReactDOM.createRoot ? (window as any).ReactDOM.createRoot(tempDiv) : null;
-    if (root) {
-      root.render(<Component formData={formDataForDocuments} onDownload={() => {}} />);
+    let root = null;
+    if ((window as any).ReactDOM && (window as any).ReactDOM.createRoot) {
+      root = (window as any).ReactDOM.createRoot(tempDiv);
+      root.render(<Component formData={formDataForDocuments} onDownload={() => {}} />); // Pass onDownload
+    } else if ((window as any).ReactDOM) {
+      // Fallback for React 17 or older versions
+      (window as any).ReactDOM.render(<Component formData={formDataForDocuments} onDownload={() => {}} />, tempDiv); // Pass onDownload
     } else {
-      // Fallback para React 17 o versiones anteriores, o si createRoot no está disponible
-      (window as any).ReactDOM.render(<Component formData={formDataForDocuments} onDownload={() => {}} />, tempDiv);
+      console.error("ReactDOM no está disponible globalmente. La generación de PDF oculta puede fallar.");
+      toast({ title: "Error", description: "Configuración de React incompleta para PDF.", variant: "destructive" });
+      if (hiddenPdfContainerRef.current && tempDiv.parentNode === hiddenPdfContainerRef.current) {
+        hiddenPdfContainerRef.current.removeChild(tempDiv);
+      }
+      return { id: professional.id, success: false, reason: "ReactDOM not global" };
     }
     
-    // Esperar un poco para que el renderizado se complete
-    await new Promise(resolve => setTimeout(resolve, 50)); 
+    // Increased timeout for better rendering reliability
+    await new Promise(resolve => setTimeout(resolve, 100)); 
 
     try {
       const canvas = await html2canvas(tempDiv, {
@@ -471,23 +473,39 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
       });
       return { id: professional.id, success: false, reason: (error as Error).message };
     } finally {
-      // Desmontar el componente y limpiar el div temporal
       if (root) {
         root.unmount();
       } else {
         (window as any).ReactDOM.unmountComponentAtNode(tempDiv);
       }
-      hiddenPdfContainerRef.current.removeChild(tempDiv);
+      if (hiddenPdfContainerRef.current && tempDiv.parentNode === hiddenPdfContainerRef.current) {
+        hiddenPdfContainerRef.current.removeChild(tempDiv);
+      }
     }
   }, []);
 
-  const handleDownloadSingleLetter = (professional: Profesional) => {
-    generatePdfFromHiddenElement(professional, ApprovalLetter, 'hidden-approval-letter-content', 'carta-aprobacion');
+  const handleDownloadSingleLetter = async (professional: Profesional) => { // Added async
+    toast({ // Added toast for user feedback
+      title: "Generando Carta",
+      description: `Por favor, espere mientras se genera la carta para ${professional.nombre || 'el profesional'}...`,
+      duration: 3000,
+    });
+    const result = await generatePdfFromHiddenElement(professional, ApprovalLetter, `hidden-approval-letter-content-${professional.id}`, 'carta-aprobacion'); // Unique ID for each call
+    if (result.success) { // Added success/failure toast
+      toast({
+        title: "Descarga Exitosa",
+        description: `Carta para ${professional.nombre || 'el profesional'} generada y descargada.`,
+      });
+    } else {
+      toast({
+        title: "Error de Descarga",
+        description: `No se pudo descargar la carta para ${professional.nombre || 'el profesional'}. ${result.reason || ''}`,
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDownloadSingleSummary = (professional: Profesional) => {
-    generatePdfFromHiddenElement(professional, PDFSummary, 'hidden-pdf-summary-content', 'resumen-profesional');
-  };
+  // Removed handleDownloadSingleSummary
 
   const handleDownloadSingleCarnet = (professional: Profesional) => {
     if (professional.url_carnet) {
@@ -521,11 +539,11 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
     pendingFirmSelected.forEach(professional => {
       window.open(professional.url_carnet, '_blank');
     });
-    setSelectedRequestIds([]); // Limpiar selección después de la acción
+    setSelectedRequestIds([]);
   };
 
   const handleBulkDownloadDocuments = async (
-    Component: React.ComponentType<{ formData: any }>,
+    Component: React.ComponentType<{ formData: any, onDownload?: () => void }>, // Added onDownload as optional
     elementIdPrefix: string,
     filenamePrefix: string,
     maxDownloads: number = 5
@@ -548,20 +566,20 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
       return;
     }
 
-    toast({ title: "Preparando Descarga Masiva", description: `Generando ${filenamePrefix}s para ${pendingFirmSelected.length} solicitudes... Esto puede tardar.` });
+    toast({ title: "Preparando Descarga Masiva", description: `Generando ${filenamePrefix}s para ${pendingFirmSelected.length} solicitudes... Esto puede tardar.`, duration: 5000 }); // Added duration
 
     let successfulDownloads = 0;
     for (const professional of pendingFirmSelected) {
       const result = await generatePdfFromHiddenElement(
         professional,
         Component,
-        `${elementIdPrefix}-${professional.id}`, // ID único para cada renderizado
+        `${elementIdPrefix}-${professional.id}`, // Unique ID for each render
         filenamePrefix
       );
       if (result.success) {
         successfulDownloads++;
       }
-      // Pequeña pausa para no sobrecargar el navegador
+      // Small pause to avoid overwhelming the browser
       await new Promise(resolve => setTimeout(resolve, 200)); 
     }
 
@@ -575,7 +593,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
   const isAllSelected = filteredRequests.length > 0 && selectedRequestIds.length === filteredRequests.length;
   const isIndeterminate = selectedRequestIds.length > 0 && selectedRequestIds.length < filteredRequests.length;
 
-  // Determinar si todas las solicitudes seleccionadas están en "Pendiente de Firma"
   const allSelectedArePendingFirm = selectedRequestIds.length > 0 && 
     selectedRequestIds.every(id => 
       filteredRequests.find(req => req.id === id)?.estado_solicitud === 'Pendiente de Firma'
@@ -630,7 +647,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
             </CardTitle>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              {/* Filtro por rango de fechas */}
               <div className="flex gap-2">
                 <Input
                   type="date"
@@ -649,7 +665,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
               </div>
 
               <div className="flex items-center space-x-2">
-                {/* Selector de Estado de Solicitud */}
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Filtrar por estado" />
@@ -675,7 +690,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
           </div>
         </CardHeader>
         <CardContent>
-          {/* Barra de Acciones Masivas */}
           {selectedRequestIds.length > 0 && (
             <div className="flex items-center justify-between p-3 mb-4 bg-gray-50 border rounded-md shadow-sm">
               <span className="text-sm font-medium">
@@ -706,7 +720,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                   Aplicar <Save className="w-4 h-4 ml-2" />
                 </Button>
 
-                {/* Nuevo: Dropdown para Descargas Masivas */}
                 {allSelectedArePendingFirm && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -724,9 +737,7 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                       <DropdownMenuItem onClick={() => handleBulkDownloadDocuments(ApprovalLetter, 'hidden-bulk-approval-letter', 'carta-aprobacion', 5)}>
                         <Download className="w-4 h-4 mr-2" /> Descargar Cartas (Max 5)
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleBulkDownloadDocuments(PDFSummary, 'hidden-bulk-summary', 'resumen-profesional', 5)}>
-                        <Download className="w-4 h-4 mr-2" /> Descargar Resúmenes (Max 5)
-                      </DropdownMenuItem>
+                      {/* Removed bulk download for summary */}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
@@ -866,7 +877,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                             </Badge>
                             {(userRole === 'administrador' || userRole === 'comite') && (
                               <div className="flex space-x-1">
-                                {/* Botón de Editar Estado */}
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -876,7 +886,6 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                                   <Edit className="w-3 h-3" />
                                 </Button>
 
-                                {/* Dropdown de Acciones (Ver Detalles, Descargas) */}
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -895,9 +904,7 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                                         <DropdownMenuItem onClick={() => handleDownloadSingleLetter(request)}>
                                           <Download className="mr-2 h-4 w-4" /> Descargar Carta
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleDownloadSingleSummary(request)}>
-                                          <Download className="mr-2 h-4 w-4" /> Descargar Resumen
-                                        </DropdownMenuItem>
+                                        {/* Removed single download for summary */}
                                         {request.url_carnet && (
                                           <DropdownMenuItem onClick={() => handleDownloadSingleCarnet(request)}>
                                             <Download className="mr-2 h-4 w-4" /> Descargar Carnet

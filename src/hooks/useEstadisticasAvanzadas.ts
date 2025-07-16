@@ -3,21 +3,27 @@ import { supabase } from '@/integrations/supabase/client';
 
 export function useEstadisticasAvanzadas() {
   return useQuery({
-    queryKey: ['estadisticas-avanzadas'],
+    queryKey: ['estadisticas-avanzadas'], // Mantenemos la queryKey original
     queryFn: async () => {
       console.log('Fetching estadísticas avanzadas...');
       
+      // La consulta sigue seleccionando *todos* los profesionales
       const { data, error } = await supabase
         .from('profesionales_sanitarios')
-        .select('*'); // Selecciona todas las columnas para los cálculos en el frontend
+        .select('*');
 
       if (error) {
         console.error('Error fetching estadísticas avanzadas:', error);
         throw error;
       }
 
-      const profesionales = data || [];
+      const profesionales = data || []; // Estos son TODOS los profesionales
+
+      // 1. FILTRAR PROFESIONALES APROBADOS PARA ESTADÍSTICAS ESPECÍFICAS (GÉNERO)
+      const profesionalesAprobados = profesionales.filter(p => p.estado_solicitud === 'Aprobado');
       
+      // --- RESTO DE CÁLCULOS (SE MANTIENEN SOBRE TODOS LOS PROFESIONALES) ---
+
       // Calcular estadísticas básicas
       const total = profesionales.length;
       const aprobados = profesionales.filter(p => p.estado_solicitud === 'Aprobado').length;
@@ -39,16 +45,18 @@ export function useEstadisticasAvanzadas() {
         return acc;
       }, {} as Record<string, number>);
 
-      // Estadísticas por género
-      const porGenero = profesionales.reduce((acc, prof) => {
+      // --- CÁLCULO DE GÉNERO (SOLO PARA APROBADOS) ---
+      // Estadísticas por género - AHORA SOLO DE PROFESIONALES APROBADOS
+      const porGenero = profesionalesAprobados.reduce((acc, prof) => {
         const genero = prof.genero || 'Sin especificar';
         acc[genero] = (acc[genero] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
       
-      // Extraer conteos específicos para género
+      // Extraer conteos específicos para género de APROBADOS
       const generoMasculino = porGenero['Masculino'] || 0;
       const generoFemenino = porGenero['Femenino'] || 0;
+      // --- FIN CÁLCULO DE GÉNERO ---
 
 
       // Estadísticas por tipo de sector
@@ -67,24 +75,24 @@ export function useEstadisticasAvanzadas() {
 
       // Calcular vencimientos próximos (próximos 30 días)
       const hoy = new Date();
-      hoy.setHours(0,0,0,0); // Normalizar a inicio del día para comparaciones precisas
+      hoy.setHours(0,0,0,0); 
       const en30Dias = new Date();
       en30Dias.setDate(hoy.getDate() + 30);
-      en30Dias.setHours(23,59,59,999); // Normalizar a fin del día
+      en30Dias.setHours(23,59,59,999); 
 
       const vencimientosProximos = profesionales.filter(prof => {
-        if (!prof.fecha_caducidad) return false; // Usar fecha_validez_carnet
+        if (!prof.fecha_caducidad) return false; 
         const fechaVencimiento = new Date(prof.fecha_caducidad);
-        fechaVencimiento.setHours(0,0,0,0); // Normalizar para la comparación
+        fechaVencimiento.setHours(0,0,0,0); 
 
         return fechaVencimiento >= hoy && fechaVencimiento <= en30Dias;
       }).length;
 
       // Calcular carnets vencidos
       const carnetVencidos = profesionales.filter(prof => {
-        if (!prof.fecha_caducidad) return false; // Usar fecha_validez_carnet
+        if (!prof.fecha_caducidad) return false; 
         const fechaVencimiento = new Date(prof.fecha_caducidad);
-        fechaVencimiento.setHours(0,0,0,0); // Normalizar para la comparación
+        fechaVencimiento.setHours(0,0,0,0); 
 
         return fechaVencimiento < hoy;
       }).length;
@@ -119,7 +127,7 @@ export function useEstadisticasAvanzadas() {
       }
 
       const estadisticas = {
-        // Estadísticas básicas
+        // Estadísticas básicas (todas sobre el total de profesionales)
         total,
         aprobados,
         pendientes,
@@ -128,17 +136,18 @@ export function useEstadisticasAvanzadas() {
         vencimientosProximos,
         carnetVencidos,
         
-        // Distribuciones
+        // Distribuciones (todas sobre el total de profesionales)
         porArea,
         porProvincia,
-        // Añadir los conteos específicos de género aquí
-        generoMasculino, // Nuevo
-        generoFemenino,  // Nuevo
-        porGenero,       // Mantener el objeto completo si es necesario para otros gráficos/usos
+        
+        // ¡Estos son los que querías que se refieran solo a APROBADOS!
+        generoMasculino, 
+        generoFemenino,  
+        porGenero,       
+        
         porTipoSector,
         porDistrito,
         porAnoGraduacion,
-        // porDistritoSanitario, // Eliminado o añadir lógica de cálculo si existe en DB
         
         // Tendencias
         tendenciasMensuales,
@@ -169,6 +178,6 @@ export function useEstadisticasAvanzadas() {
       console.log('Estadísticas avanzadas calculadas:', estadisticas);
       return estadisticas;
     },
-    refetchInterval: 30000, // Actualizar cada 30 segundos
+    refetchInterval: 30000, 
   });
 }

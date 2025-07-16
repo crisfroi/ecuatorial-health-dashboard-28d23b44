@@ -1,5 +1,5 @@
 // src/components/requests/ProfessionalDetailsModal.jsx
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,16 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Download, ExternalLink } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-// Importamos los componentes de documentos que nos pasaste
 import ApprovalLetter from '@/components/registration/ApprovalLetter';
 
-// PDFSummary ya no se importa ni se usa
-
-// Importamos jspdf y html2canvas para la generación de PDFs
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-// Asegúrate de que tu tipo Profesional incluye url_carnet y motivo_rechazo
 import { type Profesional } from '@/hooks/useProfesionales';
 
 interface ProfessionalDetailsModalProps {
@@ -32,13 +27,39 @@ interface ProfessionalDetailsModalProps {
 
 const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: ProfessionalDetailsModalProps) => {
   const approvalLetterRef = useRef<HTMLDivElement>(null);
-  // pdfSummaryRef ya no es necesario
+  const [svgContent, setSvgContent] = useState<string | null>(null); // State for SVG content
+
+  // Effect to fetch SVG content when professional.url_carnet changes
+  useEffect(() => {
+    if (professional?.url_carnet && professional.url_carnet.endsWith('.svg')) {
+      const fetchSvg = async () => {
+        try {
+          const response = await fetch(professional.url_carnet);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const text = await response.text();
+          setSvgContent(text);
+        } catch (error) {
+          console.error("Error fetching SVG:", error);
+          setSvgContent(null); // Clear content on error
+          toast({
+            title: "Error al cargar Carnet Digital",
+            description: "No se pudo cargar la imagen SVG del carnet. Verifique la URL o configuraciones CORS.",
+            variant: "destructive",
+          });
+        }
+      };
+      fetchSvg();
+    } else {
+      setSvgContent(null); // Clear SVG content if URL is not SVG or doesn't exist
+    }
+  }, [professional?.url_carnet]);
 
   if (!professional) {
     return null; // No renderizar si no hay profesional seleccionado
   }
 
-  // --- Función genérica para generar PDF a partir de un elemento HTML ---
   const generatePdfFromHtml = useCallback(async (elementId: string, filename: string) => {
     const element = document.getElementById(elementId);
     if (!element) {
@@ -52,32 +73,30 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
     }
 
     try {
-      // Clona el elemento y lo adjunta temporalmente a un div oculto para asegurar que `html2canvas` lo vea en el DOM
       const tempContainer = document.createElement('div');
       tempContainer.style.position = 'absolute';
-      tempContainer.style.left = '-9999px'; // Mueve fuera de la vista
-      tempContainer.style.width = '210mm'; // Asegura un ancho fijo para el renderizado A4
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.width = '210mm';
       tempContainer.style.height = '297mm';
       tempContainer.style.overflow = 'hidden';
       const contentToPrint = element.cloneNode(true) as HTMLElement;
       tempContainer.appendChild(contentToPrint);
       document.body.appendChild(tempContainer);
 
-      // Pequeña pausa para asegurar que el contenido se ha adjuntado y renderizado en el DOM
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const canvas = await html2canvas(contentToPrint, {
-        scale: 2, // Mayor escala para mejor calidad de texto
+        scale: 2,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff', // Fondo blanco explícito
+        backgroundColor: '#ffffff',
       });
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
 
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 295; // A4 height in mm
+      const imgWidth = 210;
+      const pageHeight = 295;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
       let position = 0;
@@ -106,7 +125,6 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
         variant: "destructive",
       });
     } finally {
-      // Limpiar el contenedor temporal
       if (tempContainer && tempContainer.parentNode) {
         document.body.removeChild(tempContainer);
       }
@@ -120,12 +138,10 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
       duration: 3000,
     });
     generatePdfFromHtml(
-      'approval-letter-content-modal', // ID del div dentro del modal
+      'approval-letter-content-modal',
       `carta-aprobacion-${professional.nombre || ''}-${professional.apellidos?.replace(/\s+/g, '-') || 'profesional'}.pdf`
     );
   };
-
-  // handleDownloadSummary ya no es necesario
 
   const handleDownloadCarnet = () => {
     if (professional.url_carnet) {
@@ -143,7 +159,114 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
     }
   };
 
-  // Prepara los datos para los componentes ApprovalLetter
+  const handleDownloadCarnetAsPdf = useCallback(async () => {
+    toast({
+        title: "Generando Carnet PDF",
+        description: "Por favor, espere mientras se genera el Carnet Digital en formato PDF...",
+        duration: 3000,
+    });
+
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.width = '210mm'; // A4 width for rendering
+    tempDiv.style.height = '297mm'; // A4 height for rendering
+    tempDiv.style.overflow = 'hidden';
+    document.body.appendChild(tempDiv);
+
+    let root = null;
+    let renderedContent;
+
+    if (professional.url_carnet) {
+        if (professional.url_carnet.endsWith('.svg') && svgContent) {
+            // Render SVG inline if fetched successfully
+            renderedContent = (
+                <div
+                    dangerouslySetInnerHTML={{ __html: svgContent }}
+                    style={{ width: '210mm', height: '297mm', objectFit: 'contain' }}
+                />
+            );
+        } else {
+            // Fallback to img tag for non-SVG or if SVG fetch failed
+            renderedContent = (
+                <img
+                    src={professional.url_carnet}
+                    alt="Carnet Digital del Profesional"
+                    style={{ width: '210mm', height: '297mm', objectFit: 'contain' }}
+                />
+            );
+        }
+    } else {
+        renderedContent = <p>Carnet no disponible para PDF.</p>;
+    }
+
+    if ((window as any).ReactDOM && (window as any).ReactDOM.createRoot) {
+        root = (window as any).ReactDOM.createRoot(tempDiv);
+        root.render(renderedContent);
+    } else if ((window as any).ReactDOM) {
+        (window as any).ReactDOM.render(renderedContent, tempDiv);
+    } else {
+        console.error("ReactDOM no está disponible globalmente. La generación de PDF puede fallar.");
+        toast({ title: "Error", description: "Configuración de React incompleta para PDF.", variant: "destructive" });
+        if (tempDiv.parentNode === document.body) {
+            document.body.removeChild(tempDiv);
+        }
+        return;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 50)); // Give time for rendering
+
+    try {
+        const canvas = await html2canvas(tempDiv, {
+            scale: 2, // Higher scale for better quality
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210;
+        const pageHeight = 295; // A4 height
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+
+        pdf.save(`carnet-${professional.nombre || ''}-${professional.apellidos?.replace(/\s+/g, '-') || 'profesional'}.pdf`);
+        toast({
+            title: "Descarga Exitosa",
+            description: "El Carnet Digital ha sido generado y descargado como PDF.",
+        });
+    } catch (error) {
+        console.error("Error generating carnet PDF:", error);
+        toast({
+            title: "Error de Generación",
+            description: "Hubo un problema al generar el Carnet Digital como PDF. Inténtelo de nuevo.",
+            variant: "destructive",
+        });
+    } finally {
+        if (root) {
+            root.unmount();
+        } else {
+            (window as any).ReactDOM.unmountComponentAtNode(tempDiv);
+        }
+        if (tempDiv.parentNode === document.body) {
+            document.body.removeChild(tempDiv);
+        }
+    }
+  }, [professional, svgContent]); // Dependencies for useCallback
+
+
   const formDataForDocuments = {
     ...professional,
     nombre: professional.nombre || '',
@@ -172,10 +295,10 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
     distrito_sanitario: professional.distrito_sanitario || '',
     pertenece_brigada_medica: professional.pertenece_brigada_medica,
     tipo_cooperacion: professional.tipo_cooperacion || '',
-    codigo_expediente: professional.codigo_expediente,
+    codigo_expediente: professional.id,
     foto_carnet_base64: professional.foto_carnet_base64,
     codigo_barras: professional.id,
-    foto_carnet: professional.foto_carnet, // Aseguramos que esta propiedad se pasa
+    foto_carnet: professional.foto_carnet,
   };
 
 
@@ -186,29 +309,26 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
           <DialogTitle>Detalles y Documentos de Solicitud</DialogTitle>
         </DialogHeader>
 
-        {/* Añadimos flex-col y flex-grow para que el contenido de las pestañas ocupe el espacio restante */}
         <Tabs defaultValue="details" className="flex-grow flex flex-col mt-4">
-          <TabsList className="grid w-full grid-cols-3"> {/* Cambiamos a 3 columnas */}
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="details">Detalles</TabsTrigger>
             <TabsTrigger value="approval-letter" disabled={professional.estado_solicitud !== 'Pendiente de Firma'}>Carta Aprobación</TabsTrigger>
-            {/* Eliminamos la pestaña "Resumen Profesional" */}
             <TabsTrigger value="carnet" disabled={!professional.url_carnet || professional.estado_solicitud !== 'Pendiente de Firma'}>Carnet Digital</TabsTrigger>
           </TabsList>
 
-          {/* Este div encapsula el contenido de las pestañas y gestiona su altura */}
           <div className="flex-grow overflow-hidden mt-4">
             <TabsContent value="details" className="h-full">
-              {/* ScrollArea para el contenido de detalles */}
-              <ScrollArea className="h-full p-4 rounded-md border">
+              {/* Added min-h-0 to ScrollArea for proper scrolling behavior */}
+              <ScrollArea className="h-full p-4 rounded-md border min-h-0">
                 <h3 className="text-lg font-semibold mb-3">Información Completa del Profesional</h3>
-                {professional.foto_carnet && ( // Solo si la URL de la foto existe
+                {professional.foto_carnet && (
                   <div className="mb-4 text-center">
                     <p className="font-semibold mb-2">Foto del Carnet:</p>
                     <img
                       src={professional.foto_carnet}
                       alt="Foto del Profesional"
                       className="mx-auto border border-gray-300 shadow-md object-contain"
-                      style={{ maxWidth: '200px', maxHeight: '250px' }} // Ajusta el tamaño de la previsualización
+                      style={{ maxWidth: '200px', maxHeight: '250px' }}
                     />
                   </div>
                 )}
@@ -243,21 +363,18 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
                   Descargar Carta
                 </Button>
               </div>
-              {/* El ScrollArea ahora es flex-grow, permitiendo que su contenido lo desborde y active el scroll */}
-              <ScrollArea className="flex-grow p-4 rounded-md border bg-gray-50">
+              <ScrollArea className="flex-grow p-4 rounded-md border bg-gray-50 min-h-0">
                 <div id="approval-letter-content-modal" className="max-w-[210mm] mx-auto bg-white" style={{ padding: '20mm', minHeight: '297mm', fontSize: '11px', lineHeight: '1.4' }}>
                   <ApprovalLetter formData={formDataForDocuments} onDownload={() => {}} />
                 </div>
               </ScrollArea>
             </TabsContent>
 
-            {/* Eliminamos completamente la TabsContent para "summary" */}
-
             <TabsContent value="carnet" className="h-full flex flex-col">
               <div className="flex justify-end mb-2">
-                <Button onClick={handleDownloadCarnet} className="flex items-center gap-2" disabled={!professional.url_carnet}>
+                <Button onClick={handleDownloadCarnetAsPdf} className="flex items-center gap-2" disabled={!professional.url_carnet}>
                   <Download className="w-4 h-4" />
-                  Descargar Carnet
+                  Descargar Carnet (PDF)
                 </Button>
                 {professional.url_carnet && (
                   <Button variant="outline" onClick={() => window.open(professional.url_carnet, '_blank')} className="ml-2 flex items-center gap-2">
@@ -266,13 +383,23 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
                   </Button>
                 )}
               </div>
-              <ScrollArea className="flex-grow p-4 rounded-md border bg-gray-50 flex items-center justify-center">
+              <ScrollArea className="flex-grow p-4 rounded-md border bg-gray-50 flex items-center justify-center min-h-0">
                 {professional.url_carnet ? (
-                  <img
-                    src={professional.url_carnet}
-                    alt="Carnet Digital del Profesional"
-                    className="max-w-full max-h-full object-contain"
-                  />
+                  professional.url_carnet.endsWith('.svg') && svgContent ? (
+                    // Render SVG inline if fetched successfully to bypass CORS issues
+                    <div
+                      dangerouslySetInnerHTML={{ __html: svgContent }}
+                      style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }}
+                      className="object-contain"
+                    />
+                  ) : (
+                    // Fallback to img tag for non-SVG or if SVG fetch failed
+                    <img
+                      src={professional.url_carnet}
+                      alt="Carnet Digital del Profesional"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  )
                 ) : (
                   <p className="text-gray-500">Carnet digital no disponible o aún no generado para este profesional.</p>
                 )}

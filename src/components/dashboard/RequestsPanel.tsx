@@ -167,6 +167,14 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
         });
         return;
       }
+       if (currentStatus === 'Recibido' && newState === 'Aprobado') {
+        toast({
+          title: "Error de Flujo",
+          description: "No se puede pasar de 'Recibido' a 'Recibido' directamente. Debe pasar por 'Pendiente de Firma'.",
+          variant: "destructive",
+        });
+        return;
+      }
       // Si hay otras reglas que no son solo de regresión, se pueden añadir aquí
     }
 
@@ -186,9 +194,9 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
         id: requestId,
         updates: {
           estado_solicitud: newState,
-          fecha_revision: (newState !== 'Pendiente' && newState !== 'Revisando' && newState !== 'Rechazado') ? new Date().toISOString().split('T')[0] : null,
+          fecha_revision: (newState !== 'Recibido' && newState !== 'Revisando' && newState !== 'Rechazado') ? new Date().toISOString().split('T')[0] : null,
           fecha_aprobacion: newState === 'Aprobado' ? new Date().toISOString().split('T')[0] : null,
-          revisor_solicitud: newState !== 'Pendiente' ? 'Sistema' : null, // Considera usar el ID del usuario actual aquí
+          revisor_solicitud: newState !== 'Recibido' ? 'Sistema' : null, // Considera usar el ID del usuario actual aquí
           motivo_rechazo: newState === 'Rechazado' ? rejectionReasons[requestId] : null, // Guarda el motivo si es rechazo
         }
       });
@@ -305,17 +313,22 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
 
     const updates = selectedRequestIds.map(async (id) => {
       const currentProfesional = profesionales.find(p => p.id === id);
-      const currentStatus = currentProfesional?.estado_solicitud || 'Pendiente';
+      const currentStatus = currentProfesional?.estado_solicitud || 'Recibido';
 
       // Validación de flujo no regresivo (masiva)
       const availableOptions = getAvailableStatusOptions(currentStatus);
       if (!availableOptions.includes(bulkUpdateStatus) && bulkUpdateStatus !== currentStatus) {
-        if (currentStatus === 'Pendiente' && bulkUpdateStatus === 'Aprobado') {
+        if (currentStatus === 'Recibido' && bulkUpdateStatus === 'Aprobado') {
           // Loggear o notificar específicamente para el usuario sobre este error de flujo
-          console.warn(`Saltando actualización para ${id}: No se puede pasar de 'Pendiente' a 'Aprobado'.`);
+          console.warn(`Saltando actualización para ${id}: No se puede pasar de 'Recibido' a 'Aprobado'.`);
           return { id, success: false, reason: "Invalid status transition" };
         }
-        // Puedes añadir más lógica para otros casos no permitidos
+       if (currentStatus === 'Recibido' && bulkUpdateStatus === 'Rechazado') {
+          // Loggear o notificar específicamente para el usuario sobre este error de flujo
+          console.warn(`Saltando actualización para ${id}: No se puede pasar de 'Recibido' a 'Rechazado'.`);
+          return { id, success: false, reason: "Invalid status transition" };
+        } 
+         // Puedes añadir más lógica para otros casos no permitidos
       }
 
       try {
@@ -323,9 +336,9 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
           id: id,
           updates: {
             estado_solicitud: bulkUpdateStatus,
-            fecha_revision: (bulkUpdateStatus !== 'Pendiente' && bulkUpdateStatus !== 'Revisando' && bulkUpdateStatus !== 'Rechazado') ? new Date().toISOString().split('T')[0] : null,
+            fecha_revision: (bulkUpdateStatus !== 'Recibido' && bulkUpdateStatus !== 'Revisando' && bulkUpdateStatus !== 'Rechazado') ? new Date().toISOString().split('T')[0] : null,
             fecha_aprobacion: bulkUpdateStatus === 'Aprobado' ? new Date().toISOString().split('T')[0] : null,
-            revisor_solicitud: bulkUpdateStatus !== 'Pendiente' ? 'Sistema' : null,
+            revisor_solicitud: bulkUpdateStatus !== 'Recibido' ? 'Sistema' : null,
             motivo_rechazo: bulkUpdateStatus === 'Rechazado' ? bulkRejectionReason : null,
           }
         });
@@ -438,7 +451,7 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                     <SelectItem value="todos">Todos los estados</SelectItem>
                     {/* Excluimos Aprobado aquí porque este panel es para NO aprobadas,
                         y 'Pendiente' porque es el estado por defecto o no se retorna a el */}
-                    <SelectItem value="Pendiente">Pendiente</SelectItem> {/* Mantener Pendiente aquí para poder filtrar */}
+                    <SelectItem value="Recibido">Recibido</SelectItem> {/* Mantener Pendiente aquí para poder filtrar */}
                     <SelectItem value="Revisando">Revisando</SelectItem>
                     <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
                     <SelectItem value="Rechazado">Rechazado</SelectItem>
@@ -622,14 +635,14 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                           </div>
                         ) : (
                           <div className="flex items-center space-x-2">
-                            <Badge className={`${getStatusColor(request.estado_solicitud || 'Pendiente')} border`}>
-                              {request.estado_solicitud || 'Pendiente'}
+                            <Badge className={`${getStatusColor(request.estado_solicitud || 'Recibido')} border`}>
+                              {request.estado_solicitud || 'Recibido'}
                             </Badge>
                             {(userRole === 'administrador' || userRole === 'comite') && (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => handleEditState(request.id, request.estado_solicitud || 'Pendiente')}
+                                onClick={() => handleEditState(request.id, request.estado_solicitud || 'Recibido')}
                                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                               >
                                 <Edit className="w-3 h-3" />

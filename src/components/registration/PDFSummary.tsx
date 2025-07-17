@@ -92,7 +92,7 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
 
             {/* Código de barras debajo de la foto */}
 
-            {formData.codigo_barras && (
+            {formData.codigo_expediente && (
 
               <div className="flex flex-col items-center">
 

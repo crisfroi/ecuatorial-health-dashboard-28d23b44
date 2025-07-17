@@ -134,7 +134,7 @@ export function useEstadisticasAvanzadas() {
         recibidas,
         rechazados,
         revisando,
-        pendientesDefirma
+        pendientesDefirma,
         vencimientosProximos,
         carnetVencidos,
         

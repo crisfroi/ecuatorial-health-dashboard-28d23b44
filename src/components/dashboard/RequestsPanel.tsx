@@ -671,7 +671,7 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos los estados</SelectItem>
-                    <SelectItem value="Pendiente">Pendiente</SelectItem>
+                    <SelectItem value="Recibido">Recibido</SelectItem>
                     <SelectItem value="Revisando">Revisando</SelectItem>
                     <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
                     <SelectItem value="Rechazado">Rechazado</SelectItem>

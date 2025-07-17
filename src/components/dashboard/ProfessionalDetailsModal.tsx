@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react'; // Eliminamos useState y useEffect
+import React, { useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from '@/components/ui/button';
-import { Download, ExternalLink } from 'lucide-react';
+import { Download, ExternalLink, AlertTriangle } from 'lucide-react'; // Añadido AlertTriangle
 import { toast } from '@/hooks/use-toast';
 
 import ApprovalLetter from '@/components/registration/ApprovalLetter';
@@ -26,14 +26,12 @@ interface ProfessionalDetailsModalProps {
 
 const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: ProfessionalDetailsModalProps) => {
   const approvalLetterRef = useRef<HTMLDivElement>(null);
-  // Eliminamos const [svgContent, setSvgContent] = useState<string | null>(null);
-  // Eliminamos el useEffect para fetchSvg
 
   if (!professional) {
     return null; // No renderizar si no hay profesional seleccionado
   }
-  console.log("Objeto professional en ProfessionalDetailsModal:", professional);
-  console.log("Valor de professional.url_carnet:", professional.url_carnet);
+  // console.log("Objeto professional en ProfessionalDetailsModal:", professional); // Eliminado console.log
+  // console.log("Valor de professional.url_carnet:", professional.url_carnet); // Eliminado console.log
 
   const generatePdfFromHtml = useCallback(async (elementId: string, filename: string) => {
     const element = document.getElementById(elementId);
@@ -220,7 +218,7 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
             document.body.removeChild(tempDiv);
         }
     }
-  }, [professional]); // Se eliminó svgContent de las dependencias
+  }, [professional]);
 
   // Función para descarga directa de SVG usando Blob (ahora hace su propio fetch)
   const handleDownloadCarnetSvg = useCallback(async () => {
@@ -315,7 +313,6 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
             <TabsTrigger value="carnet" disabled={!professional.url_carnet || professional.estado_solicitud !== 'Pendiente de Firma'}>Carnet Digital</TabsTrigger>
           </TabsList>
 
-          {/* Eliminado overflow-hidden de este div para permitir que ScrollArea gestione su propio desbordamiento */}
           <div className="flex-grow mt-4">
             <TabsContent value="details" className="h-full">
               <ScrollArea className="h-full p-4 rounded-md border min-h-0 max-h-[calc(90vh-200px)]">
@@ -371,30 +368,44 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
             </TabsContent>
 
             <TabsContent value="carnet" className="h-full flex flex-col">
-     {console.log("!!! TabsContent 'carnet' se está renderizando !!!")}
-   {/* Inserción de la estructura del Carnet desde ProfessionalCardInfo */}
-   {professional.url_carnet ? (
-     <div className="text-center p-2 border rounded-lg bg-gray-50"> {/* Mantenemos estos estilos que sabemos funcionan */}
-       <p className="text-sm font-medium text-gray-600 mb-2">Vista Previa del Carnet</p>
-       <img
-         src={professional.url_carnet}
-         alt="Carnet Profesional Completo"
-         className="w-full h-auto max-w-xs object-contain mx-auto border rounded-md shadow-sm"
-         onError={(e) => {
-           e.currentTarget.onerror = null;
-           e.currentTarget.alt = "Error al cargar el carnet";
-          e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDI0MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd2wwdy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyNDAiIGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0iI0QwRTRGRiIvPjxwYXRoIGQ9Ik01MCAyNUgxOTB2MTAwSDU1UVMxMDAgNTAgNTAgMjVaTTEyMCA4NUgxNTBNOTAgODVIMTIwTTYwIDg1SDkwTTEyMCAxMTFIMTUwTTkwIDExMUgxMjBNNjAgMTExSDkwIiBzdHJva2U9IiMzRDZDQkZDIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjx0ZXh0IHg9IjEyMCIgeT0iMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VmlzdGEgQmFzaWNhIGRlIENhcm5ldDwvdGV4dD48L3N2Zz4=";
-        }}
-     />
-     </div>
-  ) : (
-    <div className="text-center p-4 bg-gray-100 rounded-md">
-     <p className="text-sm text-gray-500 flex items-center justify-center">
-       <AlertTriangle className="w-4 h-4 mr-2 text-orange-500" /> Vista previa del carnet no disponible.
-     </p>
-    </div>
-    )}
-</TabsContent>
+              {/* Botones de descarga para el Carnet (SVG y PDF) */}
+              <div className="flex justify-end mb-2">
+                {professional.url_carnet && (
+                  <>
+                    <Button onClick={handleDownloadCarnetSvg} className="flex items-center gap-2 mr-2">
+                      <Download className="w-4 h-4" /> Descargar SVG
+                    </Button>
+                    <Button onClick={handleDownloadCarnetAsPdf} className="flex items-center gap-2">
+                      <Download className="w-4 h-4" /> Descargar PDF
+                    </Button>
+                  </>
+                )}
+              </div>
+              {/* Envuelve el contenido del carnet dentro de ScrollArea */}
+              <ScrollArea className="flex-grow p-4 rounded-md border bg-gray-50 min-h-0 max-h-[calc(90vh-200px)]">
+                {professional.url_carnet ? (
+                  <div className="text-center p-2 border rounded-lg bg-gray-50">
+                    <p className="text-sm font-medium text-gray-600 mb-2">Vista Previa del Carnet</p>
+                    <img
+                      src={professional.url_carnet}
+                      alt="Carnet Profesional Completo"
+                      className="w-full h-auto max-w-xs object-contain mx-auto border rounded-md shadow-sm"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.alt = "Error al cargar el carnet";
+                        e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDI0MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI0MC”IGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0iI0QwRTRGRiIvPjxwYXRoIGQ9Ik01MCAyNUgxOTB2MTAwSDU1UVMxMDAgNTAgNTAgMjVaTTEyMCA4NUgxNTBNOTAgODVIMTIwTTYwIDg1SDkwTTEyMCAxMTFIMTUwTTkwIDExMUgxMjBNNjAgMTExSDkwIiBzdHJva2U9IiMzRDZDQkZDIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjx0ZXh0IHg9IjEyMCIgeT0iMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VmlzdGEgQmFzaWNhIGRlIENhcm5ldDwvdGV4dD48L3N2Zz4=";
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="text-center p-4 bg-gray-100 rounded-md">
+                    <p className="text-sm text-gray-500 flex items-center justify-center">
+                      <AlertTriangle className="w-4 h-4 mr-2 text-orange-500" /> Vista previa del carnet no disponible.
+                    </p>
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
           </div>
         </Tabs>
       </DialogContent>

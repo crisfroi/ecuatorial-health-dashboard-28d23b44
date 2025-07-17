@@ -301,7 +301,7 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
     distrito_sanitario: professional.distrito_sanitario || '',
     pertenece_brigada_medica: professional.pertenece_brigada_medica,
     tipo_cooperacion: professional.tipo_cooperacion || '',
-    codigo_expediente: professional.id,
+    codigo_expediente: professional.codigo_expediente,
     foto_carnet_base64: professional.foto_carnet_base64,
     codigo_barras: professional.id,
     foto_carnet: professional.foto_carnet,

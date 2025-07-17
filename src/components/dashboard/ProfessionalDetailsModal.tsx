@@ -32,6 +32,8 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
   if (!professional) {
     return null; // No renderizar si no hay profesional seleccionado
   }
+  console.log("Objeto professional en ProfessionalDetailsModal:", professional);
+  console.log("Valor de professional.url_carnet:", professional.url_carnet);
 
   const generatePdfFromHtml = useCallback(async (elementId: string, filename: string) => {
     const element = document.getElementById(elementId);

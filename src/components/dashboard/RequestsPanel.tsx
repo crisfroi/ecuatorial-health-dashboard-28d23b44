@@ -44,7 +44,7 @@ interface RequestsPanelProps {
 }
 
 const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: RequestsPanelProps) => {
-  const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'Pendiente');
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter || 'Recibido');
   const [editingStates, setEditingStates] = useState<Record<string, string>>({});
   const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
 

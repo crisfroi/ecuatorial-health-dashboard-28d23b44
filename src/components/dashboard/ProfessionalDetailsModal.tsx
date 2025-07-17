@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState, useEffect } from 'react';
+import React, { useRef, useCallback } from 'react'; // Eliminamos useState y useEffect
 import {
   Dialog,
   DialogContent,
@@ -26,34 +26,8 @@ interface ProfessionalDetailsModalProps {
 
 const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: ProfessionalDetailsModalProps) => {
   const approvalLetterRef = useRef<HTMLDivElement>(null);
-  const [svgContent, setSvgContent] = useState<string | null>(null); // State for SVG content
-
-  // Effect to fetch SVG content when professional.url_carnet changes
-  useEffect(() => {
-    if (professional?.url_carnet && professional.url_carnet.endsWith('.svg')) {
-      const fetchSvg = async () => {
-        try {
-          const response = await fetch(professional.url_carnet);
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          const text = await response.text();
-          setSvgContent(text);
-        } catch (error) {
-          console.error("Error fetching SVG:", error);
-          setSvgContent(null); // Clear content on error
-          toast({
-            title: "Error al cargar Carnet Digital",
-            description: "No se pudo cargar la imagen SVG del carnet. Por favor, revise la consola para más detalles (errores CORS, 404, etc.).",
-            variant: "destructive",
-          });
-        }
-      };
-      fetchSvg();
-    } else {
-      setSvgContent(null); // Clear SVG content if URL is not SVG or doesn't exist
-    }
-  }, [professional?.url_carnet]);
+  // Eliminamos const [svgContent, setSvgContent] = useState<string | null>(null);
+  // Eliminamos el useEffect para fetchSvg
 
   if (!professional) {
     return null; // No renderizar si no hay profesional seleccionado
@@ -161,24 +135,21 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
     let renderedContent;
 
     if (professional.url_carnet) {
-        if (professional.url_carnet.endsWith('.svg') && svgContent) {
-            // Render SVG inline if fetched successfully
-            renderedContent = (
-                <div
-                    dangerouslySetInnerHTML={{ __html: svgContent }}
-                    style={{ width: '210mm', height: '297mm', objectFit: 'contain' }}
-                />
-            );
-        } else {
-            // Fallback to img tag for non-SVG or if SVG fetch failed
-            renderedContent = (
-                <img
-                    src={professional.url_carnet}
-                    alt="Carnet Digital del Profesional"
-                    style={{ width: '210mm', height: '297mm', objectFit: 'contain' }}
-                />
-            );
-        }
+      // Simplemente usa la etiqueta img para la captura, ya que html2canvas puede procesarla
+      // con el SVG referenciado directamente.
+      renderedContent = (
+          <img
+              src={professional.url_carnet}
+              alt="Carnet Digital del Profesional"
+              style={{ width: '210mm', height: '297mm', objectFit: 'contain' }}
+              onError={(e) => {
+                // Fallback si la imagen no carga, similar a ProfessionalCardInfo
+                e.currentTarget.onerror = null;
+                e.currentTarget.alt = "Error al cargar el carnet para PDF";
+                e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDI0MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI0MC”IGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0iI0QwRTRGRiIvPjxwYXRoIGQ9Ik01MCAyNUgxOTB2MTAwSDU1UVMxMDAgNTAgNTAgMjVaTTEyMCA4NUgxNTBNOTAgODVIMTIwTTYwIDg1SDkwTTEyMCAxMTFIMTUwTTkwIDExMUgxMjBNNjAgMTExSDkwIiBzdHJva2U9IiMzRDZDQkJGQyIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48dGV4dCB4PSIxMjAiIHk9IjkwIiBmb250LWZhbi1taWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJldmlzdWFsaXphY2kmbmE7biBmYWxsaWRhPC90ZXh0PjwvZ3ZAPjwvdmc+";
+              }}
+          />
+      );
     } else {
         renderedContent = <p>Carnet no disponible para PDF.</p>;
     }
@@ -247,53 +218,50 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
             document.body.removeChild(tempDiv);
         }
     }
-  }, [professional, svgContent]);
+  }, [professional]); // Se eliminó svgContent de las dependencias
 
-  // Función para descarga directa de SVG usando Blob
-  const handleDownloadCarnetSvg = useCallback(() => {
-    if (svgContent) { // Usar el contenido SVG ya cargado
-      try {
-        const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        const filename = `carnet-${professional.nombre || ''}-${professional.apellidos?.replace(/\s+/g, '-') || 'profesional'}.svg`;
-        link.download = filename; // Forzar descarga
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url); // Limpiar la URL del objeto Blob
-
-        toast({
-          title: "Descarga Iniciada",
-          description: "El carnet digital (SVG) se está descargando.",
-        });
-      } catch (error) {
-        console.error("Error al crear el Blob SVG para descargar:", error);
-        toast({
-          title: "Error de Descarga",
-          description: "Hubo un problema al preparar el Carnet Digital (SVG) para la descarga.",
-          variant: "destructive",
-        });
-      }
-    } else if (professional.url_carnet) {
-      // Si svgContent no está disponible pero la URL sí, significa que la carga inicial falló.
-      // Aquí podrías intentar una descarga directa (que podría fallar por CORS)
-      // o indicar al usuario que la previsualización/descarga directa no es posible.
-      // Para este caso, informamos que no se pudo cargar para previsualizar/descargar.
-      toast({
-        title: "Carnet no cargado",
-        description: "La imagen SVG no se pudo cargar para previsualizar o descargar. Verifique la consola para errores de CORS.",
-        variant: "destructive",
-      });
-    } else {
+  // Función para descarga directa de SVG usando Blob (ahora hace su propio fetch)
+  const handleDownloadCarnetSvg = useCallback(async () => {
+    if (!professional.url_carnet) {
       toast({
         title: "Carnet No Disponible",
         description: "La URL del carnet no está disponible para este profesional.",
         variant: "destructive",
       });
+      return;
     }
-  }, [professional, svgContent]);
+
+    try {
+      // Realizar un fetch en el momento de la descarga para obtener el contenido del SVG
+      const response = await fetch(professional.url_carnet);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const svgBlob = await response.blob();
+
+      const url = window.URL.createObjectURL(svgBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      const filename = `carnet-${professional.nombre || ''}-${professional.apellidos?.replace(/\s+/g, '-') || 'profesional'}.svg`;
+      link.download = filename; // Forzar descarga
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url); // Limpiar la URL del objeto Blob
+
+      toast({
+        title: "Descarga Iniciada",
+        description: "El carnet digital (SVG) se está descargando.",
+      });
+    } catch (error) {
+      console.error("Error al descargar el carnet SVG:", error);
+      toast({
+        title: "Error de Descarga",
+        description: "Hubo un problema al descargar el Carnet Digital (SVG). Inténtelo de nuevo.",
+        variant: "destructive",
+      });
+    }
+  }, [professional]);
 
 
   const formDataForDocuments = {
@@ -363,25 +331,25 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                    <p><strong>Código de Expediente:</strong> {formDataForDocuments.codigo_expediente}</p>
-                  <p><strong>Nombre Completo:</strong> {formDataForDocuments.nombre} {formDataForDocuments.apellidos}</p>
-                  <p><strong>Nacionalidad:</strong> {formDataForDocuments.nacionalidad}</p>
-                  <p><strong>DIP/Pasaporte:</strong> {formDataForDocuments.numero_dip || formDataForDocuments.numero_pasaporte}</p>
-                  <p><strong>Fecha de Nacimiento:</strong> {formDataForDocuments.fecha_nacimiento}</p>
-                  <p><strong>Género:</strong> {formDataForDocuments.genero}</p>
-                  <p><strong>Teléfono:</strong> {formDataForDocuments.telefono}</p>
-                  <p><strong>Email:</strong> {professional.email}</p>
-                  <p><strong>Domicilio:</strong> {formDataForDocuments.domicilio}, {formDataForDocuments.distrito}, {formDataForDocuments.provincia}</p>
-                  <p><strong>Área Profesional:</strong> {formDataForDocuments.area_profesional}</p>
-                  <p><strong>Especialidad:</strong> {formDataForDocuments.especialidad}</p>
-                  <p><strong>Titulación:</strong> {formDataForDocuments.titulacion_especifica_1}</p>
-                  <p><strong>Institución:</strong> {formDataForDocuments.institucion_1}</p>
-                  <p><strong>País de Formación:</strong> {formDataForDocuments.pais_formacion_1}</p>
-                  <p><strong>Situación Laboral:</strong> {formDataForDocuments.situacion_laboral}</p>
-                  <p><strong>Centro de Trabajo:</strong> {formDataForDocuments.nombre_centro}</p>
-                  <p><strong>Estado de Solicitud:</strong> {professional.estado_solicitud}</p>
-                  {professional.motivo_rechazo && (
-                    <p className="col-span-2 text-red-600"><strong>Motivo de Rechazo:</strong> {professional.motivo_rechazo}</p>
-                  )}
+                   <p><strong>Nombre Completo:</strong> {formDataForDocuments.nombre} {formDataForDocuments.apellidos}</p>
+                   <p><strong>Nacionalidad:</strong> {formDataForDocuments.nacionalidad}</p>
+                   <p><strong>DIP/Pasaporte:</strong> {formDataForDocuments.numero_dip || formDataForDocuments.numero_pasaporte}</p>
+                   <p><strong>Fecha de Nacimiento:</strong> {formDataForDocuments.fecha_nacimiento}</p>
+                   <p><strong>Género:</strong> {formDataForDocuments.genero}</p>
+                   <p><strong>Teléfono:</strong> {formDataForDocuments.telefono}</p>
+                   <p><strong>Email:</strong> {professional.email}</p>
+                   <p><strong>Domicilio:</strong> {formDataForDocuments.domicilio}, {formDataForDocuments.distrito}, {formDataForDocuments.provincia}</p>
+                   <p><strong>Área Profesional:</strong> {formDataForDocuments.area_profesional}</p>
+                   <p><strong>Especialidad:</strong> {formDataForDocuments.especialidad}</p>
+                   <p><strong>Titulación:</strong> {formDataForDocuments.titulacion_especifica_1}</p>
+                   <p><strong>Institución:</strong> {formDataForDocuments.institucion_1}</p>
+                   <p><strong>País de Formación:</strong> {formDataForDocuments.pais_formacion_1}</p>
+                   <p><strong>Situación Laboral:</strong> {formDataForDocuments.situacion_laboral}</p>
+                   <p><strong>Centro de Trabajo:</strong> {formDataForDocuments.nombre_centro}</p>
+                   <p><strong>Estado de Solicitud:</strong> {professional.estado_solicitud}</p>
+                   {professional.motivo_rechazo && (
+                     <p className="col-span-2 text-red-600"><strong>Motivo de Rechazo:</strong> {professional.motivo_rechazo}</p>
+                   )}
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -407,28 +375,25 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
                   Descargar Carnet (PDF)
                 </Button>
                 {/* Botón para descargar el SVG directamente */}
-                <Button onClick={handleDownloadCarnetSvg} className="ml-2 flex items-center gap-2" disabled={!professional.url_carnet || !professional.url_carnet.endsWith('.svg')}>
+                <Button onClick={handleDownloadCarnetSvg} className="ml-2 flex items-center gap-2" disabled={!professional.url_carnet}>
                   <Download className="w-4 h-4" />
                   Descargar Carnet (SVG)
                 </Button>
               </div>
               <ScrollArea className="flex-grow p-4 rounded-md border bg-gray-50 flex items-center justify-center min-h-0 max-h-[calc(90vh-200px)]">
                 {professional.url_carnet ? (
-                  professional.url_carnet.endsWith('.svg') && svgContent ? (
-                    // Render SVG inline if fetched successfully to bypass CORS issues
-                    <div
-                      dangerouslySetInnerHTML={{ __html: svgContent }}
-                      style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }}
-                      className="object-contain"
-                    />
-                  ) : (
-                    // Fallback to img tag for non-SVG or if SVG fetch failed
+                    // Siempre usar la etiqueta img para la previsualización directa
                     <img
                       src={professional.url_carnet}
                       alt="Carnet Digital del Profesional"
                       className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        // Fallback SVG si hay un error de carga, similar a ProfessionalCardInfo
+                        e.currentTarget.onerror = null; // Evita bucle infinito si la URL de fallback también falla
+                        e.currentTarget.alt = "Error al cargar el carnet";
+                        e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDI0MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI0MC”IGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0iI0QwRTRGRiIvPjxwYXRoIGQ9Ik01MCAyNUgxOTB2MTAwSDU1UVMxMDAgNTAgNTAgMjVaTTEyMCA4NUgxNTBNOTAgODVIMTIwTTYwIDg1SDkwTTEyMCAxMTFIMTUwTTkwIDExMUgxMjBNNjAgMTExSDkwIiBzdHJva2U9IiMzRDZDQkJGQyIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48dGV4dCB4PSIxMjAiIHk9IjMwIiBmb250LWZhbi1taWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VmlzdGEgQmFzaWNhIGRlIENhcm5ldDwvdGV4dD48L2N2Zz4=";
+                      }}
                     />
-                  )
                 ) : (
                   <p className="text-gray-500">Carnet digital no disponible o aún no generado para este profesional.</p>
                 )}

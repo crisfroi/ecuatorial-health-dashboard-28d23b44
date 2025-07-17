@@ -355,6 +355,7 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
                 </div>
               </ScrollArea>
             </TabsContent>
+
             <TabsContent value="approval-letter" className="h-full flex flex-col">
               <div className="flex justify-end mb-2">
                 <Button onClick={handleDownloadLetter} className="flex items-center gap-2">
@@ -369,6 +370,7 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
               </ScrollArea>
             </TabsContent>
 
+            <TabsContent value="carnet" className="h-full flex flex-col">
      {console.log("!!! TabsContent 'carnet' se está renderizando !!!")}
     <div>
         <p>Contenido de prueba del Carnet Digital.</p>

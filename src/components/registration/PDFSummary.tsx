@@ -98,7 +98,7 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
 
                 <BarcodeGenerator 
 
-                  code={formData.codigo_barras}
+                  code={formData.codigo_expediente}
 
                   width={120} // Reducido de 140
 

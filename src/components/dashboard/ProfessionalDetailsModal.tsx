@@ -372,11 +372,28 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
 
             <TabsContent value="carnet" className="h-full flex flex-col">
      {console.log("!!! TabsContent 'carnet' se está renderizando !!!")}
-    <div>
-        <p>Contenido de prueba del Carnet Digital.</p>
-        <p>URL del Carnet: {professional.url_carnet}</p>
+   {/* Inserción de la estructura del Carnet desde ProfessionalCardInfo */}
+   {professional.url_carnet ? (
+     <div className="text-center p-2 border rounded-lg bg-gray-50"> {/* Mantenemos estos estilos que sabemos funcionan */}
+       <p className="text-sm font-medium text-gray-600 mb-2">Vista Previa del Carnet</p>
+       <img
+         src={professional.url_carnet}
+         alt="Carnet Profesional Completo"
+         className="w-full h-auto max-w-xs object-contain mx-auto border rounded-md shadow-sm"
+         onError={(e) => {
+           e.currentTarget.onerror = null;
+           e.currentTarget.alt = "Error al cargar el carnet";
+          e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDI0MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd2wwdy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyNDAiIGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0iI0QwRTRGRiIvPjxwYXRoIGQ9Ik01MCAyNUgxOTB2MTAwSDU1UVMxMDAgNTAgNTAgMjVaTTEyMCA4NUgxNTBNOTAgODVIMTIwTTYwIDg1SDkwTTEyMCAxMTFIMTUwTTkwIDExMUgxMjBNNjAgMTExSDkwIiBzdHJva2U9IiMzRDZDQkZDIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjx0ZXh0IHg9IjEyMCIgeT0iMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VmlzdGEgQmFzaWNhIGRlIENhcm5ldDwvdGV4dD48L3N2Zz4=";
+        }}
+     />
+     </div>
+  ) : (
+    <div className="text-center p-4 bg-gray-100 rounded-md">
+     <p className="text-sm text-gray-500 flex items-center justify-center">
+       <AlertTriangle className="w-4 h-4 mr-2 text-orange-500" /> Vista previa del carnet no disponible.
+     </p>
     </div>
-    {/* --- FIN DE LAS LÍNEAS TEMPORALES --- */}
+    )}
 </TabsContent>
           </div>
         </Tabs>

@@ -72,7 +72,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           <Clock className="h-4 w-4 text-orange-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-orange-600">{stats?.Recibido || 0}</div>
+          <div className="text-2xl font-bold text-orange-600">{stats?.recibidas || 0}</div>
           <p className="text-xs text-muted-foreground">
             En proceso de revisión
           </p>

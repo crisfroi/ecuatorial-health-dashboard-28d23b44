@@ -315,7 +315,7 @@ const ProfessionalRegistration = () => {
         photoFile,
         foto_carnet: fotoUrl,
         foto_carnet_base64: fotoCarnetBase64,
-        codigo_barras: result.codigo_expediente, // CAMBIO: Usamos el codigo_expediente de la DB
+        url_codigo_barras_expediente: result.url_codigo_barras_expediente, // CAMBIO: Usamos el codigo_expediente de la DB
         codigo_expediente: result.codigo_expediente, // Mantenemos para claridad
         edad: age,
         submittedData: result

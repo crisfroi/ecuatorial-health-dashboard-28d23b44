@@ -27,9 +27,10 @@ export function useEstadisticasAvanzadas() {
       // Calcular estadísticas básicas
       const total = profesionales.length;
       const aprobados = profesionales.filter(p => p.estado_solicitud === 'Aprobado').length;
-      const pendientes = profesionales.filter(p => p.estado_solicitud === 'Pendiente').length;
+      const recibidos = profesionales.filter(p => p.estado_solicitud === 'Recibido').length;
       const rechazados = profesionales.filter(p => p.estado_solicitud === 'Rechazado').length;
       const revisando = profesionales.filter(p => p.estado_solicitud === 'Revisando').length;
+      const pendienteDefirma = profesionales.filter(p => p.estado_solicitud === 'Pendiente de Firma').length;
       
       // Estadísticas por área profesional
       const porArea = profesionales.reduce((acc, prof) => {
@@ -130,9 +131,10 @@ export function useEstadisticasAvanzadas() {
         // Estadísticas básicas (todas sobre el total de profesionales)
         total,
         aprobados,
-        pendientes,
+        recibidas,
         rechazados,
         revisando,
+        pendientesDefirma
         vencimientosProximos,
         carnetVencidos,
         
@@ -159,7 +161,8 @@ export function useEstadisticasAvanzadas() {
         // Datos para gráficos
         datosGraficoEstados: [
           { estado: 'Aprobado', cantidad: aprobados, color: '#22c55e' },
-          { estado: 'Pendiente', cantidad: pendientes, color: '#f59e0b' },
+          { estado: 'Recibido', cantidad: recibidas, color: '#f59e0b' },
+          { estado: 'Pendiente de Firma', cantidad: pendienteDefirma, color: '#2c4d56' },
           { estado: 'Rechazado', cantidad: rechazados, color: '#ef4444' },
           { estado: 'Revisando', cantidad: revisando, color: '#3b82f6' }
         ],

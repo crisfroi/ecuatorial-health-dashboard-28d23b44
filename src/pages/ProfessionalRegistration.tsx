@@ -287,7 +287,7 @@ const ProfessionalRegistration = () => {
         documentos_adicionales: documentosData, // Se envían los metadatos de los documentos
         foto_carnet: fotoUrl, // URL de la foto subida
         // Eliminamos codigo_barras de la inserción inicial, ya que usaremos codigo_expediente de la DB
-        estado_solicitud: 'Pendiente' as const,
+        estado_solicitud: 'Recibido' as const,
         fecha_solicitud: new Date().toISOString().split('T')[0]
       };
 

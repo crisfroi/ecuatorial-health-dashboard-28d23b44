@@ -85,7 +85,7 @@ const ApprovalLetter = ({ formData, onDownload }: ApprovalLetterProps) => {
 
             {/* Número de expediente */}
             <div className="mb-6">
-              <p className="font-semibold">EXPEDIENTE: RENAPROSA-{new Date().getFullYear()}-{Math.floor(Math.random() * 10000).toString().padStart(4, '0')}</p>
+              <p className="font-semibold">EXPEDIENTE: {formData.codigo_expediente}</p>
               <p className="font-semibold">ASUNTO: Aprobación de Acreditación Profesional Sanitaria</p>
             </div>
 

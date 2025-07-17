@@ -409,6 +409,7 @@ export type Database = {
           url_carta_resolucion: string | null
           url_codigo_barras: string | null
           url_pdf: string | null
+          url_codigo_barras_expediente: string | null
         }
         Insert: {
           año_fin_formacion?: number | null
@@ -585,6 +586,7 @@ export type Database = {
           url_carta_resolucion?: string | null
           url_codigo_barras?: string | null
           url_pdf?: string | null
+          url_codigo_barras_expediente: string | null
         }
          Update: {
           año_fin_formacion?: number | null
@@ -674,6 +676,7 @@ export type Database = {
           url_carta_resolucion?: string | null
           url_codigo_barras?: string | null
           url_pdf?: string | null
+          url_codigo_barras_expediente: string | null
         }
         Relationships: [
           {

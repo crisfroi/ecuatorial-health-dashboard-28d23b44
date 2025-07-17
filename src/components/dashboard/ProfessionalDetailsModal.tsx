@@ -312,7 +312,7 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="details">Detalles</TabsTrigger>
             <TabsTrigger value="approval-letter" disabled={professional.estado_solicitud !== 'Pendiente de Firma'}>Carta Aprobación</TabsTrigger>
-            <TabsTrigger value="carnet">Carnet Digital</TabsTrigger>
+            <TabsTrigger value="carnet" disabled={!professional.url_carnet || professional.estado_solicitud !== 'Pendiente de Firma'}>Carnet Digital</TabsTrigger>
           </TabsList>
 
           {/* Eliminado overflow-hidden de este div para permitir que ScrollArea gestione su propio desbordamiento */}

@@ -85,7 +85,7 @@ const ApprovalLetter = ({ formData, onDownload }: ApprovalLetterProps) => {
 
             {/* Número de expediente */}
             <div className="mb-6">
-              <p className="font-semibold">EXPEDIENTE:</strong> {formData.codigo_expediente}</p>
+              <p className="font-semibold">EXPEDIENTE:{formData.area_profesional}</p>
               <p className="font-semibold">ASUNTO: Aprobación de Acreditación Profesional Sanitaria</p>
             </div>
 

@@ -8,7 +8,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from '@/components/ui/button';
-import { Download, ExternalLink, AlertTriangle } from 'lucide-react'; // Añadido AlertTriangle
+import { Download, ExternalLink, AlertTriangle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 import ApprovalLetter from '@/components/registration/ApprovalLetter';
@@ -30,8 +30,6 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
   if (!professional) {
     return null; // No renderizar si no hay profesional seleccionado
   }
-  // console.log("Objeto professional en ProfessionalDetailsModal:", professional); // Eliminado console.log
-  // console.log("Valor de professional.url_carnet:", professional.url_carnet); // Eliminado console.log
 
   const generatePdfFromHtml = useCallback(async (elementId: string, filename: string) => {
     const element = document.getElementById(elementId);
@@ -135,18 +133,15 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
     let renderedContent;
 
     if (professional.url_carnet) {
-      // Simplemente usa la etiqueta img para la captura, ya que html2canvas puede procesarla
-      // con el SVG referenciado directamente.
       renderedContent = (
           <img
               src={professional.url_carnet}
               alt="Carnet Digital del Profesional"
               style={{ width: '210mm', height: '297mm', objectFit: 'contain' }}
               onError={(e) => {
-                // Fallback si la imagen no carga, similar a ProfessionalCardInfo
                 e.currentTarget.onerror = null;
                 e.currentTarget.alt = "Error al cargar el carnet para PDF";
-                e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDI0MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI0MC”IGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0iI0QwRTRGRiIvPjxwYXRoIGQ9Ik01MCAyNUgxOTB2MTAwSDU1UVMxMDAgNTAgNTAgMjVaTTEyMCA4NUgxNTBNOTAgODVIMTIwTTYwIDg1SDkwTTEyMCAxMTFIMTUwTTkwIDExMUgxMjBNNjAgMTExSDkwIiBzdHJva2U9IiMzRDZDQkJGQyIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48dGV4dCB4PSIxMjAiIHk9IjkwIiBmb250LWZhbi1taWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJldmlzdWFsaXphY2kmbmE7biBmYWxsaWRhPC90ZXh0PjwvZ3ZAPjwvdmc+";
+                e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDI0MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI0MC”IGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0iI0QwRTRGRiIvPjxwYXRoIGQ9Ik01MCAyNUgxOTB2MTAwSDU1UVMxMDAgNTAgNTAgMjVaTTEyMCA4NUgxNTBNOTAgODVIMTIwTTYwIDg1SDkwTTEyMCAxMTFIMTUwTTkwIDExMUgxMjBNNjAgMTExSDkwIiBzdHJva2U9IiMzRDZDQkZDIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjx0ZXh0IHg9IjEyMCIgeT0iOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJldmlzdWFsaXphY2kmbmE7biBmYWxsaWRhPC90ZXh0PjwvZ3ZAPjwvdmc+";
               }}
           />
       );
@@ -220,7 +215,6 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
     }
   }, [professional]);
 
-  // Función para descarga directa de SVG usando Blob (ahora hace su propio fetch)
   const handleDownloadCarnetSvg = useCallback(async () => {
     if (!professional.url_carnet) {
       toast({
@@ -232,7 +226,6 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
     }
 
     try {
-      // Realizar un fetch en el momento de la descarga para obtener el contenido del SVG
       const response = await fetch(professional.url_carnet);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -243,11 +236,11 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
       const link = document.createElement('a');
       link.href = url;
       const filename = `carnet-${professional.nombre || ''}-${professional.apellidos?.replace(/\s+/g, '-') || 'profesional'}.svg`;
-      link.download = filename; // Forzar descarga
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url); // Limpiar la URL del objeto Blob
+      window.URL.revokeObjectURL(url);
 
       toast({
         title: "Descarga Iniciada",
@@ -368,7 +361,6 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
             </TabsContent>
 
             <TabsContent value="carnet" className="h-full flex flex-col">
-              {/* Botones de descarga para el Carnet (SVG y PDF) */}
               <div className="flex justify-end mb-2">
                 {professional.url_carnet && (
                   <>
@@ -381,7 +373,6 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
                   </>
                 )}
               </div>
-              {/* Envuelve el contenido del carnet dentro de ScrollArea */}
               <ScrollArea className="flex-grow p-4 rounded-md border bg-gray-50 min-h-0 max-h-[calc(90vh-200px)]">
                 {professional.url_carnet ? (
                   <div className="text-center p-2 border rounded-lg bg-gray-50">
@@ -389,11 +380,12 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
                     <img
                       src={professional.url_carnet}
                       alt="Carnet Profesional Completo"
-                      className="w-full h-auto max-w-xs object-contain mx-auto border rounded-md shadow-sm"
+                      // DEBUGGING: Forzar altura para verificar el scrollbar
+                      className="w-full h-auto object-contain mx-auto border rounded-md shadow-sm h-[800px]" // Eliminar max-w-xs y añadir h-[800px] para probar
                       onError={(e) => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.alt = "Error al cargar el carnet";
-                        e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDI0MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI0MC”IGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0iI0QwRTRGRiIvPjxwYXRoIGQ9Ik01MCAyNUgxOTB2MTAwSDU1UVMxMDAgNTAgNTAgMjVaTTEyMCA4NUgxNTBNOTAgODVIMTIwTTYwIDg1SDkwTTEyMCAxMTFIMTUwTTkwIDExMUgxMjBNNjAgMTExSDkwIiBzdHJva2U9IiMzRDZDQkZDIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjx0ZXh0IHg9IjEyMCIgeT0iMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VmlzdGEgQmFzaWNhIGRlIENhcm5ldDwvdGV4dD48L3N2Zz4=";
+                        e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDI0MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI0MC”IGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0iI0QwRTRGRiIvPjxwYXRoIGQ9Ik01MCAyNUgxOTB2MTAwSDU1UVMxMDAgNTAgNTAgMjVaTTEyMCA4NUgxNTBNOTAgODVIMTIwTTYwIDg1SDkwTTEyMCAxMTFIMTUwTTkwIDExMUgxMjBNNjAgMTExSDkwIiBzdHJva2U9IiMzRDZDQkZCIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjx0ZXh0IHg9IjEyMCIgeT0iMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VmlzdGEgQmFzaWNhIGRlIENhcm5ldDwvdGV4dD48L2Zncz4=";
                       }}
                     />
                   </div>

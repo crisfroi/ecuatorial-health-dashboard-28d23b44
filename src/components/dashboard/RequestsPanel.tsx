@@ -30,7 +30,7 @@ import html2canvas from 'html2canvas';
 
 // Definimos los estados válidos y su orden para el flujo
 const STATUS_ORDER = [
-  'Pendiente',
+  'Recibido',
   'Revisando',
   'Pendiente de Firma',
   'Aprobado',
@@ -67,8 +67,8 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
     console.log('RequestsPanel: initialStatusFilter received in useEffect:', initialStatusFilter);
     if (initialStatusFilter !== undefined && initialStatusFilter !== statusFilter) {
       setStatusFilter(initialStatusFilter);
-    } else if (initialStatusFilter === undefined && statusFilter !== 'Pendiente') {
-      setStatusFilter('Pendiente');
+    } else if (initialStatusFilter === undefined && statusFilter !== 'Recibido') {
+      setStatusFilter('Recibido');
     }
     setStartDate('');
     setEndDate('');
@@ -102,13 +102,13 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
   console.log('Applied status filter:', statusFilter);
 
   const getAvailableStatusOptions = useCallback((currentStatus: string | undefined) => {
-    const currentStatusIndex = STATUS_ORDER.indexOf(currentStatus || 'Pendiente');
+    const currentStatusIndex = STATUS_ORDER.indexOf(currentStatus || 'Recibido');
     const options = ['Revisando', 'Pendiente de Firma', 'Aprobado', 'Rechazado'];
 
     return options.filter(option => {
       const optionIndex = STATUS_ORDER.indexOf(option);
 
-      if (currentStatus === 'Pendiente' && option === 'Aprobado') return false;
+      if (currentStatus === 'Recibido' && option === 'Aprobado') return false;
 
       if (optionIndex < currentStatusIndex && option !== 'Rechazado') {
         return false;
@@ -151,14 +151,14 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
     if (!newState) return;
 
     const currentProfesional = profesionales.find(p => p.id === requestId);
-    const currentStatus = currentProfesional?.estado_solicitud || 'Pendiente';
+    const currentStatus = currentProfesional?.estado_solicitud || 'Recibido';
 
     const availableOptions = getAvailableStatusOptions(currentStatus);
     if (!availableOptions.includes(newState) && newState !== currentStatus) {
-      if (currentStatus === 'Pendiente' && newState === 'Aprobado') {
+      if (currentStatus === 'Recibido' && newState === 'Aprobado') {
         toast({
           title: "Error de Flujo",
-          description: "No se puede pasar de 'Pendiente' a 'Aprobado' directamente. Debe pasar por 'Pendiente de Firma'.",
+          description: "No se puede pasar de 'Recibido' a 'Aprobado' directamente. Debe pasar por 'Pendiente de Firma'.",
           variant: "destructive",
         });
         return;
@@ -181,9 +181,9 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
         id: requestId,
         updates: {
           estado_solicitud: newState,
-          fecha_revision: (newState !== 'Pendiente' && newState !== 'Revisando' && newState !== 'Rechazado') ? new Date().toISOString().split('T')[0] : null,
+          fecha_revision: (newState !== 'Recibido' && newState !== 'Revisando' && newState !== 'Rechazado') ? new Date().toISOString().split('T')[0] : null,
           fecha_aprobacion: newState === 'Aprobado' ? new Date().toISOString().split('T')[0] : null,
-          revisor_solicitud: newState !== 'Pendiente' ? 'Sistema' : null,
+          revisor_solicitud: newState !== 'Recibido' ? 'Sistema' : null,
           motivo_rechazo: newState === 'Rechazado' ? rejectionReasons[requestId] : null,
         }
       });
@@ -302,12 +302,12 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
 
     const updates = selectedRequestIds.map(async (id) => {
       const currentProfesional = profesionales.find(p => p.id === id);
-      const currentStatus = currentProfesional?.estado_solicitud || 'Pendiente';
+      const currentStatus = currentProfesional?.estado_solicitud || 'Recibido';
 
       const availableOptions = getAvailableStatusOptions(currentStatus);
       if (!availableOptions.includes(bulkUpdateStatus) && bulkUpdateStatus !== currentStatus) {
-        if (currentStatus === 'Pendiente' && bulkUpdateStatus === 'Aprobado') {
-          console.warn(`Saltando actualización para ${id}: No se puede pasar de 'Pendiente' a 'Aprobado'.`);
+        if (currentStatus === 'Recibido' && bulkUpdateStatus === 'Aprobado') {
+          console.warn(`Saltando actualización para ${id}: No se puede pasar de 'Recibido' a 'Aprobado'.`);
           return { id, success: false, reason: "Invalid status transition" };
         }
       }
@@ -317,9 +317,9 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
           id: id,
           updates: {
             estado_solicitud: bulkUpdateStatus,
-            fecha_revision: (bulkUpdateStatus !== 'Pendiente' && bulkUpdateStatus !== 'Revisando' && bulkUpdateStatus !== 'Rechazado') ? new Date().toISOString().split('T')[0] : null,
+            fecha_revision: (bulkUpdateStatus !== 'Recibido' && bulkUpdateStatus !== 'Revisando' && bulkUpdateStatus !== 'Rechazado') ? new Date().toISOString().split('T')[0] : null,
             fecha_aprobacion: bulkUpdateStatus === 'Aprobado' ? new Date().toISOString().split('T')[0] : null,
-            revisor_solicitud: bulkUpdateStatus !== 'Pendiente' ? 'Sistema' : null,
+            revisor_solicitud: bulkUpdateStatus !== 'Recibido' ? 'Sistema' : null,
             motivo_rechazo: bulkUpdateStatus === 'Rechazado' ? bulkRejectionReason : null,
           }
         });
@@ -398,9 +398,9 @@ const RequestsPanel = ({ userRole, initialStatusFilter, onSelectProfessional }: 
       distrito_sanitario: professional.distrito_sanitario || '',
       pertenece_brigada_medica: professional.pertenece_brigada_medica,
       tipo_cooperacion: professional.tipo_cooperacion || '',
-      codigo_expediente: professional.id,
+      codigo_expediente: professional.codigo_expediente,
       foto_carnet_base64: professional.foto_carnet_base64,
-      codigo_barras: professional.id,
+      codigo_barras: professional.url_codigo_barras,
       foto_carnet: professional.foto_carnet, // Ensure this property is passed
     };
 

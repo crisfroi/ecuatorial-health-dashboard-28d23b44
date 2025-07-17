@@ -49,7 +49,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
         onClick={() => handleCardClick({ estado_solicitud: 'Aprobado' })}
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Profesionales Aprobados</CardTitle>
+          <CardTitle className="text-sm font-medium">Profesionales Acreditados</CardTitle>
           <Users className="h-4 w-4 text-guinea-teal" />
         </CardHeader>
         <CardContent>
@@ -65,14 +65,14 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
 
       <Card 
         className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-orange-400"
-        onClick={() => handleCardClick({ estado_solicitud: 'Pendiente' })}
+        onClick={() => handleCardClick({ estado_solicitud: 'Recibido' })}
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Solicitudes Pendientes</CardTitle>
+          <CardTitle className="text-sm font-medium">Solicitudes Recibidas</CardTitle>
           <Clock className="h-4 w-4 text-orange-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-orange-600">{stats?.pendientes || 0}</div>
+          <div className="text-2xl font-bold text-orange-600">{stats?.Recibido || 0}</div>
           <p className="text-xs text-muted-foreground">
             En proceso de revisión
           </p>

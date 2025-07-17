@@ -371,36 +371,13 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
             </TabsContent>
 
             <TabsContent value="carnet" className="h-full flex flex-col">
-              <div className="flex justify-end mb-2">
-                <Button onClick={handleDownloadCarnetAsPdf} className="flex items-center gap-2" disabled={!professional.url_carnet}>
-                  <Download className="w-4 h-4" />
-                  Descargar Carnet (PDF)
-                </Button>
-                {/* Botón para descargar el SVG directamente */}
-                <Button onClick={handleDownloadCarnetSvg} className="ml-2 flex items-center gap-2" disabled={!professional.url_carnet}>
-                  <Download className="w-4 h-4" />
-                  Descargar Carnet (SVG)
-                </Button>
-              </div>
-              <ScrollArea className="flex-grow p-4 rounded-md border bg-gray-50 flex items-center justify-center min-h-0 max-h-[calc(90vh-200px)]">
-                {professional.url_carnet ? (
-                    // Siempre usar la etiqueta img para la previsualización directa
-                    <img
-                      src={professional.url_carnet}
-                      alt="Carnet Digital del Profesional"
-                      className="max-w-full max-h-full object-contain"
-                      onError={(e) => {
-                        // Fallback SVG si hay un error de carga, similar a ProfessionalCardInfo
-                        e.currentTarget.onerror = null; // Evita bucle infinito si la URL de fallback también falla
-                        e.currentTarget.alt = "Error al cargar el carnet";
-                        e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDI0MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI0MC”IGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0iI0QwRTRGRiIvPjxwYXRoIGQ9Ik01MCAyNUgxOTB2MTAwSDU1UVMxMDAgNTAgNTAgMjVaTTEyMCA4NUgxNTBNOTAgODVIMTIwTTYwIDg1SDkwTTEyMCAxMTFIMTUwTTkwIDExMUgxMjBNNjAgMTExSDkwIiBzdHJva2U9IiMzRDZDQkJGQyIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48dGV4dCB4PSIxMjAiIHk9IjMwIiBmb250LWZhbi1taWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VmlzdGEgQmFzaWNhIGRlIENhcm5ldDwvdGV4dD48L2N2Zz4=";
-                      }}
-                    />
-                ) : (
-                  <p className="text-gray-500">Carnet digital no disponible o aún no generado para este profesional.</p>
-                )}
-              </ScrollArea>
-            </TabsContent>
+    {/* --- AÑADE ESTAS LÍNEAS TEMPORALES PARA DEPURACIÓN --- */}
+    <div>
+        <p>Contenido de prueba del Carnet Digital.</p>
+        <p>URL del Carnet: {professional.url_carnet}</p>
+    </div>
+    {/* --- FIN DE LAS LÍNEAS TEMPORALES --- */}
+</TabsContent>
           </div>
         </Tabs>
       </DialogContent>

@@ -249,19 +249,42 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
     }
   }, [professional, svgContent]);
 
-  // New function for direct SVG download
-  const handleDownloadCarnetSvg = () => {
-    if (professional.url_carnet) {
-      const link = document.createElement('a');
-      link.href = professional.url_carnet;
-      const filename = professional.url_carnet.split('/').pop() || `carnet-${professional.id}.svg`;
-      link.download = filename; // Forces download
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  // Función para descarga directa de SVG usando Blob
+  const handleDownloadCarnetSvg = useCallback(() => {
+    if (svgContent) { // Usar el contenido SVG ya cargado
+      try {
+        const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const filename = `carnet-${professional.nombre || ''}-${professional.apellidos?.replace(/\s+/g, '-') || 'profesional'}.svg`;
+        link.download = filename; // Forzar descarga
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url); // Limpiar la URL del objeto Blob
+
+        toast({
+          title: "Descarga Iniciada",
+          description: "El carnet digital (SVG) se está descargando.",
+        });
+      } catch (error) {
+        console.error("Error al crear el Blob SVG para descargar:", error);
+        toast({
+          title: "Error de Descarga",
+          description: "Hubo un problema al preparar el Carnet Digital (SVG) para la descarga.",
+          variant: "destructive",
+        });
+      }
+    } else if (professional.url_carnet) {
+      // Si svgContent no está disponible pero la URL sí, significa que la carga inicial falló.
+      // Aquí podrías intentar una descarga directa (que podría fallar por CORS)
+      // o indicar al usuario que la previsualización/descarga directa no es posible.
+      // Para este caso, informamos que no se pudo cargar para previsualizar/descargar.
       toast({
-        title: "Descarga Iniciada",
-        description: "El carnet digital (SVG) se está descargando.",
+        title: "Carnet no cargado",
+        description: "La imagen SVG no se pudo cargar para previsualizar o descargar. Verifique la consola para errores de CORS.",
+        variant: "destructive",
       });
     } else {
       toast({
@@ -270,7 +293,7 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
         variant: "destructive",
       });
     }
-  };
+  }, [professional, svgContent]);
 
 
   const formDataForDocuments = {
@@ -303,7 +326,7 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
     tipo_cooperacion: professional.tipo_cooperacion || '',
     codigo_expediente: professional.codigo_expediente,
     foto_carnet_base64: professional.foto_carnet_base64,
-    codigo_barras: professional.id,
+    codigo_barras: professional.url_codigo_barras_expediente,
     foto_carnet: professional.foto_carnet,
   };
 
@@ -339,6 +362,7 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
                   </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                   <p><strong>Código de Expediente:</strong> {formDataForDocuments.codigo_expediente}</p>
                   <p><strong>Nombre Completo:</strong> {formDataForDocuments.nombre} {formDataForDocuments.apellidos}</p>
                   <p><strong>Nacionalidad:</strong> {formDataForDocuments.nacionalidad}</p>
                   <p><strong>DIP/Pasaporte:</strong> {formDataForDocuments.numero_dip || formDataForDocuments.numero_pasaporte}</p>
@@ -382,7 +406,7 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
                   <Download className="w-4 h-4" />
                   Descargar Carnet (PDF)
                 </Button>
-                {/* Nuevo botón para descargar el SVG directamente */}
+                {/* Botón para descargar el SVG directamente */}
                 <Button onClick={handleDownloadCarnetSvg} className="ml-2 flex items-center gap-2" disabled={!professional.url_carnet || !professional.url_carnet.endsWith('.svg')}>
                   <Download className="w-4 h-4" />
                   Descargar Carnet (SVG)

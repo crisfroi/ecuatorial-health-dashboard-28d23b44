@@ -131,7 +131,7 @@ export function useEstadisticasAvanzadas() {
         // Estadísticas básicas (todas sobre el total de profesionales)
         total,
         aprobados,
-        recibidas,
+        recibidos,
         rechazados,
         revisando,
         pendientesDefirma,
@@ -161,7 +161,7 @@ export function useEstadisticasAvanzadas() {
         // Datos para gráficos
         datosGraficoEstados: [
           { estado: 'Aprobado', cantidad: aprobados, color: '#22c55e' },
-          { estado: 'Recibido', cantidad: recibidas, color: '#f59e0b' },
+          { estado: 'Recibido', cantidad: recibidos, color: '#f59e0b' },
           { estado: 'Pendiente de Firma', cantidad: pendienteDefirma, color: '#2c4d56' },
           { estado: 'Rechazado', cantidad: rechazados, color: '#ef4444' },
           { estado: 'Revisando', cantidad: revisando, color: '#3b82f6' }

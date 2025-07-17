@@ -371,7 +371,7 @@ const ProfessionalDetailsModal = ({ isOpen, onClose, professional }: Professiona
             </TabsContent>
 
             <TabsContent value="carnet" className="h-full flex flex-col">
-    {/* --- AÑADE ESTAS LÍNEAS TEMPORALES PARA DEPURACIÓN --- */}
+     {console.log("!!! TabsContent 'carnet' se está renderizando !!!")}
     <div>
         <p>Contenido de prueba del Carnet Digital.</p>
         <p>URL del Carnet: {professional.url_carnet}</p>

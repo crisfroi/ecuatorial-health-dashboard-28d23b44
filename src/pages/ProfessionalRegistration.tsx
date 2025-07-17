@@ -296,7 +296,7 @@ const ProfessionalRegistration = () => {
       const { data: result, error } = await supabase
         .from('profesionales_sanitarios')
         .insert([submissionData])
-        .select('id, codigo_expediente') // CAMBIO: Aseguramos la selección de codigo_expediente
+        .select('id, codigo_expediente', 'url_codigo_barras_expediente') // CAMBIO: Aseguramos la selección de codigo_expediente
         .single();
 
       if (error) {

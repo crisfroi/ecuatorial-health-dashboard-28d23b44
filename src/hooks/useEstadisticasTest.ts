@@ -20,11 +20,26 @@ export function useEstadisticasTest() {
           console.error("- Type:", typeof connectionError);
           console.error("- Constructor:", connectionError?.constructor?.name);
           console.error("- Keys:", Object.keys(connectionError || {}));
-          console.error("- Full object:", connectionError);
-          logError("Connection test failed", connectionError);
-          throw new Error(
-            `Connection failed: ${getErrorMessage(connectionError)}`,
+          console.error(
+            "- Message property type:",
+            typeof connectionError?.message,
           );
+          console.error("- Message property value:", connectionError?.message);
+          console.error("- Full object:", connectionError);
+          console.error(
+            "- JSON stringified:",
+            JSON.stringify(
+              connectionError,
+              Object.getOwnPropertyNames(connectionError),
+              2,
+            ),
+          );
+
+          logError("Connection test failed", connectionError);
+          const errorMsg = getErrorMessage(connectionError);
+          console.error("Processed error message:", errorMsg);
+
+          throw new Error(`Connection failed: ${errorMsg}`);
         }
 
         console.log("Connection test passed");
@@ -37,8 +52,18 @@ export function useEstadisticasTest() {
           .limit(5);
 
         if (error) {
+          console.error("Select error details:");
+          console.error("- Type:", typeof error);
+          console.error("- Constructor:", error?.constructor?.name);
+          console.error("- Keys:", Object.keys(error || {}));
+          console.error("- Message property:", error?.message);
+          console.error("- Full object:", error);
+
           logError("Select test failed", error);
-          throw new Error(`Select failed: ${getErrorMessage(error)}`);
+          const errorMsg = getErrorMessage(error);
+          console.error("Processed select error message:", errorMsg);
+
+          throw new Error(`Select failed: ${errorMsg}`);
         }
 
         console.log("Test query successful:", data);

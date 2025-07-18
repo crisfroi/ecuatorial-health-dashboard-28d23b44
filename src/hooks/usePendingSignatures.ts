@@ -340,10 +340,14 @@ export function useRejectProfessional() {
         variant: "destructive",
       });
 
-      // Invalidate queries to refresh data
+      // Invalidate queries to refresh data immediately
       queryClient.invalidateQueries({ queryKey: ["pending-signatures"] });
       queryClient.invalidateQueries({ queryKey: ["signature-history"] });
       queryClient.invalidateQueries({ queryKey: ["estadisticas"] });
+      queryClient.invalidateQueries({ queryKey: ["estadisticas-avanzadas"] });
+
+      // Force refetch to ensure immediate updates
+      queryClient.refetchQueries({ queryKey: ["signature-history"] });
     },
     onError: (error: any) => {
       toast({

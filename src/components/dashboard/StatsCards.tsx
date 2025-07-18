@@ -211,7 +211,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-yellow-600">
-            {stats?.vencimientosProximos || 0}
+            {effectiveStats?.vencimientosProximos || 0}
           </div>
           <p className="text-xs text-muted-foreground">
             Carnets vencen en 30 días

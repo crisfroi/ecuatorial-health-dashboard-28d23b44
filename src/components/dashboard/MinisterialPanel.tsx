@@ -36,7 +36,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -52,7 +51,6 @@ import {
   Stamp,
   Send,
   AlertTriangle,
-  Settings,
   BarChart3,
   Users,
   TrendingUp,

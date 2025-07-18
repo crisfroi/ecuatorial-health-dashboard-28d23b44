@@ -109,7 +109,7 @@ const MinisterialPanel = () => {
   const [isMultiSignDialogOpen, setIsMultiSignDialogOpen] = useState(false);
 
   // Settings
-  const [autoNotifications, setAutoNotifications] = useState(true);
+
   const [urgencyFilter, setUrgencyFilter] = useState("all");
 
   // Filter pending signatures by urgency

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
 import { useEstadisticasTest } from "@/hooks/useEstadisticasTest";
+import { useEstadisticasMock } from "@/hooks/useEstadisticasMock";
 
 interface StatsCardsProps {
   onNavigateToProfessionals: (filters: any) => void;

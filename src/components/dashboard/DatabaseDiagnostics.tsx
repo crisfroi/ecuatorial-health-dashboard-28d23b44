@@ -77,11 +77,13 @@ const DatabaseDiagnostics = () => {
         duration: `${endTime - startTime}ms`,
       });
     } catch (err: any) {
+      logError("Supabase HTTP test failed", err);
       diagnosticResults.push({
         test: "Basic HTTP Connection",
         status: "error",
-        message: err.message,
+        message: getErrorMessage(err),
         duration: "N/A",
+        details: err,
       });
     }
 

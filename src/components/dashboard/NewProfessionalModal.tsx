@@ -399,7 +399,8 @@ const NewProfessionalModal = ({
               <ScrollArea className="h-[calc(90vh-250px)] rounded-md border bg-gray-50 p-4">
                 <div
                   id="approval-letter-content"
-                  className="max-w-[210mm] mx-auto bg-white p-8"
+                  className="max-w-[210mm] mx-auto bg-white"
+                  style={{ padding: "15mm", minHeight: "250mm" }}
                 >
                   <ApprovalLetter
                     formData={formDataForDocuments}

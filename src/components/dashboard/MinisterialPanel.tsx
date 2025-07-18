@@ -873,82 +873,218 @@ const MinisterialPanel = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Review Dialog */}
+      {/* Review Dialog - Enhanced Professional Detail */}
       <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="w-5 h-5 text-blue-600" />
-              Revisar Solicitud: {selectedProfessional?.profesional}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Profesional</Label>
-                <p className="font-medium">
-                  {selectedProfessional?.profesional}
-                </p>
-              </div>
-              <div>
-                <Label>Profesión</Label>
-                <p>{selectedProfessional?.profesion}</p>
-              </div>
-              <div>
-                <Label>ID Profesional</Label>
-                <p>{selectedProfessional?.id_profesional || "No disponible"}</p>
-              </div>
-              <div>
-                <Label>Urgencia</Label>
+            <DialogTitle className="flex items-center justify-between">
+              <span className="flex items-center space-x-2">
+                <Eye className="w-5 h-5 text-blue-600" />
+                <span>Detalle del Profesional</span>
+              </span>
+              <div className="flex items-center space-x-2">
                 <Badge
                   className={getUrgencyColor(
                     selectedProfessional?.urgencia || "",
                   )}
                 >
-                  {selectedProfessional?.urgencia} (
-                  {selectedProfessional?.dias_pendiente} días)
+                  {selectedProfessional?.urgencia} -{" "}
+                  {selectedProfessional?.dias_pendiente} días pendiente
                 </Badge>
               </div>
-              <div>
-                <Label>Fecha de Solicitud</Label>
-                <p>
-                  {selectedProfessional?.fecha_solicitud
-                    ? new Date(
-                        selectedProfessional.fecha_solicitud,
-                      ).toLocaleDateString("es-ES")
-                    : "N/A"}
-                </p>
-              </div>
-              <div>
-                <Label>Contacto</Label>
-                <div className="text-sm">
-                  {selectedProfessional?.telefono && (
-                    <div>{selectedProfessional.telefono}</div>
-                  )}
-                  {selectedProfessional?.email && (
-                    <div>{selectedProfessional.email}</div>
-                  )}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedProfessional && (
+            <div className="space-y-6">
+              {/* Información Principal */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Datos Personales */}
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <User className="w-5 h-5 text-blue-600" />
+                        Información Personal
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">
+                          Nombre Completo
+                        </Label>
+                        <p className="font-medium text-lg">
+                          {selectedProfessional.profesional}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">
+                          ID Profesional
+                        </Label>
+                        <p className="font-mono text-blue-600">
+                          {selectedProfessional.id_profesional || "No asignado"}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">
+                          Teléfono
+                        </Label>
+                        <p>
+                          {selectedProfessional.telefono || "No disponible"}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">
+                          Email
+                        </Label>
+                        <p className="text-sm break-all">
+                          {selectedProfessional.email || "No disponible"}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Información Profesional */}
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-green-600" />
+                        Información Profesional
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">
+                          Titulación/Profesión
+                        </Label>
+                        <p className="font-medium">
+                          {selectedProfessional.profesion}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">
+                          Área Profesional
+                        </Label>
+                        <p>
+                          {selectedProfessional.area_profesional ||
+                            "No especificado"}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Estado de Solicitud */}
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-orange-600" />
+                        Estado de Solicitud
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">
+                          Fecha de Solicitud
+                        </Label>
+                        <p>
+                          {new Date(
+                            selectedProfessional.fecha_solicitud,
+                          ).toLocaleDateString("es-ES", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">
+                          Tiempo Pendiente
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`font-medium ${
+                              selectedProfessional.dias_pendiente > 15
+                                ? "text-red-600"
+                                : selectedProfessional.dias_pendiente > 7
+                                  ? "text-yellow-600"
+                                  : "text-green-600"
+                            }`}
+                          >
+                            {selectedProfessional.dias_pendiente} días
+                          </span>
+                          <Badge
+                            className={getUrgencyColor(
+                              selectedProfessional.urgencia,
+                            )}
+                          >
+                            {selectedProfessional.urgencia}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">
+                          Estado Actual
+                        </Label>
+                        <Badge
+                          variant="outline"
+                          className="bg-orange-50 text-orange-700 border-orange-200"
+                        >
+                          Pendiente de Firma Ministerial
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
+
+              {/* Sección de Acciones */}
+              <Card className="border-t-4 border-t-blue-500">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-blue-600" />
+                    Acciones Ministeriales
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsReviewDialogOpen(false)}
+                      className="flex items-center gap-2"
+                    >
+                      <X className="w-4 h-4" />
+                      Cerrar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        setIsReviewDialogOpen(false);
+                        handleRejectProfessional(selectedProfessional);
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Rechazar Solicitud
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsReviewDialogOpen(false);
+                        handleSignProfessional(selectedProfessional);
+                      }}
+                      className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Firmar y Aprobar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsReviewDialogOpen(false)}
-              >
-                Cerrar
-              </Button>
-              <Button
-                onClick={() => {
-                  setIsReviewDialogOpen(false);
-                  handleSignProfessional(selectedProfessional!);
-                }}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                Proceder a Firmar
-              </Button>
-            </div>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
 

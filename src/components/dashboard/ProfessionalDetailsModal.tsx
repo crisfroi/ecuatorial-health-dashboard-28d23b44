@@ -508,7 +508,6 @@ const ProfessionalDetailsModal = ({
                       alt="Carnet Profesional Completo"
                       // DEBUGGING: Forzar altura para verificar el scrollbar
                       className="w-full h-auto max-w-xs object-contain mx-auto border rounded-md shadow-sm"
-                      style={{ maxHeight: "70vh" }}
                       onError={(e) => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.alt = "Error al cargar el carnet";

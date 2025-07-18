@@ -16,6 +16,11 @@ export function useEstadisticasTest() {
           .select("count(*)", { count: "exact", head: true });
 
         if (connectionError) {
+          console.error("Connection error details:");
+          console.error("- Type:", typeof connectionError);
+          console.error("- Constructor:", connectionError?.constructor?.name);
+          console.error("- Keys:", Object.keys(connectionError || {}));
+          console.error("- Full object:", connectionError);
           logError("Connection test failed", connectionError);
           throw new Error(
             `Connection failed: ${getErrorMessage(connectionError)}`,

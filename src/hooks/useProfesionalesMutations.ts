@@ -1,7 +1,6 @@
-
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export function useProfesionalesMutations() {
   const queryClient = useQueryClient();
@@ -9,45 +8,46 @@ export function useProfesionalesMutations() {
 
   const updateProfesional = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
-      console.log('Actualizando profesional:', id, updates);
-      
+      console.log("Actualizando profesional:", id, updates);
+
       // Si se está cambiando a "Pendiente de Firma", generar automáticamente el carnet
-      if (updates.estado_solicitud === 'Pendiente de Firma') {
-        updates.fecha_alta = new Date().toISOString().split('T')[0];
-        updates.fecha_aprobacion = new Date().toISOString().split('T')[0];
+      if (updates.estado_solicitud === "Pendiente de Firma") {
+        updates.fecha_alta = new Date().toISOString().split("T")[0];
+        updates.fecha_aprobacion = new Date().toISOString().split("T")[0];
       }
-      
+
       const { data, error } = await supabase
-        .from('profesionales_sanitarios')
+        .from("profesionales_sanitarios")
         .update(updates)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) {
-        console.error('Error updating professional:', error);
+        console.error("Error updating professional:", error.message || error);
         throw new Error(`Error al actualizar: ${error.message}`);
       }
 
-      console.log('Profesional actualizado exitosamente:', data);
+      console.log("Profesional actualizado exitosamente:", data);
       return data;
     },
     onSuccess: (data) => {
       // Invalidar múltiples consultas para asegurar que se actualicen
-      queryClient.invalidateQueries({ queryKey: ['profesionales'] });
-      queryClient.invalidateQueries({ queryKey: ['estadisticas'] });
-      queryClient.invalidateQueries({ queryKey: ['estadisticas-avanzadas'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["profesionales"] });
+      queryClient.invalidateQueries({ queryKey: ["estadisticas"] });
+      queryClient.invalidateQueries({ queryKey: ["estadisticas-avanzadas"] });
+
       // Refrescar datos específicos
-      queryClient.refetchQueries({ queryKey: ['profesionales'] });
-      
+      queryClient.refetchQueries({ queryKey: ["profesionales"] });
+
       toast({
         title: "Éxito",
-        description: "El estado del profesional ha sido actualizado correctamente.",
+        description:
+          "El estado del profesional ha sido actualizado correctamente.",
       });
     },
     onError: (error: any) => {
-      console.error('Error en mutación:', error);
+      console.error("Error en mutación:", error.message || error);
       toast({
         title: "Error",
         description: `No se pudo actualizar el estado: ${error.message}`,
@@ -59,15 +59,15 @@ export function useProfesionalesMutations() {
   const deleteProfesional = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('profesionales_sanitarios')
+        .from("profesionales_sanitarios")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw new Error(`Error al eliminar: ${error.message}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profesionales'] });
-      queryClient.refetchQueries({ queryKey: ['profesionales'] });
+      queryClient.invalidateQueries({ queryKey: ["profesionales"] });
+      queryClient.refetchQueries({ queryKey: ["profesionales"] });
       toast({
         title: "Éxito",
         description: "El profesional ha sido eliminado correctamente.",

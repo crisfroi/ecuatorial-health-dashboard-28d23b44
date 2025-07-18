@@ -1,27 +1,42 @@
-
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { User, X, Download, FileText, ChevronDown } from 'lucide-react';
-import { useNotificationCount, useSendSMSNotification } from '@/hooks/useSMSNotifications';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
-import { useToast } from '@/hooks/use-toast';
-import type { Profesional } from '@/hooks/useProfesionales';
-import PersonalInfoCard from './professional-detail/PersonalInfoCard';
-import EducationCard from './professional-detail/EducationCard';
-import WorkplaceCard from './professional-detail/WorkplaceCard';
-import ProfessionalCardInfo from './professional-detail/ProfessionalCardInfo';
-import StatusCard from './professional-detail/StatusCard';
-import NotificationAlerts from './professional-detail/NotificationAlerts';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { User, X, Download, FileText, ChevronDown } from "lucide-react";
+import {
+  useNotificationCount,
+  useSendSMSNotification,
+} from "@/hooks/useSMSNotifications";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { useToast } from "@/hooks/use-toast";
+import type { Profesional } from "@/hooks/useProfesionales";
+import PersonalInfoCard from "./professional-detail/PersonalInfoCard";
+import EducationCard from "./professional-detail/EducationCard";
+import WorkplaceCard from "./professional-detail/WorkplaceCard";
+import ProfessionalCardInfo from "./professional-detail/ProfessionalCardInfo";
+import StatusCard from "./professional-detail/StatusCard";
+import NotificationAlerts from "./professional-detail/NotificationAlerts";
 
 interface ProfessionalDetailProps {
   professional: Profesional;
   onClose: () => void;
 }
 
-const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) => {
+const ProfessionalDetail = ({
+  professional,
+  onClose,
+}: ProfessionalDetailProps) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
   const { data: notificationCount } = useNotificationCount(professional.id);
@@ -39,46 +54,50 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
     return diffDays;
   };
 
-  const daysUntilRenewal = calculateDaysUntilRenewal(professional.fecha_caducidad);
+  const daysUntilRenewal = calculateDaysUntilRenewal(
+    professional.fecha_caducidad,
+  );
   const isRenewalSoon = daysUntilRenewal !== null && daysUntilRenewal <= 30;
 
-  const handleDownload = async (format: 'pdf' | 'png') => {
+  const handleDownload = async (format: "pdf" | "png") => {
     setIsDownloading(true);
     try {
-      const element = document.getElementById('professional-detail-content');
+      const element = document.getElementById("professional-detail-content");
       if (!element) return;
 
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        allowTaint: true
+        allowTaint: true,
       });
 
-      if (format === 'png') {
-        const link = document.createElement('a');
-        link.download = `perfil-${professional.nombre_completo?.replace(/\s+/g, '-') || 'profesional'}.png`;
+      if (format === "png") {
+        const link = document.createElement("a");
+        link.download = `perfil-${professional.nombre_completo?.replace(/\s+/g, "-") || "profesional"}.png`;
         link.href = canvas.toDataURL();
         link.click();
       } else {
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF("p", "mm", "a4");
+        const imgData = canvas.toDataURL("image/png");
         const imgWidth = 210;
         const pageHeight = 295;
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         let heightLeft = imgHeight;
         let position = 0;
 
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
 
         while (heightLeft >= 0) {
           position = heightLeft - imgHeight;
           pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
           heightLeft -= pageHeight;
         }
 
-        pdf.save(`perfil-${professional.nombre_completo?.replace(/\s+/g, '-') || 'profesional'}.pdf`);
+        pdf.save(
+          `perfil-${professional.nombre_completo?.replace(/\s+/g, "-") || "profesional"}.pdf`,
+        );
       }
 
       toast({
@@ -86,7 +105,7 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
         description: `El perfil se ha descargado en formato ${format.toUpperCase()}`,
       });
     } catch (error) {
-      console.error('Error al descargar:', error);
+      console.error("Error al descargar:", error);
       toast({
         title: "Error en la descarga",
         description: "No se pudo completar la descarga",
@@ -107,11 +126,11 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
       return;
     }
 
-    let mensaje = '';
-    if (tipoNotificacion === '30_dias_antes') {
-      mensaje = `Estimado/a ${professional.nombre_completo}, su carnet profesional vence el ${professional.fecha_caducidad || 'pronto'}. Por favor, renueve antes del vencimiento. Ministerio de Sanidad - Guinea Ecuatorial`;
-    } else if (tipoNotificacion === '10_dias_despues') {
-      mensaje = `Estimado/a ${professional.nombre_completo}, su carnet profesional venció el ${professional.fecha_caducidad || 'recientemente'}. Debe renovar urgentemente. Contacte al Ministerio de Sanidad - Guinea Ecuatorial`;
+    let mensaje = "";
+    if (tipoNotificacion === "30_dias_antes") {
+      mensaje = `Estimado/a ${professional.nombre_completo}, su carnet profesional vence el ${professional.fecha_caducidad || "pronto"}. Por favor, renueve antes del vencimiento. Ministerio de Sanidad - Guinea Ecuatorial`;
+    } else if (tipoNotificacion === "10_dias_despues") {
+      mensaje = `Estimado/a ${professional.nombre_completo}, su carnet profesional venció el ${professional.fecha_caducidad || "recientemente"}. Debe renovar urgentemente. Contacte al Ministerio de Sanidad - Guinea Ecuatorial`;
     }
 
     try {
@@ -119,7 +138,7 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
         profesionalId: professional.id,
         telefono: professional.telefono,
         tipoNotificacion,
-        mensaje
+        mensaje,
       });
 
       toast({
@@ -127,7 +146,7 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
         description: "La notificación SMS ha sido enviada exitosamente",
       });
     } catch (error) {
-      console.error('Error sending SMS:', error);
+      console.error("Error sending SMS:", error);
       toast({
         title: "Error",
         description: "No se pudo enviar el SMS",
@@ -147,7 +166,7 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
             </span>
             <div className="flex items-center space-x-2">
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger>
                   <Button variant="outline" size="sm" disabled={isDownloading}>
                     <Download className="w-4 h-4 mr-2" />
                     Descargar
@@ -155,11 +174,11 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => handleDownload('pdf')}>
+                  <DropdownMenuItem onClick={() => handleDownload("pdf")}>
                     <FileText className="w-4 h-4 mr-2" />
                     Descargar PDF
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleDownload('png')}>
+                  <DropdownMenuItem onClick={() => handleDownload("png")}>
                     <Download className="w-4 h-4 mr-2" />
                     Descargar PNG
                   </DropdownMenuItem>
@@ -195,7 +214,7 @@ const ProfessionalDetail = ({ professional, onClose }: ProfessionalDetailProps) 
 
             {/* Columna derecha: Estado y documentos */}
             <div className="space-y-4">
-              <ProfessionalCardInfo 
+              <ProfessionalCardInfo
                 professional={professional}
                 daysUntilRenewal={daysUntilRenewal}
                 isRenewalSoon={isRenewalSoon}

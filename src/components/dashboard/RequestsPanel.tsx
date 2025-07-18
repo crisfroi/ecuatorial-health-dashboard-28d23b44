@@ -1191,7 +1191,7 @@ const RequestsPanel = ({
 
       {/* Modal de Detalles del Profesional */}
       {selectedProfessionalForModal && (
-        <ProfessionalDetailsModal
+        <NewProfessionalModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           professional={selectedProfessionalForModal}

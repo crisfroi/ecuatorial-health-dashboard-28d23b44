@@ -473,22 +473,29 @@ const ProfessionalDetailsModal = ({
 
             <TabsContent value="carnet" className="h-full flex flex-col">
               <div className="flex justify-end mb-2">
-                {professional.url_carnet && (
-                  <>
-                    <Button
-                      onClick={handleDownloadCarnetSvg}
-                      className="flex items-center gap-2 mr-2"
-                    >
-                      <Download className="w-4 h-4" /> Descargar SVG
-                    </Button>
-                    <Button
-                      onClick={handleDownloadCarnetAsPdf}
-                      className="flex items-center gap-2"
-                    >
-                      <Download className="w-4 h-4" /> Descargar PDF
-                    </Button>
-                  </>
-                )}
+                {professional.url_carnet &&
+                  professional.estado_solicitud === "Pendiente de Firma" && (
+                    <>
+                      <Button
+                        onClick={handleDownloadCarnetSvg}
+                        className="flex items-center gap-2 mr-2"
+                      >
+                        <Download className="w-4 h-4" /> Descargar SVG
+                      </Button>
+                      <Button
+                        onClick={handleDownloadCarnetAsPdf}
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" /> Descargar PDF
+                      </Button>
+                    </>
+                  )}
+                {professional.url_carnet &&
+                  professional.estado_solicitud !== "Pendiente de Firma" && (
+                    <div className="text-sm text-gray-500 p-2 bg-gray-100 rounded-md">
+                      Descarga disponible solo en estado "Pendiente de Firma"
+                    </div>
+                  )}
               </div>
               <ScrollArea className="flex-grow p-4 rounded-md border bg-gray-50 min-h-0 max-h-[calc(90vh-200px)]">
                 {professional.url_carnet ? (

@@ -99,11 +99,13 @@ const DatabaseDiagnostics = () => {
       });
       channel.unsubscribe();
     } catch (err: any) {
+      logError("Supabase client test failed", err);
       diagnosticResults.push({
         test: "Supabase Client",
         status: "error",
-        message: err.message,
+        message: getErrorMessage(err),
         duration: "N/A",
+        details: err,
       });
     }
 

@@ -123,7 +123,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-guinea-teal">
-            {stats?.aprobados || 0}
+            {effectiveStats?.aprobados || 0}
           </div>
           <p className="text-xs text-muted-foreground">
             Profesionales acreditados

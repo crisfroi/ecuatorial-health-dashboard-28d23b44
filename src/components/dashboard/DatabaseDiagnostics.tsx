@@ -12,6 +12,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getErrorMessage, logError } from "@/utils/errorHandler";
 
 const DatabaseDiagnostics = () => {
   const [isExpanded, setIsExpanded] = useState(false);

@@ -32,8 +32,8 @@ export function useEstadisticasTest() {
           .limit(5);
 
         if (error) {
-          console.error("Select test failed:", error.message || error);
-          throw new Error(`Select failed: ${error.message || "Unknown error"}`);
+          logError("Select test failed", error);
+          throw new Error(`Select failed: ${getErrorMessage(error)}`);
         }
 
         console.log("Test query successful:", data);

@@ -118,10 +118,16 @@ const DatabaseDiagnostics = () => {
         .select("count(*)", { count: "exact", head: true });
       const endTime = Date.now();
 
+      if (error) {
+        logError("Table existence test failed", error);
+      }
+
       diagnosticResults.push({
         test: "Table Existence",
         status: error ? "error" : "success",
-        message: error ? error.message : `Table accessible (count query)`,
+        message: error
+          ? getErrorMessage(error)
+          : `Table accessible (count query)`,
         duration: `${endTime - startTime}ms`,
         details: error ? error : data,
       });

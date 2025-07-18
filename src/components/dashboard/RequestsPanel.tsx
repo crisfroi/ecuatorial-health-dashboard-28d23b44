@@ -955,7 +955,7 @@ const RequestsPanel = ({
                     <Checkbox
                       checked={isAllSelected}
                       onCheckedChange={handleSelectAll}
-                      indeterminate={isIndeterminate}
+                      indeterminate={isIndeterminate ? true : undefined}
                     />
                   </TableHead>
                   <TableHead>Nombre Completo</TableHead>

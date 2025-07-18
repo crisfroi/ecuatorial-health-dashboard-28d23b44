@@ -167,7 +167,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-blue-600">
-            {stats?.revisando || 0}
+            {effectiveStats?.revisando || 0}
           </div>
           <p className="text-xs text-muted-foreground">Siendo evaluadas</p>
           <div className="mt-2 text-xs text-blue-600 font-medium">

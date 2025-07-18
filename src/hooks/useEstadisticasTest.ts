@@ -50,8 +50,8 @@ export function useEstadisticasTest() {
           sampleData: data?.slice(0, 2), // Show first 2 records for debugging
         };
       } catch (err: any) {
-        console.error("Test query failed:", err.message || err);
-        throw err;
+        logError("Test query failed", err);
+        throw new Error(`Test failed: ${getErrorMessage(err)}`);
       }
     },
     retry: 1,

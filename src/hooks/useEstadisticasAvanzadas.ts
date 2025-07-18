@@ -30,11 +30,10 @@ export function useEstadisticasAvanzadas() {
           .select("*");
 
         if (error) {
-          console.error(
-            "Error fetching estadísticas avanzadas:",
-            error.message || error,
+          logError("Error fetching estadísticas avanzadas", error);
+          throw new Error(
+            `Failed to fetch statistics: ${getErrorMessage(error)}`,
           );
-          throw new Error(`Failed to fetch statistics: ${error.message}`);
         }
 
         profesionales = data || [];

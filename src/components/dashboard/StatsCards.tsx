@@ -19,6 +19,11 @@ interface StatsCardsProps {
 
 const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
   const { data: stats, isLoading, error } = useEstadisticasAvanzadas();
+  const {
+    data: testStats,
+    isLoading: testLoading,
+    error: testError,
+  } = useEstadisticasTest();
 
   if (isLoading) {
     return (

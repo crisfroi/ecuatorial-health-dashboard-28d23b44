@@ -187,9 +187,13 @@ const MinisterialPanel = () => {
       { professionalId: professional.id },
       {
         onSuccess: () => {
-          // Trigger refresh of both statistics and lists
+          // Trigger immediate refresh of all data
           refetchPending();
           refetchHistory();
+          // Force component re-render by triggering state change
+          setTimeout(() => {
+            refetchHistory();
+          }, 500);
         },
       },
     );
@@ -215,9 +219,13 @@ const MinisterialPanel = () => {
       {
         onSuccess: () => {
           setSelectedProfessionals([]);
-          // Trigger refresh of both statistics and lists
+          // Trigger immediate refresh of all data
           refetchPending();
           refetchHistory();
+          // Force component re-render by triggering state change
+          setTimeout(() => {
+            refetchHistory();
+          }, 500);
         },
       },
     );

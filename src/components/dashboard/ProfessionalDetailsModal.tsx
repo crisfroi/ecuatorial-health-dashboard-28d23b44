@@ -499,7 +499,7 @@ const ProfessionalDetailsModal = ({
               </div>
               <ScrollArea className="flex-grow p-4 rounded-md border bg-white min-h-0 max-h-[calc(90vh-200px)]">
                 {professional.url_carnet ? (
-                  <div className="text-center p-2 border rounded-lg bg-gray-50">
+                  <div className="text-center p-4 border rounded-lg bg-white shadow-sm">
                     <p className="text-sm font-medium text-gray-600 mb-2">
                       Vista Previa del Carnet
                     </p>

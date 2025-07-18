@@ -910,7 +910,16 @@ const MinisterialPanel = () => {
       </Tabs>
 
       {/* Review Dialog - Enhanced Professional Detail */}
-      <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+      <Dialog
+        open={isReviewDialogOpen}
+        onOpenChange={(open) => {
+          console.log("Dialog open state changing to:", open);
+          setIsReviewDialogOpen(open);
+          if (!open) {
+            setSelectedProfessional(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">

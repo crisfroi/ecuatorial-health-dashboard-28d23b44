@@ -85,6 +85,7 @@ const MinisterialPanel = () => {
   const {
     data: statusHistory = [],
     isLoading: isLoadingHistory,
+    error: historyError,
     refetch: refetchHistory,
   } = useSignatureHistory();
   const signProfessionalMutation = useSignProfessional();
@@ -313,13 +314,38 @@ const MinisterialPanel = () => {
       </div>
 
       {/* Error handling */}
-      {pendingError && (
+      {(pendingError || historyError) && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-red-800">
+            <div className="flex items-center gap-2 text-red-800 mb-2">
               <AlertTriangle className="w-4 h-4" />
-              <span>Error al cargar datos: {pendingError.message}</span>
+              <span className="font-medium">
+                Error al cargar datos del panel ministerial
+              </span>
             </div>
+            {pendingError && (
+              <div className="text-sm text-red-700 mb-1">
+                • Solicitudes pendientes:{" "}
+                {pendingError.message || "Error desconocido"}
+              </div>
+            )}
+            {historyError && (
+              <div className="text-sm text-red-700 mb-2">
+                • Historial: {historyError.message || "Error desconocido"}
+              </div>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                refetchPending();
+                refetchHistory();
+              }}
+              className="mt-2"
+            >
+              <RefreshCw className="w-3 h-3 mr-1" />
+              Reintentar
+            </Button>
           </CardContent>
         </Card>
       )}

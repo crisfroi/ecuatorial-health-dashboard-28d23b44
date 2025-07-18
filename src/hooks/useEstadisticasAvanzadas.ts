@@ -17,8 +17,13 @@ export function useEstadisticasAvanzadas() {
           .limit(1);
 
         if (healthError) {
-          console.error("Health check failed:", healthError);
-          throw new Error(`Database connection failed: ${healthError.message}`);
+          console.error(
+            "Health check failed:",
+            healthError.message || healthError,
+          );
+          throw new Error(
+            `Database connection failed: ${healthError.message || "Unknown database error"}`,
+          );
         }
 
         // Ahora hacemos la consulta completa

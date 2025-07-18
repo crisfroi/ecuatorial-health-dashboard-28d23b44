@@ -54,7 +54,7 @@ import OpenAIChat from "@/components/dashboard/OpenAIChat";
 import MinisterialPanel from "@/components/dashboard/MinisterialPanel";
 import HospitalIncidents from "@/components/dashboard/HospitalIncidents";
 import HealthCenters from "@/components/dashboard/HealthCenters";
-import UserRoleManagement from "@/components/dashboard/UserRoleManagement";
+import AdminPanel from "@/components/dashboard/AdminPanel";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -589,7 +589,7 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
-            {userRole === "administrador" && <UserRoleManagement />}
+            {userRole === "administrador" && <AdminPanel />}
           </TabsContent>
         </Tabs>
       </div>

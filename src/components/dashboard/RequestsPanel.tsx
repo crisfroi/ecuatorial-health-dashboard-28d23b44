@@ -1124,7 +1124,7 @@ const RequestsPanel = ({
                                 </Button>
 
                                 <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
+                                  <DropdownMenuTrigger>
                                     <Button
                                       variant="ghost"
                                       size="sm"

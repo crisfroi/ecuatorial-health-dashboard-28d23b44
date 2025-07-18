@@ -7,6 +7,7 @@ export interface SignatureHistoryEntry {
   accion: string;
   usuario: string;
   fecha: string;
+  fechaDisplay?: string;
   detalles: string;
   tipo: "approval" | "rejection" | "status_change";
   estado_anterior?: string;

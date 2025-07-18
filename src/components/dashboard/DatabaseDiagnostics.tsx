@@ -171,9 +171,9 @@ const DatabaseDiagnostics = () => {
       });
     }
 
-    // Test 4: Simple select
+    // Test 5: Simple select
     try {
-      console.log("Running diagnostic 4: Simple select...");
+      console.log("Running diagnostic 5: Simple select...");
       const startTime = Date.now();
       const { data, error } = await supabase
         .from("profesionales_sanitarios")

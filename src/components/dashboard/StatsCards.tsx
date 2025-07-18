@@ -78,6 +78,21 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
   console.log("StatsCards: Is loading:", isLoading);
   console.log("StatsCards: Error:", error);
 
+  if (!stats) {
+    console.log("StatsCards: No stats data available");
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-gray-500">
+              No hay datos de estadísticas disponibles
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <Card

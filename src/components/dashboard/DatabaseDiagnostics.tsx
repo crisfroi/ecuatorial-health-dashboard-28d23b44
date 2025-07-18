@@ -24,6 +24,35 @@ const DatabaseDiagnostics = () => {
     setResults([]);
     const diagnosticResults = [];
 
+    // Test 0: Internet connectivity
+    try {
+      console.log("Running diagnostic 0: Internet connectivity...");
+      const startTime = Date.now();
+      const response = await fetch("https://httpbin.org/status/200", {
+        method: "GET",
+        mode: "cors",
+      });
+      const endTime = Date.now();
+
+      diagnosticResults.push({
+        test: "Internet Connectivity",
+        status: response.ok ? "success" : "error",
+        message: response.ok
+          ? "Internet connection working"
+          : `Network error ${response.status}`,
+        duration: `${endTime - startTime}ms`,
+      });
+    } catch (err: any) {
+      logError("Internet connectivity test failed", err);
+      diagnosticResults.push({
+        test: "Internet Connectivity",
+        status: "error",
+        message: getErrorMessage(err),
+        duration: "N/A",
+        details: err,
+      });
+    }
+
     // Test 1: Basic connection
     try {
       console.log("Running diagnostic 1: Basic connection...");

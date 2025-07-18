@@ -96,15 +96,11 @@ const MinisterialPanel = () => {
   const [selectedProfessionals, setSelectedProfessionals] = useState<string[]>(
     [],
   );
-  const [signatureReason, setSignatureReason] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
-  const [multiSignatureReason, setMultiSignatureReason] = useState("");
 
   // Dialog states
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
-  const [isSignDialogOpen, setIsSignDialogOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
-  const [isMultiSignDialogOpen, setIsMultiSignDialogOpen] = useState(false);
 
   // Settings
 

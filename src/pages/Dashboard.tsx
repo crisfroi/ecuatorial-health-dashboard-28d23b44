@@ -471,6 +471,8 @@ const Dashboard = () => {
           </Card>
         )}
 
+        <ConnectionStatus />
+
         {showStatsCards && (
           <div className="mb-6">
             <StatsCards

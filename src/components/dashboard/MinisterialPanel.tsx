@@ -241,6 +241,13 @@ const MinisterialPanel = () => {
           setIsRejectDialogOpen(false);
           setRejectionReason("");
           setSelectedProfessional(null);
+          // Trigger immediate refresh of all data
+          refetchPending();
+          refetchHistory();
+          // Force component re-render by triggering state change
+          setTimeout(() => {
+            refetchHistory();
+          }, 500);
         },
       },
     );

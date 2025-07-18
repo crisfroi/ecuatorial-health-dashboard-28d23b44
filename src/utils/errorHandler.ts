@@ -37,6 +37,9 @@ export function getErrorMessage(error: any): string {
   // Intentar extraer información útil del objeto
   try {
     const keys = Object.keys(error);
+    console.log("Error object keys:", keys); // Debug logging
+    console.log("Error object:", error); // Full object logging
+
     if (keys.length > 0) {
       const relevantKeys = keys.filter((key) =>
         [
@@ -46,21 +49,36 @@ export function getErrorMessage(error: any): string {
           "description",
           "reason",
           "cause",
+          "name",
+          "stack",
         ].includes(key),
       );
 
-      if (relevantKeys.length > 0) {
-        return relevantKeys.map((key) => `${key}: ${error[key]}`).join(", ");
+      const keyValues: string[] = [];
+      for (const key of relevantKeys) {
+        const value = error[key];
+        if (value && typeof value === "string" && value.trim()) {
+          keyValues.push(`${key}: ${value.substring(0, 100)}`);
+        } else if (value && typeof value !== "string") {
+          keyValues.push(`${key}: ${typeof value}`);
+        }
       }
 
-      // Si no hay keys relevantes, mostrar los primeros valores
-      return keys
-        .slice(0, 3)
-        .map((key) => `${key}: ${error[key]}`)
-        .join(", ");
+      if (keyValues.length > 0) {
+        return keyValues.join(" | ");
+      }
+
+      // Si no hay keys relevantes con contenido, mostrar información básica
+      const basicInfo: string[] = [];
+      if (error.constructor && error.constructor.name) {
+        basicInfo.push(`Type: ${error.constructor.name}`);
+      }
+      basicInfo.push(`Keys: [${keys.slice(0, 5).join(", ")}]`);
+
+      return basicInfo.join(" | ");
     }
   } catch (e) {
-    // Si falla al acceder a las propiedades
+    console.error("Failed to extract error keys:", e);
   }
 
   // Como último recurso, intentar JSON.stringify

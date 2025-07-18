@@ -434,7 +434,7 @@ const MinisterialPanel = () => {
       </div>
 
       <Tabs defaultValue="signatures" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger
             value="signatures"
             className="flex items-center space-x-2"
@@ -452,10 +452,6 @@ const MinisterialPanel = () => {
           >
             <BarChart3 className="w-4 h-4" />
             <span>Estadísticas</span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center space-x-2">
-            <Settings className="w-4 h-4" />
-            <span>Configuración</span>
           </TabsTrigger>
         </TabsList>
 

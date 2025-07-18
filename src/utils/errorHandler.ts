@@ -9,9 +9,19 @@ export function getErrorMessage(error: any): string {
     return "Unknown error occurred";
   }
 
-  // Si tiene propiedad message y no está vacía
-  if (error.message && error.message.trim()) {
-    return error.message;
+  // Si tiene propiedad message
+  if (error.message !== undefined) {
+    // Si el message es un string válido
+    if (typeof error.message === "string" && error.message.trim()) {
+      return error.message;
+    }
+    // Si el message es un objeto, intentar extraer información
+    if (typeof error.message === "object" && error.message !== null) {
+      const nestedMessage = getErrorMessage(error.message);
+      if (nestedMessage !== "Unknown error occurred") {
+        return nestedMessage;
+      }
+    }
   }
 
   // Si es un error de Supabase con details
@@ -59,8 +69,18 @@ export function getErrorMessage(error: any): string {
         const value = error[key];
         if (value && typeof value === "string" && value.trim()) {
           keyValues.push(`${key}: ${value.substring(0, 100)}`);
-        } else if (value && typeof value !== "string") {
-          keyValues.push(`${key}: ${typeof value}`);
+        } else if (value && typeof value === "object" && value !== null) {
+          // Recursively try to extract message from nested objects
+          const nestedMessage = getErrorMessage(value);
+          if (nestedMessage !== "Unknown error occurred") {
+            keyValues.push(`${key}: ${nestedMessage.substring(0, 100)}`);
+          } else {
+            keyValues.push(
+              `${key}: [object ${value.constructor?.name || "Object"}]`,
+            );
+          }
+        } else if (value !== undefined && value !== null) {
+          keyValues.push(`${key}: ${String(value).substring(0, 50)}`);
         }
       }
 

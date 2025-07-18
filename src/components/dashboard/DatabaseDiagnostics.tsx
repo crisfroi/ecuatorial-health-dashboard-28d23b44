@@ -132,11 +132,13 @@ const DatabaseDiagnostics = () => {
         details: error ? error : data,
       });
     } catch (err: any) {
+      logError("Table existence test failed", err);
       diagnosticResults.push({
         test: "Table Existence",
         status: "error",
-        message: err.message,
+        message: getErrorMessage(err),
         duration: "N/A",
+        details: err,
       });
     }
 

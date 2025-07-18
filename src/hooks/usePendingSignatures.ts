@@ -149,8 +149,27 @@ export function useSignProfessional() {
         .single();
 
       if (error) {
-        console.error("Error signing professional:", error);
-        throw error;
+        console.error("Error signing professional:", {
+          error,
+          type: typeof error,
+          message: error?.message,
+          details: error?.details,
+          hint: error?.hint,
+          code: error?.code,
+          stringified: JSON.stringify(
+            error,
+            Object.getOwnPropertyNames(error),
+            2,
+          ),
+        });
+
+        const errorMessage =
+          error?.details ||
+          error?.hint ||
+          error?.message ||
+          `Database error (code: ${error?.code || "unknown"})`;
+
+        throw new Error(`Failed to sign professional: ${errorMessage}`);
       }
 
       return data;
@@ -203,8 +222,29 @@ export function useSignMultipleProfessionals() {
         .select("id, nombre, apellidos");
 
       if (error) {
-        console.error("Error signing multiple professionals:", error);
-        throw error;
+        console.error("Error signing multiple professionals:", {
+          error,
+          type: typeof error,
+          message: error?.message,
+          details: error?.details,
+          hint: error?.hint,
+          code: error?.code,
+          stringified: JSON.stringify(
+            error,
+            Object.getOwnPropertyNames(error),
+            2,
+          ),
+        });
+
+        const errorMessage =
+          error?.details ||
+          error?.hint ||
+          error?.message ||
+          `Database error (code: ${error?.code || "unknown"})`;
+
+        throw new Error(
+          `Failed to sign multiple professionals: ${errorMessage}`,
+        );
       }
 
       return data;
@@ -256,8 +296,27 @@ export function useRejectProfessional() {
         .single();
 
       if (error) {
-        console.error("Error rejecting professional:", error);
-        throw error;
+        console.error("Error rejecting professional:", {
+          error,
+          type: typeof error,
+          message: error?.message,
+          details: error?.details,
+          hint: error?.hint,
+          code: error?.code,
+          stringified: JSON.stringify(
+            error,
+            Object.getOwnPropertyNames(error),
+            2,
+          ),
+        });
+
+        const errorMessage =
+          error?.details ||
+          error?.hint ||
+          error?.message ||
+          `Database error (code: ${error?.code || "unknown"})`;
+
+        throw new Error(`Failed to reject professional: ${errorMessage}`);
       }
 
       return data;

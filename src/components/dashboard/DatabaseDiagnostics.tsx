@@ -199,9 +199,9 @@ const DatabaseDiagnostics = () => {
       });
     }
 
-    // Test 5: Full select query (like estadisticas)
+    // Test 6: Full select query (like estadisticas)
     try {
-      console.log("Running diagnostic 5: Full select...");
+      console.log("Running diagnostic 6: Full select...");
       const startTime = Date.now();
       const { data, error } = await supabase
         .from("profesionales_sanitarios")

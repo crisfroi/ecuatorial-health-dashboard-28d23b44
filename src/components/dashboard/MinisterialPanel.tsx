@@ -57,6 +57,8 @@ import {
   Building2,
   Bell,
   RefreshCw,
+  User,
+  X,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 

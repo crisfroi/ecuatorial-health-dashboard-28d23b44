@@ -201,34 +201,6 @@ const MinisterialPanel = () => {
     );
   };
 
-  const confirmSignature = () => {
-    if (!selectedProfessional) return;
-
-    signProfessionalMutation.mutate(
-      { professionalId: selectedProfessional.id, reason: signatureReason },
-      {
-        onSuccess: () => {
-          setIsSignDialogOpen(false);
-          setSignatureReason("");
-          setSelectedProfessional(null);
-        },
-      },
-    );
-  };
-
-  const confirmMultipleSignature = () => {
-    signMultipleMutation.mutate(
-      { professionalIds: selectedProfessionals, reason: multiSignatureReason },
-      {
-        onSuccess: () => {
-          setIsMultiSignDialogOpen(false);
-          setMultiSignatureReason("");
-          setSelectedProfessionals([]);
-        },
-      },
-    );
-  };
-
   const confirmRejection = () => {
     if (!selectedProfessional || !rejectionReason.trim()) return;
 

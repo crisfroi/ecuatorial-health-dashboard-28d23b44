@@ -234,7 +234,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-red-600">
-            {stats?.carnetVencidos || 0}
+            {effectiveStats?.carnetVencidos || 0}
           </div>
           <p className="text-xs text-muted-foreground">Requieren renovación</p>
           <div className="mt-2 text-xs text-blue-600 font-medium">

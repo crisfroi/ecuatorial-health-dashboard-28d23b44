@@ -31,6 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ConnectionStatus from "@/components/dashboard/ConnectionStatus";
 import DatabaseDiagnostics from "@/components/dashboard/DatabaseDiagnostics";
 import ErrorAnalysis from "@/components/dashboard/ErrorAnalysis";
+import SimpleConnectionTest from "@/components/dashboard/SimpleConnectionTest";
 import UserRoleManagement from "@/components/dashboard/UserRoleManagement";
 
 const AdminPanel = () => {
@@ -366,6 +367,7 @@ const AdminPanel = () => {
 
         <TabsContent value="diagnostics">
           <div className="space-y-6">
+            <SimpleConnectionTest />
             <ConnectionStatus />
             <ErrorAnalysis />
           </div>

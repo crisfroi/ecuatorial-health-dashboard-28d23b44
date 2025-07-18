@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 // Importamos el nuevo modal y los componentes de generación de PDF
-import ProfessionalDetailsModal from "@/components/dashboard/ProfessionalDetailsModal"; // Ajusta el path si es diferente
+import NewProfessionalModal from "@/components/dashboard/NewProfessionalModal";
 import ApprovalLetter from "@/components/registration/ApprovalLetter"; // Para generación oculta
 // PDFSummary ya no se importa ni se usa aquí
 

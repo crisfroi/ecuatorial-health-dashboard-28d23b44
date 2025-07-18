@@ -18,10 +18,10 @@ export function useSupabaseHealth() {
         const responseTime = Date.now() - startTime;
 
         if (error) {
-          console.error("Health check failed:", error);
+          console.error("Health check failed:", error.message || error);
           return {
             status: "error",
-            message: error.message,
+            message: error.message || "Database connection error",
             details: error,
             responseTime,
           };

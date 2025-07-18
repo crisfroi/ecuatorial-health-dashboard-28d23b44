@@ -424,20 +424,21 @@ const NewProfessionalModal = ({
                   )}
               </div>
 
-              <div className="h-[calc(90vh-250px)] rounded-md border bg-gray-50 p-4">
+                            <div className="h-[calc(90vh-250px)] rounded-md border bg-gray-50">
                 {professional.url_carnet ? (
-                  <div className="h-full flex flex-col items-center">
-                    <div className="text-center mb-4">
-                      <p className="text-sm font-medium text-gray-600 mb-2">
+                  <div className="h-full flex flex-col">
+                    <div className="text-center p-4 border-b bg-white">
+                      <p className="text-sm font-medium text-gray-600">
                         Vista Previa del Carnet
                       </p>
                     </div>
 
-                    <div className="flex-1 flex items-center justify-center w-full">
-                      <img
-                        src={professional.url_carnet}
-                        alt="Carnet Profesional"
-                        className="max-w-full max-h-full object-contain border rounded-md shadow-sm bg-white"
+                    <ScrollArea className="flex-1">
+                      <div className="p-4 flex justify-center">
+                        <img
+                          src={professional.url_carnet}
+                          alt="Carnet Profesional"
+                          className="w-full max-w-lg h-auto object-contain border rounded-md shadow-sm bg-white"
                         onError={(e) => {
                           console.error(
                             "Error loading carnet image:",

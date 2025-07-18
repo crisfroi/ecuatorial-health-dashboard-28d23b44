@@ -11,6 +11,7 @@ import {
   PersonStanding,
 } from "lucide-react";
 import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
+import { useEstadisticasTest } from "@/hooks/useEstadisticasTest";
 
 interface StatsCardsProps {
   onNavigateToProfessionals: (filters: any) => void;

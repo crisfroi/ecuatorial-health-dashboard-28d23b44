@@ -518,7 +518,7 @@ const ProfessionalDetailsModal = ({
                     />
                   </div>
                 ) : (
-                  <div className="text-center p-4 bg-gray-100 rounded-md">
+                  <div className="text-center p-8 bg-gray-100 rounded-md">
                     <p className="text-sm text-gray-500 flex items-center justify-center">
                       <AlertTriangle className="w-4 h-4 mr-2 text-orange-500" />{" "}
                       Vista previa del carnet no disponible.

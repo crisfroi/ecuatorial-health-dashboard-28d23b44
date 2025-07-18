@@ -7,17 +7,47 @@ export function useEstadisticasAvanzadas() {
     queryFn: async () => {
       console.log("Fetching estadísticas avanzadas...");
 
-      // La consulta sigue seleccionando *todos* los profesionales
-      const { data, error } = await supabase
-        .from("profesionales_sanitarios")
-        .select("*");
+      try {
+        // Primero verificamos la conectividad básica
+        const { data: healthCheck, error: healthError } = await supabase
+          .from("profesionales_sanitarios")
+          .select("id")
+          .limit(1);
 
-      if (error) {
-        console.error(
-          "Error fetching estadísticas avanzadas:",
-          error.message || error,
-        );
-        throw error;
+        if (healthError) {
+          console.error("Health check failed:", healthError);
+          throw new Error(`Database connection failed: ${healthError.message}`);
+        }
+
+        // Ahora hacemos la consulta completa
+        const { data, error } = await supabase
+          .from("profesionales_sanitarios")
+          .select("*");
+
+        if (error) {
+          console.error(
+            "Error fetching estadísticas avanzadas:",
+            error.message || error,
+          );
+          throw new Error(`Failed to fetch statistics: ${error.message}`);
+        }
+
+        console.log(`Successfully fetched ${data?.length || 0} professionals`);
+      } catch (fetchError: any) {
+        console.error("Network or fetch error:", fetchError);
+
+        // Verificar si es un error de red
+        if (
+          fetchError.name === "TypeError" &&
+          fetchError.message.includes("fetch")
+        ) {
+          throw new Error(
+            "Network connection failed. Please check your internet connection and try again.",
+          );
+        }
+
+        // Re-lanzar otros errores
+        throw fetchError;
       }
 
       const profesionales = data || []; // Estos son TODOS los profesionales

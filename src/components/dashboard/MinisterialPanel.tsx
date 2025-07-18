@@ -788,7 +788,7 @@ const MinisterialPanel = () => {
                           </Badge>
                         </div>
                         <span className="text-sm text-gray-500">
-                          {entry.fecha}
+                          {entry.fechaDisplay || entry.fecha}
                         </span>
                       </div>
                       <p className="text-sm text-gray-700 mb-1">

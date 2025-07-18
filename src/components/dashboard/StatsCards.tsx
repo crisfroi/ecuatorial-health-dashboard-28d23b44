@@ -188,10 +188,10 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-red-600">
-            {stats?.rechazados || 0}
+            {effectiveStats?.rechazados || 0}
           </div>
           <p className="text-xs text-muted-foreground">
-            Tasa: {stats?.tasaRechazo || 0}%
+            Tasa: {effectiveStats?.tasaRechazo || 0}%
           </p>
           <div className="mt-2 text-xs text-blue-600 font-medium">
             Clic para ver detalles →

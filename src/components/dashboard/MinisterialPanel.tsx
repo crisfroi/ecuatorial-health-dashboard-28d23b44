@@ -161,8 +161,16 @@ const MinisterialPanel = () => {
   };
 
   const handleSignProfessional = (professional: PendingSignature) => {
-    setSelectedProfessional(professional);
-    setIsSignDialogOpen(true);
+    signProfessionalMutation.mutate(
+      { professionalId: professional.id },
+      {
+        onSuccess: () => {
+          // Trigger refresh of both statistics and lists
+          refetchPending();
+          refetchHistory();
+        },
+      },
+    );
   };
 
   const handleRejectProfessional = (professional: PendingSignature) => {
@@ -179,7 +187,18 @@ const MinisterialPanel = () => {
       });
       return;
     }
-    setIsMultiSignDialogOpen(true);
+
+    signMultipleMutation.mutate(
+      { professionalIds: selectedProfessionals },
+      {
+        onSuccess: () => {
+          setSelectedProfessionals([]);
+          // Trigger refresh of both statistics and lists
+          refetchPending();
+          refetchHistory();
+        },
+      },
+    );
   };
 
   const confirmSignature = () => {

@@ -25,6 +25,10 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     isLoading: testLoading,
     error: testError,
   } = useEstadisticasTest();
+  const { data: mockStats, isLoading: mockLoading } = useEstadisticasMock();
+
+  // TEMPORALMENTE usar datos mock si los otros fallan (para testing)
+  const effectiveStats = stats || mockStats;
 
   if (isLoading) {
     return (

@@ -219,7 +219,6 @@ export function useSignMultipleProfessionals() {
         .update({
           estado_solicitud: "Aprobado",
           fecha_aprobacion: new Date().toISOString(),
-          notas_aprobacion: reason || null,
         })
         .in("id", professionalIds)
         .select("id, nombre, apellidos");

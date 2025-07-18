@@ -475,6 +475,7 @@ const Dashboard = () => {
 
         <ConnectionStatus />
         <DatabaseDiagnostics />
+        <ErrorAnalysis />
 
         {showStatsCards && (
           <div className="mb-6">

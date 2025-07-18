@@ -28,7 +28,7 @@ export function useSignatureHistory() {
           nombre,
           apellidos,
           fecha_aprobacion,
-          notas_aprobacion,
+          titulacion_especifica_1,
           area_profesional
         `,
         )
@@ -126,9 +126,7 @@ export function useSignatureHistory() {
             fecha: new Date(professional.fecha_aprobacion).toLocaleString(
               "es-ES",
             ),
-            detalles:
-              professional.notas_aprobacion ||
-              "Aprobación ministerial completada",
+            detalles: "Aprobación ministerial completada",
             tipo: "approval",
             estado_anterior: "Pendiente de Firma",
             estado_nuevo: "Aprobado",

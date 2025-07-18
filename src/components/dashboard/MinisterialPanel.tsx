@@ -178,6 +178,7 @@ const MinisterialPanel = () => {
 
   // Action handlers
   const handleReviewProfessional = (professional: PendingSignature) => {
+    console.log("Opening review dialog for:", professional);
     setSelectedProfessional(professional);
     setIsReviewDialogOpen(true);
   };

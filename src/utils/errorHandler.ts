@@ -81,18 +81,18 @@ export function getErrorMessage(error: any): string {
     console.error("Failed to extract error keys:", e);
   }
 
-  // Como último recurso, intentar JSON.stringify
+  // Como último recurso, intentar JSON.stringify con replacer para capturar más propiedades
   try {
-    const jsonStr = JSON.stringify(error);
-    if (jsonStr && jsonStr !== "{}") {
-      return jsonStr.substring(0, 200); // Limitar longitud
+    const jsonStr = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
+    if (jsonStr && jsonStr !== "{}" && jsonStr !== "null") {
+      return `JSON: ${jsonStr.substring(0, 300)}`;
     }
   } catch (e) {
-    // Si JSON.stringify falla
+    console.error("Failed to stringify error:", e);
   }
 
-  // Fallback final
-  return `Error object: ${typeof error} (cannot extract readable message)`;
+  // Fallback final con más información
+  return `Error object: ${typeof error} (constructor: ${error?.constructor?.name || "unknown"}, toString: ${error?.toString?.() || "unavailable"})`;
 }
 
 export function logError(context: string, error: any): void {

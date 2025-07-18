@@ -94,7 +94,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
   console.log("StatsCards: Mock stats data:", mockStats);
   console.log("StatsCards: Effective stats (final):", effectiveStats);
 
-  if (!stats) {
+  if (!effectiveStats) {
     console.log("StatsCards: No stats data available");
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

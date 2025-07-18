@@ -146,7 +146,6 @@ export function useSignProfessional() {
         .update({
           estado_solicitud: "Aprobado",
           fecha_aprobacion: new Date().toISOString(),
-          notas_aprobacion: reason || null,
         })
         .eq("id", professionalId)
         .select("nombre, apellidos")

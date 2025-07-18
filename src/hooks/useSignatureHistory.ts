@@ -123,9 +123,10 @@ export function useSignatureHistory() {
             profesional: fullName,
             accion: "Solicitud aprobada y firmada",
             usuario: "Ministro de Sanidad", // TODO: Get actual user from auth
-            fecha: new Date(professional.fecha_aprobacion).toLocaleString(
-              "es-ES",
-            ),
+            fecha: professional.fecha_aprobacion, // Keep ISO string for calculations
+            fechaDisplay: new Date(
+              professional.fecha_aprobacion,
+            ).toLocaleString("es-ES"),
             detalles: "Aprobación ministerial completada",
             tipo: "approval",
             estado_anterior: "Pendiente de Firma",
@@ -144,7 +145,10 @@ export function useSignatureHistory() {
             profesional: fullName,
             accion: "Solicitud rechazada",
             usuario: "Ministro de Sanidad", // TODO: Get actual user from auth
-            fecha: new Date(professional.fecha_rechazo).toLocaleString("es-ES"),
+            fecha: professional.fecha_rechazo, // Keep ISO string for calculations
+            fechaDisplay: new Date(professional.fecha_rechazo).toLocaleString(
+              "es-ES",
+            ),
             detalles:
               professional.motivo_rechazo ||
               "Solicitud rechazada por el ministerio",

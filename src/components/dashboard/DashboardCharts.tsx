@@ -1,18 +1,37 @@
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, TrendingUp, BarChart3, PieChart } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { useEstadisticasAvanzadas } from '@/hooks/useEstadisticasAvanzadas';
-import ChartActions from './ChartActions';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, TrendingUp, BarChart3, PieChart } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+} from "recharts";
+import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
+import ChartActions from "./ChartActions";
 
 interface DashboardChartsProps {
   onChartClick: (data: any, chartType: string) => void;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#8884D8",
+  "#82CA9D",
+];
 
 const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
-  const { data: stats, isLoading } = useEstadisticasAvanzadas();
+  const { data: stats, isLoading, error } = useEstadisticasAvanzadas();
 
   if (isLoading) {
     return (
@@ -40,15 +59,17 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
             <BarChart3 className="w-5 h-5 text-guinea-teal" />
             <span>Profesionales por Área</span>
           </CardTitle>
-          <p className="text-sm text-gray-600">Clic en cualquier barra para filtrar</p>
+          <p className="text-sm text-gray-600">
+            Clic en cualquier barra para filtrar
+          </p>
         </CardHeader>
         <CardContent>
           <ChartActions title="Profesionales por Área">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={stats?.datosGraficoAreas || []}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="area" 
+                <XAxis
+                  dataKey="area"
                   angle={-45}
                   textAnchor="end"
                   height={80}
@@ -56,10 +77,10 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
                 />
                 <YAxis />
                 <Tooltip />
-                <Bar 
-                  dataKey="cantidad" 
-                  fill="hsl(var(--guinea-teal))" 
-                  onClick={(data) => onChartClick(data, 'area_profesional')}
+                <Bar
+                  dataKey="cantidad"
+                  fill="hsl(var(--guinea-teal))"
+                  onClick={(data) => onChartClick(data, "area_profesional")}
                   className="cursor-pointer hover:opacity-80"
                 />
               </BarChart>
@@ -75,7 +96,9 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
             <PieChart className="w-5 h-5 text-guinea-teal" />
             <span>Distribución por Provincia</span>
           </CardTitle>
-          <p className="text-sm text-gray-600">Clic en cualquier sector para filtrar</p>
+          <p className="text-sm text-gray-600">
+            Clic en cualquier sector para filtrar
+          </p>
         </CardHeader>
         <CardContent>
           <ChartActions title="Distribución por Provincia">
@@ -86,15 +109,20 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ provincia, cantidad }) => `${provincia}: ${cantidad}`}
+                  label={({ provincia, cantidad }) =>
+                    `${provincia}: ${cantidad}`
+                  }
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="cantidad"
-                  onClick={(data) => onChartClick(data, 'provincia')}
+                  onClick={(data) => onChartClick(data, "provincia")}
                   className="cursor-pointer hover:opacity-80"
                 >
                   {(stats?.datosGraficoProvincias || []).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -111,7 +139,9 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
             <Users className="w-5 h-5 text-guinea-teal" />
             <span>Estados de Solicitud</span>
           </CardTitle>
-          <p className="text-sm text-gray-600">Clic en cualquier barra para filtrar</p>
+          <p className="text-sm text-gray-600">
+            Clic en cualquier barra para filtrar
+          </p>
         </CardHeader>
         <CardContent>
           <ChartActions title="Estados de Solicitud">
@@ -121,10 +151,10 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
                 <XAxis dataKey="estado" />
                 <YAxis />
                 <Tooltip />
-                <Bar 
-                  dataKey="cantidad" 
+                <Bar
+                  dataKey="cantidad"
                   fill="#22c55e"
-                  onClick={(data) => onChartClick(data, 'estado_solicitud')}
+                  onClick={(data) => onChartClick(data, "estado_solicitud")}
                   className="cursor-pointer hover:opacity-80"
                 />
               </BarChart>
@@ -140,7 +170,9 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
             <TrendingUp className="w-5 h-5 text-guinea-teal" />
             <span>Tendencia de Registros (12 meses)</span>
           </CardTitle>
-          <p className="text-sm text-gray-600">Evolución temporal de registros</p>
+          <p className="text-sm text-gray-600">
+            Evolución temporal de registros
+          </p>
         </CardHeader>
         <CardContent>
           <ChartActions title="Tendencia de Registros">
@@ -150,10 +182,10 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
                 <XAxis dataKey="mes" />
                 <YAxis />
                 <Tooltip />
-                <Line 
-                  type="monotone" 
-                  dataKey="registros" 
-                  stroke="hsl(var(--guinea-teal))" 
+                <Line
+                  type="monotone"
+                  dataKey="registros"
+                  stroke="hsl(var(--guinea-teal))"
                   strokeWidth={2}
                   dot={{ fill: "hsl(var(--guinea-teal))" }}
                 />

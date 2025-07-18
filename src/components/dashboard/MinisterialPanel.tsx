@@ -70,6 +70,13 @@ import {
 } from "@/hooks/usePendingSignatures";
 import { useSignatureHistory } from "@/hooks/useSignatureHistory";
 
+// Import professional detail components
+import PersonalInfoCard from "./professional-detail/PersonalInfoCard";
+import EducationCard from "./professional-detail/EducationCard";
+import WorkplaceCard from "./professional-detail/WorkplaceCard";
+import ProfessionalCardInfo from "./professional-detail/ProfessionalCardInfo";
+import StatusCard from "./professional-detail/StatusCard";
+
 const MinisterialPanel = () => {
   const { toast } = useToast();
 

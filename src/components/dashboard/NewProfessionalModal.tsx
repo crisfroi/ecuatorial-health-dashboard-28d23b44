@@ -431,9 +431,6 @@ const NewProfessionalModal = ({
                       <p className="text-sm font-medium text-gray-600 mb-2">
                         Vista Previa del Carnet
                       </p>
-                      <p className="text-xs text-gray-500 break-all">
-                        URL: {professional.url_carnet}
-                      </p>
                     </div>
 
                     <div className="flex-1 flex items-center justify-center w-full">

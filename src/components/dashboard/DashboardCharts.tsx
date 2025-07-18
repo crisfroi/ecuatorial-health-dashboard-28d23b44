@@ -73,6 +73,20 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
     );
   }
 
+  if (!stats) {
+    console.log("DashboardCharts: No stats data available");
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">
+            No hay datos disponibles para los gráficos
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Gráfico de barras por área profesional */}

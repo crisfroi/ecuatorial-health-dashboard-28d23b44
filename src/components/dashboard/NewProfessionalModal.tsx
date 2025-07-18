@@ -424,7 +424,7 @@ const NewProfessionalModal = ({
                   )}
               </div>
 
-                            <div className="h-[calc(90vh-250px)] rounded-md border bg-gray-50">
+              <div className="h-[calc(90vh-250px)] rounded-md border bg-gray-50">
                 {professional.url_carnet ? (
                   <div className="h-full flex flex-col">
                     <div className="text-center p-4 border-b bg-white">
@@ -439,24 +439,25 @@ const NewProfessionalModal = ({
                           src={professional.url_carnet}
                           alt="Carnet Profesional"
                           className="w-full max-w-lg h-auto object-contain border rounded-md shadow-sm bg-white"
-                        onError={(e) => {
-                          console.error(
-                            "Error loading carnet image:",
-                            professional.url_carnet,
-                          );
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.alt = "Error al cargar el carnet";
-                          e.currentTarget.src =
-                            "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDI0MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI0MCIgaGVpZ2h0PSIxNTAiIHJ4PSI4IiBmaWxsPSIjRkZEREREIi8+PHBhdGggZD0iTTYwIDQwSDE4MFY3MEg2MFY0ME0xMDAgODBIMTgwTTEwMCAxMDBIMTgwTTEwMCAxMjBIMTgwIiBzdHJva2U9IiNFRjQ0NDQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHRleHQgeD0iMTIwIiB5PSI1OCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjRUY0NDQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FcnJvciBhbCBjYXJnYXI8L3RleHQ+PC9zdmc+";
-                        }}
-                        onLoad={() => {
-                          console.log(
-                            "Carnet image loaded successfully:",
-                            professional.url_carnet,
-                          );
-                        }}
-                      />
-                    </div>
+                          onError={(e) => {
+                            console.error(
+                              "Error loading carnet image:",
+                              professional.url_carnet,
+                            );
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.alt = "Error al cargar el carnet";
+                            e.currentTarget.src =
+                              "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDI0MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI0MCIgaGVpZ2h0PSIxNTAiIHJ4PSI4IiBmaWxsPSIjRkZEREREIi8+PHBhdGggZD0iTTYwIDQwSDE4MFY3MEg2MFY0ME0xMDAgODBIMTgwTTEwMCAxMDBIMTgwTTEwMCAxMjBIMTgwIiBzdHJva2U9IiNFRjQ0NDQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHRleHQgeD0iMTIwIiB5PSI1OCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjRUY0NDQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FcnJvciBhbCBjYXJnYXI8L3RleHQ+PC9zdmc+";
+                          }}
+                          onLoad={() => {
+                            console.log(
+                              "Carnet image loaded successfully:",
+                              professional.url_carnet,
+                            );
+                          }}
+                        />
+                      </div>
+                    </ScrollArea>
 
                     {professional.estado_solicitud !== "Pendiente de Firma" && (
                       <div className="mt-4 text-center">

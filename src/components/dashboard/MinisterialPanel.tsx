@@ -120,18 +120,31 @@ const MinisterialPanel = () => {
     (item) => urgencyFilter === "all" || item.urgencia === urgencyFilter,
   );
 
-  // Statistics
+  // Statistics - Helper function to check if date is today
+  const isToday = (dateString: string) => {
+    try {
+      // Parse the date string and compare with today
+      const date = new Date(dateString);
+      const today = new Date();
+
+      return (
+        date.getDate() === today.getDate() &&
+        date.getMonth() === today.getMonth() &&
+        date.getFullYear() === today.getFullYear()
+      );
+    } catch (error) {
+      console.warn("Error parsing date:", dateString, error);
+      return false;
+    }
+  };
+
   const ministerialStats = {
     totalPendientes: pendingSignatures.length,
     firmadosHoy: statusHistory.filter(
-      (h) =>
-        h.tipo === "approval" &&
-        new Date(h.fecha).toDateString() === new Date().toDateString(),
+      (h) => h.tipo === "approval" && isToday(h.fecha),
     ).length,
     rechazadosHoy: statusHistory.filter(
-      (h) =>
-        h.tipo === "rejection" &&
-        new Date(h.fecha).toDateString() === new Date().toDateString(),
+      (h) => h.tipo === "rejection" && isToday(h.fecha),
     ).length,
     promedioTiempoFirma:
       pendingSignatures.length > 0

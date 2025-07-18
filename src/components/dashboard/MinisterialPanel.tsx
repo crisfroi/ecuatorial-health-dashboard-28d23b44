@@ -711,8 +711,13 @@ const MinisterialPanel = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleReviewProfessional(item)}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleReviewProfessional(item);
+                                }}
                                 className="flex items-center gap-1"
+                                type="button"
                               >
                                 <Eye className="w-3 h-3" />
                               </Button>

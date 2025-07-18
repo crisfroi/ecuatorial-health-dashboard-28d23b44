@@ -57,6 +57,7 @@ import HealthCenters from "@/components/dashboard/HealthCenters";
 import UserRoleManagement from "@/components/dashboard/UserRoleManagement";
 import ConnectionStatus from "@/components/dashboard/ConnectionStatus";
 import DatabaseDiagnostics from "@/components/dashboard/DatabaseDiagnostics";
+import ErrorAnalysis from "@/components/dashboard/ErrorAnalysis";
 
 import type { Tables } from "@/integrations/supabase/types";
 

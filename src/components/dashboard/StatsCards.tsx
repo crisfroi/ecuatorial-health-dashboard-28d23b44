@@ -73,6 +73,11 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     onNavigateToProfessionals(filters);
   };
 
+  // Debug: Log the stats data
+  console.log("StatsCards: Current stats data:", stats);
+  console.log("StatsCards: Is loading:", isLoading);
+  console.log("StatsCards: Error:", error);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <Card

@@ -1,12 +1,21 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Calendar, User, Phone, Mail, MapPin, ChevronDown, Send } from 'lucide-react'; // ¡Importado 'Send' aquí!
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import type { Profesional } from '@/hooks/useProfesionales'; // Asegúrate de que esta importación sea correcta
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertTriangle,
+  Calendar,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  ChevronDown,
+  Send,
+} from "lucide-react"; // ¡Importado 'Send' aquí!
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type { Profesional } from "@/hooks/useProfesionales"; // Asegúrate de que esta importación sea correcta
 
 import {
   Dialog,
@@ -25,13 +34,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import ProfessionalDetail from '@/components/dashboard/ProfessionalDetail.tsx'; // Asegúrate de que la ruta sea correcta
+import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail.tsx"; // Asegúrate de que la ruta sea correcta
 
 // Extender el tipo Profesional para incluir los campos calculados para las alertas
 // Asegúrate de que 'fecha_caducidad' exista en tu tipo base 'Profesional'
 interface ProfesionalAlert extends Profesional {
   diasRestantes: number;
-  prioridad: 'alta' | 'media' | 'baja' | 'vencido';
+  prioridad: "alta" | "media" | "baja" | "vencido";
   // fecha_caducidad ya debería estar en Profesional si lo usas directamente
 }
 
@@ -39,7 +48,7 @@ interface RenewalAlertsProps {
   dashboardFilters?: {
     vencimiento_proximo?: boolean;
     carnet_vencido?: boolean;
-    prioridad_renovacion?: 'alta' | 'media' | 'baja' | 'vencido' | 'all';
+    prioridad_renovacion?: "alta" | "media" | "baja" | "vencido" | "all";
   };
   // *** NUEVO PROP: Función para enviar la notificación SMS ***
   onSendSmsNotification: (
@@ -47,36 +56,51 @@ interface RenewalAlertsProps {
     telefono: string | null, // Puede ser nulo, por eso la validación
     nombreCompleto: string,
     fechaValidezCarnet: string | null, // Puede ser nulo
-    tipoNotificacion: 'manual_proximo' | 'manual_vencido' // Tipos para notificaciones manuales
+    tipoNotificacion: "manual_proximo" | "manual_vencido", // Tipos para notificaciones manuales
   ) => Promise<void>;
 }
 
-const RenewalAlerts = ({ dashboardFilters, onSendSmsNotification }: RenewalAlertsProps) => { // ¡Añadido onSendSmsNotification aquí!
-  console.log('RenewalAlerts component rendered.');
-  console.log('RenewalAlerts: Initial dashboardFilters received:', dashboardFilters);
+const RenewalAlerts = ({
+  dashboardFilters,
+  onSendSmsNotification,
+}: RenewalAlertsProps) => {
+  // ¡Añadido onSendSmsNotification aquí!
+  console.log("RenewalAlerts component rendered.");
+  console.log(
+    "RenewalAlerts: Initial dashboardFilters received:",
+    dashboardFilters,
+  );
 
-  const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<ProfesionalAlert['prioridad'] | 'all'>('all');
-  const [selectedProfessional, setSelectedProfessional] = useState<ProfesionalAlert | null>(null);
+  const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<
+    ProfesionalAlert["prioridad"] | "all"
+  >("all");
+  const [selectedProfessional, setSelectedProfessional] =
+    useState<ProfesionalAlert | null>(null);
 
   // useEffect para reaccionar a cambios en dashboardFilters y actualizar el estado interno
   useEffect(() => {
-    console.log('RenewalAlerts: Dashboard filters updated in useEffect:', dashboardFilters);
+    console.log(
+      "RenewalAlerts: Dashboard filters updated in useEffect:",
+      dashboardFilters,
+    );
     if (dashboardFilters) {
       if (dashboardFilters.prioridad_renovacion) {
         setSelectedPriorityFilter(dashboardFilters.prioridad_renovacion);
       } else if (dashboardFilters.vencimiento_proximo) {
-        setSelectedPriorityFilter('alta');
+        setSelectedPriorityFilter("alta");
       } else if (dashboardFilters.carnet_vencido) {
-        setSelectedPriorityFilter('vencido');
+        setSelectedPriorityFilter("vencido");
       } else {
-        setSelectedPriorityFilter('all');
+        setSelectedPriorityFilter("all");
       }
     } else {
-      setSelectedPriorityFilter('all');
+      setSelectedPriorityFilter("all");
     }
   }, [dashboardFilters]);
 
-  const calculateRenewalInfo = (professional: Profesional): ProfesionalAlert | null => {
+  const calculateRenewalInfo = (
+    professional: Profesional,
+  ): ProfesionalAlert | null => {
     if (!professional.fecha_caducidad) {
       return null;
     }
@@ -88,15 +112,15 @@ const RenewalAlerts = ({ dashboardFilters, onSendSmsNotification }: RenewalAlert
     const diffTime = expiryDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    let prioridad: 'alta' | 'media' | 'baja' | 'vencido';
+    let prioridad: "alta" | "media" | "baja" | "vencido";
     if (diffDays <= 0) {
-      prioridad = 'vencido';
+      prioridad = "vencido";
     } else if (diffDays < 30) {
-      prioridad = 'alta';
+      prioridad = "alta";
     } else if (diffDays >= 30 && diffDays < 60) {
-      prioridad = 'media';
+      prioridad = "media";
     } else {
-      prioridad = 'baja';
+      prioridad = "baja";
     }
 
     // Incluye vencidos y los próximos 90 días para mostrar en las alertas
@@ -110,107 +134,152 @@ const RenewalAlerts = ({ dashboardFilters, onSendSmsNotification }: RenewalAlert
     return null;
   };
 
-  const { data: professionalsData = [], isLoading, isError, refetch } = useQuery<ProfesionalAlert[]>({
-    queryKey: ['renewalAlerts', dashboardFilters],
+  const {
+    data: professionalsData = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<ProfesionalAlert[]>({
+    queryKey: ["renewalAlerts", dashboardFilters],
     queryFn: async () => {
-      console.log('RenewalAlerts: Starting Supabase data fetch with dashboardFilters:', dashboardFilters);
+      console.log(
+        "RenewalAlerts: Starting Supabase data fetch with dashboardFilters:",
+        dashboardFilters,
+      );
 
       const today = new Date();
-      let query = supabase.from('profesionales_sanitarios').select('*');
+      let query = supabase.from("profesionales_sanitarios").select("*");
 
-      query = query.eq('estado_solicitud', 'Aprobado');
+      query = query.eq("estado_solicitud", "Aprobado");
 
       if (dashboardFilters?.carnet_vencido) {
-        const todayIso = today.toISOString().split('T')[0];
-        query = query.lte('fecha_caducidad', todayIso);
-        console.log(`RenewalAlerts: Applying carnet_vencido filter: fecha_caducidad <= ${todayIso}`);
+        const todayIso = today.toISOString().split("T")[0];
+        query = query.lte("fecha_caducidad", todayIso);
+        console.log(
+          `RenewalAlerts: Applying carnet_vencido filter: fecha_caducidad <= ${todayIso}`,
+        );
       } else if (dashboardFilters?.vencimiento_proximo) {
         const futureDate = new Date(today);
         futureDate.setDate(today.getDate() + 30);
-        const todayIso = today.toISOString().split('T')[0];
-        const futureDateIso = futureDate.toISOString().split('T')[0];
+        const todayIso = today.toISOString().split("T")[0];
+        const futureDateIso = futureDate.toISOString().split("T")[0];
         query = query
-          .gte('fecha_caducidad', todayIso)
-          .lte('fecha_caducidad', futureDateIso);
-        console.log(`RenewalAlerts: Applying vencimiento_proximo filter: fecha_caducidad between ${todayIso} and ${futureDateIso}`);
+          .gte("fecha_caducidad", todayIso)
+          .lte("fecha_caducidad", futureDateIso);
+        console.log(
+          `RenewalAlerts: Applying vencimiento_proximo filter: fecha_caducidad between ${todayIso} and ${futureDateIso}`,
+        );
       } else {
         const futureDate = new Date(today);
         futureDate.setDate(today.getDate() + 90);
-        const futureDateIso = futureDate.toISOString().split('T')[0];
-        query = query
-          .lte('fecha_caducidad', futureDateIso);
-        console.log(`RenewalAlerts: No specific dashboard filter, fetching fecha_caducidad <= ${futureDateIso}`);
+        const futureDateIso = futureDate.toISOString().split("T")[0];
+        query = query.lte("fecha_caducidad", futureDateIso);
+        console.log(
+          `RenewalAlerts: No specific dashboard filter, fetching fecha_caducidad <= ${futureDateIso}`,
+        );
       }
 
-      query = query.order('fecha_caducidad', { ascending: true });
+      query = query.order("fecha_caducidad", { ascending: true });
 
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching renewal alerts from Supabase:', error);
+        console.error("Error fetching renewal alerts from Supabase:", error);
         throw error;
       }
-      console.log(`Successfully fetched ${data ? data.length : 0} raw professionals from Supabase.`);
+      console.log(
+        `Successfully fetched ${data ? data.length : 0} raw professionals from Supabase.`,
+      );
 
       const processedAlerts: ProfesionalAlert[] = [];
-      data.forEach(prof => {
+      data.forEach((prof) => {
         const alertInfo = calculateRenewalInfo(prof);
         if (alertInfo) {
           processedAlerts.push(alertInfo);
         }
       });
-      console.log(`Finished processing raw data. ${processedAlerts.length} alerts generated.`);
+      console.log(
+        `Finished processing raw data. ${processedAlerts.length} alerts generated.`,
+      );
       return processedAlerts;
     },
   });
 
-  const filteredRenewalAlerts = professionalsData.filter(alert => {
-    if (selectedPriorityFilter === 'all') {
+  const filteredRenewalAlerts = professionalsData.filter((alert) => {
+    if (selectedPriorityFilter === "all") {
       return true;
     }
     return alert.prioridad === selectedPriorityFilter;
   });
-  console.log(`Displaying ${filteredRenewalAlerts.length} alerts after client-side filter by priority.`);
+  console.log(
+    `Displaying ${filteredRenewalAlerts.length} alerts after client-side filter by priority.`,
+  );
 
   const getPriorityColor = (prioridad: string) => {
     switch (prioridad) {
-      case 'alta': return 'bg-red-100 text-red-800 border-red-200';
-      case 'media': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'baja': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'vencido': return 'bg-gray-200 text-gray-700 border-gray-300 line-through';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case "alta":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "media":
+        return "bg-orange-100 text-orange-800 border-orange-200";
+      case "baja":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "vencido":
+        return "bg-gray-200 text-gray-700 border-gray-300 line-through";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
-  const handleViewAll = (prioridad?: ProfesionalAlert['prioridad'] | 'all') => {
-    console.log('RenewalAlerts: Dropdown filter changed to:', prioridad || 'all');
-    setSelectedPriorityFilter(prioridad || 'all');
+  const handleViewAll = (prioridad?: ProfesionalAlert["prioridad"] | "all") => {
+    console.log(
+      "RenewalAlerts: Dropdown filter changed to:",
+      prioridad || "all",
+    );
+    setSelectedPriorityFilter(prioridad || "all");
   };
 
   const handleViewProfessionalDetail = (professional: ProfesionalAlert) => {
-    console.log('Opening professional detail for:', professional.id_profesional_unico);
+    console.log(
+      "Opening professional detail for:",
+      professional.id_profesional_unico,
+    );
     setSelectedProfessional(professional);
   };
 
   // *** NUEVA FUNCIÓN LOCAL PARA LLAMAR AL PROP ***
   const handleSendNotificationClick = (professional: ProfesionalAlert) => {
-    if (professional.telefono && professional.id_profesional_unico && professional.nombre_completo && professional.fecha_caducidad) {
-      const tipo = professional.prioridad === 'vencido' ? 'manual_vencido' : 'manual_proximo';
+    if (
+      professional.telefono &&
+      professional.id_profesional_unico &&
+      professional.nombre_completo &&
+      professional.fecha_caducidad
+    ) {
+      const tipo =
+        professional.prioridad === "vencido"
+          ? "manual_vencido"
+          : "manual_proximo";
       // Llama a la función pasada por prop
       onSendSmsNotification(
         professional.id_profesional_unico,
         professional.telefono,
         professional.nombre_completo,
         professional.fecha_caducidad,
-        tipo
+        tipo,
       );
     } else {
-      alert('No se puede enviar la notificación: Falta información de contacto (teléfono) o de identificación.');
-      console.warn('Missing professional data for SMS notification:', professional);
+      alert(
+        "No se puede enviar la notificación: Falta información de contacto (teléfono) o de identificación.",
+      );
+      console.warn(
+        "Missing professional data for SMS notification:",
+        professional,
+      );
     }
   };
 
-  console.log(`Component rendering complete. Is loading: ${isLoading}, Is error: ${isError}.`);
+  console.log(
+    `Component rendering complete. Is loading: ${isLoading}, Is error: ${isError}.`,
+  );
 
   return (
     <Card>
@@ -221,40 +290,52 @@ const RenewalAlerts = ({ dashboardFilters, onSendSmsNotification }: RenewalAlert
             <span>Alertas de Renovación</span>
           </CardTitle>
           <div className="flex items-center space-x-2">
-            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+            <Badge
+              variant="secondary"
+              className="bg-orange-100 text-orange-800"
+            >
               {filteredRenewalAlerts.length} pendientes
             </Badge>
 
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger>
                 <Button variant="outline" size="sm">
-                  Ver por: {selectedPriorityFilter === 'all' ? 'Todas' : selectedPriorityFilter.charAt(0).toUpperCase() + selectedPriorityFilter.slice(1)} <ChevronDown className="ml-2 h-4 w-4" />
+                  Ver por:{" "}
+                  {selectedPriorityFilter === "all"
+                    ? "Todas"
+                    : selectedPriorityFilter.charAt(0).toUpperCase() +
+                      selectedPriorityFilter.slice(1)}{" "}
+                  <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56">
                 <DropdownMenuLabel>Filtrar por Urgencia</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleViewAll('all')}>
+                <DropdownMenuItem onClick={() => handleViewAll("all")}>
                   Todas las alertas
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleViewAll('alta')}>
+                <DropdownMenuItem onClick={() => handleViewAll("alta")}>
                   <span className="flex items-center">
-                    <span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2"></span> Alta Urgencia
+                    <span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2"></span>{" "}
+                    Alta Urgencia
                   </span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleViewAll('media')}>
+                <DropdownMenuItem onClick={() => handleViewAll("media")}>
                   <span className="flex items-center">
-                    <span className="inline-block w-3 h-3 rounded-full bg-orange-500 mr-2"></span> Media Urgencia
+                    <span className="inline-block w-3 h-3 rounded-full bg-orange-500 mr-2"></span>{" "}
+                    Media Urgencia
                   </span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleViewAll('baja')}>
+                <DropdownMenuItem onClick={() => handleViewAll("baja")}>
                   <span className="flex items-center">
-                    <span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2"></span> Baja Urgencia
+                    <span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2"></span>{" "}
+                    Baja Urgencia
                   </span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleViewAll('vencido')}>
+                <DropdownMenuItem onClick={() => handleViewAll("vencido")}>
                   <span className="flex items-center">
-                    <span className="inline-block w-3 h-3 rounded-full bg-gray-500 mr-2"></span> Vencidos
+                    <span className="inline-block w-3 h-3 rounded-full bg-gray-500 mr-2"></span>{" "}
+                    Vencidos
                   </span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -263,10 +344,18 @@ const RenewalAlerts = ({ dashboardFilters, onSendSmsNotification }: RenewalAlert
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading && <p className="text-center text-gray-500">Cargando alertas...</p>}
-        {isError && <p className="text-center text-red-500">Error al cargar las alertas.</p>}
+        {isLoading && (
+          <p className="text-center text-gray-500">Cargando alertas...</p>
+        )}
+        {isError && (
+          <p className="text-center text-red-500">
+            Error al cargar las alertas.
+          </p>
+        )}
         {!isLoading && !isError && filteredRenewalAlerts.length === 0 && (
-          <p className="text-center text-gray-500">No hay alertas de renovación próximas con este filtro.</p>
+          <p className="text-center text-gray-500">
+            No hay alertas de renovación próximas con este filtro.
+          </p>
         )}
         <div className="space-y-4">
           {filteredRenewalAlerts.map((alert) => (
@@ -280,7 +369,7 @@ const RenewalAlerts = ({ dashboardFilters, onSendSmsNotification }: RenewalAlert
                     <User className="w-4 h-4" />
                     <span className="font-medium">{alert.nombre_completo}</span>
                     <Badge variant="outline" className="text-xs">
-                      {alert.area_profesional || 'Sin profesión'}
+                      {alert.area_profesional || "Sin profesión"}
                     </Badge>
                   </div>
 
@@ -288,10 +377,17 @@ const RenewalAlerts = ({ dashboardFilters, onSendSmsNotification }: RenewalAlert
                     <div className="flex items-center space-x-2 text-sm">
                       <Calendar className="w-3 h-3" />
                       <span>
-                        Vence: {alert.fecha_caducidad ? new Date(alert.fecha_caducidad).toLocaleDateString('es-ES') : 'N/A'}
+                        Vence:{" "}
+                        {alert.fecha_caducidad
+                          ? new Date(alert.fecha_caducidad).toLocaleDateString(
+                              "es-ES",
+                            )
+                          : "N/A"}
                       </span>
                       <span className="font-medium">
-                        {alert.diasRestantes <= 0 ? '(Vencido)' : `(${alert.diasRestantes} días)`}
+                        {alert.diasRestantes <= 0
+                          ? "(Vencido)"
+                          : `(${alert.diasRestantes} días)`}
                       </span>
                     </div>
 
@@ -319,7 +415,9 @@ const RenewalAlerts = ({ dashboardFilters, onSendSmsNotification }: RenewalAlert
                   </AlertDescription>
                 </div>
 
-                <div className="flex flex-col space-y-1 ml-4"> {/* Añadido ml-4 para espacio */}
+                <div className="flex flex-col space-y-1 ml-4">
+                  {" "}
+                  {/* Añadido ml-4 para espacio */}
                   {/* Botón de Notificar SMS */}
                   {alert.telefono && ( // Solo muestra el botón si hay un número de teléfono
                     <Button
@@ -331,9 +429,11 @@ const RenewalAlerts = ({ dashboardFilters, onSendSmsNotification }: RenewalAlert
                       <Send className="w-3 h-3" /> Notificar SMS
                     </Button>
                   )}
-                  <Dialog onOpenChange={(open) => {
-                    if (!open) setSelectedProfessional(null);
-                  }}>
+                  <Dialog
+                    onOpenChange={(open) => {
+                      if (!open) setSelectedProfessional(null);
+                    }}
+                  >
                     <DialogTrigger asChild>
                       <Button
                         variant="ghost"
@@ -349,7 +449,8 @@ const RenewalAlerts = ({ dashboardFilters, onSendSmsNotification }: RenewalAlert
                         <DialogHeader>
                           <DialogTitle>Detalles del Profesional</DialogTitle>
                           <DialogDescription>
-                            Información completa de {selectedProfessional.nombre_completo}.
+                            Información completa de{" "}
+                            {selectedProfessional.nombre_completo}.
                           </DialogDescription>
                         </DialogHeader>
                         <ProfessionalDetail

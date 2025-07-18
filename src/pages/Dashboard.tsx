@@ -55,9 +55,6 @@ import MinisterialPanel from "@/components/dashboard/MinisterialPanel";
 import HospitalIncidents from "@/components/dashboard/HospitalIncidents";
 import HealthCenters from "@/components/dashboard/HealthCenters";
 import UserRoleManagement from "@/components/dashboard/UserRoleManagement";
-import ConnectionStatus from "@/components/dashboard/ConnectionStatus";
-import DatabaseDiagnostics from "@/components/dashboard/DatabaseDiagnostics";
-import ErrorAnalysis from "@/components/dashboard/ErrorAnalysis";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -472,10 +469,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         )}
-
-        <ConnectionStatus />
-        <DatabaseDiagnostics />
-        <ErrorAnalysis />
 
         {showStatsCards && (
           <div className="mb-6">

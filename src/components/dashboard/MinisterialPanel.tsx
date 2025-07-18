@@ -232,10 +232,75 @@ const MinisterialPanel = () => {
   };
 
   const handleExportDocument = (type: string) => {
-    toast({
-      title: "Exportando documento",
-      description: `Descargando ${type}...`,
-    });
+    if (type === "Lista de Pendientes") {
+      exportPendingSignaturesToExcel();
+    } else {
+      toast({
+        title: "Exportando documento",
+        description: `Descargando ${type}...`,
+      });
+    }
+  };
+
+  const exportPendingSignaturesToExcel = () => {
+    try {
+      // Create worksheet data
+      const worksheetData = [
+        // Header row
+        [
+          "ID Profesional",
+          "Nombre",
+          "Profesion",
+          "Fecha Solicitud",
+          "Dias Pendiente",
+          "Urgencia",
+          "Telefono",
+          "Email",
+        ],
+        // Data rows
+        ...filteredPendingSignatures.map((professional) => [
+          professional.id_profesional,
+          professional.profesional,
+          professional.profesion,
+          new Date(professional.fecha_solicitud).toLocaleDateString("es-ES"),
+          professional.dias_pendiente,
+          professional.urgencia,
+          professional.telefono || "",
+          professional.email || "",
+        ]),
+      ];
+
+      // Create CSV content
+      const csvContent = worksheetData
+        .map((row) => row.map((cell) => `"${cell}"`).join(","))
+        .join("\n");
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `Profesionales_Pendientes_Firma_${new Date().toISOString().split("T")[0]}.csv`,
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Exportación exitosa",
+        description: `Se ha descargado la lista de ${filteredPendingSignatures.length} profesionales pendientes.`,
+      });
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      toast({
+        title: "Error en la exportación",
+        description: "No se pudo exportar la lista. Intente nuevamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSendNotification = (professional: PendingSignature) => {

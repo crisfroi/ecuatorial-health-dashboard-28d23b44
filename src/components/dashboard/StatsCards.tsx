@@ -265,7 +265,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
               <PersonStanding className="h-5 w-5 text-blue-600" />{" "}
               {/* Usamos PersonStanding */}
               <span className="font-semibold text-blue-600">
-                {stats?.generoMasculino || 0}
+                {effectiveStats?.generoMasculino || 0}
               </span>
               <Badge variant="secondary">Masculino</Badge>
             </div>

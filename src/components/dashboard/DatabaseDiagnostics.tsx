@@ -109,7 +109,36 @@ const DatabaseDiagnostics = () => {
       });
     }
 
-    // Test 3: Table exists check
+    // Test 3: Database schema check
+    try {
+      console.log("Running diagnostic 3: Database schema...");
+      const startTime = Date.now();
+      const { data, error } = await supabase.rpc("version");
+      const endTime = Date.now();
+
+      if (error) {
+        logError("Schema test failed", error);
+      }
+
+      diagnosticResults.push({
+        test: "Database Schema Access",
+        status: error ? "error" : "success",
+        message: error ? getErrorMessage(error) : "Database schema accessible",
+        duration: `${endTime - startTime}ms`,
+        details: error ? error : data,
+      });
+    } catch (err: any) {
+      logError("Database schema test failed", err);
+      diagnosticResults.push({
+        test: "Database Schema Access",
+        status: "error",
+        message: getErrorMessage(err),
+        duration: "N/A",
+        details: err,
+      });
+    }
+
+    // Test 4: Table exists check
     try {
       console.log("Running diagnostic 3: Table existence...");
       const startTime = Date.now();

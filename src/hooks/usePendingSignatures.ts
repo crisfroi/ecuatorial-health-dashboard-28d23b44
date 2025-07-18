@@ -63,8 +63,30 @@ export function usePendingSignatures() {
         .order("fecha_solicitud", { ascending: true }); // Oldest first
 
       if (error) {
-        console.error("Error fetching pending signatures:", error);
-        throw error;
+        console.error("Error fetching pending signatures:", {
+          error,
+          type: typeof error,
+          constructor: error?.constructor?.name,
+          message: error?.message,
+          details: error?.details,
+          hint: error?.hint,
+          code: error?.code,
+          keys: Object.keys(error || {}),
+          stringified: JSON.stringify(
+            error,
+            Object.getOwnPropertyNames(error),
+            2,
+          ),
+        });
+
+        // Create a more informative error
+        const errorMessage =
+          error?.details ||
+          error?.hint ||
+          error?.message ||
+          `Database error (code: ${error?.code || "unknown"})`;
+
+        throw new Error(`Failed to fetch pending signatures: ${errorMessage}`);
       }
 
       if (!data) {

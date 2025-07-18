@@ -33,6 +33,11 @@ const COLORS = [
 const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
   const { data: stats, isLoading, error } = useEstadisticasAvanzadas();
 
+  // Debug logging
+  console.log("DashboardCharts: Stats data:", stats);
+  console.log("DashboardCharts: Is loading:", isLoading);
+  console.log("DashboardCharts: Error:", error);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

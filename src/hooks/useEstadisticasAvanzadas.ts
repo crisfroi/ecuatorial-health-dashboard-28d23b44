@@ -245,5 +245,42 @@ export function useEstadisticasAvanzadas() {
       return estadisticas;
     },
     refetchInterval: 30000,
+    retry: (failureCount, error) => {
+      // Solo reintentar errores de red, no errores de base de datos
+      if (error?.message?.includes("Network connection failed")) {
+        return failureCount < 3;
+      }
+      return failureCount < 1;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    // Proporcionar datos de fallback cuando falle
+    placeholderData: {
+      total: 0,
+      aprobados: 0,
+      recibidos: 0,
+      rechazados: 0,
+      revisando: 0,
+      vencimientosProximos: 0,
+      carnetVencidos: 0,
+      porArea: {},
+      porProvincia: {},
+      generoMasculino: 0,
+      generoFemenino: 0,
+      porGenero: {},
+      porTipoSector: {},
+      porDistrito: {},
+      porAnoGraduacion: {},
+      tendenciasMensuales: [],
+      tasaAprobacion: "0",
+      tasaRechazo: "0",
+      datosGraficoEstados: [
+        { estado: "Aprobado", cantidad: 0, color: "#22c55e" },
+        { estado: "Recibido", cantidad: 0, color: "#f59e0b" },
+        { estado: "Rechazado", cantidad: 0, color: "#ef4444" },
+        { estado: "Revisando", cantidad: 0, color: "#3b82f6" },
+      ],
+      datosGraficoAreas: [],
+      datosGraficoProvincias: [],
+    },
   });
 }

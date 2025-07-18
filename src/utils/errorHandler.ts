@@ -9,8 +9,8 @@ export function getErrorMessage(error: any): string {
     return "Unknown error occurred";
   }
 
-  // Si tiene propiedad message
-  if (error.message) {
+  // Si tiene propiedad message y no está vacía
+  if (error.message && error.message.trim()) {
     return error.message;
   }
 

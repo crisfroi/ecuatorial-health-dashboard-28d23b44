@@ -12,7 +12,7 @@ export interface PendingSignature {
   telefono?: string;
   email?: string;
   area_profesional?: string;
-  numero_colegiado?: string;
+  id_profesional: string;
 }
 
 // Calculate urgency based on days since application
@@ -52,7 +52,8 @@ export function usePendingSignatures() {
           nombre,
           apellidos,
           area_profesional,
-          numero_colegiado,
+          id_profesional_unico,
+          titulacion_especifica_1,
           telefono,
           email,
           fecha_solicitud,
@@ -103,14 +104,17 @@ export function usePendingSignatures() {
         return {
           id: professional.id,
           profesional: fullName,
-          profesion: professional.area_profesional || "No especificado",
+          profesion:
+            professional.titulacion_especifica_1 ||
+            professional.area_profesional ||
+            "No especificado",
           fecha_solicitud: professional.fecha_solicitud || "",
           urgencia,
           dias_pendiente: dias,
           telefono: professional.telefono,
           email: professional.email,
           area_profesional: professional.area_profesional,
-          numero_colegiado: professional.numero_colegiado,
+          id_profesional: professional.id_profesional_unico || "No asignado",
         };
       });
 

@@ -55,6 +55,7 @@ import MinisterialPanel from "@/components/dashboard/MinisterialPanel";
 import HospitalIncidents from "@/components/dashboard/HospitalIncidents";
 import HealthCenters from "@/components/dashboard/HealthCenters";
 import UserRoleManagement from "@/components/dashboard/UserRoleManagement";
+import ConnectionStatus from "@/components/dashboard/ConnectionStatus";
 
 import type { Tables } from "@/integrations/supabase/types";
 

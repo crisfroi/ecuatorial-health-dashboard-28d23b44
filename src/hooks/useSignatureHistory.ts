@@ -38,8 +38,31 @@ export function useSignatureHistory() {
         .limit(20);
 
       if (approvedError) {
-        console.error("Error fetching approved professionals:", approvedError);
-        throw approvedError;
+        console.error("Error fetching approved professionals:", {
+          error: approvedError,
+          type: typeof approvedError,
+          constructor: approvedError?.constructor?.name,
+          message: approvedError?.message,
+          details: approvedError?.details,
+          hint: approvedError?.hint,
+          code: approvedError?.code,
+          keys: Object.keys(approvedError || {}),
+          stringified: JSON.stringify(
+            approvedError,
+            Object.getOwnPropertyNames(approvedError),
+            2,
+          ),
+        });
+
+        const errorMessage =
+          approvedError?.details ||
+          approvedError?.hint ||
+          approvedError?.message ||
+          `Database error (code: ${approvedError?.code || "unknown"})`;
+
+        throw new Error(
+          `Failed to fetch approved professionals: ${errorMessage}`,
+        );
       }
 
       // Get recently rejected professionals
@@ -61,8 +84,31 @@ export function useSignatureHistory() {
         .limit(20);
 
       if (rejectedError) {
-        console.error("Error fetching rejected professionals:", rejectedError);
-        throw rejectedError;
+        console.error("Error fetching rejected professionals:", {
+          error: rejectedError,
+          type: typeof rejectedError,
+          constructor: rejectedError?.constructor?.name,
+          message: rejectedError?.message,
+          details: rejectedError?.details,
+          hint: rejectedError?.hint,
+          code: rejectedError?.code,
+          keys: Object.keys(rejectedError || {}),
+          stringified: JSON.stringify(
+            rejectedError,
+            Object.getOwnPropertyNames(rejectedError),
+            2,
+          ),
+        });
+
+        const errorMessage =
+          rejectedError?.details ||
+          rejectedError?.hint ||
+          rejectedError?.message ||
+          `Database error (code: ${rejectedError?.code || "unknown"})`;
+
+        throw new Error(
+          `Failed to fetch rejected professionals: ${errorMessage}`,
+        );
       }
 
       const historyEntries: SignatureHistoryEntry[] = [];

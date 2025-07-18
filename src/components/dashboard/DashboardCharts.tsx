@@ -50,6 +50,24 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
     );
   }
 
+  if (error) {
+    return (
+      <Card className="col-span-full">
+        <CardContent className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No se pudieron cargar los gráficos
+            </h3>
+            <p className="text-gray-600">
+              {error.message || "Error al conectar con la base de datos"}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Gráfico de barras por área profesional */}

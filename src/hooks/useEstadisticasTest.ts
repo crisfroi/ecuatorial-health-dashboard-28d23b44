@@ -8,27 +8,51 @@ export function useEstadisticasTest() {
       console.log("Testing simple estadisticas fetch...");
 
       try {
+        // Test 1: Basic connection
+        console.log("Test 1: Basic connection test...");
+        const { data: connectionTest, error: connectionError } = await supabase
+          .from("profesionales_sanitarios")
+          .select("count(*)", { count: "exact", head: true });
+
+        if (connectionError) {
+          console.error(
+            "Connection test failed:",
+            connectionError.message || connectionError,
+          );
+          throw new Error(
+            `Connection failed: ${connectionError.message || "Unknown error"}`,
+          );
+        }
+
+        console.log("Connection test passed");
+
+        // Test 2: Simple select
+        console.log("Test 2: Simple select test...");
         const { data, error } = await supabase
           .from("profesionales_sanitarios")
           .select("id, estado_solicitud")
-          .limit(10);
+          .limit(5);
 
         if (error) {
-          console.error("Test query error:", error);
-          throw error;
+          console.error("Select test failed:", error.message || error);
+          throw new Error(`Select failed: ${error.message || "Unknown error"}`);
         }
 
         console.log("Test query successful:", data);
+        console.log("Data length:", data?.length);
 
         // Return simple test data
         return {
           total: data?.length || 0,
           aprobados:
             data?.filter((p) => p.estado_solicitud === "Aprobado").length || 0,
+          pendientes:
+            data?.filter((p) => p.estado_solicitud === "Pendiente").length || 0,
           test: "working",
+          sampleData: data?.slice(0, 2), // Show first 2 records for debugging
         };
-      } catch (err) {
-        console.error("Test query failed:", err);
+      } catch (err: any) {
+        console.error("Test query failed:", err.message || err);
         throw err;
       }
     },

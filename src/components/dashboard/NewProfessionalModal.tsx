@@ -80,8 +80,10 @@ const NewProfessionalModal = ({
         const imgData = canvas.toDataURL("image/png");
         const pdf = new jsPDF("p", "mm", "a4");
 
-        const imgWidth = 210;
-        const pageHeight = 295;
+        const imgWidth = 190; // Reducir ancho para márgenes
+        const pageHeight = 270; // Reducir altura de página
+        const marginLeft = 10; // Margen izquierdo
+        const marginTop = 10; // Margen superior
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         let heightLeft = imgHeight;
         let position = 0;

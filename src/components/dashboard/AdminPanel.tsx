@@ -33,6 +33,7 @@ import DatabaseDiagnostics from "@/components/dashboard/DatabaseDiagnostics";
 import ErrorAnalysis from "@/components/dashboard/ErrorAnalysis";
 import SimpleConnectionTest from "@/components/dashboard/SimpleConnectionTest";
 import SupabaseConnectionTest from "@/components/dashboard/SupabaseConnectionTest";
+import SupabaseDebugTest from "@/components/dashboard/SupabaseDebugTest";
 import UserRoleManagement from "@/components/dashboard/UserRoleManagement";
 
 const AdminPanel = () => {
@@ -368,6 +369,7 @@ const AdminPanel = () => {
 
         <TabsContent value="diagnostics">
           <div className="space-y-6">
+            <SupabaseDebugTest />
             <SupabaseConnectionTest />
             <SimpleConnectionTest />
             <ConnectionStatus />

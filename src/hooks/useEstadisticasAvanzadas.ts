@@ -7,6 +7,8 @@ export function useEstadisticasAvanzadas() {
     queryFn: async () => {
       console.log("Fetching estadísticas avanzadas...");
 
+      let profesionales = [];
+
       try {
         // Primero verificamos la conectividad básica
         const { data: healthCheck, error: healthError } = await supabase
@@ -32,7 +34,10 @@ export function useEstadisticasAvanzadas() {
           throw new Error(`Failed to fetch statistics: ${error.message}`);
         }
 
-        console.log(`Successfully fetched ${data?.length || 0} professionals`);
+        profesionales = data || [];
+        console.log(
+          `Successfully fetched ${profesionales.length} professionals`,
+        );
       } catch (fetchError: any) {
         console.error("Network or fetch error:", fetchError);
 
@@ -49,8 +54,6 @@ export function useEstadisticasAvanzadas() {
         // Re-lanzar otros errores
         throw fetchError;
       }
-
-      const profesionales = data || []; // Estos son TODOS los profesionales
 
       // 1. FILTRAR PROFESIONALES APROBADOS PARA ESTADÍSTICAS ESPECÍFICAS (GÉNERO)
       const profesionalesAprobados = profesionales.filter(

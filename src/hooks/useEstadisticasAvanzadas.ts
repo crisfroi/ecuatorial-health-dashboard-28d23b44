@@ -38,6 +38,7 @@ export function useEstadisticasAvanzadas() {
         console.log(
           `Successfully fetched ${profesionales.length} professionals`,
         );
+        console.log("First professional sample:", profesionales[0]);
       } catch (fetchError: any) {
         console.error("Network or fetch error:", fetchError);
 

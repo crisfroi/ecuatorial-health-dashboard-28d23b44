@@ -909,10 +909,8 @@ const MinisterialPanel = () => {
                 <p>{selectedProfessional?.profesion}</p>
               </div>
               <div>
-                <Label>Número Colegiado</Label>
-                <p>
-                  {selectedProfessional?.numero_colegiado || "No disponible"}
-                </p>
+                <Label>ID Profesional</Label>
+                <p>{selectedProfessional?.id_profesional || "No disponible"}</p>
               </div>
               <div>
                 <Label>Urgencia</Label>

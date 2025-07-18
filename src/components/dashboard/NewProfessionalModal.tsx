@@ -62,7 +62,7 @@ const NewProfessionalModal = ({
         tempContainer.style.position = "absolute";
         tempContainer.style.left = "-9999px";
         tempContainer.style.width = "210mm";
-        tempContainer.style.height = "297mm";
+        tempContainer.style.height = "250mm";
         tempContainer.style.overflow = "hidden";
         const contentToPrint = element.cloneNode(true) as HTMLElement;
         tempContainer.appendChild(contentToPrint);

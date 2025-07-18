@@ -16,12 +16,9 @@ export function useEstadisticasTest() {
           .select("count(*)", { count: "exact", head: true });
 
         if (connectionError) {
-          console.error(
-            "Connection test failed:",
-            connectionError.message || connectionError,
-          );
+          logError("Connection test failed", connectionError);
           throw new Error(
-            `Connection failed: ${connectionError.message || "Unknown error"}`,
+            `Connection failed: ${getErrorMessage(connectionError)}`,
           );
         }
 

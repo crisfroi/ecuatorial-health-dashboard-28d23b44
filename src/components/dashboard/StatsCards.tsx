@@ -91,6 +91,8 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
   console.log("StatsCards: Test stats data:", testStats);
   console.log("StatsCards: Test loading:", testLoading);
   console.log("StatsCards: Test error:", testError);
+  console.log("StatsCards: Mock stats data:", mockStats);
+  console.log("StatsCards: Effective stats (final):", effectiveStats);
 
   if (!stats) {
     console.log("StatsCards: No stats data available");

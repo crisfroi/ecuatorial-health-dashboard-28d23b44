@@ -342,7 +342,7 @@ const Dashboard = () => {
                     key={tab.id}
                     value={tab.id}
                     className={`
-                      flex items-center gap-2
+                      flex items-center gap-1.5 px-2 py-2
                       ${
                         activeTab === tab.id
                           ? ""
@@ -350,8 +350,10 @@ const Dashboard = () => {
                       }
                     `}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span className="hidden sm:inline">{tab.label}</span>
+                    <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="hidden sm:inline text-xs font-medium">
+                      {tab.label}
+                    </span>
                   </TabsTrigger>
                 );
               })}

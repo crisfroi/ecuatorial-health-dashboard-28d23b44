@@ -9,18 +9,107 @@ export function getErrorMessage(error: any): string {
     return "Unknown error occurred";
   }
 
-  // Si tiene propiedad message
-  if (error.message !== undefined) {
-    // Si el message es un string válido
-    if (typeof error.message === "string" && error.message.trim()) {
-      return error.message;
-    }
-    // Si el message es un objeto, intentar extraer información
-    if (typeof error.message === "object" && error.message !== null) {
-      const nestedMessage = getErrorMessage(error.message);
-      if (nestedMessage !== "Unknown error occurred") {
-        return nestedMessage;
+  console.log("Error analysis:", {
+    type: typeof error,
+    constructor: error?.constructor?.name,
+    hasMessage: "message" in error,
+    messageType: typeof error?.message,
+    messageValue: error?.message,
+    messageLength: error?.message?.length,
+    keys: Object.keys(error || {}),
+    error: error,
+  });
+
+  // Priority order for extracting error information
+  const errorSources = [
+    // Try message first
+    () => {
+      if (error.message !== undefined) {
+        if (typeof error.message === "string" && error.message.trim()) {
+          return error.message;
+        }
+        if (typeof error.message === "object" && error.message !== null) {
+          const nestedMessage = getErrorMessage(error.message);
+          if (nestedMessage !== "Unknown error occurred") {
+            return nestedMessage;
+          }
+        }
       }
+      return null;
+    },
+
+    // Try details
+    () =>
+      error.details && typeof error.details === "string" && error.details.trim()
+        ? error.details
+        : null,
+
+    // Try hint
+    () =>
+      error.hint && typeof error.hint === "string" && error.hint.trim()
+        ? error.hint
+        : null,
+
+    // Try error property
+    () =>
+      error.error && typeof error.error === "string" && error.error.trim()
+        ? error.error
+        : null,
+
+    // Try description
+    () =>
+      error.description &&
+      typeof error.description === "string" &&
+      error.description.trim()
+        ? error.description
+        : null,
+
+    // Try name
+    () =>
+      error.name && typeof error.name === "string" && error.name.trim()
+        ? error.name
+        : null,
+
+    // Try code with description
+    () =>
+      error.code
+        ? `Error ${error.code}${error.description ? ": " + error.description : ""}`
+        : null,
+
+    // Try HTTP status
+    () =>
+      error.status || error.statusText
+        ? `HTTP ${error.status || "Error"}: ${error.statusText || "Unknown"}`
+        : null,
+
+    // Try toString if available
+    () => {
+      try {
+        const str = error.toString();
+        if (
+          str &&
+          str !== "[object Object]" &&
+          str !== error.constructor?.name
+        ) {
+          return str;
+        }
+      } catch (e) {
+        // Ignore toString errors
+      }
+      return null;
+    },
+  ];
+
+  // Try each error source in priority order
+  for (const source of errorSources) {
+    try {
+      const result = source();
+      if (result) {
+        console.log("Extracted error message:", result);
+        return result;
+      }
+    } catch (e) {
+      console.warn("Error source failed:", e);
     }
   }
 

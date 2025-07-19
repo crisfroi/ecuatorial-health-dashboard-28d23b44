@@ -80,7 +80,7 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
         .from("profesionales_sanitarios")
         .select("*")
         .or(
-          `nombre_completo.ilike.%${query}%,id_profesional_unico.ilike.%${query}%,codigo_expediente.ilike.%${query}%,documento_identidad.ilike.%${query}%`,
+          `nombre_completo.ilike.%${query}%,id_profesional_unico.ilike.%${query}%,codigo_expediente.ilike.%${query}%`,
         )
         .limit(10);
 

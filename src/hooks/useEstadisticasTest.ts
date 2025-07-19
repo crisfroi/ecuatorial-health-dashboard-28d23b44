@@ -24,6 +24,29 @@ export function useEstadisticasTest() {
           throw new Error("Supabase URL not configured");
         }
 
+        // Test basic network connectivity first
+        console.log("Pre-test: Checking network connectivity...");
+        try {
+          // Simple fetch test to check if we can reach the internet
+          const connectivityTest = await fetch("https://httpbin.org/get", {
+            method: "GET",
+            mode: "cors",
+            cache: "no-cache",
+            signal: AbortSignal.timeout(5000), // 5 second timeout
+          });
+
+          if (!connectivityTest.ok) {
+            console.warn(
+              "Internet connectivity test failed, but proceeding with database test",
+            );
+          } else {
+            console.log("Internet connectivity test passed");
+          }
+        } catch (connectivityError) {
+          console.warn("Internet connectivity test failed:", connectivityError);
+          console.warn("Proceeding with database test anyway...");
+        }
+
         // Test 1a: Basic ping test
         console.log("Test 1a: Basic ping test...");
         try {

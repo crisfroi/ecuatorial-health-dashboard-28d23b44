@@ -14,6 +14,7 @@ import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
 import { useEstadisticasTest } from "@/hooks/useEstadisticasTest";
 import { useEstadisticasMock } from "@/hooks/useEstadisticasMock";
 import { useSupabaseConnectivity } from "@/hooks/useSupabaseConnectivity";
+import { useOfflineMode } from "@/hooks/useOfflineMode";
 
 interface StatsCardsProps {
   onNavigateToProfessionals: (filters: any) => void;
@@ -32,6 +33,11 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     isLoading: connectivityLoading,
     error: connectivityError,
   } = useSupabaseConnectivity();
+  const {
+    isOfflineMode,
+    reason: offlineReason,
+    disableOfflineMode,
+  } = useOfflineMode();
 
   // Enhanced fallback logic based on error type
   let effectiveStats = stats;

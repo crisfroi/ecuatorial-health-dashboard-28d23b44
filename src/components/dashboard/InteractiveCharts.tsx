@@ -23,6 +23,7 @@ import {
   Cell,
   ScatterChart,
   Scatter,
+  BarChart,
 } from "recharts";
 import {
   TrendingUp,

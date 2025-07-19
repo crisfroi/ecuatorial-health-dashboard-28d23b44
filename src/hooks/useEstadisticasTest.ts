@@ -56,10 +56,14 @@ export function useEstadisticasTest() {
           .select("count(*)", { count: "exact", head: true });
 
         if (connectionError) {
-          console.error("Connection error details:");
+          console.error("=== CONNECTION ERROR DEBUGGING ===");
           console.error("- Type:", typeof connectionError);
           console.error("- Constructor:", connectionError?.constructor?.name);
           console.error("- Keys:", Object.keys(connectionError || {}));
+          console.error(
+            "- Own Property Names:",
+            Object.getOwnPropertyNames(connectionError || {}),
+          );
           console.error(
             "- Message property type:",
             typeof connectionError?.message,
@@ -69,15 +73,70 @@ export function useEstadisticasTest() {
           console.error("- Code:", connectionError?.code);
           console.error("- Details:", connectionError?.details);
           console.error("- Hint:", connectionError?.hint);
+          console.error("- Status:", connectionError?.status);
+          console.error("- StatusText:", connectionError?.statusText);
+          console.error("- Name:", connectionError?.name);
           console.error("- Full object:", connectionError);
-          console.error(
-            "- JSON stringified:",
-            JSON.stringify(
-              connectionError,
-              Object.getOwnPropertyNames(connectionError),
-              2,
-            ),
-          );
+
+          // Try different serialization methods
+          try {
+            console.error(
+              "- JSON.stringify (basic):",
+              JSON.stringify(connectionError),
+            );
+          } catch (e) {
+            console.error("- JSON.stringify (basic) failed:", e);
+          }
+
+          try {
+            console.error(
+              "- JSON.stringify (with getOwnPropertyNames):",
+              JSON.stringify(
+                connectionError,
+                Object.getOwnPropertyNames(connectionError),
+                2,
+              ),
+            );
+          } catch (e) {
+            console.error(
+              "- JSON.stringify (with getOwnPropertyNames) failed:",
+              e,
+            );
+          }
+
+          // Check if it's a network error
+          if (
+            connectionError instanceof TypeError &&
+            connectionError.message.includes("fetch")
+          ) {
+            console.error("- DETECTED: Network fetch error");
+          }
+
+          // Check for specific error patterns
+          if (
+            connectionError.message === "" ||
+            connectionError.message === undefined
+          ) {
+            console.error("- DETECTED: Empty or undefined message");
+
+            // Look for alternative error information
+            const alternativeInfo = [];
+            if (connectionError.code)
+              alternativeInfo.push(`Code: ${connectionError.code}`);
+            if (connectionError.status)
+              alternativeInfo.push(`Status: ${connectionError.status}`);
+            if (connectionError.statusText)
+              alternativeInfo.push(`StatusText: ${connectionError.statusText}`);
+            if (connectionError.name)
+              alternativeInfo.push(`Name: ${connectionError.name}`);
+
+            if (alternativeInfo.length > 0) {
+              console.error(
+                "- Alternative error info:",
+                alternativeInfo.join(", "),
+              );
+            }
+          }
 
           // Additional debugging for empty message errors
           if (connectionError.message === "") {

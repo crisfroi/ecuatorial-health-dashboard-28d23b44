@@ -50,6 +50,7 @@ const HealthCenters = () => {
   const [filterArea, setFilterArea] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
   const [showPendingCenters, setShowPendingCenters] = useState(false);
+  const [viewType, setViewType] = useState<"kanban" | "list">("kanban");
 
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
   const { crearCentroMutation, actualizarCentroMutation } = useCentrosSalud();

@@ -25,7 +25,14 @@ export function getErrorMessage(error: any): string {
     // Try message first
     () => {
       if (error.message !== undefined) {
-        if (typeof error.message === "string" && error.message.trim()) {
+        if (typeof error.message === "string") {
+          // If message is empty string, try to extract more info
+          if (!error.message.trim()) {
+            console.log(
+              "Empty message detected, looking for alternative error info",
+            );
+            return null; // Will continue to next error source
+          }
           return error.message;
         }
         if (typeof error.message === "object" && error.message !== null) {

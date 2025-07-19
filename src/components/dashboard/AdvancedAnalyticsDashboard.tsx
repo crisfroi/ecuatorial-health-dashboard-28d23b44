@@ -107,6 +107,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     navigateToAgeRange,
     navigateToGraduationYear,
     navigateToRenewals,
+    navigateToProvince,
   } = useDashboardNavigation(onNavigateToTab || (() => {}));
 
   // Fetch all analytics data
@@ -1182,6 +1183,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
             onNavigateToDistrict={navigateToDistrict}
             onNavigateToCenter={navigateToCenter}
             onNavigateToAgeRange={navigateToAgeRange}
+            onNavigateToProvince={navigateToProvince}
           />
         </TabsContent>
       </Tabs>

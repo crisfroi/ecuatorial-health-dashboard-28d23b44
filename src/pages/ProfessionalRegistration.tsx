@@ -1,107 +1,139 @@
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form } from '@/components/ui/form';
-import { User, Home, GraduationCap, Briefcase, FileText, CheckCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
-import { useNacionalidades } from '@/hooks/useNacionalidades';
-import { useDistritosSanitarios } from '@/hooks/useDistritosSanitarios';
-import { useFileUpload } from '@/hooks/useFileUpload'; 
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Form } from "@/components/ui/form";
+import {
+  User,
+  Home,
+  GraduationCap,
+  Briefcase,
+  FileText,
+  CheckCircle,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useNacionalidades } from "@/hooks/useNacionalidades";
+import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { useCenterSync } from "@/hooks/useCenterSync";
 
 // Importaciones de los componentes de paso (asumimos que existen en estas rutas)
-import { PersonalInfoStep } from '@/components/registration/PersonalInfoStep';
-import { AddressStep } from '@/components/registration/AddressStep';
-import { EducationStep } from '@/components/registration/EducationStep';
-import { WorkSituationStep } from '@/components/registration/WorkSituationStep';
-import { DocumentsStep } from '@/components/registration/DocumentsStep';
-import ConfirmationStep from '@/components/registration/ConfirmationStep';
-import { RegistrationProgress } from '@/components/registration/RegistrationProgress';
-import PDFSummary from '@/components/registration/PDFSummary'; 
-import PoliticasModal from '@/components/registration/PoliticasModal';
-import ProcedureModal from '@/components/registration/ProcedureModal';
+import { PersonalInfoStep } from "@/components/registration/PersonalInfoStep";
+import { AddressStep } from "@/components/registration/AddressStep";
+import { EducationStep } from "@/components/registration/EducationStep";
+import { WorkSituationStep } from "@/components/registration/WorkSituationStep";
+import { DocumentsStep } from "@/components/registration/DocumentsStep";
+import ConfirmationStep from "@/components/registration/ConfirmationStep";
+import { RegistrationProgress } from "@/components/registration/RegistrationProgress";
+import PDFSummary from "@/components/registration/PDFSummary";
+import PoliticasModal from "@/components/registration/PoliticasModal";
+import ProcedureModal from "@/components/registration/ProcedureModal";
 
 // Esquema de validación con Zod
-const formSchema = z.object({
-  nombre: z.string().min(2, "El nombre es requerido"),
-  apellidos: z.string().min(2, "Los apellidos son requeridos"),
-  genero: z.string().min(1, "El género es requerido"),
-  fecha_nacimiento: z.string().min(1, "La fecha de nacimiento es requerida"),
-  nacionalidad: z.string().min(1, "Seleccione su nacionalidad"),
-  numero_dip: z.string().optional(),
-  numero_pasaporte: z.string().optional(),
-  telefono: z.string().min(9, "El teléfono debe tener al menos 9 dígitos"),
-  domicilio: z.string().min(2, "El domicilio es requerido"),
-  provincia: z.string().min(1, "La provincia es requerida"),
-  distrito: z.string().min(1, "El distrito es requerido"),
-  area_profesional: z.string().min(1, "El área profesional es requerida"),
-  especialidad: z.string().optional(),
-  categoria_titulacion: z.string().min(1, "La categoría de titulación es requerida"),
-  titulacion_especifica_1: z.string().min(1, "La titulación es requerida"),
-  institucion_1: z.string().min(1, "La institución es requerida"),
-  periodo_formacion: z.string().min(1, "El período de formación es requerido"),
-  pais_formacion_1: z.string().min(1, "El país de formación es requerido"),
-  situacion_laboral: z.string().min(1, "La situación laboral es requerida"),
-  nombre_centro: z.string().min(1, "El centro de trabajo es requerido"),
-  categoria_centro: z.string().min(1, "La categoría del centro es requerida"),
-  tipo_sector: z.string().min(1, "El tipo de sector es requerido"),
-  distrito_sanitario: z.string().optional(),
-  pertenece_brigada_medica: z.boolean().default(false),
-  tipo_cooperacion: z.string().optional(),
-  
-  // Validaciones para foto_carnet (un solo archivo FileList)
-  foto_carnet: z.any()
-    .refine((files: FileList | undefined) => files && files.length > 0, "La foto de carnet es obligatoria.")
-    .refine((files: FileList | undefined) => files?.[0]?.size <= 2 * 1024 * 1024, `La foto debe ser menor de 2MB.`)
-    .refine(
-      (files: FileList | undefined) => files && ["image/jpeg", "image/jpg", "image/png"].includes(files[0]?.type),
-      "Formato de foto no válido (solo JPG/PNG)."
-    ),
-  
-  // Campo 'documentos' renombrado a 'documentos_adicionales' y validaciones para File[]
-  documentos_adicionales: z.any()
-    .refine((files: File[] | undefined) => {
-      if (!files || files.length === 0) return true; // Es opcional
-      return files.every((file: File) => file.size <= 5 * 1024 * 1024);
-    }, `Cada documento debe ser menor de 5MB.`)
-    .refine(
-      (files: File[] | undefined) => {
+const formSchema = z
+  .object({
+    nombre: z.string().min(2, "El nombre es requerido"),
+    apellidos: z.string().min(2, "Los apellidos son requeridos"),
+    genero: z.string().min(1, "El género es requerido"),
+    fecha_nacimiento: z.string().min(1, "La fecha de nacimiento es requerida"),
+    nacionalidad: z.string().min(1, "Seleccione su nacionalidad"),
+    numero_dip: z.string().optional(),
+    numero_pasaporte: z.string().optional(),
+    telefono: z.string().min(9, "El teléfono debe tener al menos 9 dígitos"),
+    domicilio: z.string().min(2, "El domicilio es requerido"),
+    provincia: z.string().min(1, "La provincia es requerida"),
+    distrito: z.string().min(1, "El distrito es requerido"),
+    area_profesional: z.string().min(1, "El área profesional es requerida"),
+    especialidad: z.string().optional(),
+    categoria_titulacion: z
+      .string()
+      .min(1, "La categoría de titulación es requerida"),
+    titulacion_especifica_1: z.string().min(1, "La titulación es requerida"),
+    institucion_1: z.string().min(1, "La institución es requerida"),
+    periodo_formacion: z
+      .string()
+      .min(1, "El período de formaci��n es requerido"),
+    pais_formacion_1: z.string().min(1, "El país de formación es requerido"),
+    situacion_laboral: z.string().min(1, "La situación laboral es requerida"),
+    nombre_centro: z.string().min(1, "El centro de trabajo es requerido"),
+    categoria_centro: z.string().min(1, "La categoría del centro es requerida"),
+    tipo_sector: z.string().min(1, "El tipo de sector es requerido"),
+    distrito_sanitario: z.string().optional(),
+    pertenece_brigada_medica: z.boolean().default(false),
+    tipo_cooperacion: z.string().optional(),
+
+    // Validaciones para foto_carnet (un solo archivo FileList)
+    foto_carnet: z
+      .any()
+      .refine(
+        (files: FileList | undefined) => files && files.length > 0,
+        "La foto de carnet es obligatoria.",
+      )
+      .refine(
+        (files: FileList | undefined) => files?.[0]?.size <= 2 * 1024 * 1024,
+        `La foto debe ser menor de 2MB.`,
+      )
+      .refine(
+        (files: FileList | undefined) =>
+          files &&
+          ["image/jpeg", "image/jpg", "image/png"].includes(files[0]?.type),
+        "Formato de foto no válido (solo JPG/PNG).",
+      ),
+
+    // Campo 'documentos' renombrado a 'documentos_adicionales' y validaciones para File[]
+    documentos_adicionales: z
+      .any()
+      .refine((files: File[] | undefined) => {
         if (!files || files.length === 0) return true; // Es opcional
-        return files.every((file: File) => ["application/pdf", "image/jpeg", "image/jpg", "image/png"].includes(file.type));
-      },
-      "Formato de documento no válido (solo PDF, JPG, PNG)."
-    )
-    .optional(),
+        return files.every((file: File) => file.size <= 5 * 1024 * 1024);
+      }, `Cada documento debe ser menor de 5MB.`)
+      .refine((files: File[] | undefined) => {
+        if (!files || files.length === 0) return true; // Es opcional
+        return files.every((file: File) =>
+          ["application/pdf", "image/jpeg", "image/jpg", "image/png"].includes(
+            file.type,
+          ),
+        );
+      }, "Formato de documento no válido (solo PDF, JPG, PNG).")
+      .optional(),
 
-  acepta_politicas: z.boolean().refine(val => val === true, "Debe aceptar las políticas")
-})
-.superRefine((data, ctx) => {
-  if (!data.nacionalidad || data.nacionalidad.trim() === "") {
-    return;
-  }
+    acepta_politicas: z
+      .boolean()
+      .refine((val) => val === true, "Debe aceptar las políticas"),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.nacionalidad || data.nacionalidad.trim() === "") {
+      return;
+    }
 
-  if (data.nacionalidad === "Ecuatoguineana") {
-    if (!data.numero_dip || data.numero_dip.trim() === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Verifique su número de DIP",
-        path: ["numero_dip"],
-      });
+    if (data.nacionalidad === "Ecuatoguineana") {
+      if (!data.numero_dip || data.numero_dip.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Verifique su número de DIP",
+          path: ["numero_dip"],
+        });
+      }
+    } else {
+      if (!data.numero_pasaporte || data.numero_pasaporte.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Verifique su número de Pasaporte.",
+          path: ["numero_pasaporte"],
+        });
+      }
     }
-  } else {
-    if (!data.numero_pasaporte || data.numero_pasaporte.trim() === "") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Verifique su número de Pasaporte.",
-        path: ["numero_pasaporte"],
-      });
-    }
-  }
-});
+  });
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -112,17 +144,42 @@ const steps = [
   { id: 3, title: "Formación", icon: GraduationCap },
   { id: 4, title: "Situación Laboral", icon: Briefcase },
   { id: 5, title: "Documentos", icon: FileText },
-  { id: 6, title: "Confirmación", icon: CheckCircle }
+  { id: 6, title: "Confirmación", icon: CheckCircle },
 ];
 
 // Campos a validar por cada paso
 const stepFields: { [key: number]: (keyof FormData)[] } = {
-  1: ['nombre', 'apellidos', 'genero', 'fecha_nacimiento', 'nacionalidad', 'numero_dip', 'numero_pasaporte', 'telefono'],
-  2: ['domicilio', 'provincia', 'distrito'],
-  3: ['area_profesional', 'categoria_titulacion', 'titulacion_especifica_1', 'institucion_1', 'periodo_formacion', 'pais_formacion_1', 'especialidad'],
-  4: ['situacion_laboral', 'nombre_centro', 'categoria_centro', 'tipo_sector', 'distrito_sanitario', 'tipo_cooperacion', 'pertenece_brigada_medica'],
-  5: ['foto_carnet', 'documentos_adicionales', 'acepta_politicas'], 
-  6: []
+  1: [
+    "nombre",
+    "apellidos",
+    "genero",
+    "fecha_nacimiento",
+    "nacionalidad",
+    "numero_dip",
+    "numero_pasaporte",
+    "telefono",
+  ],
+  2: ["domicilio", "provincia", "distrito"],
+  3: [
+    "area_profesional",
+    "categoria_titulacion",
+    "titulacion_especifica_1",
+    "institucion_1",
+    "periodo_formacion",
+    "pais_formacion_1",
+    "especialidad",
+  ],
+  4: [
+    "situacion_laboral",
+    "nombre_centro",
+    "categoria_centro",
+    "tipo_sector",
+    "distrito_sanitario",
+    "tipo_cooperacion",
+    "pertenece_brigada_medica",
+  ],
+  5: ["foto_carnet", "documentos_adicionales", "acepta_politicas"],
+  6: [],
 };
 
 const ProfessionalRegistration = () => {
@@ -135,15 +192,20 @@ const ProfessionalRegistration = () => {
   const [showPoliticasModal, setShowPoliticasModal] = React.useState(false);
   const [showProcedureModal, setShowProcedureModal] = useState(false);
   const [solicitudEnviada, setSolicitudEnviada] = useState(false);
-  const [errorEnvio, setErrorEnvio] = useState<string>('');
-  
+  const [errorEnvio, setErrorEnvio] = useState<string>("");
+
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: nacionalidades = [] } = useNacionalidades();
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
   const { uploadFile, uploadPDF, isUploading } = useFileUpload(); // Mantener useFileUpload si se usa para el PDF final
+  const { syncCenterFromProfessional, updateProfessionalCenterMutation } =
+    useCenterSync();
 
-  console.log('Distritos sanitarios en ProfessionalRegistration:', distritosSanitarios);
+  console.log(
+    "Distritos sanitarios en ProfessionalRegistration:",
+    distritosSanitarios,
+  );
 
   // Inicialización del formulario con react-hook-form
   const form = useForm<FormData>({
@@ -151,9 +213,9 @@ const ProfessionalRegistration = () => {
     defaultValues: {
       pertenece_brigada_medica: false,
       acepta_politicas: false,
-      situacion_laboral: 'Activo',
+      situacion_laboral: "Activo",
       nacionalidad: "Ecuatoguineana",
-    }
+    },
   });
 
   const watchedValues = form.watch(); // Observa todos los valores del formulario
@@ -161,9 +223,12 @@ const ProfessionalRegistration = () => {
   // Manejador para la carga de documentos adicionales
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    setUploadedFiles(prev => [...prev, ...files]);
+    setUploadedFiles((prev) => [...prev, ...files]);
     // Sincroniza con react-hook-form
-    form.setValue('documentos_adicionales', [...(form.getValues('documentos_adicionales') || []), ...files]);
+    form.setValue("documentos_adicionales", [
+      ...(form.getValues("documentos_adicionales") || []),
+      ...files,
+    ]);
   };
 
   // Manejador para eliminar un documento adicional
@@ -171,7 +236,7 @@ const ProfessionalRegistration = () => {
     const updatedFiles = uploadedFiles.filter((_, i) => i !== index);
     setUploadedFiles(updatedFiles);
     // Sincroniza con react-hook-form
-    form.setValue('documentos_adicionales', updatedFiles);
+    form.setValue("documentos_adicionales", updatedFiles);
   };
 
   // Manejador para la carga de la foto de carnet
@@ -180,7 +245,7 @@ const ProfessionalRegistration = () => {
     if (!file) {
       setPhotoFile(null);
       setFotoCarnetBase64(null);
-      form.setValue('foto_carnet', undefined); // Sincroniza con react-hook-form
+      form.setValue("foto_carnet", undefined); // Sincroniza con react-hook-form
       return;
     }
 
@@ -191,50 +256,54 @@ const ProfessionalRegistration = () => {
       setFotoCarnetBase64(base64);
     };
     reader.readAsDataURL(file);
-    form.setValue('foto_carnet', [file]); // Sincroniza con react-hook-form (FileList)
+    form.setValue("foto_carnet", [file]); // Sincroniza con react-hook-form (FileList)
   };
 
   // Manejador para eliminar la foto de carnet
   const removePhoto = () => {
     setPhotoFile(null);
     setFotoCarnetBase64(null);
-    form.setValue('foto_carnet', undefined); // Sincroniza con react-hook-form
+    form.setValue("foto_carnet", undefined); // Sincroniza con react-hook-form
   };
 
   // Función principal de envío del formulario
   const onSubmit = async (data: FormData) => {
-    console.log('onSubmit llamado con datos:', data);
-    
+    console.log("onSubmit llamado con datos:", data);
+
     if (solicitudEnviada) {
       toast({
         title: "Solicitud ya enviada",
-        description: "Esta solicitud ya ha sido enviada. No puede enviar duplicados.",
+        description:
+          "Esta solicitud ya ha sido enviada. No puede enviar duplicados.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!photoFile) { 
-      setErrorEnvio("La foto tipo carnet es obligatoria para enviar la solicitud.");
+    if (!photoFile) {
+      setErrorEnvio(
+        "La foto tipo carnet es obligatoria para enviar la solicitud.",
+      );
       toast({
         title: "Requisito Faltante",
-        description: "Por favor, suba su foto tipo carnet para enviar la solicitud.",
+        description:
+          "Por favor, suba su foto tipo carnet para enviar la solicitud.",
         variant: "destructive",
       });
       setIsSubmitting(false);
       return;
     }
-    
+
     setIsSubmitting(true);
-    setErrorEnvio('');
-    
+    setErrorEnvio("");
+
     try {
-      console.log('Iniciando proceso de envío de formulario...');
-      
+      console.log("Iniciando proceso de envío de formulario...");
+
       // Subir foto a Supabase Storage (flujo original del usuario)
-      const fotoUrl = await uploadFile(photoFile!, 'fotos-carnet');
+      const fotoUrl = await uploadFile(photoFile!, "fotos-carnet");
       if (!fotoUrl) {
-        throw new Error('Error al subir la foto');
+        throw new Error("Error al subir la foto");
       }
 
       // Calcular edad
@@ -247,10 +316,10 @@ const ProfessionalRegistration = () => {
       // Preparar datos de documentos (metadata inicialmente)
       // Nota: Esta estructura solo guarda metadatos. Para subir los archivos reales,
       // se necesitaría una lógica adicional (como una Edge Function).
-      const documentosData = uploadedFiles.map(file => ({
+      const documentosData = uploadedFiles.map((file) => ({
         nombre: file.name,
         tipo: file.type,
-        tamaño: file.size
+        tamaño: file.size,
       }));
 
       // Crear objeto con los datos del formulario
@@ -287,24 +356,57 @@ const ProfessionalRegistration = () => {
         documentos_adicionales: documentosData, // Se envían los metadatos de los documentos
         foto_carnet: fotoUrl, // URL de la foto subida
         // Eliminamos codigo_barras de la inserción inicial, ya que usaremos codigo_expediente de la DB
-        estado_solicitud: 'Recibido' as const,
-        fecha_solicitud: new Date().toISOString().split('T')[0]
+        estado_solicitud: "Recibido" as const,
+        fecha_solicitud: new Date().toISOString().split("T")[0],
       };
 
-      console.log('Datos a enviar a Supabase:', submissionData);
+      console.log("Datos a enviar a Supabase:", submissionData);
 
       const { data: result, error } = await supabase
-        .from('profesionales_sanitarios')
+        .from("profesionales_sanitarios")
         .insert([submissionData])
-        .select('id, codigo_expediente', 'url_codigo_barras_expediente') // CAMBIO: Aseguramos la selección de codigo_expediente
+        .select("id, codigo_expediente", "url_codigo_barras_expediente") // CAMBIO: Aseguramos la selección de codigo_expediente
         .single();
 
       if (error) {
-        console.error('Error de Supabase:', error);
+        console.error("Error de Supabase:", error);
         throw new Error(`Error de base de datos: ${error.message}`);
       }
 
-      console.log('Resultado exitoso de Supabase:', result);
+      console.log("Resultado exitoso de Supabase:", result);
+
+      // Sync center data if professional is active
+      if (data.situacion_laboral === "Activo" && data.nombre_centro) {
+        try {
+          const centerId = await syncCenterFromProfessional({
+            nombre_centro: data.nombre_centro,
+            categoria_centro: data.categoria_centro,
+            distrito_sanitario: data.distrito_sanitario,
+            tipo_sector: data.tipo_sector,
+            provincia: data.provincia,
+            distrito: data.distrito,
+            professional_id: result.id,
+          });
+
+          // Update professional with center ID if center was found/created
+          if (centerId) {
+            await updateProfessionalCenterMutation.mutateAsync({
+              professionalId: result.id,
+              centerId: centerId,
+            });
+            console.log("Professional linked to center:", centerId);
+          }
+        } catch (centerError) {
+          console.error("Error syncing center data:", centerError);
+          // Don't fail the registration if center sync fails
+          toast({
+            title: "Aviso",
+            description:
+              "El registro fue exitoso, pero hubo un problema al sincronizar los datos del centro.",
+            variant: "default",
+          });
+        }
+      }
 
       // Marcar solicitud como enviada
       setSolicitudEnviada(true);
@@ -318,7 +420,7 @@ const ProfessionalRegistration = () => {
         url_codigo_barras_expediente: result.url_codigo_barras_expediente, // CAMBIO: Usamos el codigo_expediente de la DB
         codigo_expediente: result.codigo_expediente, // Mantenemos para claridad
         edad: age,
-        submittedData: result
+        submittedData: result,
       });
 
       toast({
@@ -329,16 +431,17 @@ const ProfessionalRegistration = () => {
 
       setCurrentStep(6); // Ir al step de confirmación
     } catch (error: any) {
-      console.error('Error completo al enviar formulario:', error);
-      const errorMessage = error.message || 'Error desconocido al procesar la solicitud';
+      console.error("Error completo al enviar formulario:", error);
+      const errorMessage =
+        error.message || "Error desconocido al procesar la solicitud";
       setErrorEnvio(errorMessage);
-      
+
       toast({
         title: "Error al enviar solicitud",
         description: errorMessage,
         variant: "destructive",
       });
-      
+
       setCurrentStep(6); // Ir al step de confirmación para mostrar el error
     } finally {
       setIsSubmitting(false);
@@ -357,7 +460,7 @@ const ProfessionalRegistration = () => {
     }
 
     // Valida solo los campos del paso actual
-    const isValid = await form.trigger(fieldsToValidate as any); 
+    const isValid = await form.trigger(fieldsToValidate as any);
 
     if (isValid) {
       if (currentStep < steps.length) {
@@ -366,10 +469,14 @@ const ProfessionalRegistration = () => {
     } else {
       toast({
         title: "Campos incompletos o incorrectos",
-        description: "Por favor, complete correctamente todos los campos obligatorios del paso actual antes de avanzar.",
+        description:
+          "Por favor, complete correctamente todos los campos obligatorios del paso actual antes de avanzar.",
         variant: "destructive",
       });
-      console.error("Errores de validación al avanzar de paso:", form.formState.errors);
+      console.error(
+        "Errores de validación al avanzar de paso:",
+        form.formState.errors,
+      );
     }
   };
 
@@ -383,10 +490,10 @@ const ProfessionalRegistration = () => {
     switch (currentStep) {
       case 1:
         return (
-          <PersonalInfoStep 
-            form={form} 
-            nacionalidades={nacionalidades} 
-            watchedValues={watchedValues} 
+          <PersonalInfoStep
+            form={form}
+            nacionalidades={nacionalidades}
+            watchedValues={watchedValues}
           />
         );
       case 2:
@@ -395,15 +502,15 @@ const ProfessionalRegistration = () => {
         return <EducationStep form={form} />;
       case 4:
         return (
-          <WorkSituationStep 
-            form={form} 
-            watchedValues={watchedValues} 
-            distritosSanitarios={distritosSanitarios} 
+          <WorkSituationStep
+            form={form}
+            watchedValues={watchedValues}
+            distritosSanitarios={distritosSanitarios}
           />
         );
       case 5:
         return (
-          <DocumentsStep 
+          <DocumentsStep
             uploadedFiles={uploadedFiles}
             handleFileUpload={handleFileUpload}
             removeFile={removeFile}
@@ -416,8 +523,13 @@ const ProfessionalRegistration = () => {
         );
       case 6:
         return (
-          <ConfirmationStep 
-            formData={formDataForPDF || { ...watchedValues, foto_carnet_base64: fotoCarnetBase64 }}
+          <ConfirmationStep
+            formData={
+              formDataForPDF || {
+                ...watchedValues,
+                foto_carnet_base64: fotoCarnetBase64,
+              }
+            }
             isSubmitting={isSubmitting}
             solicitudEnviada={solicitudEnviada}
             errorEnvio={errorEnvio}
@@ -447,7 +559,9 @@ const ProfessionalRegistration = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  {React.createElement(steps[currentStep - 1].icon, { className: "w-5 h-5 text-blue-600" })}
+                  {React.createElement(steps[currentStep - 1].icon, {
+                    className: "w-5 h-5 text-blue-600",
+                  })}
                   <span>{steps[currentStep - 1].title}</span>
                 </CardTitle>
                 <CardDescription>
@@ -474,20 +588,30 @@ const ProfessionalRegistration = () => {
                   Siguiente
                 </Button>
               ) : (
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={isSubmitting || solicitudEnviada}
                   className="bg-guinea-teal hover:bg-guinea-teal/90"
                 >
-                  {isSubmitting ? "Enviando..." : solicitudEnviada ? "Solicitud Enviada" : "Enviar Solicitud"}
+                  {isSubmitting
+                    ? "Enviando..."
+                    : solicitudEnviada
+                      ? "Solicitud Enviada"
+                      : "Enviar Solicitud"}
                 </Button>
               )}
             </div>
           </form>
         </Form>
-        
-        <PoliticasModal open={showPoliticasModal} onClose={() => setShowPoliticasModal(false)} />
-        <ProcedureModal isOpen={showProcedureModal} onClose={() => setShowProcedureModal(false)}/>
+
+        <PoliticasModal
+          open={showPoliticasModal}
+          onClose={() => setShowPoliticasModal(false)}
+        />
+        <ProcedureModal
+          isOpen={showProcedureModal}
+          onClose={() => setShowProcedureModal(false)}
+        />
       </div>
     </div>
   );

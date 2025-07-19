@@ -12,10 +12,12 @@ import {
   MapPin,
   ChevronDown,
   Send,
+  Download,
 } from "lucide-react"; // ¡Importado 'Send' aquí!
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Profesional } from "@/hooks/useProfesionales"; // Asegúrate de que esta importación sea correcta
+import type { Profesional } from "@/hooks/useProfesionales";
+import { useToast } from "@/hooks/use-toast"; // Asegúrate de que esta importación sea correcta
 
 import {
   Dialog,
@@ -70,6 +72,8 @@ const RenewalAlerts = ({
     "RenewalAlerts: Initial dashboardFilters received:",
     dashboardFilters,
   );
+
+  const { toast } = useToast();
 
   const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<
     ProfesionalAlert["prioridad"] | "all"
@@ -277,6 +281,76 @@ const RenewalAlerts = ({
     }
   };
 
+  // Excel export functionality
+  const exportRenewalsToExcel = () => {
+    try {
+      // Create worksheet data
+      const worksheetData = [
+        // Header row
+        [
+          "ID Profesional",
+          "Nombre Completo",
+          "Área Profesional",
+          "Teléfono",
+          "Email",
+          "Provincia",
+          "Fecha Caducidad",
+          "Días Restantes",
+          "Prioridad",
+          "Número Carnet",
+          "Lugar de Trabajo",
+        ],
+        // Data rows
+        ...filteredRenewalAlerts.map((alert) => [
+          alert.id_profesional_unico || "",
+          alert.nombre_completo || "",
+          alert.area_profesional || "",
+          alert.telefono || "",
+          alert.email || "",
+          alert.provincia || "",
+          alert.fecha_caducidad
+            ? new Date(alert.fecha_caducidad).toLocaleDateString("es-ES")
+            : "",
+          alert.diasRestantes,
+          alert.prioridad,
+          alert.numero_carnet_profesional || "",
+          alert.lugar_trabajo || "",
+        ]),
+      ];
+
+      // Create CSV content
+      const csvContent = worksheetData
+        .map((row) => row.map((cell) => `"${cell}"`).join(","))
+        .join("\n");
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `Renovaciones_${selectedPriorityFilter}_${new Date().toISOString().split("T")[0]}.csv`,
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Exportación exitosa",
+        description: `Se ha descargado la lista de ${filteredRenewalAlerts.length} alertas de renovación.`,
+      });
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      toast({
+        title: "Error en la exportación",
+        description: "No se pudo exportar la lista. Intente nuevamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   console.log(
     `Component rendering complete. Is loading: ${isLoading}, Is error: ${isError}.`,
   );
@@ -296,6 +370,16 @@ const RenewalAlerts = ({
             >
               {filteredRenewalAlerts.length} pendientes
             </Badge>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportRenewalsToExcel}
+              className="flex items-center gap-1"
+            >
+              <Download className="w-4 h-4" />
+              Exportar Excel
+            </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger>

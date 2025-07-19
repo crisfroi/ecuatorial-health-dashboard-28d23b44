@@ -1,40 +1,89 @@
+import { useState, useRef, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import {
+  MessageCircle,
+  Send,
+  Bot,
+  User,
+  Loader2,
+  ExternalLink,
+} from "lucide-react";
+import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
+import {
+  useTopCenters,
+  useAreaProfessionalStats,
+  useDistrictStats,
+  useAgeRangeStats,
+  useGraduationYearStats,
+  useCountryStats,
+  useInstitutionStats,
+  useCenterCategoryStats,
+  useTitulacionCategoryStats,
+} from "@/hooks/useAdvancedAnalytics";
+import { supabase } from "@/integrations/supabase/client";
 
-import { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageCircle, Send, Bot, User, Loader2 } from 'lucide-react';
-import { useEstadisticasAvanzadas } from '@/hooks/useEstadisticasAvanzadas';
-import { supabase } from '@/integrations/supabase/client';
+interface NavigationAction {
+  type: "navigate";
+  tab: string;
+  filters?: any;
+  label: string;
+}
 
 interface Message {
   id: string;
-  type: 'user' | 'bot';
+  type: "user" | "bot";
   content: string;
   timestamp: Date;
+  navigationActions?: NavigationAction[];
 }
 
-const AIChat = () => {
+interface AIChatProps {
+  onNavigateToTab?: (tab: string, filters?: any) => void;
+}
+
+const AIChat: React.FC<AIChatProps> = ({ onNavigateToTab }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '1',
-      type: 'bot',
-      content: '¡Hola! Soy tu asistente de análisis de datos de RENAPROSA. Puedo ayudarte a analizar estadísticas de profesionales sanitarios, identificar tendencias y responder preguntas sobre los datos. ¿En qué puedo ayudarte?',
-      timestamp: new Date()
-    }
+      id: "1",
+      type: "bot",
+      content:
+        "¡Hola! Soy tu asistente de análisis de datos de RENAPROSA. Puedo ayudarte a analizar estadísticas de profesionales sanitarios, identificar tendencias y responder preguntas sobre los datos. ¿En qué puedo ayudarte?",
+      timestamp: new Date(),
+    },
   ]);
-  const [inputMessage, setInputMessage] = useState('');
+  const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // All analytics data
   const { data: stats } = useEstadisticasAvanzadas();
+  const { data: topCenters = [] } = useTopCenters();
+  const { data: areaStats = [] } = useAreaProfessionalStats();
+  const { data: districtStats = [] } = useDistrictStats();
+  const { data: ageRangeStats = [] } = useAgeRangeStats();
+  const { data: graduationStats = [] } = useGraduationYearStats();
+  const { data: countryStats = [] } = useCountryStats();
+  const { data: institutionStats = [] } = useInstitutionStats();
+  const { data: categoryStats = [] } = useCenterCategoryStats();
+  const { data: titulacionStats = [] } = useTitulacionCategoryStats();
 
   const suggestedQuestions = [
     "¿Cuáles son las principales tendencias en las solicitudes de profesionales?",
-    "¿Qué provincias tienen más profesionales aprobados?",
+    "¿Qué centros de salud tienen más profesionales?",
     "¿Cuál es la distribución por género en las diferentes áreas profesionales?",
+    "¿Qué distritos sanitarios necesitan más profesionales?",
+    "¿Cuáles son las áreas profesionales que necesitan refuerzo?",
+    "¿De qué países se forman más los profesionales?",
+    "¿Cuál es la distribución por edades de los profesionales?",
+    "¿Qué instituciones forman más profesionales?",
+    "¿Cuáles son las tendencias de graduación por año?",
+    "¿Cómo está distribuida la titulación por categorías?",
+    "¿Qué categorías de centros tienen más profesionales?",
     "¿Hay algún patrón en los rechazos de solicitudes?",
-    "¿Qué recomendaciones tienes para mejorar el proceso de aprobación?"
   ];
 
   useEffect(() => {
@@ -48,42 +97,86 @@ const AIChat = () => {
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      type: 'user',
+      type: "user",
       content: message,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
+    setMessages((prev) => [...prev, userMessage]);
+    setInputMessage("");
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('ai-chat-analysis', {
-        body: {
-          message: message,
-          statistics: stats
-        }
-      });
+      // Comprehensive analytics data
+      const comprehensiveData = {
+        basicStats: stats,
+        topCenters,
+        areaStats,
+        districtStats,
+        ageRangeStats,
+        graduationStats,
+        countryStats,
+        institutionStats,
+        categoryStats,
+        titulacionStats,
+        summary: {
+          totalProfessionals: areaStats.reduce(
+            (sum, area) => sum + area.total,
+            0,
+          ),
+          totalApproved: areaStats.reduce(
+            (sum, area) => sum + area.aprobados,
+            0,
+          ),
+          totalCenters: topCenters.length,
+          totalDistricts: districtStats.length,
+          totalCountries: countryStats.length,
+          totalInstitutions: institutionStats.length,
+        },
+      };
+
+      const { data, error } = await supabase.functions.invoke(
+        "ai-chat-analysis",
+        {
+          body: {
+            message: message,
+            analytics: comprehensiveData,
+          },
+        },
+      );
 
       if (error) throw error;
 
+      // Parse navigation actions from response
+      let navigationActions: NavigationAction[] = [];
+      let content =
+        data.response ||
+        "Lo siento, no pude procesar tu solicitud en este momento.";
+
+      // Look for navigation markers in the response
+      if (data.navigationSuggestions) {
+        navigationActions = data.navigationSuggestions;
+      }
+
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        type: 'bot',
-        content: data.response || 'Lo siento, no pude procesar tu solicitud en este momento.',
-        timestamp: new Date()
+        type: "bot",
+        content,
+        timestamp: new Date(),
+        navigationActions,
       };
 
-      setMessages(prev => [...prev, botMessage]);
+      setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
-      console.error('Error calling AI function:', error);
+      console.error("Error calling AI function:", error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        type: 'bot',
-        content: 'Lo siento, hubo un error al procesar tu solicitud. Por favor, inténtalo de nuevo.',
-        timestamp: new Date()
+        type: "bot",
+        content:
+          "Lo siento, hubo un error al procesar tu solicitud. Por favor, inténtalo de nuevo.",
+        timestamp: new Date(),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +187,7 @@ const AIChat = () => {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -127,25 +220,68 @@ const AIChat = () => {
                     <div
                       key={msg.id}
                       className={`flex items-start space-x-3 ${
-                        msg.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+                        msg.type === "user"
+                          ? "flex-row-reverse space-x-reverse"
+                          : ""
                       }`}
                     >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        msg.type === 'user' 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-gray-200 text-gray-600'
-                      }`}>
-                        {msg.type === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          msg.type === "user"
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-200 text-gray-600"
+                        }`}
+                      >
+                        {msg.type === "user" ? (
+                          <User className="w-4 h-4" />
+                        ) : (
+                          <Bot className="w-4 h-4" />
+                        )}
                       </div>
-                      <div className={`max-w-[80%] ${
-                        msg.type === 'user' ? 'text-right' : 'text-left'
-                      }`}>
-                        <div className={`p-3 rounded-lg break-words ${
-                          msg.type === 'user'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}>
-                          <div className="whitespace-pre-wrap">{msg.content}</div>
+                      <div
+                        className={`max-w-[80%] ${
+                          msg.type === "user" ? "text-right" : "text-left"
+                        }`}
+                      >
+                        <div
+                          className={`p-3 rounded-lg break-words ${
+                            msg.type === "user"
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-100 text-gray-900"
+                          }`}
+                        >
+                          <div className="whitespace-pre-wrap">
+                            {msg.content}
+                          </div>
+                          {msg.navigationActions &&
+                            msg.navigationActions.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                                <div className="text-sm font-medium text-gray-700">
+                                  Navegar a:
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {msg.navigationActions.map(
+                                    (action, index) => (
+                                      <Button
+                                        key={index}
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() =>
+                                          onNavigateToTab?.(
+                                            action.tab,
+                                            action.filters,
+                                          )
+                                        }
+                                        className="text-xs h-7 px-2"
+                                      >
+                                        <ExternalLink className="w-3 h-3 mr-1" />
+                                        {action.label}
+                                      </Button>
+                                    ),
+                                  )}
+                                </div>
+                              </div>
+                            )}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
                           {msg.timestamp.toLocaleTimeString()}
@@ -168,7 +304,7 @@ const AIChat = () => {
                   )}
                 </div>
               </ScrollArea>
-              
+
               <div className="border-t p-4">
                 <div className="flex space-x-2">
                   <Textarea
@@ -227,15 +363,21 @@ const AIChat = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Aprobados:</span>
-                    <span className="font-semibold text-green-600">{stats.aprobados}</span>
+                    <span className="font-semibold text-green-600">
+                      {stats.aprobados}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Pendientes:</span>
-                    <span className="font-semibold text-yellow-600">{stats.pendientes}</span>
+                    <span className="font-semibold text-yellow-600">
+                      {stats.pendientes}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Tasa de Aprobación:</span>
-                    <span className="font-semibold">{stats.tasaAprobacion}%</span>
+                    <span className="font-semibold">
+                      {stats.tasaAprobacion}%
+                    </span>
                   </div>
                 </div>
               </CardContent>

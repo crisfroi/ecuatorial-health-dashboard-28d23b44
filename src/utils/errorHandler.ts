@@ -9,6 +9,63 @@ export function getErrorMessage(error: any): string {
     return "Unknown error occurred";
   }
 
+  // Special handling for connection failures with empty messages
+  if (error && typeof error === "object" && error.message === "") {
+    console.log("Detected empty message error, checking for connection issues");
+
+    // Check if this looks like a network/connection error
+    if (error.code === "PGRST301" || error.code === "PGRST116") {
+      return "Database connection error - please check your internet connection";
+    }
+
+    // Check for common Supabase error patterns
+    if (error.details || error.hint || error.code) {
+      return `Database error (${error.code || "unknown"}): ${error.details || error.hint || "Connection failed"}`;
+    }
+
+    // If message is empty but we have other properties, use them
+    const keys = Object.keys(error);
+    if (keys.length > 1) {
+      return `Connection error - detected properties: ${keys.join(", ")}`;
+    }
+
+    // Provide more context for empty error responses
+    console.log("Analyzing empty error response for more context...");
+
+    // Check if we're offline
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      return "Database connection failed - device appears to be offline";
+    }
+
+    // Check if this might be a CORS issue
+    if (typeof window !== "undefined" && window.location) {
+      const currentOrigin = window.location.origin;
+      console.log("Current origin:", currentOrigin);
+      if (
+        currentOrigin.includes("localhost") ||
+        currentOrigin.includes("127.0.0.1")
+      ) {
+        return "Database connection failed - possible CORS issue on localhost";
+      }
+    }
+
+    // Check for error object structure patterns
+    if (error && typeof error === "object") {
+      const errorKeys = Object.keys(error);
+      if (errorKeys.length === 0) {
+        return "Database connection failed - received empty error object (possible network timeout)";
+      }
+      if (errorKeys.includes("name") && error.name === "TypeError") {
+        return "Database connection failed - network error (TypeError detected)";
+      }
+      if (errorKeys.includes("stack") && errorKeys.length <= 2) {
+        return "Database connection failed - minimal error info (possible fetch/network issue)";
+      }
+    }
+
+    return "Database connection failed - empty error response (check network and Supabase configuration)";
+  }
+
   console.log("Error analysis:", {
     type: typeof error,
     constructor: error?.constructor?.name,
@@ -25,7 +82,14 @@ export function getErrorMessage(error: any): string {
     // Try message first
     () => {
       if (error.message !== undefined) {
-        if (typeof error.message === "string" && error.message.trim()) {
+        if (typeof error.message === "string") {
+          // If message is empty string, try to extract more info
+          if (!error.message.trim()) {
+            console.log(
+              "Empty message detected, looking for alternative error info",
+            );
+            return null; // Will continue to next error source
+          }
           return error.message;
         }
         if (typeof error.message === "object" && error.message !== null) {
@@ -34,6 +98,18 @@ export function getErrorMessage(error: any): string {
             return nestedMessage;
           }
         }
+      }
+      return null;
+    },
+
+    // Try Supabase specific error properties
+    () => {
+      // Check for PostgrestError structure
+      if (error.code && error.hint) {
+        return `Database Error (${error.code}): ${error.hint}`;
+      }
+      if (error.code && error.details) {
+        return `Database Error (${error.code}): ${error.details}`;
       }
       return null;
     },
@@ -200,8 +276,41 @@ export function getErrorMessage(error: any): string {
     console.error("Failed to stringify error:", e);
   }
 
-  // Fallback final con más información
-  return `Error object: ${typeof error} (constructor: ${error?.constructor?.name || "unknown"}, toString: ${error?.toString?.() || "unavailable"})`;
+  // Special case for completely empty or minimal error objects
+  if (typeof error === "object" && error !== null) {
+    const keys = Object.keys(error);
+    if (keys.length === 0) {
+      return "Empty error object - possible network or configuration issue";
+    }
+    if (keys.length === 1 && keys[0] === "message" && !error.message) {
+      return "Error with empty message - likely database connection issue";
+    }
+  }
+
+  // Enhanced fallback with network diagnostics
+  const errorType = typeof error;
+  const constructor = error?.constructor?.name || "unknown";
+  const toString = (() => {
+    try {
+      return error?.toString?.() || "unavailable";
+    } catch (e) {
+      return "toString failed";
+    }
+  })();
+
+  // Add network context if available
+  const networkInfo = [];
+  if (typeof navigator !== "undefined") {
+    networkInfo.push(`online: ${navigator.onLine}`);
+  }
+  if (typeof window !== "undefined" && window.location) {
+    networkInfo.push(`origin: ${window.location.origin}`);
+  }
+
+  const networkContext =
+    networkInfo.length > 0 ? ` [${networkInfo.join(", ")}]` : "";
+
+  return `Unknown error - Type: ${errorType}, Constructor: ${constructor}, toString: ${toString}${networkContext}`;
 }
 
 export function logError(context: string, error: any): void {

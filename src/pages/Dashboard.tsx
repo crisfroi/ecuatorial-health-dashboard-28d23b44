@@ -50,11 +50,16 @@ import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import RequestsPanel from "@/components/dashboard/RequestsPanel";
 import RenewalAlerts from "@/components/dashboard/RenewalAlerts";
-import OpenAIChat from "@/components/dashboard/OpenAIChat";
+import AIChat from "@/components/dashboard/AIChat";
 import MinisterialPanel from "@/components/dashboard/MinisterialPanel";
 import HospitalIncidents from "@/components/dashboard/HospitalIncidents";
 import HealthCenters from "@/components/dashboard/HealthCenters";
 import AdminPanel from "@/components/dashboard/AdminPanel";
+import AdvancedAnalyticsDashboard from "@/components/dashboard/AdvancedAnalyticsDashboard";
+import ProfessionalSearch from "@/components/dashboard/ProfessionalSearch";
+import ErrorBoundary from "@/components/ui/error-boundary";
+import ConnectionDebugPanel from "@/components/dashboard/ConnectionDebugPanel";
+import { OfflineNotification } from "@/components/ui/offline-notification";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -161,6 +166,14 @@ const Dashboard = () => {
 
     setAppliedFilters(newAppliedFilters);
     console.log("Dashboard: appliedFilters actualizado a:", newAppliedFilters);
+  };
+
+  const handleNavigateFromAnalytics = (tab: string, filters?: any) => {
+    console.log("Dashboard: Navegando desde analytics:", tab, filters);
+    setActiveTab(tab);
+    if (filters) {
+      setAppliedFilters(filters);
+    }
   };
 
   useEffect(() => {
@@ -327,6 +340,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <OfflineNotification />
       <div className="sticky top-0 z-50 bg-gray-50 shadow-md">
         <div className="container mx-auto p-4">
           <Tabs
@@ -484,6 +498,15 @@ const Dashboard = () => {
           className="space-y-6"
         >
           <TabsContent value="overview" className="space-y-6">
+            <ErrorBoundary>
+              <ProfessionalSearch
+                onSelectProfessional={(professional) => {
+                  setSelectedProfessional(professional);
+                  setActiveTab("professionals");
+                }}
+                onNavigateToProfessionals={() => setActiveTab("professionals")}
+              />
+            </ErrorBoundary>
             <DashboardCharts onChartClick={handleChartClick} />
           </TabsContent>
 
@@ -537,41 +560,20 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-blue-600" />
-                    Métricas Avanzadas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">
-                    Análisis detallado de tendencias y patrones en el registro
-                    de profesionales.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-green-600" />
-                    Distribución Geográfica
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">
-                    Mapa de calor mostrando la distribución de profesionales por
-                    provincia.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            <AdvancedAnalyticsDashboard
+              onNavigateToTab={handleNavigateFromAnalytics}
+            />
           </TabsContent>
 
           <TabsContent value="ai-chat" className="space-y-6">
-            <OpenAIChat />
+            <AIChat
+              onNavigateToTab={(tab, filters) => {
+                setActiveTab(tab);
+                if (filters) {
+                  setAppliedFilters(filters);
+                }
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="ministerial" className="space-y-6">

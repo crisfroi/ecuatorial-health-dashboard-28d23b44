@@ -1,0 +1,152 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bioko Norte",
+        "name_es": "Bioko Norte",
+        "capital": "Malabo",
+        "id": "bioko-norte"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [8.7, 3.8],
+            [8.9, 3.8],
+            [8.9, 3.6],
+            [8.7, 3.6],
+            [8.7, 3.8]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bioko Sur",
+        "name_es": "Bioko Sur",
+        "capital": "Luba",
+        "id": "bioko-sur"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [8.7, 3.6],
+            [8.9, 3.6],
+            [8.9, 3.4],
+            [8.7, 3.4],
+            [8.7, 3.6]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Annobón",
+        "name_es": "Annobón",
+        "capital": "San Antonio de Palé",
+        "id": "annobon"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [5.6, -1.5],
+            [5.7, -1.5],
+            [5.7, -1.4],
+            [5.6, -1.4],
+            [5.6, -1.5]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Litoral",
+        "name_es": "Litoral",
+        "capital": "Bata",
+        "id": "litoral"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [9.7, 2.5],
+            [11.3, 2.5],
+            [11.3, 1.0],
+            [9.7, 1.0],
+            [9.7, 2.5]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Centro Sur",
+        "name_es": "Centro Sur",
+        "capital": "Evinayong",
+        "id": "centro-sur"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [10.2, 1.0],
+            [11.5, 1.0],
+            [11.5, 0.0],
+            [10.2, 0.0],
+            [10.2, 1.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Kié-Ntem",
+        "name_es": "Kié-Ntem",
+        "capital": "Ebebiyín",
+        "id": "kie-ntem"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [11.3, 2.5],
+            [12.0, 2.5],
+            [12.0, 1.0],
+            [11.3, 1.0],
+            [11.3, 2.5]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Wele-Nzas",
+        "name_es": "Wele-Nzas",
+        "capital": "Mongomo",
+        "id": "wele-nzas"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [11.5, 1.0],
+            [12.0, 1.0],
+            [12.0, 0.0],
+            [11.5, 0.0],
+            [11.5, 1.0]
+          ]
+        ]
+      }
+    }
+  ]
+}

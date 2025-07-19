@@ -383,16 +383,22 @@ export function useEstadisticasAvanzadas() {
       return estadisticas;
     },
     refetchInterval: (data, query) => {
-      // Don't auto-refetch in offline mode or when there are fetch errors
+      // Don't auto-refetch in offline mode
       const offlineMode = localStorage.getItem("app-offline-mode") === "true";
       if (offlineMode) {
         return false;
       }
 
-      // Check if the last error was a fetch error
-      const lastError = query.state.error;
-      if (lastError && lastError.message?.includes("fetch")) {
-        return false; // Don't auto-refetch on fetch errors
+      // Check if the last error was a fetch error (safely)
+      try {
+        const lastError = query?.state?.error;
+        if (lastError && lastError.message?.includes("fetch")) {
+          return false; // Don't auto-refetch on fetch errors
+        }
+      } catch (e) {
+        // If we can't check the error state, be conservative and don't refetch
+        console.warn("Could not check query error state:", e);
+        return false;
       }
 
       return 30000; // Normal 30 second interval

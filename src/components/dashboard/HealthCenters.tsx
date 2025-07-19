@@ -27,6 +27,7 @@ import {
   Eye,
   Edit,
   Plus,
+  Download,
 } from "lucide-react";
 import {
   useBuscarCentros,
@@ -34,6 +35,7 @@ import {
   useProfesionalesPorCentro,
 } from "@/hooks/useCentrosSalud";
 import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
+import { useToast } from "@/hooks/use-toast";
 
 const HealthCenters = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,6 +50,7 @@ const HealthCenters = () => {
 
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
   const { crearCentroMutation, actualizarCentroMutation } = useCentrosSalud();
+  const { toast } = useToast();
 
   const {
     data: centros = [],
@@ -123,6 +126,72 @@ const HealthCenters = () => {
     return sector === "Público"
       ? "bg-emerald-100 text-emerald-800"
       : "bg-blue-100 text-blue-800";
+  };
+
+  // Excel export functionality
+  const exportCentersToExcel = () => {
+    try {
+      // Create worksheet data
+      const worksheetData = [
+        // Header row
+        [
+          "ID",
+          "Nombre",
+          "Categoría",
+          "Sector",
+          "Distrito Sanitario",
+          "Provincia",
+          "Distrito",
+          "Director",
+          "Teléfono",
+          "Total Profesionales",
+        ],
+        // Data rows
+        ...centros.map((centro) => [
+          centro.id || "",
+          centro.nombre || "",
+          centro.categoria || "",
+          centro.sector || "",
+          centro.distrito_sanitario || "",
+          centro.provincia || "",
+          centro.distrito || "",
+          centro.director || "",
+          centro.telefono || "",
+          centro.total_profesionales || 0,
+        ]),
+      ];
+
+      // Create CSV content
+      const csvContent = worksheetData
+        .map((row) => row.map((cell) => `"${cell}"`).join(","))
+        .join("\n");
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `Centros_Salud_${new Date().toISOString().split("T")[0]}.csv`,
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Exportación exitosa",
+        description: `Se ha descargado la lista de ${centros.length} centros de salud.`,
+      });
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      toast({
+        title: "Error en la exportación",
+        description: "No se pudo exportar la lista. Intente nuevamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCreateCenter = async (formData: FormData) => {

@@ -84,6 +84,13 @@ const HealthCenters = () => {
     filterEstado || undefined,
   );
 
+  const { data: pendingCenters = [], refetch: refetchPendingCenters } =
+    useQuery({
+      queryKey: ["pendingCenters"],
+      queryFn: getPendingCenters,
+      enabled: showPendingCenters,
+    });
+
   const categorias = [
     "HOSPITAL",
     "CLINICA",
@@ -230,6 +237,17 @@ const HealthCenters = () => {
     });
     setShowEditDialog(false);
     setEditingCenter(null);
+  };
+
+  const handleValidateCenter = async (
+    centerId: string,
+    validationData: any,
+  ) => {
+    await validateCenterMutation.mutateAsync({
+      centerId,
+      validationData,
+    });
+    refetchPendingCenters();
   };
 
   if (selectedCenter) {

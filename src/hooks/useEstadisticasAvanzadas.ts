@@ -382,25 +382,14 @@ export function useEstadisticasAvanzadas() {
       console.log("Estadísticas avanzadas calculadas:", estadisticas);
       return estadisticas;
     },
-    refetchInterval: (data, query) => {
+    refetchInterval: () => {
       // Don't auto-refetch in offline mode
       const offlineMode = localStorage.getItem("app-offline-mode") === "true";
       if (offlineMode) {
         return false;
       }
 
-      // Check if the last error was a fetch error (safely)
-      try {
-        const lastError = query?.state?.error;
-        if (lastError && lastError.message?.includes("fetch")) {
-          return false; // Don't auto-refetch on fetch errors
-        }
-      } catch (e) {
-        // If we can't check the error state, be conservative and don't refetch
-        console.warn("Could not check query error state:", e);
-        return false;
-      }
-
+      // Return normal interval if not in offline mode
       return 30000; // Normal 30 second interval
     },
     retry: (failureCount, error) => {

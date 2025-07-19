@@ -9,6 +9,29 @@ export function getErrorMessage(error: any): string {
     return "Unknown error occurred";
   }
 
+  // Special handling for connection failures with empty messages
+  if (error && typeof error === "object" && error.message === "") {
+    console.log("Detected empty message error, checking for connection issues");
+
+    // Check if this looks like a network/connection error
+    if (error.code === "PGRST301" || error.code === "PGRST116") {
+      return "Database connection error - please check your internet connection";
+    }
+
+    // Check for common Supabase error patterns
+    if (error.details || error.hint || error.code) {
+      return `Database error (${error.code || "unknown"}): ${error.details || error.hint || "Connection failed"}`;
+    }
+
+    // If message is empty but we have other properties, use them
+    const keys = Object.keys(error);
+    if (keys.length > 1) {
+      return `Connection error - detected properties: ${keys.join(", ")}`;
+    }
+
+    return "Database connection failed - empty error response";
+  }
+
   console.log("Error analysis:", {
     type: typeof error,
     constructor: error?.constructor?.name,

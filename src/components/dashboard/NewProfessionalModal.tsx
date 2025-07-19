@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from "react";
+import React, { useRef, useCallback, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,10 +15,12 @@ import {
   User,
   FileText,
   CreditCard,
+  FolderOpen,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 import ApprovalLetter from "@/components/registration/ApprovalLetter";
+import AdditionalDocuments from "@/components/dashboard/AdditionalDocuments";
 
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -37,6 +39,9 @@ const NewProfessionalModal = ({
   professional,
 }: NewProfessionalModalProps) => {
   const approvalLetterRef = useRef<HTMLDivElement>(null);
+  const [additionalDocuments, setAdditionalDocuments] = useState<string[]>(
+    professional?.documentos_adicionales || [],
+  );
 
   if (!professional) {
     return null;
@@ -243,7 +248,7 @@ const NewProfessionalModal = ({
         </DialogHeader>
 
         <Tabs defaultValue="details" className="flex-1 flex flex-col mt-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="details" className="flex items-center gap-2">
               <User className="w-4 h-4" />
               Detalles
@@ -263,6 +268,10 @@ const NewProfessionalModal = ({
             >
               <CreditCard className="w-4 h-4" />
               Carnet Digital
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex items-center gap-2">
+              <FolderOpen className="w-4 h-4" />
+              Documentos ({additionalDocuments.length})
             </TabsTrigger>
           </TabsList>
 
@@ -500,6 +509,16 @@ const NewProfessionalModal = ({
                   </div>
                 )}
               </div>
+            </TabsContent>
+
+            <TabsContent value="documents" className="h-full">
+              <ScrollArea className="h-[calc(90vh-200px)]">
+                <AdditionalDocuments
+                  professionalId={professional.id}
+                  existingDocuments={additionalDocuments}
+                  onDocumentsUpdate={setAdditionalDocuments}
+                />
+              </ScrollArea>
             </TabsContent>
           </div>
         </Tabs>

@@ -663,6 +663,101 @@ const HealthCenters = () => {
         </div>
       </div>
 
+      {/* Pending Centers Validation Section */}
+      {showPendingCenters && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-orange-600" />
+              Centros Pendientes de Validación
+            </CardTitle>
+            <p className="text-gray-600">
+              Centros creados automáticamente desde registros de profesionales
+              que requieren validación
+            </p>
+          </CardHeader>
+          <CardContent>
+            {pendingCenters.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No hay centros pendientes de validación
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pendingCenters.map((centro) => (
+                  <Card key={centro.id} className="border-orange-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h4 className="font-semibold text-sm">
+                            {centro.nombre}
+                          </h4>
+                          <Badge className="mt-1 bg-orange-100 text-orange-800">
+                            {centro.categoria}
+                          </Badge>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className="text-orange-600 border-orange-600"
+                        >
+                          Pendiente
+                        </Badge>
+                      </div>
+
+                      <div className="space-y-2 text-xs text-gray-600 mb-4">
+                        <div>
+                          <strong>Provincia:</strong> {centro.provincia}
+                        </div>
+                        <div>
+                          <strong>Distrito:</strong> {centro.distrito}
+                        </div>
+                        <div>
+                          <strong>Sector:</strong> {centro.sector}
+                        </div>
+                        {centro.distrito_sanitario && (
+                          <div>
+                            <strong>Distrito Sanitario:</strong>{" "}
+                            {centro.distrito_sanitario}
+                          </div>
+                        )}
+                        <div>
+                          <strong>Profesionales:</strong>{" "}
+                          {centro.profesionales_count?.[0]?.count || 0}
+                        </div>
+                      </div>
+
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setEditingCenter(centro);
+                            setShowEditDialog(true);
+                          }}
+                          className="flex-1"
+                        >
+                          <Edit className="w-3 h-3 mr-1" />
+                          Validar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() =>
+                            handleValidateCenter(centro.id, {
+                              estado: "rechazado",
+                            })
+                          }
+                        >
+                          Rechazar
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Estadísticas rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>

@@ -36,6 +36,8 @@ import {
 } from "@/hooks/useCentrosSalud";
 import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
 import { useToast } from "@/hooks/use-toast";
+import { useCenterSync } from "@/hooks/useCenterSync";
+import { useQuery } from "@tanstack/react-query";
 
 const HealthCenters = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -47,9 +49,11 @@ const HealthCenters = () => {
   const [editingCenter, setEditingCenter] = useState<any>(null);
   const [filterArea, setFilterArea] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
+  const [showPendingCenters, setShowPendingCenters] = useState(false);
 
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
   const { crearCentroMutation, actualizarCentroMutation } = useCentrosSalud();
+  const { validateCenterMutation, getPendingCenters } = useCenterSync();
   const { toast } = useToast();
 
   const {

@@ -50,7 +50,7 @@ import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import RequestsPanel from "@/components/dashboard/RequestsPanel";
 import RenewalAlerts from "@/components/dashboard/RenewalAlerts";
-import OpenAIChat from "@/components/dashboard/OpenAIChat";
+import AIChat from "@/components/dashboard/AIChat";
 import MinisterialPanel from "@/components/dashboard/MinisterialPanel";
 import HospitalIncidents from "@/components/dashboard/HospitalIncidents";
 import HealthCenters from "@/components/dashboard/HealthCenters";
@@ -552,7 +552,14 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="ai-chat" className="space-y-6">
-            <OpenAIChat />
+            <AIChat
+              onNavigateToTab={(tab, filters) => {
+                setActiveTab(tab);
+                if (filters) {
+                  setAppliedFilters(filters);
+                }
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="ministerial" className="space-y-6">

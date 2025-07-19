@@ -25,6 +25,10 @@ export function useEstadisticasTest() {
             typeof connectionError?.message,
           );
           console.error("- Message property value:", connectionError?.message);
+          console.error("- Message length:", connectionError?.message?.length);
+          console.error("- Code:", connectionError?.code);
+          console.error("- Details:", connectionError?.details);
+          console.error("- Hint:", connectionError?.hint);
           console.error("- Full object:", connectionError);
           console.error(
             "- JSON stringified:",
@@ -34,6 +38,23 @@ export function useEstadisticasTest() {
               2,
             ),
           );
+
+          // Additional debugging for empty message errors
+          if (connectionError.message === "") {
+            console.error("EMPTY MESSAGE DETECTED - Additional debugging:");
+            console.error("- Error toString():", connectionError.toString());
+            console.error("- Error valueOf():", connectionError.valueOf());
+            console.error(
+              "- All properties:",
+              Object.getOwnPropertyNames(connectionError),
+            );
+
+            // Try to extract more information
+            const allProps = Object.getOwnPropertyNames(connectionError);
+            allProps.forEach((prop) => {
+              console.error(`- ${prop}:`, connectionError[prop]);
+            });
+          }
 
           logError("Connection test failed", connectionError);
           const errorMsg = getErrorMessage(connectionError);

@@ -785,24 +785,147 @@ const HealthCenters = () => {
         </Card>
       )}
 
-      {/* Estadísticas rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+      {/* Estadísticas por categoría */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        {/* Total Centros */}
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => setSelectedCategory("")}
+        >
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
               <div className="p-2 rounded-lg bg-blue-100">
                 <Building2 className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">Total Centros</h3>
-                <p className="text-2xl font-bold text-blue-600">
+                <h3 className="font-semibold text-xs">Total Centros</h3>
+                <p className="text-xl font-bold text-blue-600">
                   {centros.length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        {/* Más estadísticas... */}
+
+        {/* Hospitales */}
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer hover:border-red-300"
+          onClick={() => handleCategoryFilter("HOSPITAL")}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-lg bg-red-100">
+                <Building2 className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-xs">Hospitales</h3>
+                <p className="text-xl font-bold text-red-600">
+                  {getCentersByCategory("HOSPITAL").length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Clínicas */}
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer hover:border-blue-300"
+          onClick={() => handleCategoryFilter("CLINICA")}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-lg bg-blue-100">
+                <Building2 className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-xs">Clínicas</h3>
+                <p className="text-xl font-bold text-blue-600">
+                  {getCentersByCategory("CLINICA").length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Centros de Salud */}
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer hover:border-green-300"
+          onClick={() => handleCategoryFilter("CENTRO DE SALUD")}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-lg bg-green-100">
+                <Building2 className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-xs">Centros de Salud</h3>
+                <p className="text-xl font-bold text-green-600">
+                  {getCentersByCategory("CENTRO DE SALUD").length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Consultorios */}
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer hover:border-yellow-300"
+          onClick={() => handleCategoryFilter("CONSULTORIO")}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-lg bg-yellow-100">
+                <Building2 className="w-5 h-5 text-yellow-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-xs">Consultorios</h3>
+                <p className="text-xl font-bold text-yellow-600">
+                  {getCentersByCategory("CONSULTORIO").length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Farmacias */}
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer hover:border-purple-300"
+          onClick={() => handleCategoryFilter("FARMACIA")}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-lg bg-purple-100">
+                <Building2 className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-xs">Farmacias</h3>
+                <p className="text-xl font-bold text-purple-600">
+                  {getCentersByCategory("FARMACIA").length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Laboratorios */}
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer hover:border-orange-300"
+          onClick={() => handleCategoryFilter("LABORATORIO")}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-lg bg-orange-100">
+                <Building2 className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-xs">Laboratorios</h3>
+                <p className="text-xl font-bold text-orange-600">
+                  {getCentersByCategory("LABORATORIO").length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filtros */}

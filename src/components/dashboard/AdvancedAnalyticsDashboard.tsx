@@ -1009,6 +1009,10 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
             ageStats={ageRangeStats}
             graduationStats={graduationStats}
             centerStats={categoryStats}
+            onNavigateToArea={navigateToArea}
+            onNavigateToDistrict={navigateToDistrict}
+            onNavigateToCenter={navigateToCenter}
+            onNavigateToAgeRange={navigateToAgeRange}
           />
         </TabsContent>
       </Tabs>

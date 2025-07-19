@@ -84,7 +84,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
         [
           "ID",
           "Nombre Completo",
-          "Área Profesional",
+          "Profesión",
           "ID Profesional",
           "Estado Solicitud",
           "Provincia",
@@ -99,7 +99,9 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
         ...filteredProfesionales.map((profesional) => [
           profesional.id || "",
           profesional.nombre_completo || "",
-          profesional.area_profesional || "",
+          profesional.titulacion_especifica_1 ||
+            profesional.area_profesional ||
+            "",
           profesional.id_profesional_unico || "",
           profesional.estado_solicitud || "",
           profesional.provincia || "",
@@ -640,7 +642,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre Completo</TableHead>
-                  <TableHead>Área Profesional</TableHead>
+                  <TableHead>Profesión</TableHead>
                   <TableHead>ID Profesional</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Provincia</TableHead>
@@ -666,7 +668,8 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {profesional.area_profesional}
+                          {profesional.titulacion_especifica_1 ||
+                            profesional.area_profesional}
                         </Badge>
                       </TableCell>
                       <TableCell className="font-mono text-sm">

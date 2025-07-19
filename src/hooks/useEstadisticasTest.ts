@@ -16,12 +16,28 @@ export function useEstadisticasTest() {
           throw new Error("Supabase client not initialized");
         }
 
-        // Check if we have a valid URL
+        // Check if we have a valid URL and key
         const supabaseUrl = supabase.supabaseUrl;
+        const supabaseKey = supabase.supabaseKey;
+
         console.log("Supabase URL:", supabaseUrl?.substring(0, 30) + "...");
+        console.log("Supabase Key:", supabaseKey?.substring(0, 20) + "...");
+        console.log("Supabase client auth:", !!supabase.auth);
+        console.log("Supabase client realtime:", !!supabase.realtime);
 
         if (!supabaseUrl) {
           throw new Error("Supabase URL not configured");
+        }
+
+        if (!supabaseKey) {
+          throw new Error("Supabase key not configured");
+        }
+
+        // Validate URL format
+        try {
+          new URL(supabaseUrl);
+        } catch (urlError) {
+          throw new Error(`Invalid Supabase URL format: ${supabaseUrl}`);
         }
 
         // Test basic network connectivity first

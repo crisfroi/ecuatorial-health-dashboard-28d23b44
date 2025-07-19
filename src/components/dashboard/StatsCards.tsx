@@ -13,6 +13,7 @@ import {
 import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
 import { useEstadisticasTest } from "@/hooks/useEstadisticasTest";
 import { useEstadisticasMock } from "@/hooks/useEstadisticasMock";
+import { useSupabaseConnectivity } from "@/hooks/useSupabaseConnectivity";
 
 interface StatsCardsProps {
   onNavigateToProfessionals: (filters: any) => void;
@@ -26,6 +27,11 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     error: testError,
   } = useEstadisticasTest();
   const { data: mockStats, isLoading: mockLoading } = useEstadisticasMock();
+  const {
+    data: connectivityData,
+    isLoading: connectivityLoading,
+    error: connectivityError,
+  } = useSupabaseConnectivity();
 
   // TEMPORALMENTE usar datos mock si los otros fallan (para testing)
   const effectiveStats = stats || mockStats;

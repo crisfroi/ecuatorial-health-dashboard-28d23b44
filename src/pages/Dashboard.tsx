@@ -55,6 +55,7 @@ import MinisterialPanel from "@/components/dashboard/MinisterialPanel";
 import HospitalIncidents from "@/components/dashboard/HospitalIncidents";
 import HealthCenters from "@/components/dashboard/HealthCenters";
 import AdminPanel from "@/components/dashboard/AdminPanel";
+import AdvancedAnalyticsDashboard from "@/components/dashboard/AdvancedAnalyticsDashboard";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -537,37 +538,7 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-blue-600" />
-                    Métricas Avanzadas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">
-                    Análisis detallado de tendencias y patrones en el registro
-                    de profesionales.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-green-600" />
-                    Distribución Geográfica
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">
-                    Mapa de calor mostrando la distribución de profesionales por
-                    provincia.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            <AdvancedAnalyticsDashboard />
           </TabsContent>
 
           <TabsContent value="ai-chat" className="space-y-6">

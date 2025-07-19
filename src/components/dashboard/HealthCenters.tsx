@@ -732,7 +732,14 @@ const HealthCenters = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {pendingCenters.map((centro) => (
-                  <Card key={centro.id} className="border-orange-200">
+                  <Card
+                    key={centro.id}
+                    className="border-orange-200 cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => {
+                      setEditingCenter(centro);
+                      setShowEditDialog(true);
+                    }}
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div>
@@ -776,7 +783,8 @@ const HealthCenters = () => {
                       <div className="flex space-x-2">
                         <Button
                           size="sm"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setEditingCenter(centro);
                             setShowEditDialog(true);
                           }}
@@ -788,11 +796,12 @@ const HealthCenters = () => {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() =>
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleValidateCenter(centro.id, {
                               estado: "rechazado",
-                            })
-                          }
+                            });
+                          }}
                         >
                           Rechazar
                         </Button>

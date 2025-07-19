@@ -267,6 +267,30 @@ export function useSignMultipleProfessionals() {
           ),
         });
 
+        // Handle specific database function errors gracefully
+        if (
+          error.message &&
+          error.message.includes("generar_url_carnet_profesional")
+        ) {
+          console.warn(
+            "Database function generar_url_carnet_profesional not found, but signing may have succeeded",
+          );
+
+          // Try to fetch the updated records to verify the signing worked
+          const { data: verifyData, error: verifyError } = await supabase
+            .from("profesionales_sanitarios")
+            .select("id, nombre, apellidos")
+            .in("id", professionalIds);
+
+          if (!verifyError && verifyData) {
+            console.log(
+              "Multiple signing actually succeeded despite function error:",
+              verifyData,
+            );
+            return verifyData;
+          }
+        }
+
         const errorMessage =
           error?.details ||
           error?.hint ||

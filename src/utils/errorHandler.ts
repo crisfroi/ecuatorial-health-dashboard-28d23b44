@@ -29,7 +29,41 @@ export function getErrorMessage(error: any): string {
       return `Connection error - detected properties: ${keys.join(", ")}`;
     }
 
-    return "Database connection failed - empty error response";
+    // Provide more context for empty error responses
+    console.log("Analyzing empty error response for more context...");
+
+    // Check if we're offline
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      return "Database connection failed - device appears to be offline";
+    }
+
+    // Check if this might be a CORS issue
+    if (typeof window !== "undefined" && window.location) {
+      const currentOrigin = window.location.origin;
+      console.log("Current origin:", currentOrigin);
+      if (
+        currentOrigin.includes("localhost") ||
+        currentOrigin.includes("127.0.0.1")
+      ) {
+        return "Database connection failed - possible CORS issue on localhost";
+      }
+    }
+
+    // Check for error object structure patterns
+    if (error && typeof error === "object") {
+      const errorKeys = Object.keys(error);
+      if (errorKeys.length === 0) {
+        return "Database connection failed - received empty error object (possible network timeout)";
+      }
+      if (errorKeys.includes("name") && error.name === "TypeError") {
+        return "Database connection failed - network error (TypeError detected)";
+      }
+      if (errorKeys.includes("stack") && errorKeys.length <= 2) {
+        return "Database connection failed - minimal error info (possible fetch/network issue)";
+      }
+    }
+
+    return "Database connection failed - empty error response (check network and Supabase configuration)";
   }
 
   console.log("Error analysis:", {
@@ -253,8 +287,30 @@ export function getErrorMessage(error: any): string {
     }
   }
 
-  // Fallback final con más información
-  return `Error object: ${typeof error} (constructor: ${error?.constructor?.name || "unknown"}, toString: ${error?.toString?.() || "unavailable"})`;
+  // Enhanced fallback with network diagnostics
+  const errorType = typeof error;
+  const constructor = error?.constructor?.name || "unknown";
+  const toString = (() => {
+    try {
+      return error?.toString?.() || "unavailable";
+    } catch (e) {
+      return "toString failed";
+    }
+  })();
+
+  // Add network context if available
+  const networkInfo = [];
+  if (typeof navigator !== "undefined") {
+    networkInfo.push(`online: ${navigator.onLine}`);
+  }
+  if (typeof window !== "undefined" && window.location) {
+    networkInfo.push(`origin: ${window.location.origin}`);
+  }
+
+  const networkContext =
+    networkInfo.length > 0 ? ` [${networkInfo.join(", ")}]` : "";
+
+  return `Unknown error - Type: ${errorType}, Constructor: ${constructor}, toString: ${toString}${networkContext}`;
 }
 
 export function logError(context: string, error: any): void {

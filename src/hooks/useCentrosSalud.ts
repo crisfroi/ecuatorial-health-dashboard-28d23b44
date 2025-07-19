@@ -65,14 +65,32 @@ export const useCentrosSalud = () => {
     areaProfesional?: string,
     estadoSolicitud?: string,
   ) => {
-    const { data, error } = await supabase.rpc(
-      "obtener_profesionales_por_centro",
-      {
-        p_centro_id: centroId,
-        p_area_profesional: areaProfesional || null,
-        p_estado_solicitud: estadoSolicitud || null,
-      },
-    );
+    // First get the center name
+    const { data: centro, error: centerError } = await supabase
+      .from("centros_salud")
+      .select("nombre")
+      .eq("id", centroId)
+      .single();
+
+    if (centerError) throw centerError;
+
+    // Then query professionals using both nombre_centro and lugar_trabajo
+    let query = supabase
+      .from("profesionales_sanitarios")
+      .select("*")
+      .or(
+        `nombre_centro.eq.${centro.nombre},lugar_trabajo.eq.${centro.nombre}`,
+      );
+
+    if (areaProfesional) {
+      query = query.eq("area_profesional", areaProfesional);
+    }
+
+    if (estadoSolicitud) {
+      query = query.eq("estado_solicitud", estadoSolicitud);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return data || [];

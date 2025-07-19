@@ -162,19 +162,60 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
 
   return (
     <div className="space-y-4">
-      {/* Fallback indicator */}
-      {fallbackReason && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-          <div className="flex items-center gap-2 text-yellow-800">
-            <AlertTriangle className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {fallbackReason === "network" &&
-                "Using offline data due to network connectivity issues"}
-              {fallbackReason === "test" &&
-                "Using test data due to database connection issues"}
-              {fallbackReason === "mock" &&
-                "Using mock data - database unavailable"}
-            </span>
+      {/* Offline mode indicator */}
+      {(isOfflineMode || fallbackReason) && (
+        <div
+          className={`border rounded-lg p-4 ${
+            isOfflineMode
+              ? "bg-orange-50 border-orange-200"
+              : "bg-yellow-50 border-yellow-200"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle
+                className={`w-4 h-4 ${
+                  isOfflineMode ? "text-orange-600" : "text-yellow-600"
+                }`}
+              />
+              <div>
+                <div
+                  className={`text-sm font-medium ${
+                    isOfflineMode ? "text-orange-800" : "text-yellow-800"
+                  }`}
+                >
+                  {isOfflineMode && `Offline Mode Active: ${offlineReason}`}
+                  {!isOfflineMode &&
+                    fallbackReason === "network" &&
+                    "Using offline data due to network connectivity issues"}
+                  {!isOfflineMode &&
+                    fallbackReason === "test" &&
+                    "Using test data due to database connection issues"}
+                  {!isOfflineMode &&
+                    fallbackReason === "mock" &&
+                    "Using mock data - database unavailable"}
+                </div>
+                {isOfflineMode && (
+                  <div className="text-xs text-orange-600 mt-1">
+                    Mock data is being used. Database queries are disabled.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {isOfflineMode && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  disableOfflineMode();
+                }}
+                className="text-orange-700 border-orange-300 hover:bg-orange-100"
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Reconnect
+              </Button>
+            )}
           </div>
         </div>
       )}

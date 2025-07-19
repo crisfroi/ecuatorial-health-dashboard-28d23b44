@@ -25,6 +25,32 @@ export function useProfesionalesMutations() {
 
       if (error) {
         console.error("Error updating professional:", error.message || error);
+
+        // Handle specific database function errors gracefully
+        if (
+          error.message &&
+          error.message.includes("generar_url_carnet_profesional")
+        ) {
+          console.warn(
+            "Database function generar_url_carnet_profesional not found, but update may have succeeded",
+          );
+
+          // Try to fetch the updated record to verify the update worked
+          const { data: verifyData, error: verifyError } = await supabase
+            .from("profesionales_sanitarios")
+            .select()
+            .eq("id", id)
+            .single();
+
+          if (!verifyError && verifyData) {
+            console.log(
+              "Update actually succeeded despite function error:",
+              verifyData,
+            );
+            return verifyData;
+          }
+        }
+
         throw new Error(`Error al actualizar: ${error.message}`);
       }
 

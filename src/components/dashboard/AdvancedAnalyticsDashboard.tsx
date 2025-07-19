@@ -53,6 +53,8 @@ import {
   useInstitutionStats,
   useCenterCategoryStats,
 } from "@/hooks/useAdvancedAnalytics";
+import DistrictAnalytics from "./DistrictAnalytics";
+import InteractiveCharts from "./InteractiveCharts";
 
 // Color palettes for charts
 const COLORS = [
@@ -280,7 +282,7 @@ const AdvancedAnalyticsDashboard = () => {
 
       {/* Main Analytics Tabs */}
       <Tabs defaultValue="areas" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="areas" className="flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Áreas
@@ -304,6 +306,10 @@ const AdvancedAnalyticsDashboard = () => {
           <TabsTrigger value="trends" className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
             Tendencias
+          </TabsTrigger>
+          <TabsTrigger value="interactive" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Interactivo
           </TabsTrigger>
         </TabsList>
 

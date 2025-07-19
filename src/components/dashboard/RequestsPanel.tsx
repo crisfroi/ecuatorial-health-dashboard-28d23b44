@@ -96,6 +96,80 @@ const RequestsPanel = ({
   const { toast } = useToast();
   const { updateProfesional } = useProfesionalesMutations();
 
+  // Excel export functionality
+  const exportRequestsToExcel = () => {
+    try {
+      // Create worksheet data
+      const worksheetData = [
+        // Header row
+        [
+          "ID",
+          "Nombre Completo",
+          "Área Profesional",
+          "Estado Solicitud",
+          "Provincia",
+          "Teléfono",
+          "Email",
+          "Fecha Solicitud",
+          "Fecha Graduación",
+          "Universidad",
+          "Lugar de Trabajo",
+          "Motivo Rechazo",
+        ],
+        // Data rows
+        ...filteredRequests.map((request) => [
+          request.id || "",
+          request.nombre_completo || "",
+          request.area_profesional || "",
+          request.estado_solicitud || "",
+          request.provincia || "",
+          request.telefono || "",
+          request.email || "",
+          request.created_at
+            ? new Date(request.created_at).toLocaleDateString("es-ES")
+            : "",
+          request.fecha_graduacion
+            ? new Date(request.fecha_graduacion).toLocaleDateString("es-ES")
+            : "",
+          request.universidad || "",
+          request.lugar_trabajo || "",
+          request.motivo_rechazo || "",
+        ]),
+      ];
+
+      // Create CSV content
+      const csvContent = worksheetData
+        .map((row) => row.map((cell) => `"${cell}"`).join(","))
+        .join("\n");
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `Solicitudes_${statusFilter}_${new Date().toISOString().split("T")[0]}.csv`,
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Exportación exitosa",
+        description: `Se ha descargado la lista de ${filteredRequests.length} solicitudes.`,
+      });
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      toast({
+        title: "Error en la exportación",
+        description: "No se pudo exportar la lista. Intente nuevamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     console.log(
       "RequestsPanel: initialStatusFilter received in useEffect:",
@@ -854,6 +928,15 @@ const RequestsPanel = ({
                     <SelectItem value="Rechazado">Rechazado</SelectItem>
                   </SelectContent>
                 </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportRequestsToExcel}
+                  className="flex items-center gap-1"
+                >
+                  <Download className="w-4 h-4" />
+                  Exportar Excel
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"

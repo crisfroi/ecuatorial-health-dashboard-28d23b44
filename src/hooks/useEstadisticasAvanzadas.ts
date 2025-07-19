@@ -382,15 +382,51 @@ export function useEstadisticasAvanzadas() {
       console.log("Estadísticas avanzadas calculadas:", estadisticas);
       return estadisticas;
     },
-    refetchInterval: 30000,
-    retry: (failureCount, error) => {
-      // Solo reintentar errores de red, no errores de base de datos
-      if (error?.message?.includes("Network connection failed")) {
-        return failureCount < 3;
+    refetchInterval: (data, query) => {
+      // Don't auto-refetch in offline mode or when there are fetch errors
+      const offlineMode = localStorage.getItem("app-offline-mode") === "true";
+      if (offlineMode) {
+        return false;
       }
+
+      // Check if the last error was a fetch error
+      const lastError = query.state.error;
+      if (lastError && lastError.message?.includes("fetch")) {
+        return false; // Don't auto-refetch on fetch errors
+      }
+
+      return 30000; // Normal 30 second interval
+    },
+    retry: (failureCount, error) => {
+      console.log(`Retry attempt ${failureCount} for error:`, error?.message);
+
+      // Don't retry in offline mode
+      const offlineMode = localStorage.getItem("app-offline-mode") === "true";
+      if (offlineMode) {
+        console.log("Offline mode active, not retrying");
+        return false;
+      }
+
+      // Don't retry fetch errors at this level (handled in queryFn)
+      if (
+        error?.message?.includes("fetch") ||
+        error?.message?.includes("Failed to fetch")
+      ) {
+        console.log("Fetch error detected, not retrying at query level");
+        return false;
+      }
+
+      // Retry network connection errors
+      if (
+        error?.message?.includes("Network connection failed") ||
+        error?.message?.includes("Database connection failed")
+      ) {
+        return failureCount < 2;
+      }
+
       return failureCount < 1;
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     // Proporcionar datos de fallback cuando falle
     placeholderData: {
       total: 0,

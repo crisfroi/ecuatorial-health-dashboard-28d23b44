@@ -216,7 +216,14 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() =>
+            onNavigateToTab &&
+            onNavigateToTab("professionals", { estado_solicitud: "Aprobado" })
+          }
+          title="Haz clic para ver todos los profesionales aprobados"
+        >
           <CardContent className="p-6">
             <div className="flex items-center space-x-3">
               <div className="p-3 rounded-lg bg-blue-100">

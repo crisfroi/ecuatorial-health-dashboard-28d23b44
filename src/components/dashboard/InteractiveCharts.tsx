@@ -23,9 +23,6 @@ import {
   Cell,
   ScatterChart,
   Scatter,
-  FunnelChart,
-  Funnel,
-  LabelList,
 } from "recharts";
 import {
   TrendingUp,
@@ -102,22 +99,19 @@ const InteractiveCharts: React.FC<InteractiveChartsProps> = ({
     name: age.rango_edad,
   }));
 
-  // Funnel data for application process
-  const applicationFunnel = [
+  // Process statistics for funnel-like visualization
+  const processStats = [
     {
       name: "Solicitudes Recibidas",
       value: areaStats.reduce((sum, area) => sum + area.total, 0),
-      fill: "#8884d8",
     },
     {
       name: "En Revisión",
       value: areaStats.reduce((sum, area) => sum + area.pendientes, 0),
-      fill: "#83a6ed",
     },
     {
       name: "Aprobadas",
       value: areaStats.reduce((sum, area) => sum + area.aprobados, 0),
-      fill: "#8dd1e1",
     },
   ];
 
@@ -248,21 +242,28 @@ const InteractiveCharts: React.FC<InteractiveChartsProps> = ({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="w-5 h-5 text-green-600" />
-                Embudo de Procesamiento
+                Flujo de Procesamiento
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={350}>
-                <FunnelChart>
+                <BarChart data={processStats} layout="horizontal">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={120}
+                    fontSize={12}
+                  />
                   <Tooltip />
-                  <Funnel
+                  <Bar
                     dataKey="value"
-                    data={applicationFunnel}
-                    isAnimationActive
-                  >
-                    <LabelList position="center" fill="#fff" stroke="none" />
-                  </Funnel>
-                </FunnelChart>
+                    fill={(entry: any, index: number) =>
+                      ["#8884d8", "#83a6ed", "#8dd1e1"][index] || "#8884d8"
+                    }
+                  />
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>

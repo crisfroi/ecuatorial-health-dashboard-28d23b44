@@ -59,6 +59,7 @@ import AdvancedAnalyticsDashboard from "@/components/dashboard/AdvancedAnalytics
 import ProfessionalSearch from "@/components/dashboard/ProfessionalSearch";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import ConnectionDebugPanel from "@/components/dashboard/ConnectionDebugPanel";
+import { OfflineNotification } from "@/components/ui/offline-notification";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -339,6 +340,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <OfflineNotification />
       <div className="sticky top-0 z-50 bg-gray-50 shadow-md">
         <div className="container mx-auto p-4">
           <Tabs

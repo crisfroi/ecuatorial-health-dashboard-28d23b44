@@ -57,6 +57,7 @@ import {
 import DistrictAnalytics from "./DistrictAnalytics";
 import InteractiveCharts from "./InteractiveCharts";
 import AnalyticsSummary from "./AnalyticsSummary";
+import ErrorBoundary from "@/components/ui/error-boundary";
 import {
   useDashboardNavigation,
   type NavigationFilters,
@@ -1173,18 +1174,20 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
 
         {/* Interactive Charts Tab */}
         <TabsContent value="interactive" className="space-y-6">
-          <InteractiveCharts
-            areaStats={areaStats}
-            districtStats={districtStats}
-            ageStats={ageRangeStats}
-            graduationStats={graduationStats}
-            centerStats={categoryStats}
-            onNavigateToArea={navigateToArea}
-            onNavigateToDistrict={navigateToDistrict}
-            onNavigateToCenter={navigateToCenter}
-            onNavigateToAgeRange={navigateToAgeRange}
-            onNavigateToProvince={navigateToProvince}
-          />
+          <ErrorBoundary>
+            <InteractiveCharts
+              areaStats={areaStats}
+              districtStats={districtStats}
+              ageStats={ageRangeStats}
+              graduationStats={graduationStats}
+              centerStats={categoryStats}
+              onNavigateToArea={navigateToArea}
+              onNavigateToDistrict={navigateToDistrict}
+              onNavigateToCenter={navigateToCenter}
+              onNavigateToAgeRange={navigateToAgeRange}
+              onNavigateToProvince={navigateToProvince}
+            />
+          </ErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>

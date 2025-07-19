@@ -108,12 +108,7 @@ const HealthCenters = () => {
     "RADIOLOGÍA",
     "ODONTOLOGÍA",
   ];
-  const estadosSolicitud = [
-    "Pendiente",
-    "Aprobado",
-    "Rechazado",
-    "En Revisión",
-  ];
+  const estadosSolicitud = ["Recibido", "Aprobado", "Rechazado", "En Revisión"];
 
   const getCategoryColor = (categoria: string) => {
     switch (categoria) {

@@ -85,7 +85,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
           "ID",
           "Nombre Completo",
           "Área Profesional",
-          "Número de Carnet",
+          "ID Profesional",
           "Estado Solicitud",
           "Provincia",
           "Género",
@@ -100,7 +100,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
           profesional.id || "",
           profesional.nombre_completo || "",
           profesional.area_profesional || "",
-          profesional.numero_carnet_profesional || "",
+          profesional.id_profesional_unico || "",
           profesional.estado_solicitud || "",
           profesional.provincia || "",
           profesional.genero || "",
@@ -243,7 +243,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     (prof) =>
       prof.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       prof.area_profesional?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prof.numero_carnet_profesional
+      prof.id_profesional_unico
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase()),
   );
@@ -641,7 +641,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                 <TableRow>
                   <TableHead>Nombre Completo</TableHead>
                   <TableHead>Área Profesional</TableHead>
-                  <TableHead>Carnet</TableHead>
+                  <TableHead>ID Profesional</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Provincia</TableHead>
                   <TableHead>Fecha Registro</TableHead>
@@ -670,7 +670,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                         </Badge>
                       </TableCell>
                       <TableCell className="font-mono text-sm">
-                        {profesional.numero_carnet_profesional || "Pendiente"}
+                        {profesional.id_profesional_unico || "Pendiente"}
                       </TableCell>
                       <TableCell>
                         {editingStates[profesional.id!] ? (

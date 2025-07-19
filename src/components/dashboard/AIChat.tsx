@@ -73,10 +73,17 @@ const AIChat: React.FC<AIChatProps> = ({ onNavigateToTab }) => {
 
   const suggestedQuestions = [
     "¿Cuáles son las principales tendencias en las solicitudes de profesionales?",
-    "¿Qué provincias tienen más profesionales aprobados?",
+    "¿Qué centros de salud tienen más profesionales?",
     "¿Cuál es la distribución por género en las diferentes áreas profesionales?",
+    "¿Qué distritos sanitarios necesitan más profesionales?",
+    "¿Cuáles son las áreas profesionales que necesitan refuerzo?",
+    "¿De qué países se forman más los profesionales?",
+    "¿Cuál es la distribución por edades de los profesionales?",
+    "¿Qué instituciones forman más profesionales?",
+    "¿Cuáles son las tendencias de graduación por año?",
+    "¿Cómo está distribuida la titulación por categorías?",
+    "¿Qué categorías de centros tienen más profesionales?",
     "¿Hay algún patrón en los rechazos de solicitudes?",
-    "¿Qué recomendaciones tienes para mejorar el proceso de aprobación?",
   ];
 
   useEffect(() => {

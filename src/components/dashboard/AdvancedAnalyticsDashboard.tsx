@@ -55,7 +55,7 @@ import {
 } from "@/hooks/useAdvancedAnalytics";
 import DistrictAnalytics from "./DistrictAnalytics";
 import InteractiveCharts from "./InteractiveCharts";
-import ExecutiveSummary from "./ExecutiveSummary";
+import AnalyticsSummary from "./AnalyticsSummary";
 import {
   useDashboardNavigation,
   type NavigationFilters,
@@ -345,14 +345,16 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
           </TabsTrigger>
         </TabsList>
 
-        {/* Executive Summary Tab */}
+        {/* Analytics Summary Tab */}
         <TabsContent value="summary" className="space-y-6">
-          <ExecutiveSummary
+          <AnalyticsSummary
             areaStats={areaStats}
             districtStats={districtStats}
-            ageStats={ageRangeStats}
-            graduationStats={graduationStats}
             centerStats={categoryStats}
+            onNavigateToArea={navigateToArea}
+            onNavigateToDistrict={navigateToDistrict}
+            onNavigateToCenter={navigateToCenter}
+            onNavigateToTab={onNavigateToTab}
           />
         </TabsContent>
 

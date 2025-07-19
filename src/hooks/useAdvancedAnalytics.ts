@@ -57,6 +57,14 @@ export interface CenterCategoryStats {
   promedio_profesionales_por_centro: number;
 }
 
+export interface TitulacionCategoryStats {
+  categoria_titulacion: string;
+  total: number;
+  aprobados: number;
+  pendientes: number;
+  porcentaje: number;
+}
+
 // Hook for top centers by number of professionals
 export const useTopCenters = () => {
   return useQuery({
@@ -435,6 +443,56 @@ export const useCenterCategoryStats = () => {
       return results.sort(
         (a, b) => b.total_profesionales - a.total_profesionales,
       );
+    },
+  });
+};
+
+// Hook for categoria_titulacion statistics
+export const useTitulacionCategoryStats = () => {
+  return useQuery({
+    queryKey: ["titulacionCategoryStats"],
+    queryFn: async (): Promise<TitulacionCategoryStats[]> => {
+      const { data, error } = await supabase
+        .from("profesionales_sanitarios")
+        .select("categoria_titulacion, estado_solicitud")
+        .not("categoria_titulacion", "is", null);
+
+      if (error) throw error;
+
+      const titulacionStats = data.reduce(
+        (acc, prof) => {
+          const categoria = prof.categoria_titulacion!;
+          if (!acc[categoria]) {
+            acc[categoria] = { total: 0, aprobados: 0, pendientes: 0 };
+          }
+
+          acc[categoria].total++;
+          if (prof.estado_solicitud === "Aprobado") {
+            acc[categoria].aprobados++;
+          } else {
+            acc[categoria].pendientes++;
+          }
+
+          return acc;
+        },
+        {} as Record<
+          string,
+          { total: number; aprobados: number; pendientes: number }
+        >,
+      );
+
+      const totalProfessionals = Object.values(titulacionStats).reduce(
+        (sum, categoria) => sum + categoria.total,
+        0,
+      );
+
+      return Object.entries(titulacionStats)
+        .map(([categoria_titulacion, stats]) => ({
+          categoria_titulacion,
+          ...stats,
+          porcentaje: (stats.total / totalProfessionals) * 100,
+        }))
+        .sort((a, b) => b.total - a.total);
     },
   });
 };

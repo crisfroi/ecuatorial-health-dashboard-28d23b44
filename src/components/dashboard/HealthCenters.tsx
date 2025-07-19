@@ -398,7 +398,21 @@ const HealthCenters = () => {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleEditCenter(new FormData(e.currentTarget));
+                const formData = new FormData(e.currentTarget);
+                if (editingCenter?.estado === "pendiente_validacion") {
+                  // Handle validation for pending centers
+                  const data = Object.fromEntries(formData.entries());
+                  handleValidateCenter(editingCenter.id, {
+                    director: data.director as string,
+                    telefono: data.telefono as string,
+                    estado: "validado",
+                  });
+                  setShowEditDialog(false);
+                  setEditingCenter(null);
+                } else {
+                  // Handle regular center editing
+                  handleEditCenter(formData);
+                }
               }}
               className="space-y-4"
             >

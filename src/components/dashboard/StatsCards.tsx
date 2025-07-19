@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   TrendingUp,
   PersonStanding,
+  RefreshCw,
 } from "lucide-react";
 import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
 import { useEstadisticasTest } from "@/hooks/useEstadisticasTest";

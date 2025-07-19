@@ -52,6 +52,7 @@ import {
   useCountryStats,
   useInstitutionStats,
   useCenterCategoryStats,
+  useTitulacionCategoryStats,
 } from "@/hooks/useAdvancedAnalytics";
 import DistrictAnalytics from "./DistrictAnalytics";
 import InteractiveCharts from "./InteractiveCharts";
@@ -124,6 +125,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     useInstitutionStats();
   const { data: categoryStats = [], isLoading: loadingCategories } =
     useCenterCategoryStats();
+  const { data: titulacionStats = [], isLoading: loadingTitulacion } =
+    useTitulacionCategoryStats();
 
   const isLoading =
     loadingCenters ||
@@ -133,7 +136,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     loadingGraduation ||
     loadingCountries ||
     loadingInstitutions ||
-    loadingCategories;
+    loadingCategories ||
+    loadingTitulacion;
 
   // Export functionality
   const exportData = (data: any[], filename: string) => {

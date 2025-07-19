@@ -31,7 +31,9 @@ import {
   Activity,
   Zap,
   Target,
+  Map,
 } from "lucide-react";
+import EquatorialGuineaMap from "./EquatorialGuineaMap";
 
 interface InteractiveChartsProps {
   areaStats: any[];
@@ -43,6 +45,7 @@ interface InteractiveChartsProps {
   onNavigateToDistrict?: (district: string) => void;
   onNavigateToCenter?: (center: string) => void;
   onNavigateToAgeRange?: (ageRange: string) => void;
+  onNavigateToProvince?: (province: string) => void;
 }
 
 const COLORS = [
@@ -68,6 +71,7 @@ const InteractiveCharts: React.FC<InteractiveChartsProps> = ({
   onNavigateToDistrict,
   onNavigateToCenter,
   onNavigateToAgeRange,
+  onNavigateToProvince,
 }) => {
   const [selectedView, setSelectedView] = useState("performance");
   const [selectedMetric, setSelectedMetric] = useState("total");
@@ -181,6 +185,7 @@ const InteractiveCharts: React.FC<InteractiveChartsProps> = ({
               <SelectItem value="comparison">Comparación</SelectItem>
               <SelectItem value="trends">Tendencias</SelectItem>
               <SelectItem value="distribution">Distribución</SelectItem>
+              <SelectItem value="map">Mapa Geográfico</SelectItem>
             </SelectContent>
           </Select>
           <Select value={selectedMetric} onValueChange={setSelectedMetric}>
@@ -407,6 +412,13 @@ const InteractiveCharts: React.FC<InteractiveChartsProps> = ({
               </ResponsiveContainer>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* Map View */}
+      {selectedView === "map" && (
+        <div className="space-y-6">
+          <EquatorialGuineaMap onNavigateToProvince={onNavigateToProvince} />
         </div>
       )}
 

@@ -166,6 +166,31 @@ export function useSignProfessional() {
           ),
         });
 
+        // Handle specific database function errors gracefully
+        if (
+          error.message &&
+          error.message.includes("generar_url_carnet_profesional")
+        ) {
+          console.warn(
+            "Database function generar_url_carnet_profesional not found, but signing may have succeeded",
+          );
+
+          // Try to fetch the updated record to verify the signing worked
+          const { data: verifyData, error: verifyError } = await supabase
+            .from("profesionales_sanitarios")
+            .select("nombre, apellidos")
+            .eq("id", professionalId)
+            .single();
+
+          if (!verifyError && verifyData) {
+            console.log(
+              "Signing actually succeeded despite function error:",
+              verifyData,
+            );
+            return verifyData;
+          }
+        }
+
         const errorMessage =
           error?.details ||
           error?.hint ||

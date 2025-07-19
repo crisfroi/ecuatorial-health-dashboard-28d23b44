@@ -289,12 +289,57 @@ export function useEstadisticasTest() {
 
         console.log("Connection test passed");
 
-        // Test 2: Simple select
+        // Test 2: Simple select with retry logic
         console.log("Test 2: Simple select test...");
-        const { data, error } = await supabase
-          .from("profesionales_sanitarios")
-          .select("id, estado_solicitud")
-          .limit(5);
+
+        let data, error;
+        const maxRetries = 3;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            console.log(`Select attempt ${attempt}/${maxRetries}`);
+
+            const result = await supabase
+              .from("profesionales_sanitarios")
+              .select("id, estado_solicitud")
+              .limit(5);
+
+            data = result.data;
+            error = result.error;
+
+            // If no error, break out of retry loop
+            if (!error) {
+              console.log("Select succeeded on attempt", attempt);
+              break;
+            }
+
+            console.log(`Select attempt ${attempt} failed:`, error);
+
+            // If it's not a network error, don't retry
+            if (!error.message?.includes("fetch") && error.message !== "") {
+              console.log("Non-network error detected, stopping retries");
+              break;
+            }
+
+            // Wait before retry (exponential backoff)
+            if (attempt < maxRetries) {
+              const delayMs = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+              console.log(`Waiting ${delayMs}ms before retry...`);
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
+            }
+          } catch (selectException: any) {
+            console.error(
+              `Select attempt ${attempt} threw exception:`,
+              selectException,
+            );
+            error = selectException;
+
+            // If it's the last attempt, let the error bubble up
+            if (attempt === maxRetries) {
+              break;
+            }
+          }
+        }
 
         if (error) {
           console.error("Select error details:");

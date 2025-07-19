@@ -515,6 +515,133 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-purple-600" />
+                Estadísticas por Categoría de Titulación
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={titulacionStats.slice(0, 8)}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="total"
+                      label={(entry) =>
+                        `${entry.categoria_titulacion} (${entry.total})`
+                      }
+                    >
+                      {titulacionStats.slice(0, 8).map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-white p-3 border rounded-lg shadow-lg">
+                              <p className="font-semibold">
+                                {data.categoria_titulacion}
+                              </p>
+                              <p className="text-sm">Total: {data.total}</p>
+                              <p className="text-sm">
+                                Aprobados: {data.aprobados}
+                              </p>
+                              <p className="text-sm">
+                                Pendientes: {data.pendientes}
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={titulacionStats}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="categoria_titulacion"
+                      angle={-45}
+                      textAnchor="end"
+                      height={100}
+                      fontSize={10}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar
+                      dataKey="aprobados"
+                      stackId="a"
+                      fill="#00C49F"
+                      name="Aprobados"
+                    />
+                    <Bar
+                      dataKey="pendientes"
+                      stackId="a"
+                      fill="#FFBB28"
+                      name="Pendientes"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="mt-6">
+                <h4 className="font-semibold mb-3">
+                  Resumen por Categoría de Titulación
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {titulacionStats.map((categoria, index) => (
+                    <div
+                      key={categoria.categoria_titulacion}
+                      className="border rounded-lg p-4 hover:shadow-lg transition-shadow"
+                    >
+                      <h5 className="font-semibold text-sm">
+                        {categoria.categoria_titulacion}
+                      </h5>
+                      <div className="mt-2 space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span>Total:</span>
+                          <span className="font-medium">{categoria.total}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span>Aprobados:</span>
+                          <span className="font-medium text-green-600">
+                            {categoria.aprobados}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span>Pendientes:</span>
+                          <span className="font-medium text-orange-600">
+                            {categoria.pendientes}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span>Porcentaje:</span>
+                          <span className="font-medium text-blue-600">
+                            {categoria.porcentaje.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Centers Tab */}

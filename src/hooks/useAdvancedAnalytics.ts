@@ -78,13 +78,13 @@ export const useTopCenters = () => {
 
       if (error) throw error;
 
-      // Get professionals count for each center
+      // Get professionals count for each center using lugar_trabajo field
       const centersWithCounts = await Promise.all(
         data.map(async (center) => {
           const { count } = await supabase
             .from("profesionales_sanitarios")
             .select("*", { count: "exact", head: true })
-            .eq("nombre_centro", center.nombre)
+            .eq("lugar_trabajo", center.nombre)
             .eq("estado_solicitud", "Aprobado");
 
           return {
@@ -418,7 +418,7 @@ export const useCenterCategoryStats = () => {
           const { count } = await supabase
             .from("profesionales_sanitarios")
             .select("*", { count: "exact", head: true })
-            .in("nombre_centro", centerNames)
+            .in("lugar_trabajo", centerNames)
             .eq("estado_solicitud", "Aprobado");
 
           return {

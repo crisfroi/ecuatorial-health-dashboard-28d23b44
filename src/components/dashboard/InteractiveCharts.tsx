@@ -34,7 +34,7 @@ import {
   Target,
   Map,
 } from "lucide-react";
-import EquatorialGuineaMap from "./EquatorialGuineaMap";
+import EquatorialGuineaMapD3 from "./EquatorialGuineaMapD3";
 
 interface InteractiveChartsProps {
   areaStats: any[];
@@ -419,7 +419,7 @@ const InteractiveCharts: React.FC<InteractiveChartsProps> = ({
       {/* Map View */}
       {selectedView === "map" && (
         <div className="space-y-6">
-          <EquatorialGuineaMap onNavigateToProvince={onNavigateToProvince} />
+          <EquatorialGuineaMapD3 onNavigateToProvince={onNavigateToProvince} />
         </div>
       )}
 

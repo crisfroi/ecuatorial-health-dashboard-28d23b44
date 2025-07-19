@@ -114,7 +114,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
           profesional.fecha_graduacion
             ? new Date(profesional.fecha_graduacion).toLocaleDateString("es-ES")
             : "",
-          profesional.lugar_trabajo || "",
+          profesional.nombre_centro || "",
         ]),
       ];
 
@@ -418,7 +418,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                 </Badge>
               )}
               {/* Ahora los filtros de dashboard se muestran si tienen un valor,
-                  y los locales si no son 'todos' (ya que género está aquí ahora) */}
+                  y los locales si no son 'todos' (ya que género está aqu�� ahora) */}
               {localFilters.area_profesional !== "todos" && (
                 <Badge
                   variant="secondary"

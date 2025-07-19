@@ -45,6 +45,18 @@ export function getErrorMessage(error: any): string {
       return null;
     },
 
+    // Try Supabase specific error properties
+    () => {
+      // Check for PostgrestError structure
+      if (error.code && error.hint) {
+        return `Database Error (${error.code}): ${error.hint}`;
+      }
+      if (error.code && error.details) {
+        return `Database Error (${error.code}): ${error.details}`;
+      }
+      return null;
+    },
+
     // Try details
     () =>
       error.details && typeof error.details === "string" && error.details.trim()

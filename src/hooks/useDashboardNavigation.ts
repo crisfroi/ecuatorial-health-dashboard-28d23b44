@@ -125,6 +125,16 @@ export const useDashboardNavigation = (
     [onNavigateToTab],
   );
 
+  const navigateToProvince = useCallback(
+    (provincia: string) => {
+      onNavigateToTab("professionals", {
+        provincia: provincia,
+        estado_solicitud: "Aprobado",
+      });
+    },
+    [onNavigateToTab],
+  );
+
   return {
     navigateToArea,
     navigateToDistrict,
@@ -134,5 +144,6 @@ export const useDashboardNavigation = (
     navigateToCountry,
     navigateToRenewals,
     navigateToRequests,
+    navigateToProvince,
   };
 };

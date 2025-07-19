@@ -1017,73 +1017,179 @@ const HealthCenters = () => {
       </Card>
 
       {/* Vista de Centros */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {isLoading
-          ? Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-6">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                </CardContent>
-              </Card>
-            ))
-          : centros.map((centro) => (
-              <Card
-                key={centro.id}
-                className="hover:shadow-lg transition-shadow cursor-pointer"
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg mb-1">
-                        {centro.nombre}
-                      </h3>
-                      <div className="flex items-center text-sm text-gray-500 mb-2">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span>
-                          {centro.provincia}, {centro.distrito}
-                        </span>
+      {viewType === "kanban" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {isLoading
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  </CardContent>
+                </Card>
+              ))
+            : centros.map((centro) => (
+                <Card
+                  key={centro.id}
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg mb-1">
+                          {centro.nombre}
+                        </h3>
+                        <div className="flex items-center text-sm text-gray-500 mb-2">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          <span>
+                            {centro.provincia}, {centro.distrito}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <Badge className={getCategoryColor(centro.categoria)}>
-                      {centro.categoria}
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center text-sm">
-                        <Users className="w-4 h-4 mr-2 text-blue-600" />
-                        <span>{centro.total_profesionales} profesionales</span>
-                      </div>
-                      <Badge className={getSectorColor(centro.sector)}>
-                        {centro.sector}
+                      <Badge className={getCategoryColor(centro.categoria)}>
+                        {centro.categoria}
                       </Badge>
                     </div>
 
-                    {centro.distrito_sanitario && (
-                      <div className="text-sm text-gray-600">
-                        <strong>Distrito Sanitario:</strong>{" "}
-                        {centro.distrito_sanitario}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center text-sm">
+                          <Users className="w-4 h-4 mr-2 text-blue-600" />
+                          <span>
+                            {centro.total_profesionales} profesionales
+                          </span>
+                        </div>
+                        <Badge className={getSectorColor(centro.sector)}>
+                          {centro.sector}
+                        </Badge>
                       </div>
-                    )}
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-4"
-                      onClick={() => setSelectedCenter(centro)}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      Ver Detalles
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-      </div>
+                      {centro.distrito_sanitario && (
+                        <div className="text-sm text-gray-600">
+                          <strong>Distrito Sanitario:</strong>{" "}
+                          {centro.distrito_sanitario}
+                        </div>
+                      )}
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-4"
+                        onClick={() => setSelectedCenter(centro)}
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Ver Detalles
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-4 font-semibold">Nombre</th>
+                    <th className="text-left p-4 font-semibold">Categoría</th>
+                    <th className="text-left p-4 font-semibold">Provincia</th>
+                    <th className="text-left p-4 font-semibold">
+                      Distrito Sanitario
+                    </th>
+                    <th className="text-left p-4 font-semibold">Sector</th>
+                    <th className="text-left p-4 font-semibold">
+                      Profesionales
+                    </th>
+                    <th className="text-left p-4 font-semibold">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoading
+                    ? Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={i} className="border-b animate-pulse">
+                          <td className="p-4">
+                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                          </td>
+                          <td className="p-4">
+                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                          </td>
+                          <td className="p-4">
+                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                          </td>
+                          <td className="p-4">
+                            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                          </td>
+                          <td className="p-4">
+                            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                          </td>
+                          <td className="p-4">
+                            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                          </td>
+                          <td className="p-4">
+                            <div className="h-8 bg-gray-200 rounded w-20"></div>
+                          </td>
+                        </tr>
+                      ))
+                    : centros.map((centro) => (
+                        <tr
+                          key={centro.id}
+                          className="border-b hover:bg-gray-50"
+                        >
+                          <td className="p-4">
+                            <div className="font-semibold">{centro.nombre}</div>
+                            <div className="text-sm text-gray-500">
+                              {centro.distrito}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <Badge
+                              className={getCategoryColor(centro.categoria)}
+                            >
+                              {centro.categoria}
+                            </Badge>
+                          </td>
+                          <td className="p-4">{centro.provincia}</td>
+                          <td className="p-4">
+                            {centro.distrito_sanitario || "No especificado"}
+                          </td>
+                          <td className="p-4">
+                            <Badge className={getSectorColor(centro.sector)}>
+                              {centro.sector}
+                            </Badge>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center">
+                              <Users className="w-4 h-4 mr-2 text-blue-600" />
+                              {centro.total_profesionales}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedCenter(centro)}
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              Ver
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                </tbody>
+              </table>
+              {!isLoading && centros.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  No se encontraron centros con los filtros aplicados.
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

@@ -164,6 +164,14 @@ const Dashboard = () => {
     console.log("Dashboard: appliedFilters actualizado a:", newAppliedFilters);
   };
 
+  const handleNavigateFromAnalytics = (tab: string, filters?: any) => {
+    console.log("Dashboard: Navegando desde analytics:", tab, filters);
+    setActiveTab(tab);
+    if (filters) {
+      setAppliedFilters(filters);
+    }
+  };
+
   useEffect(() => {
     console.log(
       "Dashboard: useEffect activado. Sincronizando appliedFilters con dashboardFilters.",
@@ -538,7 +546,9 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
-            <AdvancedAnalyticsDashboard />
+            <AdvancedAnalyticsDashboard
+              onNavigateToTab={handleNavigateFromAnalytics}
+            />
           </TabsContent>
 
           <TabsContent value="ai-chat" className="space-y-6">

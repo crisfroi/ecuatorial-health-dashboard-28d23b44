@@ -24,8 +24,33 @@ export function useEstadisticasTest() {
           throw new Error("Supabase URL not configured");
         }
 
-        // Test 1: Basic connection
-        console.log("Test 1: Basic connection test...");
+        // Test 1a: Basic ping test
+        console.log("Test 1a: Basic ping test...");
+        try {
+          const { data: pingTest, error: pingError } = await supabase
+            .from("profesionales_sanitarios")
+            .select("1")
+            .limit(1)
+            .maybeSingle();
+
+          console.log("Ping test result:", {
+            data: pingTest,
+            error: pingError,
+          });
+
+          if (pingError) {
+            console.error("Ping test failed:", pingError);
+            throw new Error(`Ping test failed: ${getErrorMessage(pingError)}`);
+          }
+        } catch (pingErr: any) {
+          console.error("Ping test exception:", pingErr);
+          throw new Error(
+            `Network connectivity issue: ${getErrorMessage(pingErr)}`,
+          );
+        }
+
+        // Test 1b: Count query
+        console.log("Test 1b: Count query test...");
         const { data: connectionTest, error: connectionError } = await supabase
           .from("profesionales_sanitarios")
           .select("count(*)", { count: "exact", head: true });

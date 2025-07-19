@@ -522,11 +522,18 @@ const HealthCenters = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={actualizarCentroMutation.isPending}
+                  disabled={
+                    actualizarCentroMutation.isPending ||
+                    validateCenterMutation.isPending
+                  }
                 >
-                  {actualizarCentroMutation.isPending
-                    ? "Guardando..."
-                    : "Guardar Cambios"}
+                  {editingCenter?.estado === "pendiente_validacion"
+                    ? validateCenterMutation.isPending
+                      ? "Validando..."
+                      : "Validar Centro"
+                    : actualizarCentroMutation.isPending
+                      ? "Guardando..."
+                      : "Guardar Cambios"}
                 </Button>
               </div>
             </form>

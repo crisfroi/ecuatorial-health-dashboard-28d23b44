@@ -315,35 +315,59 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
       {/* Main Analytics Tabs */}
       <Tabs defaultValue="summary" className="space-y-6">
         <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="summary" className="flex items-center gap-2">
+          <TabsTrigger
+            value="summary"
+            className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
+          >
             <BarChart3 className="w-4 h-4" />
             Resumen
           </TabsTrigger>
-          <TabsTrigger value="areas" className="flex items-center gap-2">
+          <TabsTrigger
+            value="areas"
+            className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
+          >
             <Activity className="w-4 h-4" />
             Áreas
           </TabsTrigger>
-          <TabsTrigger value="centers" className="flex items-center gap-2">
+          <TabsTrigger
+            value="centers"
+            className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
+          >
             <Building2 className="w-4 h-4" />
             Centros
           </TabsTrigger>
-          <TabsTrigger value="districts" className="flex items-center gap-2">
+          <TabsTrigger
+            value="districts"
+            className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
+          >
             <MapPin className="w-4 h-4" />
             Distritos
           </TabsTrigger>
-          <TabsTrigger value="demographics" className="flex items-center gap-2">
+          <TabsTrigger
+            value="demographics"
+            className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
+          >
             <Users className="w-4 h-4" />
             Demografía
           </TabsTrigger>
-          <TabsTrigger value="education" className="flex items-center gap-2">
+          <TabsTrigger
+            value="education"
+            className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
+          >
             <GraduationCap className="w-4 h-4" />
             Formación
           </TabsTrigger>
-          <TabsTrigger value="trends" className="flex items-center gap-2">
+          <TabsTrigger
+            value="trends"
+            className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
+          >
             <TrendingUp className="w-4 h-4" />
             Tendencias
           </TabsTrigger>
-          <TabsTrigger value="interactive" className="flex items-center gap-2">
+          <TabsTrigger
+            value="interactive"
+            className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
+          >
             <PieChartIcon className="w-4 h-4" />
             Interactivo
           </TabsTrigger>

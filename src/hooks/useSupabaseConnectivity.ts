@@ -43,23 +43,29 @@ export function useSupabaseConnectivity() {
         try {
           const { error: metaError } = await supabase
             .from("profesionales_sanitarios")
-            .select("*")
-            .limit(0); // Get no rows, just test table access
+            .select("id", { count: "exact", head: true });
 
           if (metaError) {
-            console.log("Metadata query error:", metaError);
+            console.log("Metadata query error:", {
+              message: metaError.message,
+              details: metaError.details,
+              hint: metaError.hint,
+              code: metaError.code,
+            });
             throw metaError;
           }
 
           console.log("✓ Table metadata accessible");
         } catch (metaErr: any) {
           console.error("Table metadata failed:", metaErr);
-          const errorMessage =
-            metaErr?.message ||
-            metaErr?.details ||
-            metaErr?.hint ||
-            JSON.stringify(metaErr);
-          throw new Error(`Table access failed: ${errorMessage}`);
+          const errorDetails = {
+            message: metaErr?.message || "Unknown error",
+            details: metaErr?.details || null,
+            hint: metaErr?.hint || null,
+            code: metaErr?.code || null,
+          };
+          const fullErrorMessage = `${errorDetails.message}${errorDetails.details ? ` (${errorDetails.details})` : ""}${errorDetails.hint ? ` Hint: ${errorDetails.hint}` : ""}${errorDetails.code ? ` Code: ${errorDetails.code}` : ""}`;
+          throw new Error(`Table access failed: ${fullErrorMessage}`);
         }
 
         // Test 5: Try to get one record

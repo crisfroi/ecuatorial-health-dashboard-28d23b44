@@ -41,6 +41,7 @@ import {
   Download,
   Filter,
   Eye,
+  DollarSign,
 } from "lucide-react";
 
 import {
@@ -58,6 +59,7 @@ import DistrictAnalytics from "./DistrictAnalytics";
 import InteractiveCharts from "./InteractiveCharts";
 import AnalyticsSummary from "./AnalyticsSummary";
 import ErrorBoundary from "@/components/ui/error-boundary";
+import FinancialAnalytics from "./FinancialAnalytics";
 import {
   useDashboardNavigation,
   type NavigationFilters,
@@ -316,7 +318,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
 
       {/* Main Analytics Tabs */}
       <Tabs defaultValue="summary" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger
             value="summary"
             className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
@@ -372,6 +374,13 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
           >
             <PieChartIcon className="w-4 h-4" />
             Interactivo
+          </TabsTrigger>
+          <TabsTrigger
+            value="financial"
+            className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
+          >
+            <DollarSign className="w-4 h-4" />
+            Financiero
           </TabsTrigger>
         </TabsList>
 
@@ -1187,6 +1196,13 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
               onNavigateToAgeRange={navigateToAgeRange}
               onNavigateToProvince={navigateToProvince}
             />
+          </ErrorBoundary>
+        </TabsContent>
+
+        {/* Financial Analytics Tab */}
+        <TabsContent value="financial" className="space-y-6">
+          <ErrorBoundary>
+            <FinancialAnalytics onNavigateToTab={onNavigateToTab} />
           </ErrorBoundary>
         </TabsContent>
       </Tabs>

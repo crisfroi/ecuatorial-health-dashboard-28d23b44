@@ -95,7 +95,9 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
       }
     } catch (err: any) {
       console.error("Error searching professionals:", err);
-      setError(`Error en la búsqueda: ${err.message}`);
+      const errorMessage =
+        err?.message || err?.toString() || "Error desconocido en la búsqueda";
+      setError(`Error en la búsqueda: ${errorMessage}`);
       setSearchResults([]);
     } finally {
       setIsLoading(false);

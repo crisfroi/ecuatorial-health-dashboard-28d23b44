@@ -58,6 +58,7 @@ import AdminPanel from "@/components/dashboard/AdminPanel";
 import AdvancedAnalyticsDashboard from "@/components/dashboard/AdvancedAnalyticsDashboard";
 import ProfessionalSearch from "@/components/dashboard/ProfessionalSearch";
 import ErrorBoundary from "@/components/ui/error-boundary";
+import ConnectionDebugPanel from "@/components/dashboard/ConnectionDebugPanel";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -495,6 +496,9 @@ const Dashboard = () => {
           className="space-y-6"
         >
           <TabsContent value="overview" className="space-y-6">
+            {/* Temporary debug panel for troubleshooting */}
+            <ConnectionDebugPanel />
+
             <ErrorBoundary>
               <ProfessionalSearch
                 onSelectProfessional={(professional) => {

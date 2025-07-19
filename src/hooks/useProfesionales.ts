@@ -72,6 +72,29 @@ export function useProfesionales(filtros: Filtros = {}) {
         query = query.eq("año_graduacion", parseInt(filtros.anoGraduacion));
       }
 
+      if (
+        filtros.distrito_sanitario &&
+        filtros.distrito_sanitario !== "todos"
+      ) {
+        query = query.eq("distrito_sanitario", filtros.distrito_sanitario);
+      }
+
+      if (filtros.lugar_trabajo && filtros.lugar_trabajo !== "todos") {
+        query = query.eq("lugar_trabajo", filtros.lugar_trabajo);
+      }
+
+      if (filtros.año_graduacion) {
+        query = query.eq("año_graduacion", filtros.año_graduacion);
+      }
+
+      if (filtros.edad_minima !== undefined) {
+        query = query.gte("edad", filtros.edad_minima);
+      }
+
+      if (filtros.edad_maxima !== undefined) {
+        query = query.lte("edad", filtros.edad_maxima);
+      }
+
       // --- APLICAR FILTROS DE FECHA ---
       // Asumimos que la columna para la fecha de solicitud es 'created_at' en tu tabla
       if (filtros.fecha_solicitud_gte) {

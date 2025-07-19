@@ -156,8 +156,59 @@ export function useEstadisticasTest() {
           }
 
           logError("Connection test failed", connectionError);
-          const errorMsg = getErrorMessage(connectionError);
+
+          // Generate more specific error message based on error analysis
+          let errorMsg = getErrorMessage(connectionError);
           console.error("Processed error message:", errorMsg);
+
+          // If we got the generic empty response message, try to provide more context
+          if (
+            errorMsg === "Database connection failed - empty error response"
+          ) {
+            console.error(
+              "Attempting to provide more context for empty error...",
+            );
+
+            // Check for common connection issues
+            const diagnostics = [];
+
+            // Check if we're online
+            if (!navigator.onLine) {
+              diagnostics.push("Device appears to be offline");
+            }
+
+            // Check current URL for potential issues
+            const currentUrl = window.location.href;
+            if (currentUrl.includes("localhost")) {
+              diagnostics.push(
+                "Running on localhost - may have different CORS/connection behavior",
+              );
+            }
+
+            // Check if error has any properties at all
+            const errorKeys = Object.keys(connectionError || {});
+            if (errorKeys.length === 0) {
+              diagnostics.push("Error object is completely empty");
+            } else {
+              diagnostics.push(`Error has properties: ${errorKeys.join(", ")}`);
+            }
+
+            // Check error type
+            if (connectionError instanceof TypeError) {
+              diagnostics.push("TypeError suggests network/fetch issue");
+            } else if (connectionError instanceof Error) {
+              diagnostics.push(
+                `Standard Error type: ${connectionError.constructor.name}`,
+              );
+            }
+
+            if (diagnostics.length > 0) {
+              errorMsg = `Database connection failed. Diagnostics: ${diagnostics.join("; ")}`;
+            } else {
+              errorMsg =
+                "Database connection failed - unable to determine cause. Check network connection and Supabase configuration.";
+            }
+          }
 
           throw new Error(`Connection failed: ${errorMsg}`);
         }

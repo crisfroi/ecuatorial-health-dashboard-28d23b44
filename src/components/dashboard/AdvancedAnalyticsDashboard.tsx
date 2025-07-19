@@ -464,15 +464,15 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
           <Card>
             <CardHeader>
               <CardTitle>Áreas que Necesitan Mayor Refuerzo</CardTitle>
+              <p className="text-sm text-gray-600">
+                Áreas con menor número de profesionales aprobados
+              </p>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {areaStats
-                  .filter((area) => area.pendientes > 0)
-                  .sort(
-                    (a, b) => b.pendientes / b.total - a.pendientes / a.total,
-                  )
-                  .slice(0, 6)
+                  .sort((a, b) => a.aprobados - b.aprobados)
+                  .slice(0, 5)
                   .map((area, index) => (
                     <div
                       key={area.area_profesional}
@@ -485,6 +485,12 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       </h4>
                       <div className="mt-2 space-y-1">
                         <div className="flex justify-between text-xs">
+                          <span>Aprobados:</span>
+                          <span className="font-medium text-red-600">
+                            {area.aprobados}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
                           <span>Pendientes:</span>
                           <span className="font-medium text-orange-600">
                             {area.pendientes}
@@ -494,12 +500,11 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                           <span>Total:</span>
                           <span className="font-medium">{area.total}</span>
                         </div>
-                        <div className="flex justify-between text-xs">
-                          <span>% Pendiente:</span>
-                          <span className="font-medium text-red-600">
-                            {((area.pendientes / area.total) * 100).toFixed(1)}%
-                          </span>
-                        </div>
+                      </div>
+                      <div className="mt-2 pt-2 border-t">
+                        <span className="text-xs text-orange-600 font-medium">
+                          Necesita refuerzo: Posición #{index + 1}
+                        </span>
                       </div>
                     </div>
                   ))}

@@ -372,15 +372,42 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       label={(entry) =>
                         `${entry.area_profesional} (${entry.total})`
                       }
+                      onClick={(data) => navigateToArea(data.area_profesional)}
+                      style={{ cursor: "pointer" }}
                     >
                       {areaStats.slice(0, 8).map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={COLORS[index % COLORS.length]}
+                          style={{ cursor: "pointer" }}
                         />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-white p-3 border rounded-lg shadow-lg">
+                              <p className="font-semibold">
+                                {data.area_profesional}
+                              </p>
+                              <p className="text-sm">Total: {data.total}</p>
+                              <p className="text-sm">
+                                Aprobados: {data.aprobados}
+                              </p>
+                              <p className="text-sm">
+                                Pendientes: {data.pendientes}
+                              </p>
+                              <p className="text-xs text-blue-600 mt-1">
+                                Haz clic para ver lista
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>

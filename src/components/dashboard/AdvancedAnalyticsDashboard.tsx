@@ -467,7 +467,9 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                   .map((area, index) => (
                     <div
                       key={area.area_profesional}
-                      className="border rounded-lg p-4"
+                      className="border rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow hover:border-orange-300"
+                      onClick={() => navigateToArea(area.area_profesional)}
+                      title={`Haz clic para ver profesionales de ${area.area_profesional}`}
                     >
                       <h4 className="font-semibold text-sm">
                         {area.area_profesional}

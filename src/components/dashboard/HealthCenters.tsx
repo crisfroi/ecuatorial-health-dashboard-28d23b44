@@ -246,6 +246,16 @@ const HealthCenters = () => {
     refetchPendingCenters();
   };
 
+  // Filter centers by category for cards
+  const getCentersByCategory = (categoria: string) => {
+    return centros.filter((centro) => centro.categoria === categoria);
+  };
+
+  // Handle category card click to filter
+  const handleCategoryFilter = (categoria: string) => {
+    setSelectedCategory(categoria);
+  };
+
   if (selectedCenter) {
     return (
       <div className="space-y-6">

@@ -107,25 +107,63 @@ const AIChat: React.FC<AIChatProps> = ({ onNavigateToTab }) => {
     setIsLoading(true);
 
     try {
+      // Comprehensive analytics data
+      const comprehensiveData = {
+        basicStats: stats,
+        topCenters,
+        areaStats,
+        districtStats,
+        ageRangeStats,
+        graduationStats,
+        countryStats,
+        institutionStats,
+        categoryStats,
+        titulacionStats,
+        summary: {
+          totalProfessionals: areaStats.reduce(
+            (sum, area) => sum + area.total,
+            0,
+          ),
+          totalApproved: areaStats.reduce(
+            (sum, area) => sum + area.aprobados,
+            0,
+          ),
+          totalCenters: topCenters.length,
+          totalDistricts: districtStats.length,
+          totalCountries: countryStats.length,
+          totalInstitutions: institutionStats.length,
+        },
+      };
+
       const { data, error } = await supabase.functions.invoke(
         "ai-chat-analysis",
         {
           body: {
             message: message,
-            statistics: stats,
+            analytics: comprehensiveData,
           },
         },
       );
 
       if (error) throw error;
 
+      // Parse navigation actions from response
+      let navigationActions: NavigationAction[] = [];
+      let content =
+        data.response ||
+        "Lo siento, no pude procesar tu solicitud en este momento.";
+
+      // Look for navigation markers in the response
+      if (data.navigationSuggestions) {
+        navigationActions = data.navigationSuggestions;
+      }
+
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: "bot",
-        content:
-          data.response ||
-          "Lo siento, no pude procesar tu solicitud en este momento.",
+        content,
         timestamp: new Date(),
+        navigationActions,
       };
 
       setMessages((prev) => [...prev, botMessage]);

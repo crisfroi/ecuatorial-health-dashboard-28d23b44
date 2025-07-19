@@ -78,11 +78,12 @@ export function useEstadisticasTest() {
           );
         }
 
-        // Test 1b: Count query
-        console.log("Test 1b: Count query test...");
+        // Test 1b: Simple table access test (avoid count which might be restricted)
+        console.log("Test 1b: Simple table access test...");
         const { data: connectionTest, error: connectionError } = await supabase
           .from("profesionales_sanitarios")
-          .select("count(*)", { count: "exact", head: true });
+          .select("id")
+          .limit(1);
 
         if (connectionError) {
           console.error("=== CONNECTION ERROR DEBUGGING ===");

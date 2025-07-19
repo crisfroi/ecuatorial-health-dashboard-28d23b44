@@ -26,11 +26,23 @@ import {
 } from "@/hooks/useAdvancedAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 
+interface NavigationAction {
+  type: "navigate";
+  tab: string;
+  filters?: any;
+  label: string;
+}
+
 interface Message {
   id: string;
   type: "user" | "bot";
   content: string;
   timestamp: Date;
+  navigationActions?: NavigationAction[];
+}
+
+interface AIChatProps {
+  onNavigateToTab?: (tab: string, filters?: any) => void;
 }
 
 const AIChat = () => {

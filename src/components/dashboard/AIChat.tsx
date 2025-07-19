@@ -253,6 +253,35 @@ const AIChat: React.FC<AIChatProps> = ({ onNavigateToTab }) => {
                           <div className="whitespace-pre-wrap">
                             {msg.content}
                           </div>
+                          {msg.navigationActions &&
+                            msg.navigationActions.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                                <div className="text-sm font-medium text-gray-700">
+                                  Navegar a:
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {msg.navigationActions.map(
+                                    (action, index) => (
+                                      <Button
+                                        key={index}
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() =>
+                                          onNavigateToTab?.(
+                                            action.tab,
+                                            action.filters,
+                                          )
+                                        }
+                                        className="text-xs h-7 px-2"
+                                      >
+                                        <ExternalLink className="w-3 h-3 mr-1" />
+                                        {action.label}
+                                      </Button>
+                                    ),
+                                  )}
+                                </div>
+                              </div>
+                            )}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
                           {msg.timestamp.toLocaleTimeString()}

@@ -56,6 +56,7 @@ import HospitalIncidents from "@/components/dashboard/HospitalIncidents";
 import HealthCenters from "@/components/dashboard/HealthCenters";
 import AdminPanel from "@/components/dashboard/AdminPanel";
 import AdvancedAnalyticsDashboard from "@/components/dashboard/AdvancedAnalyticsDashboard";
+import ProfessionalSearch from "@/components/dashboard/ProfessionalSearch";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -493,6 +494,13 @@ const Dashboard = () => {
           className="space-y-6"
         >
           <TabsContent value="overview" className="space-y-6">
+            <ProfessionalSearch
+              onSelectProfessional={(professional) => {
+                setSelectedProfessional(professional);
+                setActiveTab("professionals");
+              }}
+              onNavigateToProfessionals={() => setActiveTab("professionals")}
+            />
             <DashboardCharts onChartClick={handleChartClick} />
           </TabsContent>
 

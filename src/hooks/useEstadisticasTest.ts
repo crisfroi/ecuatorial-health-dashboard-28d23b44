@@ -29,7 +29,7 @@ export function useEstadisticasTest() {
         try {
           const { data: pingTest, error: pingError } = await supabase
             .from("profesionales_sanitarios")
-            .select("1")
+            .select("id")
             .limit(1)
             .maybeSingle();
 

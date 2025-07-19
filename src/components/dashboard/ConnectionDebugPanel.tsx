@@ -136,6 +136,37 @@ const ConnectionDebugPanel = () => {
                         Has Stack:{" "}
                         {connectivityData.details.hasStack ? "Yes" : "No"}
                       </div>
+
+                      {/* Fetch error specific diagnostics */}
+                      {connectivityData.error?.includes("fetch") && (
+                        <div className="mt-2 p-2 bg-orange-100 rounded">
+                          <div className="font-medium text-orange-800">
+                            Fetch Error Diagnostics:
+                          </div>
+                          <div>• Check CORS settings in Supabase</div>
+                          <div>• Verify network connectivity</div>
+                          <div>
+                            • Check browser console for blocked requests
+                          </div>
+                          <div>• Verify Supabase project is not paused</div>
+                        </div>
+                      )}
+
+                      {connectivityData.error?.includes("CORS") && (
+                        <div className="mt-2 p-2 bg-purple-100 rounded">
+                          <div className="font-medium text-purple-800">
+                            CORS Error Solutions:
+                          </div>
+                          <div>
+                            • Add {currentUrl.split("/").slice(0, 3).join("/")}{" "}
+                            to allowed origins
+                          </div>
+                          <div>
+                            • Check Supabase project authentication settings
+                          </div>
+                          <div>• Verify API keys are correct</div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

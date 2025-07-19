@@ -155,186 +155,207 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <Card
-        className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-guinea-teal"
-        onClick={() => handleCardClick({ estado_solicitud: "Aprobado" })}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Profesionales Acreditados
-          </CardTitle>
-          <Users className="h-4 w-4 text-guinea-teal" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-guinea-teal">
-            {effectiveStats?.aprobados || 0}
+    <div className="space-y-4">
+      {/* Fallback indicator */}
+      {fallbackReason && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <div className="flex items-center gap-2 text-yellow-800">
+            <AlertTriangle className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              {fallbackReason === "network" &&
+                "Using offline data due to network connectivity issues"}
+              {fallbackReason === "test" &&
+                "Using test data due to database connection issues"}
+              {fallbackReason === "mock" &&
+                "Using mock data - database unavailable"}
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Profesionales acreditados
-          </p>
-          <div className="mt-2 text-xs text-blue-600 font-medium">
-            Clic para ver detalles →
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
-      <Card
-        className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-orange-400"
-        onClick={() => handleCardClick({ estado_solicitud: "Recibido" })}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Solicitudes Recibidas
-          </CardTitle>
-          <Clock className="h-4 w-4 text-orange-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-orange-600">
-            {effectiveStats?.recibidos || 0}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            En proceso de revisión
-          </p>
-          <div className="mt-2 text-xs text-blue-600 font-medium">
-            Clic para ver detalles →
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card
-        className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-blue-400"
-        onClick={() => handleCardClick({ estado_solicitud: "Revisando" })}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">En Revisión</CardTitle>
-          <Clock className="h-4 w-4 text-blue-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-blue-600">
-            {effectiveStats?.revisando || 0}
-          </div>
-          <p className="text-xs text-muted-foreground">Siendo evaluadas</p>
-          <div className="mt-2 text-xs text-blue-600 font-medium">
-            Clic para ver detalles →
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card
-        className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-red-400"
-        onClick={() => handleCardClick({ estado_solicitud: "Rechazado" })}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Solicitudes Rechazadas
-          </CardTitle>
-          <FileText className="h-4 w-4 text-red-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-red-600">
-            {effectiveStats?.rechazados || 0}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Tasa: {effectiveStats?.tasaRechazo || 0}%
-          </p>
-          <div className="mt-2 text-xs text-blue-600 font-medium">
-            Clic para ver detalles →
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card
-        className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-yellow-400"
-        onClick={() => handleCardClick({ vencimiento_proximo: true })}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Próximos a Vencer
-          </CardTitle>
-          <AlertTriangle className="h-4 w-4 text-yellow-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-yellow-600">
-            {effectiveStats?.vencimientosProximos || 0}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Carnets vencen en 30 días
-          </p>
-          <div className="mt-2 text-xs text-blue-600 font-medium">
-            Clic para ver detalles →
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card
-        className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-red-500"
-        onClick={() => handleCardClick({ carnet_vencido: true })}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Carnets Vencidos
-          </CardTitle>
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-red-600">
-            {effectiveStats?.carnetVencidos || 0}
-          </div>
-          <p className="text-xs text-muted-foreground">Requieren renovación</p>
-          <div className="mt-2 text-xs text-blue-600 font-medium">
-            Clic para ver detalles →
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Nueva tarjeta: Profesionales por Género */}
-      <Card className="md:col-span-2 hover:shadow-lg transition-all duration-200">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Profesionales por Género
-          </CardTitle>
-          <Users className="h-4 w-4 text-purple-600" />{" "}
-          {/* Icono general para género */}
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4 items-center">
-            {/* Hombres */}
-            <div
-              className="flex items-center gap-1 cursor-pointer hover:text-blue-700 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCardClick({ genero: "Masculino" });
-              }}
-            >
-              <PersonStanding className="h-5 w-5 text-blue-600" />{" "}
-              {/* Usamos PersonStanding */}
-              <span className="font-semibold text-blue-600">
-                {effectiveStats?.generoMasculino || 0}
-              </span>
-              <Badge variant="secondary">Masculino</Badge>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card
+          className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-guinea-teal"
+          onClick={() => handleCardClick({ estado_solicitud: "Aprobado" })}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Profesionales Acreditados
+            </CardTitle>
+            <Users className="h-4 w-4 text-guinea-teal" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-guinea-teal">
+              {effectiveStats?.aprobados || 0}
             </div>
-            {/* Mujeres */}
-            <div
-              className="flex items-center gap-1 cursor-pointer hover:text-pink-700 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCardClick({ genero: "Femenino" });
-              }}
-            >
-              <PersonStanding className="h-5 w-5 text-pink-600" />{" "}
-              {/* Usamos PersonStanding */}
-              <span className="font-semibold text-pink-600">
-                {effectiveStats?.generoFemenino || 0}
-              </span>
-              <Badge variant="secondary">Femenino</Badge>
+            <p className="text-xs text-muted-foreground">
+              Profesionales acreditados
+            </p>
+            <div className="mt-2 text-xs text-blue-600 font-medium">
+              Clic para ver detalles →
             </div>
-          </div>
-          <div className="mt-3 text-xs text-blue-600 font-medium">
-            Clic en cualquier género para ver detalles →
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-orange-400"
+          onClick={() => handleCardClick({ estado_solicitud: "Recibido" })}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Solicitudes Recibidas
+            </CardTitle>
+            <Clock className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {effectiveStats?.recibidos || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              En proceso de revisión
+            </p>
+            <div className="mt-2 text-xs text-blue-600 font-medium">
+              Clic para ver detalles →
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-blue-400"
+          onClick={() => handleCardClick({ estado_solicitud: "Revisando" })}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">En Revisión</CardTitle>
+            <Clock className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {effectiveStats?.revisando || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">Siendo evaluadas</p>
+            <div className="mt-2 text-xs text-blue-600 font-medium">
+              Clic para ver detalles →
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-red-400"
+          onClick={() => handleCardClick({ estado_solicitud: "Rechazado" })}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Solicitudes Rechazadas
+            </CardTitle>
+            <FileText className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {effectiveStats?.rechazados || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Tasa: {effectiveStats?.tasaRechazo || 0}%
+            </p>
+            <div className="mt-2 text-xs text-blue-600 font-medium">
+              Clic para ver detalles →
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-yellow-400"
+          onClick={() => handleCardClick({ vencimiento_proximo: true })}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Próximos a Vencer
+            </CardTitle>
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">
+              {effectiveStats?.vencimientosProximos || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Carnets vencen en 30 días
+            </p>
+            <div className="mt-2 text-xs text-blue-600 font-medium">
+              Clic para ver detalles →
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-red-500"
+          onClick={() => handleCardClick({ carnet_vencido: true })}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Carnets Vencidos
+            </CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {effectiveStats?.carnetVencidos || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Requieren renovación
+            </p>
+            <div className="mt-2 text-xs text-blue-600 font-medium">
+              Clic para ver detalles →
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Nueva tarjeta: Profesionales por Género */}
+        <Card className="md:col-span-2 hover:shadow-lg transition-all duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Profesionales por Género
+            </CardTitle>
+            <Users className="h-4 w-4 text-purple-600" />{" "}
+            {/* Icono general para género */}
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4 items-center">
+              {/* Hombres */}
+              <div
+                className="flex items-center gap-1 cursor-pointer hover:text-blue-700 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCardClick({ genero: "Masculino" });
+                }}
+              >
+                <PersonStanding className="h-5 w-5 text-blue-600" />{" "}
+                {/* Usamos PersonStanding */}
+                <span className="font-semibold text-blue-600">
+                  {effectiveStats?.generoMasculino || 0}
+                </span>
+                <Badge variant="secondary">Masculino</Badge>
+              </div>
+              {/* Mujeres */}
+              <div
+                className="flex items-center gap-1 cursor-pointer hover:text-pink-700 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCardClick({ genero: "Femenino" });
+                }}
+              >
+                <PersonStanding className="h-5 w-5 text-pink-600" />{" "}
+                {/* Usamos PersonStanding */}
+                <span className="font-semibold text-pink-600">
+                  {effectiveStats?.generoFemenino || 0}
+                </span>
+                <Badge variant="secondary">Femenino</Badge>
+              </div>
+            </div>
+            <div className="mt-3 text-xs text-blue-600 font-medium">
+              Clic en cualquier género para ver detalles →
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

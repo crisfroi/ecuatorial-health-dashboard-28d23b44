@@ -33,8 +33,44 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     error: connectivityError,
   } = useSupabaseConnectivity();
 
-  // TEMPORALMENTE usar datos mock si los otros fallan (para testing)
-  const effectiveStats = stats || mockStats;
+  // Enhanced fallback logic based on error type
+  let effectiveStats = stats;
+  let fallbackReason = null;
+
+  // If main stats failed, check the error type
+  if (!stats && error) {
+    console.log("Main stats failed, analyzing error for fallback decision...");
+
+    const errorMessage = error?.message || "";
+    const isFetchError =
+      errorMessage.includes("fetch") ||
+      errorMessage.includes("Failed to fetch") ||
+      errorMessage.includes("TypeError");
+
+    const isNetworkError =
+      errorMessage.includes("network") ||
+      errorMessage.includes("NetworkError") ||
+      errorMessage.includes("CORS");
+
+    // If it's a network/fetch error, use mock data
+    if (isFetchError || isNetworkError) {
+      console.log("Using mock data due to network/fetch error");
+      effectiveStats = mockStats;
+      fallbackReason = "network";
+    }
+    // If test stats are available, use those
+    else if (testStats) {
+      console.log("Using test stats as fallback");
+      effectiveStats = testStats;
+      fallbackReason = "test";
+    }
+    // Last resort: mock data
+    else {
+      console.log("Using mock data as last resort");
+      effectiveStats = mockStats;
+      fallbackReason = "mock";
+    }
+  }
 
   if (isLoading) {
     return (

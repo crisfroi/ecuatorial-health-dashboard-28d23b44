@@ -24,14 +24,40 @@ export const useCentrosSalud = () => {
   const queryClient = useQueryClient();
 
   const buscarCentros = async (params: BuscarCentrosParams) => {
-    const { data, error } = await supabase.rpc("buscar_centros_por_criterios", {
-      p_nombre_parcial: params.nombreParcial || null,
-      p_categoria: params.categoria || null,
-      p_distrito_sanitario: params.distritoSanitario || null,
-    });
+    // First get all centers with basic filters
+    let query = supabase.from("centros_salud").select("*");
 
+    if (params.nombreParcial) {
+      query = query.ilike("nombre", `%${params.nombreParcial}%`);
+    }
+    if (params.categoria) {
+      query = query.eq("categoria", params.categoria);
+    }
+    if (params.distritoSanitario) {
+      query = query.eq("distrito_sanitario", params.distritoSanitario);
+    }
+
+    const { data: centros, error } = await query.order("nombre");
     if (error) throw error;
-    return data || [];
+
+    // For each center, count professionals using all possible matches
+    const centrosConConteo = await Promise.all(
+      (centros || []).map(async (centro) => {
+        const { count } = await supabase
+          .from("profesionales_sanitarios")
+          .select("*", { count: "exact", head: true })
+          .or(
+            `centro_salud_id.eq.${centro.id},nombre_centro.eq.${centro.nombre},lugar_trabajo.eq.${centro.nombre}`,
+          );
+
+        return {
+          ...centro,
+          total_profesionales: count || 0,
+        };
+      }),
+    );
+
+    return centrosConConteo;
   };
 
   const crearCentro = async (params: CrearCentroParams) => {

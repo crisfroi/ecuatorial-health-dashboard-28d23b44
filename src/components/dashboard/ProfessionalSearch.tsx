@@ -172,12 +172,13 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
       setError(`Error al acceder a la cámara: ${errorMessage}`);
       setIsScanning(false);
 
-      toast({
+            toast({
         title: "Error de cámara",
         description: errorMessage,
         variant: "destructive",
       });
     }
+  };
   };
 
   const stopBarcodeScanning = () => {

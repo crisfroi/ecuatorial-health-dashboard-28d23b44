@@ -3,9 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertTriangle, CheckCircle } from "lucide-react";
 import { useBasicConnectivityTest } from "@/hooks/useBasicConnectivityTest";
+import { useProfessionalsTableTest } from "@/hooks/useProfessionalsTableTest";
 
 const QuickDiagnostic = () => {
   const { data, isLoading, error, refetch } = useBasicConnectivityTest();
+  const {
+    data: tableData,
+    isLoading: tableLoading,
+    error: tableError,
+    refetch: refetchTable,
+  } = useProfessionalsTableTest();
 
   return (
     <Card className="border-yellow-200 bg-yellow-50">
@@ -35,15 +42,26 @@ const QuickDiagnostic = () => {
                 <span className="text-sm text-red-600">Failed</span>
               </div>
             )}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => refetch()}
-              disabled={isLoading}
-            >
-              <RefreshCw className="w-3 h-3 mr-1" />
-              Retry
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => refetch()}
+                disabled={isLoading}
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Basic Test
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => refetchTable()}
+                disabled={tableLoading}
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Table Test
+              </Button>
+            </div>
           </div>
         </div>
 

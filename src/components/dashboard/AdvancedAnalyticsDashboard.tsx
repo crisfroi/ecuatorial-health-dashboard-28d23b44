@@ -223,6 +223,9 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
         </div>
       </div>
 
+      {/* Quick Diagnostic Component */}
+      <QuickDiagnostic />
+
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card

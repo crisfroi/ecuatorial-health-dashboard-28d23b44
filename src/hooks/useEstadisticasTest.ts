@@ -141,6 +141,41 @@ export function useEstadisticasTest() {
           sampleData: data?.slice(0, 2), // Show first 2 records for debugging
         };
       } catch (err: any) {
+        console.error("=== COMPREHENSIVE ERROR DEBUGGING ===");
+        console.error("Error caught in test:", err);
+        console.error("Error type:", typeof err);
+        console.error("Error constructor:", err?.constructor?.name);
+        console.error("Error instanceof Error:", err instanceof Error);
+        console.error("Error keys:", Object.keys(err || {}));
+        console.error(
+          "Error own property names:",
+          Object.getOwnPropertyNames(err || {}),
+        );
+
+        // Check for network-related issues
+        if (err?.message?.includes("fetch") || err?.name === "NetworkError") {
+          console.error("Network error detected");
+        }
+
+        // Check for CORS issues
+        if (
+          err?.message?.includes("CORS") ||
+          err?.message?.includes("origin")
+        ) {
+          console.error("CORS error detected");
+        }
+
+        // Check for authentication issues
+        if (err?.status === 401 || err?.message?.includes("unauthorized")) {
+          console.error("Authentication error detected");
+        }
+
+        // Log browser/environment info
+        console.error("Environment info:");
+        console.error("- User agent:", navigator.userAgent);
+        console.error("- Online:", navigator.onLine);
+        console.error("- Location:", window.location.href);
+
         logError("Test query failed", err);
         throw new Error(`Test failed: ${getErrorMessage(err)}`);
       }

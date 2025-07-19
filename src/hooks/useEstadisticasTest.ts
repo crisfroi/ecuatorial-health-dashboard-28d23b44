@@ -27,13 +27,19 @@ export function useEstadisticasTest() {
         // Test basic network connectivity first
         console.log("Pre-test: Checking network connectivity...");
         try {
+          // Create timeout controller for better browser support
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+
           // Simple fetch test to check if we can reach the internet
           const connectivityTest = await fetch("https://httpbin.org/get", {
             method: "GET",
             mode: "cors",
             cache: "no-cache",
-            signal: AbortSignal.timeout(5000), // 5 second timeout
+            signal: controller.signal,
           });
+
+          clearTimeout(timeoutId);
 
           if (!connectivityTest.ok) {
             console.warn(

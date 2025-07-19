@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useSupabaseConnectivity } from "@/hooks/useSupabaseConnectivity";
 import { useEstadisticasTest } from "@/hooks/useEstadisticasTest";
+import { useOfflineMode } from "@/hooks/useOfflineMode";
 
 const ConnectionDebugPanel = () => {
   const {

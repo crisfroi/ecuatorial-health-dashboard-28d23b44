@@ -20,7 +20,12 @@ interface Filtros {
   tipo_sector?: string;
   search?: string; // Para búsquedas de texto general
   distrito?: string;
+  distrito_sanitario?: string;
   anoGraduacion?: string;
+  lugar_trabajo?: string;
+  edad_minima?: number;
+  edad_maxima?: number;
+  año_graduacion?: number;
   // --- NUEVOS FILTROS DE FECHA ---
   fecha_solicitud_gte?: string; // Greater Than or Equal (Fecha de inicio)
   fecha_solicitud_lte?: string; // Less Than or Equal (Fecha de fin)

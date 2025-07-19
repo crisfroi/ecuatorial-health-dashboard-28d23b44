@@ -52,9 +52,14 @@ export function useSupabaseConnectivity() {
           }
 
           console.log("✓ Table metadata accessible");
-        } catch (metaErr) {
+        } catch (metaErr: any) {
           console.error("Table metadata failed:", metaErr);
-          throw new Error(`Table access failed: ${metaErr}`);
+          const errorMessage =
+            metaErr?.message ||
+            metaErr?.details ||
+            metaErr?.hint ||
+            JSON.stringify(metaErr);
+          throw new Error(`Table access failed: ${errorMessage}`);
         }
 
         // Test 5: Try to get one record
@@ -78,9 +83,14 @@ export function useSupabaseConnectivity() {
             recordCount: data?.length || 0,
             message: "Supabase connection successful",
           };
-        } catch (queryErr) {
+        } catch (queryErr: any) {
           console.error("Database query failed:", queryErr);
-          throw new Error(`Database query failed: ${queryErr}`);
+          const errorMessage =
+            queryErr?.message ||
+            queryErr?.details ||
+            queryErr?.hint ||
+            JSON.stringify(queryErr);
+          throw new Error(`Database query failed: ${errorMessage}`);
         }
       } catch (error: any) {
         console.error("=== CONNECTIVITY TEST FAILED ===");

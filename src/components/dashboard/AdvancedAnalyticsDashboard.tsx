@@ -60,6 +60,7 @@ import InteractiveCharts from "./InteractiveCharts";
 import AnalyticsSummary from "./AnalyticsSummary";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import FinancialAnalytics from "./FinancialAnalytics";
+import QuickDiagnostic from "./QuickDiagnostic";
 import {
   useDashboardNavigation,
   type NavigationFilters,

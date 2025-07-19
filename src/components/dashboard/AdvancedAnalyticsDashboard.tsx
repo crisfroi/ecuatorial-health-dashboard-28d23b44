@@ -56,6 +56,10 @@ import {
 import DistrictAnalytics from "./DistrictAnalytics";
 import InteractiveCharts from "./InteractiveCharts";
 import ExecutiveSummary from "./ExecutiveSummary";
+import {
+  useDashboardNavigation,
+  type NavigationFilters,
+} from "@/hooks/useDashboardNavigation";
 
 // Color palettes for charts
 const COLORS = [
@@ -84,9 +88,25 @@ const AREA_COLORS = [
   "#98fb98",
 ];
 
-const AdvancedAnalyticsDashboard = () => {
+interface AdvancedAnalyticsDashboardProps {
+  onNavigateToTab?: (tab: string, filters?: NavigationFilters) => void;
+}
+
+const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
+  onNavigateToTab,
+}) => {
   const [selectedView, setSelectedView] = useState("overview");
   const [selectedDistrict, setSelectedDistrict] = useState("all");
+
+  // Navigation hooks
+  const {
+    navigateToArea,
+    navigateToDistrict,
+    navigateToCenter,
+    navigateToAgeRange,
+    navigateToGraduationYear,
+    navigateToRenewals,
+  } = useDashboardNavigation(onNavigateToTab || (() => {}));
 
   // Fetch all analytics data
   const { data: topCenters = [], isLoading: loadingCenters } = useTopCenters();

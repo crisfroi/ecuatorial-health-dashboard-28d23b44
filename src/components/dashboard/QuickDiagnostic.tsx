@@ -125,6 +125,102 @@ const QuickDiagnostic = () => {
             <div className="text-xs text-red-700 mt-1">{error.message}</div>
           </div>
         )}
+
+        {/* Table-specific test results */}
+        <div className="border-t pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">Table Test Status:</span>
+            {tableLoading ? (
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Testing table...</span>
+              </div>
+            ) : tableData?.status === "success" ? (
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-600">Table OK</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-600" />
+                <span className="text-sm text-red-600">Table Issues</span>
+              </div>
+            )}
+          </div>
+
+          {tableData?.status === "success" && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+              <div className="text-sm text-green-800">
+                ✓ Table tests successful
+              </div>
+              <div className="text-xs text-green-600 mt-1">
+                <div>Total records: {tableData.totalRecords}</div>
+                <div>Sample fetched: {tableData.sampleRecords}</div>
+                {tableData.testResults && (
+                  <div className="mt-2">
+                    <div className="font-medium">Sub-tests:</div>
+                    {tableData.testResults.map((test, i) => (
+                      <div key={i} className="ml-2">
+                        {test.success ? "✓" : "✗"} {test.name}:{" "}
+                        {test.success ? `Count ${test.count}` : test.error}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {(tableData?.status === "failed" ||
+            tableData?.status === "partial_success") &&
+            tableData.error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <div className="text-sm font-medium text-red-800">
+                  Table Test Failed at: {tableData.step}
+                </div>
+                <div className="text-xs text-red-700 mt-1">
+                  <div>Message: {tableData.error.message}</div>
+                  {tableData.error.details && (
+                    <div>Details: {tableData.error.details}</div>
+                  )}
+                  {tableData.error.hint && (
+                    <div>Hint: {tableData.error.hint}</div>
+                  )}
+                  {tableData.error.code && (
+                    <div>Code: {tableData.error.code}</div>
+                  )}
+                  {tableData.count !== undefined && (
+                    <div>Records found: {tableData.count}</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+          {tableData?.status === "error" && tableData.error && (
+            <div className="p-3 bg-orange-50 border border-orange-200 rounded-md">
+              <div className="text-sm font-medium text-orange-800">
+                Table Connection Error:
+              </div>
+              <div className="text-xs text-orange-700 mt-1">
+                <div>Message: {tableData.error.message}</div>
+                {tableData.error.name && (
+                  <div>Type: {tableData.error.name}</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {tableError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+              <div className="text-sm font-medium text-red-800">
+                Table Query Error:
+              </div>
+              <div className="text-xs text-red-700 mt-1">
+                {tableError.message}
+              </div>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

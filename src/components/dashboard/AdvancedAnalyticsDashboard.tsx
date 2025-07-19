@@ -521,81 +521,145 @@ const AdvancedAnalyticsDashboard = () => {
 
         {/* Districts Tab */}
         <TabsContent value="districts" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-purple-600" />
-                Estadísticas por Distrito Sanitario
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={districtStats}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="distrito_sanitario"
-                    angle={-45}
-                    textAnchor="end"
-                    height={100}
-                    fontSize={10}
-                  />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar
-                    dataKey="total_profesionales"
-                    fill="#8884d8"
-                    name="Profesionales"
-                  />
-                  <Bar dataKey="total_centros" fill="#82ca9d" name="Centros" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {districtStats.slice(0, 9).map((district, index) => (
-              <Card key={district.distrito_sanitario}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-xl font-semibold">
+                Análisis por Distrito Sanitario
+              </h3>
+              <p className="text-gray-600">
+                Vista general y análisis detallado por distrito
+              </p>
+            </div>
+            <Select
+              value={selectedDistrict}
+              onValueChange={setSelectedDistrict}
+            >
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Seleccionar distrito" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  Todos los distritos (Vista General)
+                </SelectItem>
+                {districtStats.map((district) => (
+                  <SelectItem
+                    key={district.distrito_sanitario}
+                    value={district.distrito_sanitario}
+                  >
                     {district.distrito_sanitario}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {selectedDistrict === "all" ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-purple-600" />
+                    Estadísticas por Distrito Sanitario
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Profesionales:
-                      </span>
-                      <Badge variant="outline">
-                        {district.total_profesionales}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Centros:</span>
-                      <Badge variant="outline">{district.total_centros}</Badge>
-                    </div>
-                    <div className="mt-3">
-                      <span className="text-sm text-gray-600 block mb-1">
-                        Áreas principales:
-                      </span>
-                      <div className="flex flex-wrap gap-1">
-                        {district.areas_mas_comunes.map((area, i) => (
-                          <Badge
-                            key={i}
-                            variant="secondary"
-                            className="text-xs"
-                          >
-                            {area}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={districtStats}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="distrito_sanitario"
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        fontSize={10}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar
+                        dataKey="total_profesionales"
+                        fill="#8884d8"
+                        name="Profesionales"
+                      />
+                      <Bar
+                        dataKey="total_centros"
+                        fill="#82ca9d"
+                        name="Centros"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {districtStats.slice(0, 9).map((district, index) => (
+                  <Card
+                    key={district.distrito_sanitario}
+                    className="cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() =>
+                      setSelectedDistrict(district.distrito_sanitario)
+                    }
+                  >
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center justify-between">
+                        {district.distrito_sanitario}
+                        <Eye className="w-4 h-4 text-gray-400" />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">
+                            Profesionales:
+                          </span>
+                          <Badge variant="outline">
+                            {district.total_profesionales}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">
+                            Centros:
+                          </span>
+                          <Badge variant="outline">
+                            {district.total_centros}
+                          </Badge>
+                        </div>
+                        <div className="mt-3">
+                          <span className="text-sm text-gray-600 block mb-1">
+                            Áreas principales:
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {district.areas_mas_comunes.map((area, i) => (
+                              <Badge
+                                key={i}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {area}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mt-2 pt-2 border-t">
+                          <span className="text-xs text-blue-600">
+                            Haz clic para ver detalles →
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          ) : (
+            <DistrictAnalytics
+              selectedDistrict={selectedDistrict}
+              onDistrictChange={setSelectedDistrict}
+              availableDistricts={districtStats.map(
+                (d) => d.distrito_sanitario,
+              )}
+            />
+          )}
         </TabsContent>
 
         {/* Demographics Tab */}

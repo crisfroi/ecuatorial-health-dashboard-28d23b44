@@ -53,6 +53,34 @@ export function useEstadisticasTest() {
           console.warn("Proceeding with database test anyway...");
         }
 
+        // Test Supabase service availability
+        console.log("Testing Supabase service availability...");
+        try {
+          const supabaseHealthCheck = await fetch(`${supabaseUrl}/health`, {
+            method: "GET",
+            cache: "no-cache",
+          });
+
+          console.log(
+            "Supabase health check status:",
+            supabaseHealthCheck.status,
+          );
+
+          if (supabaseHealthCheck.ok) {
+            console.log("Supabase service is reachable");
+          } else {
+            console.warn(
+              "Supabase service returned non-200 status:",
+              supabaseHealthCheck.status,
+            );
+          }
+        } catch (supabaseError) {
+          console.warn("Supabase service check failed:", supabaseError);
+          console.warn(
+            "This might indicate network issues or service unavailability",
+          );
+        }
+
         // Test 1a: Basic ping test
         console.log("Test 1a: Basic ping test...");
         try {

@@ -151,8 +151,32 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
       });
     } catch (err: any) {
       console.error("Error accessing camera:", err);
-      setError(`Error al acceder a la cámara: ${err.message}`);
+      let errorMessage = "Error desconocido al acceder a la cámara";
+
+      if (
+        err.name === "NotAllowedError" ||
+        err.message.includes("Permission denied")
+      ) {
+        errorMessage =
+          "Permisos de cámara denegados. Por favor, permite el acceso a la cámara para usar el escáner.";
+      } else if (err.name === "NotFoundError") {
+        errorMessage = "No se encontró ninguna cámara en este dispositivo.";
+      } else if (err.name === "NotSupportedError") {
+        errorMessage = "El navegador no soporta el acceso a la cámara.";
+      } else if (err.name === "NotReadableError") {
+        errorMessage = "La cámara está siendo usada por otra aplicación.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setError(`Error al acceder a la cámara: ${errorMessage}`);
       setIsScanning(false);
+
+      toast({
+        title: "Error de cámara",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
 

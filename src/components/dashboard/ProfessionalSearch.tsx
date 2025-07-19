@@ -445,7 +445,6 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
                 <li>• Nombre completo o parcial</li>
                 <li>• ID profesional único</li>
                 <li>• Código de expediente</li>
-                <li>• Número de documento</li>
               </ul>
             </div>
           )}

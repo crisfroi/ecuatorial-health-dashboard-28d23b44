@@ -9,6 +9,21 @@ export function useEstadisticasTest() {
       console.log("Testing simple estadisticas fetch...");
 
       try {
+        // Pre-test: Validate Supabase configuration
+        console.log("Pre-test: Validating Supabase configuration...");
+
+        if (!supabase) {
+          throw new Error("Supabase client not initialized");
+        }
+
+        // Check if we have a valid URL
+        const supabaseUrl = supabase.supabaseUrl;
+        console.log("Supabase URL:", supabaseUrl?.substring(0, 30) + "...");
+
+        if (!supabaseUrl) {
+          throw new Error("Supabase URL not configured");
+        }
+
         // Test 1: Basic connection
         console.log("Test 1: Basic connection test...");
         const { data: connectionTest, error: connectionError } = await supabase

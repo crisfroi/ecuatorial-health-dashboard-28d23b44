@@ -336,18 +336,35 @@ const InteractiveCharts: React.FC<InteractiveChartsProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={350}>
-                <Treemap
-                  data={treemapData}
-                  dataKey="size"
-                  ratio={4 / 3}
-                  stroke="#fff"
-                  fill="#8884d8"
-                  content={<CustomizedContent />}
-                >
-                  <Tooltip content={<TreemapTooltip />} />
-                </Treemap>
-              </ResponsiveContainer>
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {treemapData.map((area, index) => (
+                  <div
+                    key={area.name}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() =>
+                      onNavigateToArea && onNavigateToArea(area.name)
+                    }
+                    style={{
+                      borderLeftColor: area.color,
+                      borderLeftWidth: "4px",
+                    }}
+                    title={`Haz clic para ver profesionales de ${area.name}`}
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">{area.name}</div>
+                      <div className="text-xs text-gray-500">
+                        {area.size} profesionales
+                      </div>
+                    </div>
+                    <div
+                      className="w-12 h-12 rounded flex items-center justify-center text-white font-bold"
+                      style={{ backgroundColor: area.color }}
+                    >
+                      {area.size}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -98,6 +98,9 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
   console.log("StatsCards: Test loading:", testLoading);
   console.log("StatsCards: Test error:", testError);
   console.log("StatsCards: Mock stats data:", mockStats);
+  console.log("StatsCards: Connectivity data:", connectivityData);
+  console.log("StatsCards: Connectivity loading:", connectivityLoading);
+  console.log("StatsCards: Connectivity error:", connectivityError);
   console.log("StatsCards: Effective stats (final):", effectiveStats);
 
   if (!effectiveStats) {

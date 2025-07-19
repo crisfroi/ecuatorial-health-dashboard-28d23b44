@@ -498,9 +498,6 @@ const Dashboard = () => {
           className="space-y-6"
         >
           <TabsContent value="overview" className="space-y-6">
-            {/* Temporary debug panel for troubleshooting */}
-            <ConnectionDebugPanel />
-
             <ErrorBoundary>
               <ProfessionalSearch
                 onSelectProfessional={(professional) => {

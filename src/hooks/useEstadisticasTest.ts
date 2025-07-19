@@ -342,16 +342,46 @@ export function useEstadisticasTest() {
         }
 
         if (error) {
-          console.error("Select error details:");
+          console.error("=== SELECT ERROR ANALYSIS ===");
           console.error("- Type:", typeof error);
           console.error("- Constructor:", error?.constructor?.name);
           console.error("- Keys:", Object.keys(error || {}));
           console.error("- Message property:", error?.message);
           console.error("- Full object:", error);
 
+          // Check for specific fetch failure patterns
+          const isFetchError =
+            error?.message?.includes("fetch") ||
+            error?.message?.includes("Failed to fetch") ||
+            (error?.name === "TypeError" && error?.message?.includes("fetch"));
+
+          const isNetworkError =
+            error?.message?.includes("network") ||
+            error?.message?.includes("NetworkError") ||
+            error?.code === "NETWORK_ERROR";
+
+          const isCorsError =
+            error?.message?.includes("CORS") ||
+            error?.message?.includes("Cross-Origin") ||
+            error?.message?.includes("cors");
+
+          console.error("Error classification:");
+          console.error("- Is fetch error:", isFetchError);
+          console.error("- Is network error:", isNetworkError);
+          console.error("- Is CORS error:", isCorsError);
+
           logError("Select test failed", error);
-          const errorMsg = getErrorMessage(error);
+          let errorMsg = getErrorMessage(error);
           console.error("Processed select error message:", errorMsg);
+
+          // Provide specific guidance based on error type
+          if (isFetchError) {
+            errorMsg = `Network request failed: ${errorMsg}. This could be due to CORS policy, network connectivity, or Supabase service unavailability.`;
+          } else if (isNetworkError) {
+            errorMsg = `Network error: ${errorMsg}. Check internet connection and firewall settings.`;
+          } else if (isCorsError) {
+            errorMsg = `CORS error: ${errorMsg}. Check Supabase project settings and allowed origins.`;
+          }
 
           throw new Error(`Select failed: ${errorMsg}`);
         }

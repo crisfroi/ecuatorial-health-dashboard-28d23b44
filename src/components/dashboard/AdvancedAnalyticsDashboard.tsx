@@ -55,6 +55,7 @@ import {
 } from "@/hooks/useAdvancedAnalytics";
 import DistrictAnalytics from "./DistrictAnalytics";
 import InteractiveCharts from "./InteractiveCharts";
+import ExecutiveSummary from "./ExecutiveSummary";
 
 // Color palettes for charts
 const COLORS = [
@@ -281,8 +282,12 @@ const AdvancedAnalyticsDashboard = () => {
       </div>
 
       {/* Main Analytics Tabs */}
-      <Tabs defaultValue="areas" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+      <Tabs defaultValue="summary" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-8">
+          <TabsTrigger value="summary" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Resumen
+          </TabsTrigger>
           <TabsTrigger value="areas" className="flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Áreas
@@ -308,10 +313,21 @@ const AdvancedAnalyticsDashboard = () => {
             Tendencias
           </TabsTrigger>
           <TabsTrigger value="interactive" className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />
+            <PieChartIcon className="w-4 h-4" />
             Interactivo
           </TabsTrigger>
         </TabsList>
+
+        {/* Executive Summary Tab */}
+        <TabsContent value="summary" className="space-y-6">
+          <ExecutiveSummary
+            areaStats={areaStats}
+            districtStats={districtStats}
+            ageStats={ageRangeStats}
+            graduationStats={graduationStats}
+            centerStats={categoryStats}
+          />
+        </TabsContent>
 
         {/* Professional Areas Tab */}
         <TabsContent value="areas" className="space-y-6">

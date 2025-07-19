@@ -11,29 +11,161 @@ export function useEstadisticasAvanzadas() {
       let profesionales = [];
 
       try {
-        // Primero verificamos la conectividad básica
-        const { data: healthCheck, error: healthError } = await supabase
-          .from("profesionales_sanitarios")
-          .select("id")
-          .limit(1);
+        // Check if offline mode is enabled
+        const offlineMode = localStorage.getItem("app-offline-mode") === "true";
+        if (offlineMode) {
+          console.log("Offline mode detected, skipping database queries");
+          throw new Error("Offline mode active - using fallback data");
+        }
+
+        // Retry logic for health check
+        let healthCheck, healthError;
+        const maxRetries = 3;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            console.log(`Health check attempt ${attempt}/${maxRetries}`);
+
+            const result = await supabase
+              .from("profesionales_sanitarios")
+              .select("id")
+              .limit(1);
+
+            healthCheck = result.data;
+            healthError = result.error;
+
+            if (!healthError) {
+              console.log("Health check passed on attempt", attempt);
+              break;
+            }
+
+            console.log(`Health check attempt ${attempt} failed:`, healthError);
+
+            // Check if it's a fetch error that should be retried
+            const errorMessage = getErrorMessage(healthError);
+            const isFetchError =
+              errorMessage.includes("fetch") ||
+              errorMessage.includes("Failed to fetch") ||
+              errorMessage.includes("TypeError");
+
+            if (!isFetchError && attempt < maxRetries) {
+              console.log(
+                "Non-fetch error detected, stopping health check retries",
+              );
+              break;
+            }
+
+            // Wait before retry
+            if (attempt < maxRetries) {
+              const delayMs = Math.pow(2, attempt) * 1000;
+              console.log(`Waiting ${delayMs}ms before health check retry...`);
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
+            }
+          } catch (healthException: any) {
+            console.error(
+              `Health check attempt ${attempt} threw exception:`,
+              healthException,
+            );
+            healthError = healthException;
+
+            if (attempt === maxRetries) {
+              break;
+            }
+          }
+        }
 
         if (healthError) {
           logError("Health check failed", healthError);
-          throw new Error(
-            `Database connection failed: ${getErrorMessage(healthError)}`,
-          );
+          const errorMessage = getErrorMessage(healthError);
+
+          // If it's a fetch error, enable offline mode automatically
+          if (
+            errorMessage.includes("fetch") ||
+            errorMessage.includes("Failed to fetch")
+          ) {
+            console.log("Fetch error detected, enabling offline mode");
+            localStorage.setItem("app-offline-mode", "true");
+            localStorage.setItem(
+              "app-offline-reason",
+              "Automatic - fetch failure detected",
+            );
+          }
+
+          throw new Error(`Database connection failed: ${errorMessage}`);
         }
 
-        // Ahora hacemos la consulta completa
-        const { data, error } = await supabase
-          .from("profesionales_sanitarios")
-          .select("*");
+        // Retry logic for main query
+        let data, error;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            console.log(`Main query attempt ${attempt}/${maxRetries}`);
+
+            const result = await supabase
+              .from("profesionales_sanitarios")
+              .select("*");
+
+            data = result.data;
+            error = result.error;
+
+            if (!error) {
+              console.log("Main query succeeded on attempt", attempt);
+              break;
+            }
+
+            console.log(`Main query attempt ${attempt} failed:`, error);
+
+            // Check if it's a fetch error that should be retried
+            const errorMessage = getErrorMessage(error);
+            const isFetchError =
+              errorMessage.includes("fetch") ||
+              errorMessage.includes("Failed to fetch") ||
+              errorMessage.includes("TypeError");
+
+            if (!isFetchError && attempt < maxRetries) {
+              console.log(
+                "Non-fetch error detected, stopping main query retries",
+              );
+              break;
+            }
+
+            // Wait before retry
+            if (attempt < maxRetries) {
+              const delayMs = Math.pow(2, attempt) * 1000;
+              console.log(`Waiting ${delayMs}ms before main query retry...`);
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
+            }
+          } catch (queryException: any) {
+            console.error(
+              `Main query attempt ${attempt} threw exception:`,
+              queryException,
+            );
+            error = queryException;
+
+            if (attempt === maxRetries) {
+              break;
+            }
+          }
+        }
 
         if (error) {
           logError("Error fetching estadísticas avanzadas", error);
-          throw new Error(
-            `Failed to fetch statistics: ${getErrorMessage(error)}`,
-          );
+          const errorMessage = getErrorMessage(error);
+
+          // If it's a fetch error, enable offline mode automatically
+          if (
+            errorMessage.includes("fetch") ||
+            errorMessage.includes("Failed to fetch")
+          ) {
+            console.log("Fetch error in main query, enabling offline mode");
+            localStorage.setItem("app-offline-mode", "true");
+            localStorage.setItem(
+              "app-offline-reason",
+              "Automatic - main query fetch failure",
+            );
+          }
+
+          throw new Error(`Failed to fetch statistics: ${errorMessage}`);
         }
 
         profesionales = data || [];

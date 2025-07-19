@@ -242,6 +242,17 @@ export function getErrorMessage(error: any): string {
     console.error("Failed to stringify error:", e);
   }
 
+  // Special case for completely empty or minimal error objects
+  if (typeof error === "object" && error !== null) {
+    const keys = Object.keys(error);
+    if (keys.length === 0) {
+      return "Empty error object - possible network or configuration issue";
+    }
+    if (keys.length === 1 && keys[0] === "message" && !error.message) {
+      return "Error with empty message - likely database connection issue";
+    }
+  }
+
   // Fallback final con más información
   return `Error object: ${typeof error} (constructor: ${error?.constructor?.name || "unknown"}, toString: ${error?.toString?.() || "unavailable"})`;
 }

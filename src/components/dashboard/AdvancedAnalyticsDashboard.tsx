@@ -935,6 +935,17 @@ const AdvancedAnalyticsDashboard = () => {
             </Card>
           </div>
         </TabsContent>
+
+        {/* Interactive Charts Tab */}
+        <TabsContent value="interactive" className="space-y-6">
+          <InteractiveCharts
+            areaStats={areaStats}
+            districtStats={districtStats}
+            ageStats={ageRangeStats}
+            graduationStats={graduationStats}
+            centerStats={categoryStats}
+          />
+        </TabsContent>
       </Tabs>
     </div>
   );

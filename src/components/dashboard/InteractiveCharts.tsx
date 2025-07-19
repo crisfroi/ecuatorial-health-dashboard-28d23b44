@@ -39,6 +39,10 @@ interface InteractiveChartsProps {
   ageStats: any[];
   graduationStats: any[];
   centerStats: any[];
+  onNavigateToArea?: (area: string) => void;
+  onNavigateToDistrict?: (district: string) => void;
+  onNavigateToCenter?: (center: string) => void;
+  onNavigateToAgeRange?: (ageRange: string) => void;
 }
 
 const COLORS = [
@@ -60,6 +64,10 @@ const InteractiveCharts: React.FC<InteractiveChartsProps> = ({
   ageStats,
   graduationStats,
   centerStats,
+  onNavigateToArea,
+  onNavigateToDistrict,
+  onNavigateToCenter,
+  onNavigateToAgeRange,
 }) => {
   const [selectedView, setSelectedView] = useState("performance");
   const [selectedMetric, setSelectedMetric] = useState("total");

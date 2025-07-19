@@ -62,16 +62,17 @@ const HealthCenters = () => {
     categoria: selectedCategory === "all" ? undefined : selectedCategory,
     distritoSanitario:
       selectedDistrito === "all" ? undefined : selectedDistrito,
-    if(isError) {
-      return (
-        <div className="p-6 text-center text-red-600">
-          Ocurrió un error al cargar los centros de salud.
-          <br />
-          {error?.message || "Intenta recargar la página."}
-        </div>
-      );
-    },
   });
+
+  if (isError) {
+    return (
+      <div className="p-6 text-center text-red-600">
+        Ocurrió un error al cargar los centros de salud.
+        <br />
+        {error?.message || "Intenta recargar la página."}
+      </div>
+    );
+  }
 
   const { data: profesionalesDelCentro = [] } = useProfesionalesPorCentro(
     selectedCenter?.id,

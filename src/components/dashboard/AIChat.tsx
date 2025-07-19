@@ -45,7 +45,7 @@ interface AIChatProps {
   onNavigateToTab?: (tab: string, filters?: any) => void;
 }
 
-const AIChat = () => {
+const AIChat: React.FC<AIChatProps> = ({ onNavigateToTab }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -58,7 +58,18 @@ const AIChat = () => {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // All analytics data
   const { data: stats } = useEstadisticasAvanzadas();
+  const { data: topCenters = [] } = useTopCenters();
+  const { data: areaStats = [] } = useAreaProfessionalStats();
+  const { data: districtStats = [] } = useDistrictStats();
+  const { data: ageRangeStats = [] } = useAgeRangeStats();
+  const { data: graduationStats = [] } = useGraduationYearStats();
+  const { data: countryStats = [] } = useCountryStats();
+  const { data: institutionStats = [] } = useInstitutionStats();
+  const { data: categoryStats = [] } = useCenterCategoryStats();
+  const { data: titulacionStats = [] } = useTitulacionCategoryStats();
 
   const suggestedQuestions = [
     "¿Cuáles son las principales tendencias en las solicitudes de profesionales?",

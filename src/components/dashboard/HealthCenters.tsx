@@ -576,6 +576,27 @@ const HealthCenters = () => {
             <Eye className="w-4 h-4" />
             Centros Pendientes ({pendingCenters.length})
           </Button>
+
+          <div className="flex items-center border rounded-lg p-1">
+            <Button
+              variant={viewType === "kanban" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewType("kanban")}
+              className="px-3"
+            >
+              <Building2 className="w-4 h-4 mr-1" />
+              Tarjetas
+            </Button>
+            <Button
+              variant={viewType === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewType("list")}
+              className="px-3"
+            >
+              <Filter className="w-4 h-4 mr-1" />
+              Lista
+            </Button>
+          </div>
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
               <Button>

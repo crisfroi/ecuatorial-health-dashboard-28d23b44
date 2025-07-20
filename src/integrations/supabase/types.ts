@@ -342,6 +342,7 @@ export type Database = {
           distrito: string | null
           distrito_sanitario: string | null
           documentos_cargados: Json | null
+          documentos_adicionales: string[] | null
           domicilio: string | null
           edad: number | null
           especialidad: string | null
@@ -432,6 +433,7 @@ export type Database = {
           distrito?: string | null
           distrito_sanitario?: string | null
           documentos_cargados?: Json | null
+          documentos_adicionales?: string[] | null
           domicilio?: string | null
           edad?: number | null
           especialidad?: string | null
@@ -519,6 +521,7 @@ export type Database = {
           distrito?: string | null
           distrito_sanitario?: string | null
           documentos_cargados?: Json | null
+          documentos_adicionales?: string[] | null
           domicilio?: string | null
           edad?: number | null
           especialidad?: string | null
@@ -609,6 +612,7 @@ export type Database = {
           distrito?: string | null
           distrito_sanitario?: string | null
           documentos_cargados?: Json | null
+          documentos_adicionales?: string[] | null
           domicilio?: string | null
           edad?: number | null
           especialidad?: string | null

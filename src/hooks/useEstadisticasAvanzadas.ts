@@ -230,7 +230,7 @@ export function useEstadisticasAvanzadas() {
         {} as Record<string, number>,
       );
 
-      // --- CÁLCULO DE GÉNERO (SOLO PARA APROBADOS) ---
+      // --- CÁLCULO DE G��NERO (SOLO PARA APROBADOS) ---
       // Estadísticas por género - AHORA SOLO DE PROFESIONALES APROBADOS
       const porGenero = profesionalesAprobados.reduce(
         (acc, prof) => {
@@ -246,8 +246,8 @@ export function useEstadisticasAvanzadas() {
       const generoFemenino = porGenero["Femenino"] || 0;
       // --- FIN CÁLCULO DE GÉNERO ---
 
-      // Estadísticas por tipo de sector
-      const porTipoSector = profesionales.reduce(
+      // Estadísticas por tipo de sector - SOLO APROBADOS
+      const porTipoSector = profesionalesAprobados.reduce(
         (acc, prof) => {
           const sector = prof.tipo_sector || "Sin especificar";
           acc[sector] = (acc[sector] || 0) + 1;
@@ -256,8 +256,8 @@ export function useEstadisticasAvanzadas() {
         {} as Record<string, number>,
       );
 
-      // Estadísticas por distrito
-      const porDistrito = profesionales.reduce(
+      // Estadísticas por distrito - SOLO APROBADOS
+      const porDistrito = profesionalesAprobados.reduce(
         (acc, prof) => {
           const distrito = prof.distrito || "Sin especificar";
           acc[distrito] = (acc[distrito] || 0) + 1;

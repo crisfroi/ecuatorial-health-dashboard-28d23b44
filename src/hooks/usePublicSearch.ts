@@ -42,8 +42,31 @@ export function usePublicSearch(
         throw error;
       }
 
-      console.log("Search results:", data?.length || 0);
-      return data || [];
+      // Procesar resultados para agregar estado de acreditación automático
+      const processedData: PublicSearchResult[] = (data || []).map((profesional) => {
+        const fechaValidez = new Date(profesional.fecha_validez || "");
+        const hoy = new Date();
+        const diasHastaVencimiento = Math.ceil((fechaValidez.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+
+        let estadoAcreditacion: "vigente" | "vencido" | "proximo_vencimiento";
+
+        if (fechaValidez <= hoy) {
+          estadoAcreditacion = "vencido";
+        } else if (diasHastaVencimiento <= 30) {
+          estadoAcreditacion = "proximo_vencimiento";
+        } else {
+          estadoAcreditacion = "vigente";
+        }
+
+        return {
+          ...profesional,
+          estado_acreditacion: estadoAcreditacion,
+          dias_hasta_vencimiento: diasHastaVencimiento,
+        };
+      });
+
+      console.log("Search results:", processedData?.length || 0);
+      return processedData;
     },
     enabled: false, // Solo ejecutar cuando se haga refetch manualmente
   });

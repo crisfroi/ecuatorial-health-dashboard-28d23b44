@@ -309,7 +309,7 @@ export function useEstadisticasAvanzadas() {
         fecha.setMonth(fecha.getMonth() - i);
         const mesAno = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
 
-        const registrosDelMes = profesionales.filter((prof) => {
+        const registrosDelMes = profesionalesAprobados.filter((prof) => {
           if (!prof.created_at) return false;
           const fechaCreacion = new Date(prof.created_at);
           const mesAnoCreacion = `${fechaCreacion.getFullYear()}-${String(fechaCreacion.getMonth() + 1).padStart(2, "0")}`;

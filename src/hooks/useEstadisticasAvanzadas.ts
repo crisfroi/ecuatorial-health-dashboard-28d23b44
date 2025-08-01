@@ -273,7 +273,7 @@ export function useEstadisticasAvanzadas() {
       en30Dias.setDate(hoy.getDate() + 30);
       en30Dias.setHours(23, 59, 59, 999);
 
-      const vencimientosProximos = profesionales.filter((prof) => {
+      const vencimientosProximos = profesionalesAprobados.filter((prof) => {
         if (!prof.fecha_caducidad) return false;
         const fechaVencimiento = new Date(prof.fecha_caducidad);
         fechaVencimiento.setHours(0, 0, 0, 0);
@@ -281,8 +281,8 @@ export function useEstadisticasAvanzadas() {
         return fechaVencimiento >= hoy && fechaVencimiento <= en30Dias;
       }).length;
 
-      // Calcular carnets vencidos
-      const carnetVencidos = profesionales.filter((prof) => {
+      // Calcular carnets vencidos - SOLO APROBADOS
+      const carnetVencidos = profesionalesAprobados.filter((prof) => {
         if (!prof.fecha_caducidad) return false;
         const fechaVencimiento = new Date(prof.fecha_caducidad);
         fechaVencimiento.setHours(0, 0, 0, 0);
@@ -290,8 +290,8 @@ export function useEstadisticasAvanzadas() {
         return fechaVencimiento < hoy;
       }).length;
 
-      // Estadísticas por año de graduación
-      const porAnoGraduacion = profesionales.reduce(
+      // Estadísticas por año de graduación - SOLO APROBADOS
+      const porAnoGraduacion = profesionalesAprobados.reduce(
         (acc, prof) => {
           if (prof.año_graduacion) {
             const ano = prof.año_graduacion.toString();

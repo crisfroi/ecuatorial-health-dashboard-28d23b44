@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,11 +12,7 @@ export function useProfesionalesMutations() {
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
       console.log("Actualizando profesional:", id, updates);
 
-<<<<<<< HEAD
       // Si se está cambiando a "Pendiente de Firma", preparar fechas y generar carnet
-=======
-      // Si se está cambiando a "Pendiente de Firma", establecer fechas
->>>>>>> origin/main
       if (updates.estado_solicitud === "Pendiente de Firma") {
         updates.fecha_alta = new Date().toISOString().split("T")[0];
         updates.fecha_aprobacion = new Date().toISOString().split("T")[0];
@@ -58,7 +53,6 @@ export function useProfesionalesMutations() {
 
       console.log("Profesional actualizado exitosamente:", data);
 
-<<<<<<< HEAD
       // Generar carnet automáticamente si se cambió a "Pendiente de Firma"
       if (updates.estado_solicitud === "Pendiente de Firma") {
         console.log(`Iniciando generación automática de carnet para profesional ${id}`);
@@ -85,11 +79,6 @@ export function useProfesionalesMutations() {
               duration: 7000,
             });
           });
-=======
-      // Si se cambió a "Pendiente de Firma", mostrar mensaje sobre generación de carnet
-      if (updates.estado_solicitud === "Pendiente de Firma") {
-        console.log("El carnet se generará automáticamente en segundo plano");
->>>>>>> origin/main
       }
 
       return data;

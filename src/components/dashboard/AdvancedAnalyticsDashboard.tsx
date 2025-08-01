@@ -956,7 +956,12 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     <XAxis dataKey="rango_edad" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="cantidad" fill="#8884d8" />
+                    <Bar
+                      dataKey="cantidad"
+                      fill="#8884d8"
+                      onClick={(data) => navigateToAgeRange(data.rango_edad)}
+                      className="cursor-pointer hover:opacity-80"
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>

@@ -1,250 +1,263 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { UserPlus, Shield, Edit, Trash2, Mail, Users, Lock, Eye } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Mail, Plus, Edit, Trash2, Users, Shield, Crown, Eye, Building2 } from "lucide-react";
+import { UserProfile, UserInvitation } from "@/types/database";
+import { UserRole } from "@/types/roles";
+import { useUserManagement } from "@/hooks/useUserManagement";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCentrosSalud } from "@/hooks/useCentrosSalud";
 
 const UserRoleManagement = () => {
-  const { toast } = useToast();
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      email: 'admin@sanidad.gq',
-      nombre: 'Administrador Principal',
-      rol: 'administrador',
-      estado: 'activo',
-      fechaCreacion: '2024-01-15',
-      ultimoAcceso: '2024-06-23'
-    },
-    {
-      id: 2,
-      email: 'comite@sanidad.gq',
-      nombre: 'Comité Evaluador',
-      rol: 'comite',
-      estado: 'activo',
-      fechaCreacion: '2024-02-01',
-      ultimoAcceso: '2024-06-22'
-    },
-    {
-      id: 3,
-      email: 'hospital.malabo@sanidad.gq',
-      nombre: 'Hospital Regional Malabo',
-      rol: 'hospital',
-      estado: 'activo',
-      fechaCreacion: '2024-02-15',
-      ultimoAcceso: '2024-06-23'
-    },
-    {
-      id: 4,
-      email: 'consultor@external.com',
-      nombre: 'Consultor Externo',
-      rol: 'visualizador',
-      estado: 'inactivo',
-      fechaCreacion: '2024-03-01',
-      ultimoAcceso: '2024-05-15'
-    }
-  ]);
-
-  const [newUser, setNewUser] = useState({
-    email: '',
-    nombre: '',
-    rol: '',
-    estado: 'activo'
-  });
-
-  const [editingUser, setEditingUser] = useState(null);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [newUser, setNewUser] = useState<Partial<UserInvitation>>({
+    email: '',
+    role: 'OBSERVADOR',
+    full_name: '',
+    department: 'Ministerio de Sanidad y Bienestar Social'
+  });
 
-  const roles = [
-    { value: 'administrador', label: 'Administrador', description: 'Acceso completo al sistema' },
-    { value: 'comite', label: 'Comité Evaluador', description: 'Puede revisar y aprobar solicitudes' },
-    { value: 'hospital', label: 'Hospital', description: 'Puede registrar incidencias y consultar datos' },
-    { value: 'visualizador', label: 'Visualizador', description: 'Solo lectura de estadísticas' }
+  const { inviteUser, getUserProfiles, updateUserRole, deleteUser, isLoading } = useUserManagement();
+  const { user: currentUser } = useAuth();
+  const { data: centrosSalud = [] } = useCentrosSalud();
+
+  const roles: Array<{ value: UserRole; label: string }> = [
+    { value: 'SUPER_ADMINISTRADOR', label: 'Super Administrador' },
+    { value: 'REVISOR_SOLICITUDES', label: 'Revisor de Solicitudes' },
+    { value: 'PERSONALIDAD_MINISTERIAL', label: 'Personalidad Ministerial' },
+    { value: 'DIRECTIVO_CENTRO_SANITARIO', label: 'Directivo Centro Sanitario' },
+    { value: 'OBSERVADOR', label: 'Observador' },
   ];
 
-  const getRoleColor = (role: string) => {
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    const userProfiles = await getUserProfiles();
+    setUsers(userProfiles);
+  };
+
+  const getRoleIcon = (role: UserRole) => {
     switch (role) {
-      case 'administrador':
+      case 'SUPER_ADMINISTRADOR':
+        return <Crown className="w-4 h-4" />;
+      case 'REVISOR_SOLICITUDES':
+        return <Shield className="w-4 h-4" />;
+      case 'PERSONALIDAD_MINISTERIAL':
+        return <Users className="w-4 h-4" />;
+      case 'DIRECTIVO_CENTRO_SANITARIO':
+        return <Building2 className="w-4 h-4" />;
+      case 'OBSERVADOR':
+        return <Eye className="w-4 h-4" />;
+      default:
+        return <Users className="w-4 h-4" />;
+    }
+  };
+
+  const getRoleColor = (role: UserRole) => {
+    switch (role) {
+      case 'SUPER_ADMINISTRADOR':
         return 'bg-red-100 text-red-800';
-      case 'comite':
+      case 'REVISOR_SOLICITUDES':
         return 'bg-blue-100 text-blue-800';
-      case 'hospital':
+      case 'PERSONALIDAD_MINISTERIAL':
+        return 'bg-purple-100 text-purple-800';
+      case 'DIRECTIVO_CENTRO_SANITARIO':
         return 'bg-green-100 text-green-800';
-      case 'visualizador':
+      case 'OBSERVADOR':
         return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getStatusColor = (status: string) => {
-    return status === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-  };
-
-  const getRolePermissions = (role: string) => {
-    switch (role) {
-      case 'administrador':
-        return ['Gestión completa', 'Asignación de roles', 'Configuración del sistema'];
-      case 'comite':
-        return ['Revisión de solicitudes', 'Aprobación/Rechazo', 'Estadísticas avanzadas'];
-      case 'hospital':
-        return ['Registro de incidencias', 'Consulta de profesionales', 'Estadísticas básicas'];
-      case 'visualizador':
-        return ['Solo lectura', 'Estadísticas básicas'];
-      default:
-        return [];
-    }
-  };
-
-  const handleAddUser = () => {
-    if (!newUser.email || !newUser.nombre || !newUser.rol) {
-      toast({
-        title: "Error",
-        description: "Todos los campos son obligatorios",
-        variant: "destructive",
-      });
+  const handleInviteUser = async () => {
+    if (!newUser.email || !newUser.role) {
       return;
     }
 
-    const userExists = users.some(user => user.email === newUser.email);
-    if (userExists) {
-      toast({
-        title: "Error",
-        description: "Ya existe un usuario con este correo electrónico",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newUserData = {
-      id: users.length + 1,
-      ...newUser,
-      fechaCreacion: new Date().toISOString().split('T')[0],
-      ultimoAcceso: null
+    const invitation: UserInvitation = {
+      email: newUser.email,
+      role: newUser.role,
+      full_name: newUser.full_name,
+      department: newUser.department || 'Ministerio de Sanidad y Bienestar Social',
+      assigned_center_id: newUser.assigned_center_id,
+      invited_by: currentUser?.id || 'system'
     };
 
-    setUsers([...users, newUserData]);
-    setNewUser({ email: '', nombre: '', rol: '', estado: 'activo' });
-    setIsAddDialogOpen(false);
-
-    toast({
-      title: "Usuario agregado",
-      description: `Se ha enviado una invitación a ${newUser.email}`,
-    });
+    const result = await inviteUser(invitation);
+    
+    if (result.success) {
+      setNewUser({
+        email: '',
+        role: 'OBSERVADOR',
+        full_name: '',
+        department: 'Ministerio de Sanidad y Bienestar Social'
+      });
+      setIsAddDialogOpen(false);
+      loadUsers(); // Recargar la lista de usuarios
+    }
   };
 
-  const handleEditUser = () => {
+  const handleUpdateUser = async () => {
     if (!editingUser) return;
 
-    setUsers(users.map(user => 
-      user.id === editingUser.id ? editingUser : user
-    ));
+    const result = await updateUserRole(editingUser.id, editingUser.role);
     
-    setEditingUser(null);
-    setIsEditDialogOpen(false);
-
-    toast({
-      title: "Usuario actualizado",
-      description: "Los cambios se han guardado correctamente",
-    });
+    if (result.success) {
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+      loadUsers(); // Recargar la lista de usuarios
+    }
   };
 
-  const handleDeleteUser = (userId: number) => {
-    setUsers(users.filter(user => user.id !== userId));
+  const handleDeleteUser = async (userId: string) => {
+    const result = await deleteUser(userId);
     
-    toast({
-      title: "Usuario eliminado",
-      description: "El usuario ha sido eliminado del sistema",
-    });
-  };
-
-  const handleToggleStatus = (userId: number) => {
-    setUsers(users.map(user => 
-      user.id === userId 
-        ? { ...user, estado: user.estado === 'activo' ? 'inactivo' : 'activo' }
-        : user
-    ));
-
-    const user = users.find(u => u.id === userId);
-    const newStatus = user?.estado === 'activo' ? 'inactivo' : 'activo';
-    
-    toast({
-      title: `Usuario ${newStatus === 'activo' ? 'activado' : 'desactivado'}`,
-      description: `El estado del usuario ha sido actualizado`,
-    });
+    if (result.success) {
+      loadUsers(); // Recargar la lista de usuarios
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Gestión de Usuarios y Roles</h2>
-          <p className="text-gray-600 mt-1">Administra los accesos y permisos del sistema</p>
+          <h2 className="text-2xl font-bold">Gestión de Usuarios y Roles</h2>
+          <p className="text-gray-600">
+            Administrar usuarios del sistema y sus permisos
+          </p>
         </div>
-        
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-guinea-teal hover:bg-guinea-dark-teal">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Agregar Usuario
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Invitar Usuario
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent>
             <DialogHeader>
-              <DialogTitle className="flex items-center space-x-2">
-                <UserPlus className="w-5 h-5 text-guinea-teal" />
-                <span>Agregar Nuevo Usuario</span>
-              </DialogTitle>
+              <DialogTitle>Invitar Nuevo Usuario</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Correo Electrónico</label>
+                <label className="text-sm font-medium">Email *</label>
                 <Input
                   type="email"
-                  placeholder="usuario@sanidad.gq"
                   value={newUser.email}
-                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  placeholder="usuario@ministeriosanidad.gq"
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">Nombre Completo</label>
                 <Input
-                  placeholder="Nombre del usuario"
-                  value={newUser.nombre}
-                  onChange={(e) => setNewUser({...newUser, nombre: e.target.value})}
+                  value={newUser.full_name}
+                  onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
+                  placeholder="Nombre completo del usuario"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Rol</label>
-                <Select value={newUser.rol} onValueChange={(value) => setNewUser({...newUser, rol: value})}>
+                <label className="text-sm font-medium">Departamento</label>
+                <Input
+                  value={newUser.department}
+                  onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                  placeholder="Departamento o área de trabajo"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Rol *</label>
+                <Select 
+                  value={newUser.role} 
+                  onValueChange={(value) => setNewUser({ ...newUser, role: value as UserRole })}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar rol" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {roles.map((role) => (
                       <SelectItem key={role.value} value={role.value}>
-                        <div>
-                          <div className="font-medium">{role.label}</div>
-                          <div className="text-xs text-gray-500">{role.description}</div>
+                        <div className="flex items-center gap-2">
+                          {getRoleIcon(role.value)}
+                          {role.label}
                         </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+              {newUser.role === 'DIRECTIVO_CENTRO_SANITARIO' && (
+                <div>
+                  <label className="text-sm font-medium">Centro Asignado</label>
+                  <Select 
+                    value={newUser.assigned_center_id} 
+                    onValueChange={(value) => setNewUser({ ...newUser, assigned_center_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar centro" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {centrosSalud.map((centro) => (
+                        <SelectItem key={centro.id} value={centro.id}>
+                          {centro.nombre} - {centro.categoria}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAddDialogOpen(false)}
+                >
                   Cancelar
                 </Button>
-                <Button onClick={handleAddUser} className="bg-guinea-teal hover:bg-guinea-dark-teal">
-                  Agregar Usuario
+                <Button 
+                  onClick={handleInviteUser}
+                  disabled={isLoading || !newUser.email || !newUser.role}
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  {isLoading ? 'Enviando...' : 'Enviar Invitación'}
                 </Button>
               </div>
             </div>
@@ -252,20 +265,20 @@ const UserRoleManagement = () => {
         </Dialog>
       </div>
 
-      {/* Resumen de Roles */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Estadísticas de roles */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {roles.map((role) => {
-          const count = users.filter(user => user.rol === role.value && user.estado === 'activo').length;
+          const count = users.filter(user => user.role === role.value && user.is_active).length;
           return (
-            <Card key={role.value} className="hover:shadow-md transition-shadow">
+            <Card key={role.value}>
               <CardContent className="p-4">
                 <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${getRoleColor(role.value).replace('text-', 'bg-').replace('100', '200')}`}>
-                    <Shield className="w-5 h-5" />
+                  <div className={`p-2 rounded-lg ${getRoleColor(role.value)}`}>
+                    {getRoleIcon(role.value)}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-sm">{role.label}</h3>
-                    <p className="text-2xl font-bold text-guinea-teal">{count}</p>
+                    <p className="text-xs font-medium text-gray-600">{role.label}</p>
+                    <p className="text-xl font-bold">{count}</p>
                   </div>
                 </div>
               </CardContent>
@@ -274,13 +287,10 @@ const UserRoleManagement = () => {
         })}
       </div>
 
-      {/* Tabla de Usuarios */}
+      {/* Tabla de usuarios */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="w-5 h-5 text-guinea-teal" />
-            <span>Lista de Usuarios</span>
-          </CardTitle>
+          <CardTitle>Usuarios del Sistema ({users.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -288,9 +298,9 @@ const UserRoleManagement = () => {
               <TableRow>
                 <TableHead>Usuario</TableHead>
                 <TableHead>Rol</TableHead>
+                <TableHead>Departamento</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Último Acceso</TableHead>
-                <TableHead>Permisos</TableHead>
+                <TableHead>Fecha Registro</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -299,67 +309,55 @@ const UserRoleManagement = () => {
                 <TableRow key={user.id}>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{user.nombre}</div>
-                      <div className="text-sm text-gray-500 flex items-center">
-                        <Mail className="w-3 h-3 mr-1" />
-                        {user.email}
+                      <div className="font-medium">{user.full_name || user.email}</div>
+                      <div className="text-sm text-gray-500">{user.email}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={getRoleColor(user.role)}>
+                      <div className="flex items-center gap-1">
+                        {getRoleIcon(user.role)}
+                        {roles.find(r => r.value === user.role)?.label}
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getRoleColor(user.rol)}>
-                      {roles.find(r => r.value === user.rol)?.label}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(user.estado)}>
-                      {user.estado === 'activo' ? 'Activo' : 'Inactivo'}
+                    <div className="text-sm">{user.department}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.is_active ? "default" : "secondary"}>
+                      {user.is_active ? "Activo" : "Inactivo"}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {user.ultimoAcceso ? new Date(user.ultimoAcceso).toLocaleDateString() : 'Nunca'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      {getRolePermissions(user.rol).map((permission, index) => (
-                        <div key={index} className="text-xs bg-gray-100 px-2 py-1 rounded">
-                          {permission}
-                        </div>
-                      ))}
+                    <div className="text-sm">
+                      {new Date(user.created_at).toLocaleDateString('es-ES')}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex space-x-2">
                       <Button
-                        variant="ghost"
                         size="sm"
+                        variant="outline"
                         onClick={() => {
                           setEditingUser(user);
                           setIsEditDialogOpen(true);
                         }}
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-3 h-3" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleToggleStatus(user.id)}
-                        className={user.estado === 'activo' ? 'text-red-600' : 'text-green-600'}
-                      >
-                        <Lock className="w-4 h-4" />
-                      </Button>
-                      {user.rol !== 'administrador' && (
+                      {user.role !== 'SUPER_ADMINISTRADOR' && user.id !== currentUser?.id && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-red-600">
-                              <Trash2 className="w-4 h-4" />
+                            <Button size="sm" variant="destructive">
+                              <Trash2 className="w-3 h-3" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Esta acción no se puede deshacer. El usuario perderá acceso al sistema.
+                                Esta acción no se puede deshacer. El usuario será eliminado permanentemente del sistema.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -380,40 +378,38 @@ const UserRoleManagement = () => {
               ))}
             </TableBody>
           </Table>
+          {users.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No hay usuarios registrados en el sistema
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Dialog de Edición */}
+      {/* Dialog para editar usuario */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Edit className="w-5 h-5 text-guinea-teal" />
-              <span>Editar Usuario</span>
-            </DialogTitle>
+            <DialogTitle>Editar Usuario</DialogTitle>
           </DialogHeader>
           {editingUser && (
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Correo Electrónico</label>
-                <Input
-                  type="email"
-                  value={editingUser.email}
-                  onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
-                />
+                <label className="text-sm font-medium">Email</label>
+                <Input value={editingUser.email} disabled />
               </div>
               <div>
                 <label className="text-sm font-medium">Nombre Completo</label>
-                <Input
-                  value={editingUser.nombre}
-                  onChange={(e) => setEditingUser({...editingUser, nombre: e.target.value})}
+                <Input 
+                  value={editingUser.full_name || ''} 
+                  onChange={(e) => setEditingUser({...editingUser, full_name: e.target.value})}
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">Rol</label>
                 <Select 
-                  value={editingUser.rol} 
-                  onValueChange={(value) => setEditingUser({...editingUser, rol: value})}
+                  value={editingUser.role} 
+                  onValueChange={(value) => setEditingUser({...editingUser, role: value as UserRole})}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -421,9 +417,9 @@ const UserRoleManagement = () => {
                   <SelectContent>
                     {roles.map((role) => (
                       <SelectItem key={role.value} value={role.value}>
-                        <div>
-                          <div className="font-medium">{role.label}</div>
-                          <div className="text-xs text-gray-500">{role.description}</div>
+                        <div className="flex items-center gap-2">
+                          {getRoleIcon(role.value)}
+                          {role.label}
                         </div>
                       </SelectItem>
                     ))}
@@ -431,11 +427,14 @@ const UserRoleManagement = () => {
                 </Select>
               </div>
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(false)}
+                >
                   Cancelar
                 </Button>
-                <Button onClick={handleEditUser} className="bg-guinea-teal hover:bg-guinea-dark-teal">
-                  Guardar Cambios
+                <Button onClick={handleUpdateUser} disabled={isLoading}>
+                  {isLoading ? 'Guardando...' : 'Guardar Cambios'}
                 </Button>
               </div>
             </div>

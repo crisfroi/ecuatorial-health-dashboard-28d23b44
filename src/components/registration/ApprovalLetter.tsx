@@ -136,7 +136,7 @@ const ApprovalLetter = ({ formData, onDownload }: ApprovalLetterProps) => {
 
               <div className="text-center">
                 <h1 className="text-lg font-bold mb-2">
-                  REPÚBLICA DE GUINEA ECUATORIAL
+                  REP��BLICA DE GUINEA ECUATORIAL
                 </h1>
                 <h2 className="text-base font-semibold">
                   MINISTERIO DE SANIDAD Y BIENESTAR SOCIAL
@@ -238,7 +238,7 @@ const ApprovalLetter = ({ formData, onDownload }: ApprovalLetterProps) => {
 
               <p>
                 <strong>TERCERO:</strong> OTORGAR el número de carnet
-                profesional <span className="font-semibold">{formData.codigo_expediente}</span>, el cual será emitido por la
+                profesional <span className="font-semibold">{formData.id_profesional_unico || formData.codigo_expediente}</span>, el cual será emitido por la
                 Dirección General de Recursos Humanos del Ministerio de Sanidad
                 y Bienestar Social.
               </p>

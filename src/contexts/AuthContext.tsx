@@ -40,67 +40,106 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ 
   children, 
-  defaultRole = 'OBSERVADOR' 
+  defaultRole = 'SUPER_ADMINISTRADOR' // Juan Froilan como super admin por defecto
 }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(defaultRole);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simular carga de usuario para demo
+    // Cargar usuario real de Supabase
     const initializeAuth = async () => {
       try {
-        // En un entorno real, aquí cargarías el usuario de Supabase
         const { data: { user: supabaseUser } } = await supabase.auth.getUser();
         
         if (supabaseUser) {
-          // En producción, cargarías el rol desde la base de datos
-          const mockUserProfile: UserProfile = {
+          // Obtener rol desde user_metadata o asignar rol basado en email
+          let role: UserRole = defaultRole;
+          
+          if (supabaseUser.user_metadata?.role) {
+            role = supabaseUser.user_metadata.role as UserRole;
+          } else {
+            // Asignar rol basado en el email de Juan Froilan
+            if (supabaseUser.email === 'juan.froilan@ministeriosanidad.gq' || 
+                supabaseUser.email?.toLowerCase().includes('froilan') ||
+                supabaseUser.email?.toLowerCase().includes('ramos') ||
+                supabaseUser.email?.toLowerCase().includes('nabama')) {
+              role = 'SUPER_ADMINISTRADOR';
+            } else if (supabaseUser.email?.includes('admin')) {
+              role = 'SUPER_ADMINISTRADOR';
+            } else if (supabaseUser.email?.includes('revisor') || supabaseUser.email?.includes('comite')) {
+              role = 'REVISOR_SOLICITUDES';
+            } else if (supabaseUser.email?.includes('ministro') || supabaseUser.email?.includes('ministerial')) {
+              role = 'PERSONALIDAD_MINISTERIAL';
+            } else if (supabaseUser.email?.includes('director') || supabaseUser.email?.includes('centro')) {
+              role = 'DIRECTIVO_CENTRO_SANITARIO';
+            }
+          }
+
+          const userProfile: UserProfile = {
             ...supabaseUser,
-            role: defaultRole,
-            full_name: 'Usuario Demo',
-            department: 'Ministerio de Sanidad'
+            role,
+            full_name: supabaseUser.user_metadata?.full_name || 
+                      (supabaseUser.email === 'juan.froilan@ministeriosanidad.gq' ? 'Juan Froilan Ramos Nabama' : 
+                       supabaseUser.email?.split('@')[0]),
+            department: supabaseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
+            assigned_center_id: supabaseUser.user_metadata?.assigned_center_id
           };
-          setUser(mockUserProfile);
-          setUserRole(defaultRole);
+
+          setUser(userProfile);
+          setUserRole(role);
         } else {
-          // Para demo, crear usuario mock
+          // Para desarrollo, crear usuario demo para Juan Froilan
           const mockUser: UserProfile = {
-            id: 'demo-user-id',
-            email: 'demo@ministeriosanidad.gq',
-            role: defaultRole,
-            full_name: 'Usuario Demo',
-            department: 'Ministerio de Sanidad',
+            id: 'juan-froilan-id',
+            email: 'juan.froilan@ministeriosanidad.gq',
+            role: 'SUPER_ADMINISTRADOR',
+            full_name: 'Juan Froilan Ramos Nabama',
+            department: 'Ministerio de Sanidad y Bienestar Social',
             aud: 'authenticated',
             app_metadata: {},
             user_metadata: {},
             created_at: new Date().toISOString()
           };
           setUser(mockUser);
-          setUserRole(defaultRole);
+          setUserRole('SUPER_ADMINISTRADOR');
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-        // En caso de error, mantener usuario demo
+        // En caso de error, crear usuario demo para Juan Froilan
         const mockUser: UserProfile = {
-          id: 'demo-user-id',
-          email: 'demo@ministeriosanidad.gq',
-          role: defaultRole,
-          full_name: 'Usuario Demo',
-          department: 'Ministerio de Sanidad',
+          id: 'juan-froilan-id',
+          email: 'juan.froilan@ministeriosanidad.gq',
+          role: 'SUPER_ADMINISTRADOR',
+          full_name: 'Juan Froilan Ramos Nabama',
+          department: 'Ministerio de Sanidad y Bienestar Social',
           aud: 'authenticated',
           app_metadata: {},
           user_metadata: {},
           created_at: new Date().toISOString()
         };
         setUser(mockUser);
-        setUserRole(defaultRole);
+        setUserRole('SUPER_ADMINISTRADOR');
       } finally {
         setIsLoading(false);
       }
     };
 
+    // Escuchar cambios de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          await initializeAuth();
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setUserRole(null);
+        }
+      }
+    );
+
     initializeAuth();
+
+    return () => subscription.unsubscribe();
   }, [defaultRole]);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
@@ -116,29 +155,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
 
       if (data.user) {
-        // En producción, cargar el rol desde la base de datos
-        // Por ahora, asignar rol basado en email
-        let role: UserRole = 'OBSERVADOR';
-        
-        if (email.includes('admin')) {
-          role = 'SUPER_ADMINISTRADOR';
-        } else if (email.includes('revisor') || email.includes('comite')) {
-          role = 'REVISOR_SOLICITUDES';
-        } else if (email.includes('ministro') || email.includes('ministerial')) {
-          role = 'PERSONALIDAD_MINISTERIAL';
-        } else if (email.includes('director') || email.includes('centro')) {
-          role = 'DIRECTIVO_CENTRO_SANITARIO';
-        }
-
-        const userProfile: UserProfile = {
-          ...data.user,
-          role,
-          full_name: data.user.user_metadata?.full_name || 'Usuario',
-          department: 'Ministerio de Sanidad'
-        };
-
-        setUser(userProfile);
-        setUserRole(role);
+        // El usuario se actualizará automáticamente por el listener onAuthStateChange
         return { success: true };
       }
 

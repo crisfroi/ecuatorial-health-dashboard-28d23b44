@@ -12,6 +12,12 @@ const PublicSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<'carnet' | 'nombre'>('carnet');
   const { data: results, isLoading, error, refetch } = usePublicSearch(searchTerm, searchType);
+  const { updateAccreditationStatus, isUpdating } = useAccreditationStatusUpdate();
+
+  // Ejecutar actualización automática de estados al cargar el componente
+  useEffect(() => {
+    updateAccreditationStatus();
+  }, [updateAccreditationStatus]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

@@ -133,8 +133,18 @@ const PublicSearch = () => {
                         <User className="w-5 h-5 text-green-600" />
                         <span>{profesional.nombre_completo}</span>
                       </CardTitle>
-                      <Badge className="bg-green-100 text-green-800">
-                        {profesional.estado_solicitud === 'Aprobado' ? 'Acreditado' : profesional.estado_solicitud}
+                      <Badge className={`${
+                        profesional.estado_acreditacion === 'vigente'
+                          ? 'bg-green-100 text-green-800'
+                          : profesional.estado_acreditacion === 'proximo_vencimiento'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {profesional.estado_acreditacion === 'vigente'
+                          ? 'Acreditado Vigente'
+                          : profesional.estado_acreditacion === 'proximo_vencimiento'
+                          ? 'Próximo a Vencer'
+                          : 'Acreditación Vencida'}
                       </Badge>
                     </div>
                   </CardHeader>

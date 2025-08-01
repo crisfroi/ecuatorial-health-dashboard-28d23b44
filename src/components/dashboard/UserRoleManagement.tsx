@@ -141,8 +141,14 @@ const UserRoleManagement = () => {
   const handleUpdateUser = async () => {
     if (!editingUser) return;
 
-    const result = await updateUserRole(editingUser.id, editingUser.role);
-    
+    const updates = {
+      role: editingUser.role,
+      full_name: editingUser.full_name,
+      department: editingUser.department
+    };
+
+    const result = await updateUserRole(editingUser.id, updates);
+
     if (result.success) {
       setIsEditDialogOpen(false);
       setEditingUser(null);

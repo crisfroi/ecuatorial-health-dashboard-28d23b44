@@ -406,9 +406,16 @@ const UserRoleManagement = () => {
               </div>
               <div>
                 <label className="text-sm font-medium">Nombre Completo</label>
-                <Input 
-                  value={editingUser.full_name || ''} 
+                <Input
+                  value={editingUser.full_name || ''}
                   onChange={(e) => setEditingUser({...editingUser, full_name: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Departamento</label>
+                <Input
+                  value={editingUser.department || ''}
+                  onChange={(e) => setEditingUser({...editingUser, department: e.target.value})}
                 />
               </div>
               <div>

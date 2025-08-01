@@ -8,6 +8,8 @@ export interface PublicSearchResult {
   area_profesional: string;
   estado_solicitud: string;
   fecha_validez: string;
+  estado_acreditacion: "vigente" | "vencido" | "proximo_vencimiento";
+  dias_hasta_vencimiento: number;
 }
 
 export function usePublicSearch(

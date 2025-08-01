@@ -395,7 +395,7 @@ const HealthCenters = () => {
                   <SelectValue placeholder="Filtrar por estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos los estados</SelectItem>
+                  <SelectItem value="all">Todos los estados</SelectItem>
                   <SelectItem value="Aprobado">Solo Aprobados</SelectItem>
                   <SelectItem value="Recibido">Recibido</SelectItem>
                   <SelectItem value="En Revisión">En Revisión</SelectItem>

@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -10,10 +11,31 @@ export function useProfesionalesMutations() {
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
       console.log("Actualizando profesional:", id, updates);
 
-      // Si se está cambiando a "Pendiente de Firma", generar automáticamente el carnet
+      // Si se está cambiando a "Pendiente de Firma", establecer fechas
       if (updates.estado_solicitud === "Pendiente de Firma") {
         updates.fecha_alta = new Date().toISOString().split("T")[0];
         updates.fecha_aprobacion = new Date().toISOString().split("T")[0];
+        
+        // Verificar que el profesional tenga los campos requeridos para generar carnet
+        const { data: profesional, error: errorCheck } = await supabase
+          .from("profesionales_sanitarios")
+          .select("id_profesional_unico, url_codigo_barras")
+          .eq("id", id)
+          .single();
+
+        if (errorCheck) {
+          throw new Error(`Error al verificar datos del profesional: ${errorCheck.message}`);
+        }
+
+        if (!profesional?.id_profesional_unico) {
+          throw new Error("El profesional debe tener un ID profesional único antes de generar el carnet");
+        }
+
+        if (!profesional?.url_codigo_barras) {
+          throw new Error("El profesional debe tener un código de barras generado antes de generar el carnet");
+        }
+
+        console.log("Profesional tiene los datos requeridos para generar carnet");
       }
 
       const { data, error } = await supabase
@@ -25,39 +47,19 @@ export function useProfesionalesMutations() {
 
       if (error) {
         console.error("Error updating professional:", error.message || error);
-
-        // Handle specific database function errors gracefully
-        if (
-          error.message &&
-          error.message.includes("generar_url_carnet_profesional")
-        ) {
-          console.warn(
-            "Database function generar_url_carnet_profesional not found, but update may have succeeded",
-          );
-
-          // Try to fetch the updated record to verify the update worked
-          const { data: verifyData, error: verifyError } = await supabase
-            .from("profesionales_sanitarios")
-            .select()
-            .eq("id", id)
-            .single();
-
-          if (!verifyError && verifyData) {
-            console.log(
-              "Update actually succeeded despite function error:",
-              verifyData,
-            );
-            return verifyData;
-          }
-        }
-
         throw new Error(`Error al actualizar: ${error.message}`);
       }
 
       console.log("Profesional actualizado exitosamente:", data);
+
+      // Si se cambió a "Pendiente de Firma", mostrar mensaje sobre generación de carnet
+      if (updates.estado_solicitud === "Pendiente de Firma") {
+        console.log("El carnet se generará automáticamente en segundo plano");
+      }
+
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       // Invalidar múltiples consultas para asegurar que se actualicen
       queryClient.invalidateQueries({ queryKey: ["profesionales"] });
       queryClient.invalidateQueries({ queryKey: ["estadisticas"] });
@@ -66,10 +68,16 @@ export function useProfesionalesMutations() {
       // Refrescar datos específicos
       queryClient.refetchQueries({ queryKey: ["profesionales"] });
 
+      let mensaje = "El estado del profesional ha sido actualizado correctamente.";
+      
+      // Mensaje específico para generación de carnet
+      if (variables.updates.estado_solicitud === "Pendiente de Firma") {
+        mensaje = "El profesional fue aprobado y su carnet se está generando automáticamente.";
+      }
+
       toast({
         title: "Éxito",
-        description:
-          "El estado del profesional ha sido actualizado correctamente.",
+        description: mensaje,
       });
     },
     onError: (error: any) => {

@@ -405,22 +405,62 @@ const HealthCenters = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            {/* Resumen por áreas profesionales */}
+            <div className="mb-6">
+              <h5 className="font-medium mb-3">Distribución por Áreas Profesionales:</h5>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {[...new Set(profesionalesDelCentro.filter(p => p.estado_solicitud === "Aprobado").map(p => p.area_profesional))].filter(Boolean).map((area) => {
+                  const count = profesionalesDelCentro.filter(p => p.area_profesional === area && p.estado_solicitud === "Aprobado").length;
+                  return (
+                    <div key={area} className="bg-blue-50 rounded-lg p-3 text-center">
+                      <div className="text-lg font-bold text-blue-600">{count}</div>
+                      <div className="text-xs text-blue-800">{area}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-3">
               {profesionalesDelCentro.map((prof) => (
-                <div key={prof.id} className="border rounded-lg p-4">
+                <div key={prof.id} className={`border rounded-lg p-4 ${prof.estado_solicitud === "Aprobado" ? "border-green-200 bg-green-50" : "border-gray-200"}`}>
                   <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-semibold">{prof.nombre_completo}</h4>
-                      <p className="text-sm text-gray-600">
-                        {prof.area_profesional}
-                      </p>
-                      <p className="text-sm text-gray-500">{prof.telefono}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <h4 className="font-semibold text-gray-900">{prof.nombre_completo}</h4>
+                        <Badge
+                          variant="outline"
+                          className={prof.estado_solicitud === "Aprobado" ? "bg-green-100 text-green-800 border-green-300" : "bg-gray-100 text-gray-800"}
+                        >
+                          {prof.area_profesional}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 space-y-1">
+                        {prof.telefono && (
+                          <p className="text-sm text-gray-600 flex items-center">
+                            <Phone className="w-3 h-3 mr-1" />
+                            {prof.telefono}
+                          </p>
+                        )}
+                        {prof.fecha_solicitud && (
+                          <p className="text-xs text-gray-500">
+                            Registrado: {new Date(prof.fecha_solicitud).toLocaleDateString('es-ES')}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <Badge
                       variant={
                         prof.estado_solicitud === "Aprobado"
                           ? "default"
+                          : prof.estado_solicitud === "Rechazado"
+                          ? "destructive"
                           : "secondary"
+                      }
+                      className={
+                        prof.estado_solicitud === "Aprobado"
+                          ? "bg-green-600 text-white"
+                          : ""
                       }
                     >
                       {prof.estado_solicitud}
@@ -430,8 +470,7 @@ const HealthCenters = () => {
               ))}
               {profesionalesDelCentro.length === 0 && (
                 <p className="text-center text-gray-500 py-8">
-                  No hay profesionales asignados a este centro con los filtros
-                  aplicados.
+                  No hay profesionales asignados a este centro con los filtros aplicados.
                 </p>
               )}
             </div>

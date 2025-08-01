@@ -6,58 +6,60 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  console.log('🚀 Función send-user-invitation iniciada')
+  console.log('🚀 send-user-invitation function started')
   
   if (req.method === 'OPTIONS') {
-    console.log('✅ Respuesta CORS OPTIONS')
+    console.log('✅ CORS preflight request')
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    console.log('📥 Processing request...')
     const requestBody = await req.json()
-    console.log('📥 Datos recibidos:', {
-      email: requestBody.email,
+    console.log('📋 Request body received:', { 
+      email: requestBody.email, 
       role: requestBody.role,
-      full_name: requestBody.full_name,
-      department: requestBody.department
+      hasFullName: !!requestBody.full_name 
     })
 
     const { 
       email, 
       role = 'OBSERVADOR',
       full_name,
-      department = 'Ministerio de Sanidad y Bienestar Social',
-      assigned_center_id,
-      invited_by 
+      department 
     } = requestBody
 
-    // Validar email (acepta cualquier formato válido)
+    // Validación básica
     if (!email || !email.includes('@')) {
       throw new Error('Email inválido')
     }
 
-    // Validar rol
-    const validRoles = ['SUPER_ADMINISTRADOR', 'REVISOR_SOLICITUDES', 'PERSONALIDAD_MINISTERIAL', 'OBSERVADOR', 'DIRECTIVO_CENTRO_SANITARIO']
-    if (!validRoles.includes(role)) {
-      throw new Error(`Rol inválido: ${role}`)
-    }
+    console.log('✅ Email validation passed')
 
-    console.log('✅ Validaciones pasadas')
-
+    // Verificar variables de entorno
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const siteUrl = Deno.env.get('SITE_URL') || 'https://e326d7762bce426c8bb8967ed29b2b1f-1b8f06346ec0483abd5cbc642.fly.dev'
+
+    console.log('🔐 Environment check:', {
+      hasResendKey: !!RESEND_API_KEY,
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey,
+      siteUrl: siteUrl
+    })
+
     if (!RESEND_API_KEY) {
-      console.error('❌ RESEND_API_KEY no configurada')
       throw new Error('RESEND_API_KEY not configured')
     }
 
-    console.log('✅ RESEND_API_KEY encontrada')
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase environment variables not configured')
+    }
 
-    // Crear usuario en Supabase Auth
+    // Crear cliente Supabase
+    console.log('🔧 Creating Supabase client...')
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2')
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    
-    console.log('🔐 Creando cliente Supabase...')
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -67,10 +69,10 @@ serve(async (req) => {
 
     // Generar contraseña temporal
     const tempPassword = `Temp${Math.random().toString(36).slice(-8)}!`
-    console.log('🔑 Contraseña temporal generada')
+    console.log('🔑 Generated temporary password')
 
-    console.log('👤 Creando usuario en Supabase Auth...')
-    // Crear usuario con datos completos
+    // Crear usuario
+    console.log('👤 Creating user in Supabase Auth...')
     const { data: userData, error: userError } = await supabase.auth.admin.createUser({
       email: email,
       password: tempPassword,
@@ -78,161 +80,87 @@ serve(async (req) => {
       user_metadata: {
         role: role,
         full_name: full_name || email.split('@')[0],
-        department: department,
-        assigned_center_id: assigned_center_id,
-        invited_by: invited_by,
-        invitation_date: new Date().toISOString()
+        department: department || 'Ministerio de Sanidad y Bienestar Social'
       }
     })
 
     if (userError) {
-      console.error('❌ Error creating user:', userError)
+      console.error('❌ User creation failed:', userError)
       throw new Error(`Error creating user: ${userError.message}`)
     }
 
-    console.log('✅ Usuario creado exitosamente:', userData.user?.id)
+    console.log('✅ User created successfully:', userData.user?.id)
 
-    // Obtener nombre del rol para el correo
-    const roleNames: Record<string, string> = {
-      'SUPER_ADMINISTRADOR': 'Super Administrador',
-      'REVISOR_SOLICITUDES': 'Revisor de Solicitudes',
-      'PERSONALIDAD_MINISTERIAL': 'Personalidad Ministerial',
-      'DIRECTIVO_CENTRO_SANITARIO': 'Directivo de Centro Sanitario',
-      'OBSERVADOR': 'Observador'
+    // Preparar correo
+    console.log('📧 Preparing email...')
+    const emailData = {
+      from: 'Sistema de Salud <noreply@salud.gq>',
+      to: [email],
+      subject: 'Invitación al Sistema de Gestión de Profesionales Sanitarios',
+      html: `
+        <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; background-color: white; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #2563eb; text-align: center;">🏥 Sistema de Salud - Guinea Ecuatorial</h2>
+          
+          <p>Estimado/a <strong>${full_name || email.split('@')[0]}</strong>,</p>
+          
+          <p>Ha sido invitado/a a formar parte del Sistema de Gestión de Profesionales Sanitarios del Ministerio de Sanidad y Bienestar Social de Guinea Ecuatorial.</p>
+          
+          <div style="background-color: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <h3 style="margin: 0 0 10px 0;">Información de acceso:</h3>
+            <p style="margin: 5px 0;"><strong>📧 Email:</strong> ${email}</p>
+            <p style="margin: 5px 0;"><strong>👤 Rol:</strong> ${role}</p>
+            <p style="margin: 5px 0;"><strong>🔐 Contraseña temporal:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${tempPassword}</code></p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${siteUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+              🚀 Acceder al Sistema
+            </a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px; border-top: 1px solid #e5e7eb; padding-top: 15px; margin-top: 30px;">
+            Este correo fue enviado automáticamente por el Sistema de Gestión de Profesionales Sanitarios.<br>
+            <strong>Ministerio de Sanidad y Bienestar Social - Guinea Ecuatorial</strong>
+          </p>
+        </div>
+      `
     }
 
-    const roleName = roleNames[role] || role
-
-    // URL del sistema (acepta cualquier URL)
-    const siteUrl = Deno.env.get('SITE_URL') || 'https://salud.gq'
-
-    console.log('📧 Enviando correo con Resend...')
-    // Enviar invitación por correo usando Resend
+    console.log('📨 Sending email via Resend...')
+    
+    // Enviar correo
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: 'Sistema de Salud <noreply@salud.gq>',
-        to: [email],
-        subject: 'Invitación al Sistema de Gestión de Profesionales Sanitarios - Guinea Ecuatorial',
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Invitación al Sistema de Salud</title>
-          </head>
-          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f8fafc;">
-            <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-              
-              <!-- Header -->
-              <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 30px; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">
-                  🏥 Sistema de Gestión de Profesionales Sanitarios
-                </h1>
-                <p style="color: #e0e7ff; margin: 8px 0 0 0; font-size: 16px;">
-                  Ministerio de Sanidad y Bienestar Social - Guinea Ecuatorial
-                </p>
-              </div>
-
-              <!-- Content -->
-              <div style="padding: 40px 30px;">
-                <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 20px;">
-                  ¡Bienvenido/a al Sistema de Salud!
-                </h2>
-                
-                <p style="color: #374151; line-height: 1.6; margin: 0 0 20px 0;">
-                  Estimado/a <strong>${full_name || email.split('@')[0]}</strong>,
-                </p>
-                
-                <p style="color: #374151; line-height: 1.6; margin: 0 0 20px 0;">
-                  Ha sido invitado/a a formar parte del Sistema de Gestión de Profesionales Sanitarios del Ministerio de Sanidad y Bienestar Social de Guinea Ecuatorial.
-                </p>
-
-                <!-- User Info Box -->
-                <div style="background-color: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
-                  <h3 style="color: #1f2937; margin: 0 0 12px 0; font-size: 16px;">Información de su cuenta:</h3>
-                  <ul style="margin: 0; padding: 0; list-style: none;">
-                    <li style="padding: 4px 0; color: #374151;">
-                      <strong>📧 Email:</strong> ${email}
-                    </li>
-                    <li style="padding: 4px 0; color: #374151;">
-                      <strong>👤 Rol asignado:</strong> ${roleName}
-                    </li>
-                    <li style="padding: 4px 0; color: #374151;">
-                      <strong>🏢 Departamento:</strong> ${department}
-                    </li>
-                    <li style="padding: 4px 0; color: #374151;">
-                      <strong>🔐 Contraseña temporal:</strong> <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${tempPassword}</code>
-                    </li>
-                  </ul>
-                </div>
-
-                <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 16px; margin: 20px 0;">
-                  <p style="color: #92400e; margin: 0; font-size: 14px;">
-                    ⚠️ <strong>Importante:</strong> Por seguridad, cambie su contraseña después del primer inicio de sesión.
-                  </p>
-                </div>
-
-                <!-- CTA Button -->
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${siteUrl}" 
-                     style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); 
-                            color: white; 
-                            padding: 14px 32px; 
-                            text-decoration: none; 
-                            border-radius: 6px; 
-                            font-weight: bold; 
-                            font-size: 16px; 
-                            display: inline-block;
-                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-                    🚀 Acceder al Sistema
-                  </a>
-                </div>
-
-                <p style="color: #6b7280; line-height: 1.6; margin: 20px 0 0 0; font-size: 14px;">
-                  Si tiene alguna pregunta o necesita asistencia, no dude en contactar con el equipo de soporte técnico.
-                </p>
-              </div>
-
-              <!-- Footer -->
-              <div style="background-color: #f9fafb; padding: 20px 30px; border-top: 1px solid #e5e7eb;">
-                <p style="color: #6b7280; font-size: 12px; margin: 0; text-align: center;">
-                  Este correo fue enviado automáticamente por el Sistema de Gestión de Profesionales Sanitarios.<br>
-                  <strong>Ministerio de Sanidad y Bienestar Social - Guinea Ecuatorial</strong><br>
-                  © ${new Date().getFullYear()} - Todos los derechos reservados
-                </p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `,
-      }),
+      body: JSON.stringify(emailData),
     })
 
-    console.log('📨 Respuesta de Resend:', emailResponse.status)
+    console.log('📬 Email API response status:', emailResponse.status)
 
     if (!emailResponse.ok) {
-      const errorData = await emailResponse.json()
-      console.error('❌ Email sending failed:', errorData)
-      throw new Error(`Email sending failed: ${errorData.message || 'Unknown error'}`)
+      const errorText = await emailResponse.text()
+      console.error('❌ Email sending failed:', errorText)
+      throw new Error(`Email sending failed: ${errorText}`)
     }
 
     const emailResult = await emailResponse.json()
-    console.log('✅ Email enviado exitosamente:', emailResult.id)
+    console.log('✅ Email sent successfully, ID:', emailResult.id)
 
-    const successResponse = { 
-      success: true, 
-      user: userData.user,
+    // Respuesta exitosa
+    const successResponse = {
+      success: true,
+      user: {
+        id: userData.user?.id,
+        email: userData.user?.email
+      },
       emailId: emailResult.id,
-      message: 'Invitación enviada exitosamente'
+      message: 'Usuario creado e invitación enviada exitosamente'
     }
 
-    console.log('🎉 Proceso completado exitosamente')
+    console.log('🎉 Function completed successfully')
 
     return new Response(
       JSON.stringify(successResponse),
@@ -242,12 +170,13 @@ serve(async (req) => {
       }
     )
 
-  } catch (error) {
-    console.error('❌ Error in user invitation:', error)
+  } catch (error: any) {
+    console.error('❌ Function error:', error)
+    console.error('❌ Error stack:', error.stack)
     
     const errorResponse = {
-      error: error.message,
-      details: 'Check function logs for more information',
+      success: false,
+      error: error.message || 'Unknown error occurred',
       timestamp: new Date().toISOString()
     }
 

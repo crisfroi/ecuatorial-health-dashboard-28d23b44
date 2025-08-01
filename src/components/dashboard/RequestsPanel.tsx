@@ -1099,7 +1099,7 @@ const RequestsPanel = ({
                     />
                   </TableHead>
                   <TableHead>Nombre Completo</TableHead>
-                  <TableHead>Profesión</TableHead>
+                  <TableHead>Area Profesional</TableHead>
                   <TableHead>Centro de Trabajo</TableHead>
                   <TableHead>Distrito Sanitario</TableHead>
                   <TableHead>Fecha Solicitud</TableHead>

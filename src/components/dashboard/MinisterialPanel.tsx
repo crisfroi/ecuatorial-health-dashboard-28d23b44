@@ -647,7 +647,7 @@ const MinisterialPanel = () => {
                           <span className="sr-only">Seleccionar</span>
                         </TableHead>
                         <TableHead>Profesional</TableHead>
-                        <TableHead>Profesión</TableHead>
+                        <TableHead>Area Profesional</TableHead>
                         <TableHead>Fecha Solicitud</TableHead>
                         <TableHead>Días Pendiente</TableHead>
                         <TableHead>Urgencia</TableHead>

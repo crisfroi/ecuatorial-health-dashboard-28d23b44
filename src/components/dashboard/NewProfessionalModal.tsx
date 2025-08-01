@@ -231,6 +231,7 @@ const NewProfessionalModal = ({
     pertenece_brigada_medica: professional.pertenece_brigada_medica,
     tipo_cooperacion: professional.tipo_cooperacion || "",
     codigo_expediente: professional.codigo_expediente,
+    id_profesional_unico: professional.id_profesional_unico,
     foto_carnet_base64: professional.foto_carnet_base64,
     codigo_barras: professional.url_codigo_barras_expediente,
     foto_carnet: professional.foto_carnet,

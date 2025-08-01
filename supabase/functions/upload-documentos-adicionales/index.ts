@@ -91,27 +91,34 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Verificar que el profesional existe
-    const { data: professional, error: professionalError } = await supabaseClient
-      .from("profesionales_sanitarios")
-      .select("id, nombre_completo")
-      .eq("id", profesionalId)
-      .single();
+    // Verificar si es un ID temporal para registro (comienza con "temp_")
+    const isTemporalId = profesionalId.startsWith("temp_");
+    let professional: any = null;
 
-    if (professionalError || !professional) {
-      return new Response(
-        JSON.stringify({
-          error: "Professional not found",
-          details: professionalError?.message,
-        }),
-        {
-          status: 404,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
+    if (!isTemporalId) {
+      // Verificar que el profesional existe para IDs regulares
+      const { data: profData, error: professionalError } = await supabaseClient
+        .from("profesionales_sanitarios")
+        .select("id, nombre_completo")
+        .eq("id", profesionalId)
+        .single();
+
+      if (professionalError || !profData) {
+        return new Response(
+          JSON.stringify({
+            error: "Professional not found",
+            details: professionalError?.message,
+          }),
+          {
+            status: 404,
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
           },
-        },
-      );
+        );
+      }
+      professional = profData;
     }
 
     const uploadedDocumentsUrls: string[] = [];

@@ -60,6 +60,68 @@ const HospitalIncidents = () => {
     }
   ]);
 
+  // Datos de incidencias de profesionales
+  const [incidenciasProfesionales, setIncidenciasProfesionales] = useState([
+    {
+      id: 1,
+      titulo: 'Solicitud de carnet vencida',
+      descripcion: 'Profesional con carnet vencido desde hace 3 meses sin renovar',
+      tipo: 'Documentación',
+      gravedad: 'Media',
+      estado: 'Abierta',
+      fechaIncidencia: '2024-01-25',
+      reportadoPor: 'Sistema Automático',
+      profesionalAfectado: 'Dr. Juan Mba Ela',
+      areaProfesional: 'Medicina General',
+      centroTrabajo: 'Hospital Regional Malabo',
+      provincia: 'Bioko Norte'
+    },
+    {
+      id: 2,
+      titulo: 'Documentación incompleta',
+      descripcion: 'Faltan documentos de titulación académica en el expediente',
+      tipo: 'Documentación',
+      gravedad: 'Alta',
+      estado: 'En Progreso',
+      fechaIncidencia: '2024-01-22',
+      reportadoPor: 'Comité Evaluador',
+      profesionalAfectado: 'Enfermera Rosa Nsue',
+      areaProfesional: 'Enfermería',
+      centroTrabajo: 'Centro de Salud Bata',
+      provincia: 'Litoral'
+    },
+    {
+      id: 3,
+      titulo: 'Cambio no autorizado de centro',
+      descripcion: 'Profesional trabajando en centro diferente al registrado',
+      tipo: 'Cumplimiento',
+      gravedad: 'Media',
+      estado: 'Resuelta',
+      fechaIncidencia: '2024-01-20',
+      fechaResolucion: '2024-01-24',
+      reportadoPor: 'Director Centro',
+      resuelto: 'Coord. Recursos Humanos',
+      profesionalAfectado: 'Dr. Carlos Nguema',
+      areaProfesional: 'Pediatría',
+      centroTrabajo: 'Hospital Infantil',
+      provincia: 'Bioko Norte'
+    },
+    {
+      id: 4,
+      titulo: 'Actividad profesional no autorizada',
+      descripcion: 'Ejercicio de medicina privada sin autorización ministerial',
+      tipo: 'Cumplimiento',
+      gravedad: 'Alta',
+      estado: 'En Progreso',
+      fechaIncidencia: '2024-01-18',
+      reportadoPor: 'Inspector Sanitario',
+      profesionalAfectado: 'Dra. Elena Obiang',
+      areaProfesional: 'Ginecología',
+      centroTrabajo: 'Clínica Privada El Sol',
+      provincia: 'Litoral'
+    }
+  ]);
+
   const [newIncident, setNewIncident] = useState({
     titulo: '',
     descripcion: '',

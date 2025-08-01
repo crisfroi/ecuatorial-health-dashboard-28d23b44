@@ -719,12 +719,15 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-green-300">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <PieChartIcon className="w-5 h-5 text-green-600" />
                   Centros por Categoría
                 </CardTitle>
+                <p className="text-sm text-gray-600">
+                  Clic en cualquier sector para ver centros de esa categoría
+                </p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -739,6 +742,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       label={(entry) =>
                         `${entry.categoria} (${entry.total_centros})`
                       }
+                      onClick={(data) => onNavigateToTab && onNavigateToTab("professionals", { categoria_centro: data.categoria })}
+                      className="cursor-pointer hover:opacity-80"
                     >
                       {categoryStats.map((entry, index) => (
                         <Cell

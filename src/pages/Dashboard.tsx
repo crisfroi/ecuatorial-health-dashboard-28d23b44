@@ -50,7 +50,7 @@ import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import RequestsPanel from "@/components/dashboard/RequestsPanel";
 import RenewalAlerts from "@/components/dashboard/RenewalAlerts";
-import AIChat from "@/components/dashboard/AIChat";
+import EnhancedAIChat from "@/components/dashboard/EnhancedAIChat";
 import MinisterialPanel from "@/components/dashboard/MinisterialPanel";
 import IncidentManagement from "@/components/dashboard/IncidentManagement";
 import HealthCenters from "@/components/dashboard/HealthCenters";
@@ -406,7 +406,7 @@ const Dashboard = () => {
               )}
               {showStatsCards
                 ? "Replegar Estadísticas"
-                : "Desplegar Estad��sticas"}
+                : "Desplegar Estadísticas"}
             </Button>
 
             <Button
@@ -523,7 +523,7 @@ const Dashboard = () => {
                   }}
                   className="flex items-center gap-2"
                 >
-                  ��� Volver a la lista
+                  ← Volver a la lista
                 </Button>
                 <ProfessionalDetail
                   professional={selectedProfessional}

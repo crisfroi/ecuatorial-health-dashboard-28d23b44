@@ -9,7 +9,19 @@ export const useUserManagement = () => {
 
   const inviteUser = async (invitation: UserInvitation) => {
     setIsLoading(true);
+    console.log('🚀 Iniciando invitación de usuario:', invitation);
+    
     try {
+      // Validar datos antes de enviar
+      if (!invitation.email) {
+        throw new Error('Email es requerido');
+      }
+      if (!invitation.role) {
+        throw new Error('Rol es requerido');
+      }
+
+      console.log('📧 Llamando función send-user-invitation...');
+      
       // Llamar a la función Supabase para enviar invitación
       const { data, error } = await supabase.functions.invoke('send-user-invitation', {
         body: {
@@ -22,26 +34,53 @@ export const useUserManagement = () => {
         }
       });
 
+      console.log('📨 Respuesta de función:', { data, error });
+
       if (error) {
+        console.error('❌ Error en función:', error);
         throw error;
       }
 
+      if (data?.error) {
+        console.error('❌ Error en respuesta:', data.error);
+        throw new Error(data.error);
+      }
+
+      console.log('✅ Invitación enviada exitosamente');
+
       toast({
-        title: "Invitación enviada",
+        title: "✅ Invitación enviada",
         description: `Se ha enviado una invitación a ${invitation.email}`,
       });
 
       return { success: true, data };
     } catch (error: any) {
-      console.error('Error inviting user:', error);
+      console.error('❌ Error completo inviting user:', {
+        message: error.message,
+        stack: error.stack,
+        error: error
+      });
+      
+      let errorMessage = error.message || "Ocurrió un error al enviar la invitación";
+      
+      // Mejorar mensajes de error específicos
+      if (errorMessage.includes('RESEND_API_KEY')) {
+        errorMessage = "Error de configuración: API key de correo no configurada";
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        errorMessage = "Error de conexión. Verifique su conexión a internet";
+      } else if (errorMessage.includes('not configured')) {
+        errorMessage = "Error de configuración del servidor";
+      }
+      
       toast({
-        title: "Error al enviar invitación",
-        description: error.message || "Ocurrió un error al enviar la invitación",
+        title: "❌ Error al enviar invitación",
+        description: errorMessage,
         variant: "destructive",
       });
-      return { success: false, error: error.message };
+      return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
+      console.log('🏁 Finalizando proceso de invitación');
     }
   };
 

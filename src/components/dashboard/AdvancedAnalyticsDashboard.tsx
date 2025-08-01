@@ -576,6 +576,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       label={(entry) =>
                         `${entry.categoria_titulacion} (${entry.total})`
                       }
+                      onClick={(data) => onNavigateToTab && onNavigateToTab("professionals", { categoria_titulacion: data.categoria_titulacion })}
+                      className="cursor-pointer hover:opacity-80"
                     >
                       {titulacionStats.slice(0, 8).map((entry, index) => (
                         <Cell

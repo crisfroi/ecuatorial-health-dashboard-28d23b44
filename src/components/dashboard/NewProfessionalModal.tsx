@@ -79,7 +79,8 @@ const NewProfessionalModal = ({
         tempContainer.style.position = "absolute";
         tempContainer.style.left = "-9999px";
         tempContainer.style.width = "210mm";
-        tempContainer.style.height = "250mm";
+        tempContainer.style.height = "297mm";
+        tempContainer.style.padding = "20mm";
         tempContainer.style.overflow = "hidden";
         const contentToPrint = element.cloneNode(true) as HTMLElement;
         tempContainer.appendChild(contentToPrint);
@@ -201,7 +202,7 @@ const NewProfessionalModal = ({
         title: "Error de Descarga",
         description:
           "Hubo un problema al descargar el carnet. Inténtelo de nuevo.",
-        variant: "destructive",
+          variant: "destructive",
       });
     }
   };
@@ -438,7 +439,7 @@ const NewProfessionalModal = ({
                 <div
                   id="approval-letter-content"
                   className="max-w-[210mm] mx-auto bg-white"
-                  style={{ padding: "15mm", minHeight: "250mm" }}
+                  style={{ padding: "20mm", width: "210mm", minHeight: "297mm" }}
                 >
                   <ApprovalLetter
                     formData={formDataForDocuments}

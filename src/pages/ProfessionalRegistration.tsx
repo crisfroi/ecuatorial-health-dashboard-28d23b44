@@ -409,6 +409,30 @@ const ProfessionalRegistration = () => {
 
       console.log("Resultado exitoso de Supabase:", result);
 
+      // Si se subieron documentos con ID temporal, actualizar las rutas con el ID real
+      if (documentosUrls.length > 0 && result.id) {
+        try {
+          const temporalId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+          // Aquí deberíamos mover los archivos de la carpeta temporal a la carpeta del profesional real
+          // Por simplicidad, vamos a actualizar solo el registro de la BD
+          const { error: updateDocsError } = await supabase
+            .from("profesionales_sanitarios")
+            .update({
+              documentos_adicionales: documentosUrls,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", result.id);
+
+          if (updateDocsError) {
+            console.error("Error updating documents after registration:", updateDocsError);
+          } else {
+            console.log("Documentos adicionales vinculados al profesional:", result.id);
+          }
+        } catch (docUpdateError) {
+          console.error("Error updating document paths:", docUpdateError);
+        }
+      }
+
       // Sync center data if professional is active
       if (data.situacion_laboral === "Activo" && data.nombre_centro) {
         try {

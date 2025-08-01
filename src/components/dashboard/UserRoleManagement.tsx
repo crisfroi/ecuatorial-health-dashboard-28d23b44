@@ -111,7 +111,10 @@ const UserRoleManagement = () => {
   };
 
   const handleInviteUser = async () => {
+    console.log('🚀 Iniciando handleInviteUser con datos:', newUser);
+
     if (!newUser.email || !newUser.role) {
+      console.warn('⚠️ Datos incompletos:', { email: newUser.email, role: newUser.role });
       return;
     }
 
@@ -124,9 +127,12 @@ const UserRoleManagement = () => {
       invited_by: currentUser?.id || 'system'
     };
 
+    console.log('📧 Enviando invitación:', invitation);
     const result = await inviteUser(invitation);
-    
+    console.log('📬 Resultado de invitación:', result);
+
     if (result.success) {
+      console.log('✅ Invitación exitosa, limpiando formulario');
       setNewUser({
         email: '',
         role: 'OBSERVADOR',
@@ -135,6 +141,8 @@ const UserRoleManagement = () => {
       });
       setIsAddDialogOpen(false);
       loadUsers(); // Recargar la lista de usuarios
+    } else {
+      console.error('❌ Error en invitación:', result.error);
     }
   };
 

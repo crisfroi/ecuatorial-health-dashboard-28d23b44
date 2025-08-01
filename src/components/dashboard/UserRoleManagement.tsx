@@ -268,7 +268,7 @@ const UserRoleManagement = () => {
                 </Button>
                 <Button 
                   onClick={handleInviteUser}
-                  disabled={isLoading || !newUser.email || !newUser.role}
+                  disabled={isLoading || !newUser.email?.trim() || !newUser.role}
                 >
                   <Mail className="w-4 h-4 mr-2" />
                   {isLoading ? 'Enviando...' : 'Enviar Invitación'}

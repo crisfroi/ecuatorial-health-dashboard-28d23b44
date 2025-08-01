@@ -1277,7 +1277,18 @@ const HealthCenters = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setSelectedCenter(centro)}
+                              onClick={() => {
+                                console.log("Selecting center from table:", centro);
+                                if (!centro.id) {
+                                  toast({
+                                    title: "Error",
+                                    description: "El centro seleccionado no tiene un ID válido",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                setSelectedCenter(centro);
+                              }}
                             >
                               <Eye className="w-4 h-4 mr-1" />
                               Ver

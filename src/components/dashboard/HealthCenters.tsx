@@ -1158,8 +1158,8 @@ const HealthCenters = () => {
                       </div>
 
                       {centro.distrito_sanitario && (
-                        <div className="text-sm text-gray-600">
-                          <strong>Distrito Sanitario:</strong>{" "}
+                        <div className="text-sm text-gray-600 flex items-center">
+                          <MapPin className="w-3 h-3 mr-1" />
                           {centro.distrito_sanitario}
                         </div>
                       )}

@@ -19,16 +19,8 @@ const ApprovalLetter = ({ formData }: ApprovalLetterProps) => {
     <div
       className="bg-white"
       style={{
-        padding: "10mm 10mm",
         fontSize: "11px",
-        width: "210mm",
-        minHeight: "297mm",
-        fontSize: "11px",
-        lineHeight: "1.3",
-        border: "none",
-        boxShadow: "none",
-        outline: "none",
-        margin: "0",
+        lineHeight: "1.4",
       }}
     >
       {/* Membrete Oficial */}

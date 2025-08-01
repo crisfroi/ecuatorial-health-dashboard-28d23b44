@@ -870,20 +870,24 @@ const HealthCenters = () => {
                             setEditingCenter(centro);
                             setShowEditDialog(true);
                           }}
-                          className="flex-1"
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                          disabled={validateCenterMutation.isPending}
                         >
                           <Edit className="w-3 h-3 mr-1" />
-                          Validar
+                          {validateCenterMutation.isPending ? "Validando..." : "Validar"}
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleValidateCenter(centro.id, {
-                              estado: "rechazado",
-                            });
+                            if (window.confirm(`¿Estás seguro de que quieres rechazar el centro "${centro.nombre}"?`)) {
+                              handleValidateCenter(centro.id, {
+                                estado: "rechazado",
+                              });
+                            }
                           }}
+                          disabled={validateCenterMutation.isPending}
                         >
                           Rechazar
                         </Button>

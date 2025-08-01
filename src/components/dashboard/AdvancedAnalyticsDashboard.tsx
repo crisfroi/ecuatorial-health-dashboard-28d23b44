@@ -686,12 +686,15 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
         {/* Centers Tab */}
         <TabsContent value="centers" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-blue-300">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-blue-600" />
                   Top 10 Centros por Profesionales
                 </CardTitle>
+                <p className="text-sm text-gray-600">
+                  Clic en cualquier barra para ver profesionales del centro
+                </p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={350}>
@@ -705,7 +708,12 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       fontSize={10}
                     />
                     <Tooltip />
-                    <Bar dataKey="total_profesionales" fill="#0088FE" />
+                    <Bar
+                      dataKey="total_profesionales"
+                      fill="#0088FE"
+                      onClick={(data) => navigateToCenter(data.nombre)}
+                      className="cursor-pointer hover:opacity-80"
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>

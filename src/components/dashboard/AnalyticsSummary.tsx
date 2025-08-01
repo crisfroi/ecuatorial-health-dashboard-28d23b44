@@ -396,7 +396,7 @@ const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
                   onClick={() =>
                     onNavigateToArea && onNavigateToArea(area.area_profesional)
                   }
-                  title={`Haz clic para ver profesionales pendientes de ${area.area_profesional}`}
+                  title={`Haz clic para ver profesionales de ${area.area_profesional}`}
                 >
                   <h4 className="font-semibold text-sm mb-2">
                     {area.area_profesional}

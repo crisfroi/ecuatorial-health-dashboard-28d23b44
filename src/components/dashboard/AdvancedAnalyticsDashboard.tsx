@@ -1057,7 +1057,12 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="cantidad" fill="#0088FE" />
+                    <Bar
+                      dataKey="cantidad"
+                      fill="#0088FE"
+                      onClick={(data) => navigateToCountry(data.pais_formacion)}
+                      className="cursor-pointer hover:opacity-80"
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>

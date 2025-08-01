@@ -9,44 +9,61 @@ export const useUserManagement = () => {
 
   const inviteUser = async (invitation: UserInvitation) => {
     setIsLoading(true);
-    console.log('🚀 Iniciando invitación de usuario:', invitation);
+    console.log('🚀 Starting user invitation process:', {
+      email: invitation.email,
+      role: invitation.role,
+      full_name: invitation.full_name
+    });
     
     try {
-      // Validar datos antes de enviar
-      if (!invitation.email) {
+      // Validar datos básicos
+      if (!invitation.email?.trim()) {
         throw new Error('Email es requerido');
       }
       if (!invitation.role) {
         throw new Error('Rol es requerido');
       }
 
-      console.log('📧 Llamando función send-user-invitation...');
+      console.log('📧 Calling send-user-invitation function...');
       
-      // Llamar a la función Supabase para enviar invitación
-      const { data, error } = await supabase.functions.invoke('send-user-invitation', {
+      // Crear un timeout para evitar que se cuelgue
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout: La función tardó más de 30 segundos')), 30000);
+      });
+
+      // Llamar a la función con timeout
+      const invitePromise = supabase.functions.invoke('send-user-invitation', {
         body: {
-          email: invitation.email,
+          email: invitation.email.trim(),
           role: invitation.role,
-          full_name: invitation.full_name,
-          department: invitation.department,
+          full_name: invitation.full_name?.trim(),
+          department: invitation.department?.trim(),
           assigned_center_id: invitation.assigned_center_id,
           invited_by: invitation.invited_by
         }
       });
 
-      console.log('📨 Respuesta de función:', { data, error });
+      console.log('⏱️ Waiting for function response (max 30s)...');
+      const { data, error } = await Promise.race([invitePromise, timeoutPromise]) as any;
+
+      console.log('📨 Function response received:', { 
+        hasData: !!data, 
+        hasError: !!error,
+        dataSuccess: data?.success,
+        dataError: data?.error 
+      });
 
       if (error) {
-        console.error('❌ Error en función:', error);
-        throw error;
+        console.error('❌ Supabase function error:', error);
+        throw new Error(error.message || 'Error en la función de invitación');
       }
 
-      if (data?.error) {
-        console.error('❌ Error en respuesta:', data.error);
-        throw new Error(data.error);
+      if (data?.error || !data?.success) {
+        console.error('❌ Function returned error:', data?.error);
+        throw new Error(data?.error || 'La función no completó exitosamente');
       }
 
-      console.log('✅ Invitación enviada exitosamente');
+      console.log('✅ Invitation sent successfully');
 
       toast({
         title: "✅ Invitación enviada",
@@ -54,22 +71,25 @@ export const useUserManagement = () => {
       });
 
       return { success: true, data };
+
     } catch (error: any) {
-      console.error('❌ Error completo inviting user:', {
+      console.error('❌ Complete invitation error:', {
         message: error.message,
-        stack: error.stack,
-        error: error
+        name: error.name,
+        stack: error.stack
       });
       
-      let errorMessage = error.message || "Ocurrió un error al enviar la invitación";
+      let errorMessage = error.message || "Error desconocido al enviar la invitación";
       
-      // Mejorar mensajes de error específicos
-      if (errorMessage.includes('RESEND_API_KEY')) {
-        errorMessage = "Error de configuración: API key de correo no configurada";
+      // Personalizar mensajes de error
+      if (errorMessage.includes('Timeout')) {
+        errorMessage = "La invitación está tardando mucho. Verifique su conexión e intente nuevamente.";
+      } else if (errorMessage.includes('RESEND_API_KEY')) {
+        errorMessage = "Error de configuración: Servicio de correo no configurado";
       } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-        errorMessage = "Error de conexión. Verifique su conexión a internet";
+        errorMessage = "Error de conexión. Verifique su internet e intente nuevamente";
       } else if (errorMessage.includes('not configured')) {
-        errorMessage = "Error de configuración del servidor";
+        errorMessage = "Error de configuración del sistema";
       }
       
       toast({
@@ -77,10 +97,11 @@ export const useUserManagement = () => {
         description: errorMessage,
         variant: "destructive",
       });
+      
       return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
-      console.log('🏁 Finalizando proceso de invitación');
+      console.log('🏁 Invitation process finished');
     }
   };
 

@@ -403,6 +403,12 @@ const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
                   </h4>
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs">
+                      <span>Aprobados:</span>
+                      <span className="font-medium text-red-600">
+                        {area.aprobados}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
                       <span>Pendientes:</span>
                       <span className="font-medium text-orange-600">
                         {area.pendientes}
@@ -411,12 +417,6 @@ const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
                     <div className="flex justify-between text-xs">
                       <span>Total:</span>
                       <span className="font-medium">{area.total}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span>% Pendiente:</span>
-                      <span className="font-medium text-red-600">
-                        {((area.pendientes / area.total) * 100).toFixed(1)}%
-                      </span>
                     </div>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-3">

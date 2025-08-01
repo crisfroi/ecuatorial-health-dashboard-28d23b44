@@ -380,6 +380,9 @@ const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
             <AlertTriangle className="w-5 h-5 text-orange-600" />
             Áreas que Necesitan Mayor Refuerzo
           </CardTitle>
+          <p className="text-sm text-gray-600">
+            Áreas con menor número de profesionales aprobados
+          </p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

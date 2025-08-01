@@ -387,8 +387,7 @@ const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {areaStats
-              .filter((area) => area.pendientes > 0)
-              .sort((a, b) => b.pendientes / b.total - a.pendientes / a.total)
+              .sort((a, b) => a.aprobados - b.aprobados)
               .slice(0, 6)
               .map((area, index) => (
                 <div

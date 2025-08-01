@@ -55,6 +55,7 @@ import {
   useCenterCategoryStats,
   useTitulacionCategoryStats,
 } from "@/hooks/useAdvancedAnalytics";
+import { useQueryClient } from "@tanstack/react-query";
 import DistrictAnalytics from "./DistrictAnalytics";
 import InteractiveCharts from "./InteractiveCharts";
 import AnalyticsSummary from "./AnalyticsSummary";

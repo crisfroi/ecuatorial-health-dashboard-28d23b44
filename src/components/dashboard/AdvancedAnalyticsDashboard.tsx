@@ -759,9 +759,12 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
             </Card>
           </div>
 
-          <Card>
+          <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-purple-300">
             <CardHeader>
               <CardTitle>Análisis de Categorías de Centros</CardTitle>
+              <p className="text-sm text-gray-600">
+                Clic en cualquier barra para ver profesionales de esa categoría
+              </p>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -775,11 +778,15 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     dataKey="total_centros"
                     fill="#8884d8"
                     name="Total Centros"
+                    onClick={(data) => onNavigateToTab && onNavigateToTab("professionals", { categoria_centro: data.categoria })}
+                    className="cursor-pointer hover:opacity-80"
                   />
                   <Bar
                     dataKey="total_profesionales"
                     fill="#82ca9d"
                     name="Total Profesionales"
+                    onClick={(data) => onNavigateToTab && onNavigateToTab("professionals", { categoria_centro: data.categoria })}
+                    className="cursor-pointer hover:opacity-80"
                   />
                 </BarChart>
               </ResponsiveContainer>

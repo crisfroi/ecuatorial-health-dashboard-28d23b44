@@ -115,51 +115,54 @@ const ApprovalLetter = ({ formData, onDownload }: ApprovalLetterProps) => {
         <CardContent>
           <div
             id="approval-letter-content"
-            className="max-w-[210mm] mx-auto bg-white"
+            className="bg-white"
             style={{
-              padding: "20mm",
+              padding: "10mm",
+              width: "210mm",
               minHeight: "297mm",
               fontSize: "11px",
               lineHeight: "1.4",
               border: "none",
               boxShadow: "none",
               outline: "none",
+              margin: "0",
             }}
           >
             {/* Membrete Oficial */}
-            <div className="relative mb-8">
-              {/* Logo en esquina superior derecha */}
-              <div className="absolute top-0 right-0">
-                <img
-                  src="https://cdn.builder.io/api/v1/image/assets%2F696aeb7245c24fa8957a85fb78836206%2F9f0f84e2fe5c4ac7bf20d675db3ea3cc?format=webp&width=800"
-                  alt="Guinea Ecuatorial Salud"
-                  className="h-16 w-auto"
-                />
+            <div className="mb-8">
+              <div className="flex justify-between items-start">
+                <div className="flex-1 text-center">
+                  <h1 className="text-lg font-bold mb-2">
+                    REPÚBLICA DE GUINEA ECUATORIAL
+                  </h1>
+                  <h2 className="text-base font-semibold">
+                    MINISTERIO DE SANIDAD Y BIENESTAR SOCIAL
+                  </h2>
+                  <h3 className="text-sm font-medium">
+                    DIRECCIÓN GENERAL DE RECURSOS HUMANOS
+                  </h3>
+                </div>
+                {/* Logo en esquina superior derecha */}
+                <div className="flex-shrink-0">
+                  <img
+                    src="https://cdn.builder.io/api/v1/image/assets%2F696aeb7245c24fa8957a85fb78836206%2F9f0f84e2fe5c4ac7bf20d675db3ea3cc?format=webp&width=800"
+                    alt="Guinea Ecuatorial Salud"
+                    className="h-16 w-auto"
+                  />
+                </div>
               </div>
-
-              <div className="text-center">
-                <h1 className="text-lg font-bold mb-2">
-                  REPÚBLICA DE GUINEA ECUATORIAL
-                </h1>
-                <h2 className="text-base font-semibold">
-                  MINISTERIO DE SANIDAD Y BIENESTAR SOCIAL
-                </h2>
-                <h3 className="text-sm font-medium">
-                  DIRECCIÓN GENERAL DE RECURSOS HUMANOS
-                </h3>
-                <div className="border-b-2 border-black mt-4 mb-6"></div>
-              </div>
+              <div className="border-b-2 border-black mt-4 mb-6"></div>
             </div>
 
             {/* Fecha y lugar */}
             <div className="text-right mb-8">
-              <p>{formData.provincia || 'Malabo'}, {today}</p>
+              <p>{formData.distrito || 'Malabo'}, {today}</p>
             </div>
 
             {/* Número de expediente */}
             <div className="mb-6">
               <p className="font-semibold">
-                EXPEDIENTE. : {formData.codigo_expediente}
+                EXPEDIENTE: {formData.codigo_expediente}
               </p>
               <p className="font-semibold">
                 ASUNTO: Aprobación de Acreditación Profesional Sanitaria

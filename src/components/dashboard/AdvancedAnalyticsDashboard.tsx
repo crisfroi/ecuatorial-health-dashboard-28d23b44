@@ -103,6 +103,23 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
 }) => {
   const [selectedView, setSelectedView] = useState("overview");
   const [selectedDistrict, setSelectedDistrict] = useState("all");
+  const queryClient = useQueryClient();
+
+  // Auto-refresh data every 30 seconds for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["topCenters"] });
+      queryClient.invalidateQueries({ queryKey: ["areaProfessionalStats"] });
+      queryClient.invalidateQueries({ queryKey: ["districtStats"] });
+      queryClient.invalidateQueries({ queryKey: ["ageRangeStats"] });
+      queryClient.invalidateQueries({ queryKey: ["countryStats"] });
+      queryClient.invalidateQueries({ queryKey: ["institutionStats"] });
+      queryClient.invalidateQueries({ queryKey: ["centerCategoryStats"] });
+      queryClient.invalidateQueries({ queryKey: ["titulacionCategoryStats"] });
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [queryClient]);
 
   // Navigation hooks
   const {

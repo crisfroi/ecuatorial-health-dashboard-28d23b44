@@ -268,7 +268,14 @@ const UserRoleManagement = () => {
                 >
                   Cancelar
                 </Button>
-                <Button 
+                <Button
+                  variant="secondary"
+                  onClick={() => testInvite(newUser.email || 'test@test.com', newUser.role || 'OBSERVADOR')}
+                  disabled={isTestLoading || !newUser.email?.trim()}
+                >
+                  🧪 {isTestLoading ? 'Probando...' : 'Test'}
+                </Button>
+                <Button
                   onClick={handleInviteUser}
                   disabled={isLoading || !newUser.email?.trim() || !newUser.role}
                 >

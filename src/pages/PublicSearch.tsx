@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -171,13 +170,23 @@ const PublicSearch = () => {
                         </div>
                         <div className="flex items-center space-x-2">
                           <div className={`w-3 h-3 rounded-full ${
-                            new Date(profesional.fecha_validez) > new Date() 
-                              ? 'bg-green-500' 
+                            profesional.estado_acreditacion === 'vigente'
+                              ? 'bg-green-500'
+                              : profesional.estado_acreditacion === 'proximo_vencimiento'
+                              ? 'bg-yellow-500'
                               : 'bg-red-500'
                           }`}></div>
-                          <span className="text-sm font-medium">
-                            {new Date(profesional.fecha_validez) > new Date() 
-                              ? 'Carnet Vigente' 
+                          <span className={`text-sm font-medium ${
+                            profesional.estado_acreditacion === 'vigente'
+                              ? 'text-green-600'
+                              : profesional.estado_acreditacion === 'proximo_vencimiento'
+                              ? 'text-yellow-600'
+                              : 'text-red-600'
+                          }`}>
+                            {profesional.estado_acreditacion === 'vigente'
+                              ? 'Carnet Vigente'
+                              : profesional.estado_acreditacion === 'proximo_vencimiento'
+                              ? `Próximo a Vencer (${profesional.dias_hasta_vencimiento} días)`
                               : 'Carnet Vencido'}
                           </span>
                         </div>

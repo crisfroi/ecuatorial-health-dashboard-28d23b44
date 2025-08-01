@@ -40,6 +40,7 @@ import { Mail, Plus, Edit, Trash2, Users, Shield, Crown, Eye, Building2 } from "
 import { UserProfile, UserInvitation } from "@/types/database";
 import { UserRole } from "@/types/roles";
 import { useUserManagement } from "@/hooks/useUserManagement";
+import { useTestInvite } from "@/hooks/useTestInvite";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCentrosSalud } from "@/hooks/useCentrosSalud";
 

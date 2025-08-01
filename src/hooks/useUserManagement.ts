@@ -47,29 +47,56 @@ export const useUserManagement = () => {
 
   const getUserProfiles = async (): Promise<UserProfile[]> => {
     try {
-      // Obtener usuarios de auth.users y sus perfiles
-      const { data: { users }, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        throw authError;
+      // Usar la función Edge para obtener usuarios
+      const { data, error } = await supabase.functions.invoke('admin-users', {
+        body: { action: 'listUsers' }
+      });
+
+      if (error) {
+        throw error;
       }
 
-      // Convertir usuarios de auth a UserProfile
-      const userProfiles: UserProfile[] = users.map(user => ({
-        id: user.id,
-        email: user.email || '',
-        role: (user.user_metadata?.role || 'OBSERVADOR') as any,
-        full_name: user.user_metadata?.full_name || user.email?.split('@')[0],
-        department: user.user_metadata?.department || 'Ministerio de Sanidad',
-        assigned_center_id: user.user_metadata?.assigned_center_id,
-        created_at: user.created_at,
-        updated_at: user.updated_at || user.created_at,
-        is_active: !user.email_confirmed_at ? false : true
-      }));
+      if (!data.success) {
+        throw new Error(data.error || 'Error fetching users');
+      }
 
-      return userProfiles;
+      return data.users || [];
     } catch (error: any) {
       console.error('Error fetching user profiles:', error);
+      
+      // Si hay un error de permisos, mostrar usuarios mock para demo
+      if (error.message?.includes('permissions') || error.message?.includes('not allowed')) {
+        toast({
+          title: "Modo Demo",
+          description: "Mostrando usuarios de ejemplo. Configure permisos de administrador para datos reales.",
+          variant: "default",
+        });
+        
+        // Retornar usuarios de ejemplo para demostración
+        return [
+          {
+            id: 'juan-froilan-id',
+            email: 'juan.froilan@ministeriosanidad.gq',
+            role: 'SUPER_ADMINISTRADOR',
+            full_name: 'Juan Froilan Ramos Nabama',
+            department: 'Ministerio de Sanidad y Bienestar Social',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            is_active: true
+          },
+          {
+            id: 'demo-revisor-id',
+            email: 'revisor@ministeriosanidad.gq',
+            role: 'REVISOR_SOLICITUDES',
+            full_name: 'Usuario Revisor Demo',
+            department: 'Comité de Revisión',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            is_active: true
+          }
+        ] as UserProfile[];
+      }
+      
       toast({
         title: "Error al cargar usuarios",
         description: error.message,
@@ -79,26 +106,34 @@ export const useUserManagement = () => {
     }
   };
 
-  const updateUserRole = async (userId: string, role: string) => {
+  const updateUserRole = async (userId: string, updates: any) => {
     try {
-      const { error } = await supabase.auth.admin.updateUserById(userId, {
-        user_metadata: { role }
+      const { data, error } = await supabase.functions.invoke('admin-users', {
+        body: { 
+          action: 'updateUser',
+          userId,
+          updates
+        }
       });
 
       if (error) {
         throw error;
       }
 
+      if (!data.success) {
+        throw new Error(data.error || 'Error updating user');
+      }
+
       toast({
-        title: "Rol actualizado",
-        description: "El rol del usuario ha sido actualizado correctamente",
+        title: "Usuario actualizado",
+        description: "Los datos del usuario han sido actualizados correctamente",
       });
 
       return { success: true };
     } catch (error: any) {
-      console.error('Error updating user role:', error);
+      console.error('Error updating user:', error);
       toast({
-        title: "Error al actualizar rol",
+        title: "Error al actualizar usuario",
         description: error.message,
         variant: "destructive",
       });
@@ -108,10 +143,19 @@ export const useUserManagement = () => {
 
   const deleteUser = async (userId: string) => {
     try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      const { data, error } = await supabase.functions.invoke('admin-users', {
+        body: { 
+          action: 'deleteUser',
+          userId
+        }
+      });
 
       if (error) {
         throw error;
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Error deleting user');
       }
 
       toast({

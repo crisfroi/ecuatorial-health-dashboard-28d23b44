@@ -326,11 +326,54 @@ const HealthCenters = () => {
           </CardContent>
         </Card>
 
+        {/* Estadísticas de profesionales */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {profesionalesDelCentro.filter(p => p.estado_solicitud === "Aprobado").length}
+                </div>
+                <div className="text-sm text-gray-600">Profesionales Aprobados</div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {profesionalesDelCentro.filter(p => p.estado_solicitud !== "Aprobado").length}
+                </div>
+                <div className="text-sm text-gray-600">Profesionales Pendientes</div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {new Set(profesionalesDelCentro.filter(p => p.estado_solicitud === "Aprobado").map(p => p.area_profesional)).size}
+                </div>
+                <div className="text-sm text-gray-600">Áreas Profesionales</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Profesionales del centro */}
         <Card>
           <CardHeader>
-            <CardTitle>
-              Profesionales Asignados ({profesionalesDelCentro.length})
+            <CardTitle className="flex items-center justify-between">
+              <span>Profesionales del Centro ({profesionalesDelCentro.length})</span>
+              <div className="flex items-center space-x-2 text-sm">
+                <span className="text-green-600 font-medium">
+                  {profesionalesDelCentro.filter(p => p.estado_solicitud === "Aprobado").length} Aprobados
+                </span>
+                <span className="text-gray-400">|</span>
+                <span className="text-orange-600 font-medium">
+                  {profesionalesDelCentro.filter(p => p.estado_solicitud !== "Aprobado").length} Pendientes
+                </span>
+              </div>
             </CardTitle>
             <div className="flex space-x-4">
               <Select value={filterArea} onValueChange={setFilterArea}>
@@ -339,7 +382,8 @@ const HealthCenters = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las áreas</SelectItem>
-                  {areasProf.map((area) => (
+                  {/* Mostrar solo áreas que existen en este centro */}
+                  {[...new Set(profesionalesDelCentro.map(p => p.area_profesional))].filter(Boolean).map((area) => (
                     <SelectItem key={area} value={area}>
                       {area}
                     </SelectItem>
@@ -351,12 +395,11 @@ const HealthCenters = () => {
                   <SelectValue placeholder="Filtrar por estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los estados</SelectItem>
-                  {estadosSolicitud.map((estado) => (
-                    <SelectItem key={estado} value={estado}>
-                      {estado}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="">Todos los estados</SelectItem>
+                  <SelectItem value="Aprobado">Solo Aprobados</SelectItem>
+                  <SelectItem value="Recibido">Recibido</SelectItem>
+                  <SelectItem value="En Revisión">En Revisión</SelectItem>
+                  <SelectItem value="Rechazado">Rechazado</SelectItem>
                 </SelectContent>
               </Select>
             </div>

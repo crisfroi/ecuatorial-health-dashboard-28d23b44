@@ -109,8 +109,10 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
                   dataKey="area"
                   angle={-45}
                   textAnchor="end"
-                  height={80}
-                  fontSize={12}
+                  height={100}
+                  fontSize={11}
+                  interval={0}
+                  tick={{ fontSize: 11, fill: '#374151' }}
                 />
                 <YAxis />
                 <Tooltip />

@@ -6,11 +6,22 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  console.log('🚀 Función send-user-invitation iniciada')
+  
   if (req.method === 'OPTIONS') {
+    console.log('✅ Respuesta CORS OPTIONS')
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    const requestBody = await req.json()
+    console.log('📥 Datos recibidos:', {
+      email: requestBody.email,
+      role: requestBody.role,
+      full_name: requestBody.full_name,
+      department: requestBody.department
+    })
+
     const { 
       email, 
       role = 'OBSERVADOR',
@@ -18,19 +29,35 @@ serve(async (req) => {
       department = 'Ministerio de Sanidad y Bienestar Social',
       assigned_center_id,
       invited_by 
-    } = await req.json()
+    } = requestBody
 
-    console.log('Inviting user:', { email, role, full_name, department })
+    // Validar email (acepta cualquier formato válido)
+    if (!email || !email.includes('@')) {
+      throw new Error('Email inválido')
+    }
+
+    // Validar rol
+    const validRoles = ['SUPER_ADMINISTRADOR', 'REVISOR_SOLICITUDES', 'PERSONALIDAD_MINISTERIAL', 'OBSERVADOR', 'DIRECTIVO_CENTRO_SANITARIO']
+    if (!validRoles.includes(role)) {
+      throw new Error(`Rol inválido: ${role}`)
+    }
+
+    console.log('✅ Validaciones pasadas')
 
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (!RESEND_API_KEY) {
+      console.error('❌ RESEND_API_KEY no configurada')
       throw new Error('RESEND_API_KEY not configured')
     }
+
+    console.log('✅ RESEND_API_KEY encontrada')
 
     // Crear usuario en Supabase Auth
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2')
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    
+    console.log('🔐 Creando cliente Supabase...')
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -39,8 +66,10 @@ serve(async (req) => {
     })
 
     // Generar contraseña temporal
-    const tempPassword = `TempPass${Date.now().toString().slice(-6)}!`
+    const tempPassword = `Temp${Math.random().toString(36).slice(-8)}!`
+    console.log('🔑 Contraseña temporal generada')
 
+    console.log('👤 Creando usuario en Supabase Auth...')
     // Crear usuario con datos completos
     const { data: userData, error: userError } = await supabase.auth.admin.createUser({
       email: email,
@@ -57,11 +86,11 @@ serve(async (req) => {
     })
 
     if (userError) {
-      console.error('Error creating user:', userError)
+      console.error('❌ Error creating user:', userError)
       throw new Error(`Error creating user: ${userError.message}`)
     }
 
-    console.log('User created successfully:', userData.user?.id)
+    console.log('✅ Usuario creado exitosamente:', userData.user?.id)
 
     // Obtener nombre del rol para el correo
     const roleNames: Record<string, string> = {
@@ -74,9 +103,10 @@ serve(async (req) => {
 
     const roleName = roleNames[role] || role
 
-    // URL del sistema
+    // URL del sistema (acepta cualquier URL)
     const siteUrl = Deno.env.get('SITE_URL') || 'https://salud.gq'
 
+    console.log('📧 Enviando correo con Resend...')
     // Enviar invitación por correo usando Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -85,7 +115,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Sistema de Salud <noreply@ministeriosanidad.gq>',
+        from: 'Sistema de Salud <noreply@salud.gq>',
         to: [email],
         subject: 'Invitación al Sistema de Gestión de Profesionales Sanitarios - Guinea Ecuatorial',
         html: `
@@ -184,22 +214,28 @@ serve(async (req) => {
       }),
     })
 
+    console.log('📨 Respuesta de Resend:', emailResponse.status)
+
     if (!emailResponse.ok) {
       const errorData = await emailResponse.json()
-      console.error('Email sending failed:', errorData)
-      throw new Error(`Email sending failed: ${errorData.message}`)
+      console.error('❌ Email sending failed:', errorData)
+      throw new Error(`Email sending failed: ${errorData.message || 'Unknown error'}`)
     }
 
     const emailResult = await emailResponse.json()
-    console.log('Email sent successfully:', emailResult.id)
+    console.log('✅ Email enviado exitosamente:', emailResult.id)
+
+    const successResponse = { 
+      success: true, 
+      user: userData.user,
+      emailId: emailResult.id,
+      message: 'Invitación enviada exitosamente'
+    }
+
+    console.log('🎉 Proceso completado exitosamente')
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        user: userData.user,
-        emailId: emailResult.id,
-        tempPassword: tempPassword // Solo para logs, no enviar al frontend en producción
-      }),
+      JSON.stringify(successResponse),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
@@ -207,12 +243,16 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error in user invitation:', error)
+    console.error('❌ Error in user invitation:', error)
+    
+    const errorResponse = {
+      error: error.message,
+      details: 'Check function logs for more information',
+      timestamp: new Date().toISOString()
+    }
+
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: 'Check function logs for more information'
-      }),
+      JSON.stringify(errorResponse),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 

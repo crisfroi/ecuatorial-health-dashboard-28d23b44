@@ -21,14 +21,17 @@ export function useGenerateCarnet() {
           headers['Authorization'] = `Bearer ${session.access_token}`;
         }
 
+        // Construir URL de la edge function
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://wdieynendfjbkbhfovrx.supabase.co';
+        const functionUrl = `${supabaseUrl}/functions/v1/generar-carnet-profesional?id=${profesionalId}`;
+
+        console.log(`Llamando a edge function: ${functionUrl}`);
+
         // Llamar a la edge function para generar el carnet
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generar-carnet-profesional?id=${profesionalId}`,
-          {
-            method: 'GET',
-            headers,
-          }
-        );
+        const response = await fetch(functionUrl, {
+          method: 'GET',
+          headers,
+        });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => null);

@@ -191,7 +191,7 @@ const UserRoleManagement = () => {
                   type="email"
                   value={newUser.email}
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  placeholder="usuario@ministeriosanidad.gq"
+                  placeholder="usuario@cualquierdominio.com"
                 />
               </div>
               <div>

@@ -40,17 +40,16 @@ const NewProfessionalModal = ({
 }: NewProfessionalModalProps) => {
   const approvalLetterRef = useRef<HTMLDivElement>(null);
   const [additionalDocuments, setAdditionalDocuments] = useState<string[]>(
-    Array.isArray(professional?.documentos_adicionales) 
-      ? professional.documentos_adicionales 
+    Array.isArray(professional?.documentos_adicionales)
+      ? professional.documentos_adicionales
       : [],
   );
 
-  // Actualizar documentos cuando cambie el profesional
   useEffect(() => {
     if (professional?.documentos_adicionales) {
       setAdditionalDocuments(
-        Array.isArray(professional.documentos_adicionales) 
-          ? professional.documentos_adicionales 
+        Array.isArray(professional.documentos_adicionales)
+          ? professional.documentos_adicionales
           : []
       );
     }
@@ -98,10 +97,10 @@ const NewProfessionalModal = ({
         const imgData = canvas.toDataURL("image/png");
         const pdf = new jsPDF("p", "mm", "a4");
 
-        const imgWidth = 190; // Reducir ancho para márgenes
-        const pageHeight = 270; // Reducir altura de página
-        const marginLeft = 10; // Margen izquierdo
-        const marginTop = 10; // Margen superior
+        const imgWidth = 190;
+        const pageHeight = 270;
+        const marginLeft = 10;
+        const marginTop = 10;
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         let heightLeft = imgHeight;
         let position = 0;
@@ -310,32 +309,32 @@ const NewProfessionalModal = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div className="space-y-2">
                       <p>
-                        <strong>Código de Expediente:</strong>{" "}
+                        <strong>Código de Expediente:</strong>
                         {formDataForDocuments.codigo_expediente}
                       </p>
                       <p>
-                        <strong>Nombre Completo:</strong>{" "}
+                        <strong>Nombre Completo:</strong>
                         {formDataForDocuments.nombre}{" "}
                         {formDataForDocuments.apellidos}
                       </p>
                       <p>
-                        <strong>Nacionalidad:</strong>{" "}
+                        <strong>Nacionalidad:</strong>
                         {formDataForDocuments.nacionalidad}
                       </p>
                       <p>
-                        <strong>DIP/Pasaporte:</strong>{" "}
+                        <strong>DIP/Pasaporte:</strong>
                         {formDataForDocuments.numero_dip ||
                           formDataForDocuments.numero_pasaporte}
                       </p>
                       <p>
-                        <strong>Fecha de Nacimiento:</strong>{" "}
+                        <strong>Fecha de Nacimiento:</strong>
                         {formDataForDocuments.fecha_nacimiento}
                       </p>
                       <p>
                         <strong>Género:</strong> {formDataForDocuments.genero}
                       </p>
                       <p>
-                        <strong>Teléfono:</strong>{" "}
+                        <strong>Teléfono:</strong>
                         {formDataForDocuments.telefono}
                       </p>
                       <p>
@@ -344,35 +343,35 @@ const NewProfessionalModal = ({
                     </div>
                     <div className="space-y-2">
                       <p>
-                        <strong>Domicilio:</strong>{" "}
+                        <strong>Domicilio:</strong>
                         {formDataForDocuments.domicilio}
                       </p>
                       <p>
-                        <strong>Provincia:</strong>{" "}
+                        <strong>Provincia:</strong>
                         {formDataForDocuments.provincia}
                       </p>
                       <p>
-                        <strong>Distrito:</strong>{" "}
+                        <strong>Distrito:</strong>
                         {formDataForDocuments.distrito}
                       </p>
                       <p>
-                        <strong>Área Profesional:</strong>{" "}
+                        <strong>Área Profesional:</strong>
                         {formDataForDocuments.area_profesional}
                       </p>
                       <p>
-                        <strong>Especialidad:</strong>{" "}
+                        <strong>Especialidad:</strong>
                         {formDataForDocuments.especialidad}
                       </p>
                       <p>
-                        <strong>Titulación:</strong>{" "}
+                        <strong>Titulación:</strong>
                         {formDataForDocuments.titulacion_especifica_1}
                       </p>
                       <p>
-                        <strong>Institución:</strong>{" "}
+                        <strong>Institución:</strong>
                         {formDataForDocuments.institucion_1}
                       </p>
                       <p>
-                        <strong>País de Formación:</strong>{" "}
+                        <strong>País de Formación:</strong>
                         {formDataForDocuments.pais_formacion_1}
                       </p>
                     </div>
@@ -382,15 +381,15 @@ const NewProfessionalModal = ({
                     <h4 className="font-semibold mb-2">Información Laboral</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <p>
-                        <strong>Situación Laboral:</strong>{" "}
+                        <strong>Situación Laboral:</strong>
                         {formDataForDocuments.situacion_laboral}
                       </p>
                       <p>
-                        <strong>Centro de Trabajo:</strong>{" "}
+                        <strong>Centro de Trabajo:</strong>
                         {formDataForDocuments.nombre_centro}
                       </p>
                       <p>
-                        <strong>Tipo de Sector:</strong>{" "}
+                        <strong>Tipo de Sector:</strong>
                         {formDataForDocuments.tipo_sector}
                       </p>
                       <p>
@@ -416,7 +415,7 @@ const NewProfessionalModal = ({
                   {professional.motivo_rechazo && (
                     <div className="pt-4 border-t">
                       <p className="text-red-600">
-                        <strong>Motivo de Rechazo:</strong>{" "}
+                        <strong>Motivo de Rechazo:</strong>
                         {professional.motivo_rechazo}
                       </p>
                     </div>
@@ -443,7 +442,6 @@ const NewProfessionalModal = ({
                 >
                   <ApprovalLetter
                     formData={formDataForDocuments}
-                    onDownload={() => {}}
                   />
                 </div>
               </ScrollArea>

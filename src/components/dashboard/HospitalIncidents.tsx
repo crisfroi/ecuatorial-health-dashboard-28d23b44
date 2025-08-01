@@ -132,6 +132,7 @@ const HospitalIncidents = () => {
   });
 
   const tipos = ['Suministros', 'Equipamiento', 'Personal', 'Seguridad', 'Infraestructura', 'Otro'];
+  const tiposProfesionales = ['Documentación', 'Cumplimiento', 'Ética Profesional', 'Capacitación', 'Desempeño', 'Otro'];
   const gravedades = ['Baja', 'Media', 'Alta', 'Crítica'];
   const estados = ['Abierta', 'En Progreso', 'Resuelta', 'Cerrada'];
 

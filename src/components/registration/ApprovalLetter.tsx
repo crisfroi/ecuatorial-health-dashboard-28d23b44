@@ -33,7 +33,15 @@ const ApprovalLetter = ({ formData }: ApprovalLetterProps) => {
       {/* Membrete Oficial */}
       <div className="mb-4">
         <div className="flex justify-between items-start">
-          <div className="flex-1 text-left">
+          {/* Logo en esquina superior izquierda */}
+          <div className="flex-shrink-0 -mt-2">
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F696aeb7245c24fa8957a85fb78836206%2F9f0f84e2fe5c4ac7bf20d675db3ea3cc?format=webp&width=800"
+              alt="Guinea Ecuatorial Salud"
+              className="h-16 w-auto"
+            />
+          </div>
+          <div className="flex-1 text-right">
             <h1 className="text-lg font-bold mb-2 text-center">
               REPÚBLICA DE GUINEA ECUATORIAL
             </h1>
@@ -43,14 +51,6 @@ const ApprovalLetter = ({ formData }: ApprovalLetterProps) => {
             <h3 className="text-sm font-medium text-center">
               DIRECCIÓN GENERAL DE RECURSOS HUMANOS
             </h3>
-          </div>
-          {/* Logo en esquina superior derecha */}
-          <div className="flex-shrink-0 -mt-2">
-            <img
-              src="https://cdn.builder.io/api/v1/image/assets%2F696aeb7245c24fa8957a85fb78836206%2F9f0f84e2fe5c4ac7bf20d675db3ea3cc?format=webp&width=800"
-              alt="Guinea Ecuatorial Salud"
-              className="h-16 w-auto"
-            />
           </div>
         </div>
         <div className="border-b-2 border-black mt-4 mb-3"></div>

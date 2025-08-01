@@ -121,6 +121,9 @@ const ApprovalLetter = ({ formData, onDownload }: ApprovalLetterProps) => {
               minHeight: "297mm",
               fontSize: "11px",
               lineHeight: "1.4",
+              border: "none",
+              boxShadow: "none",
+              outline: "none",
             }}
           >
             {/* Membrete Oficial */}
@@ -136,7 +139,7 @@ const ApprovalLetter = ({ formData, onDownload }: ApprovalLetterProps) => {
 
               <div className="text-center">
                 <h1 className="text-lg font-bold mb-2">
-                  REP��BLICA DE GUINEA ECUATORIAL
+                  REPÚBLICA DE GUINEA ECUATORIAL
                 </h1>
                 <h2 className="text-base font-semibold">
                   MINISTERIO DE SANIDAD Y BIENESTAR SOCIAL
@@ -176,7 +179,7 @@ const ApprovalLetter = ({ formData, onDownload }: ApprovalLetterProps) => {
                 la documentación presentada por {formData.genero === "Femenino" ? "la" : "el"} solicitante:
               </p>
 
-              <div className="bg-gray-50 p-4 border-l-4 border-guinea-teal">
+              <div className="bg-gray-50 p-4" style={{borderLeft: "4px solid #14b8a6"}}>
                 <p>
                   <strong>Nombre Completo:</strong> {formData.nombre}{" "}
                   {formData.apellidos}

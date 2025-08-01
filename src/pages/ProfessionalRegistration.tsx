@@ -313,14 +313,49 @@ const ProfessionalRegistration = () => {
       // Eliminamos la generación de codigoBarras en el frontend
       // const codigoBarras = `GEQ${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-      // Preparar datos de documentos (metadata inicialmente)
-      // Nota: Esta estructura solo guarda metadatos. Para subir los archivos reales,
-      // se necesitaría una lógica adicional (como una Edge Function).
-      const documentosData = uploadedFiles.map((file) => ({
-        nombre: file.name,
-        tipo: file.type,
-        tamaño: file.size,
-      }));
+      // Subir documentos adicionales al bucket usando la Edge Function
+      let documentosUrls: string[] = [];
+      if (uploadedFiles.length > 0) {
+        try {
+          const formData = new FormData();
+          // Agregamos un ID temporal para crear la estructura de carpetas
+          const temporalId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+          formData.append("profesional_id", temporalId);
+
+          uploadedFiles.forEach((file) => {
+            formData.append("documentos_adicionales[]", file);
+          });
+
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-documentos-adicionales`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: formData,
+            },
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.uploaded_urls) {
+              documentosUrls = result.uploaded_urls;
+              console.log("Documentos adicionales subidos exitosamente:", documentosUrls);
+            }
+          } else {
+            console.warn("Error al subir documentos adicionales:", await response.text());
+          }
+        } catch (uploadError) {
+          console.error("Error uploading additional documents:", uploadError);
+          // No fallar el registro si la subida de documentos falla
+          toast({
+            title: "Aviso",
+            description: "El registro fue exitoso, pero algunos documentos adicionales no se pudieron subir.",
+            variant: "default",
+          });
+        }
+      }
 
       // Crear objeto con los datos del formulario
       const submissionData = {

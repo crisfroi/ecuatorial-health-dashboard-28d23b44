@@ -89,7 +89,7 @@ const HealthCenters = () => {
     useQuery({
       queryKey: ["pendingCenters"],
       queryFn: getPendingCenters,
-      enabled: showPendingCenters,
+      enabled: true, // Siempre cargar para mostrar el conteo correcto
     });
 
   const categorias = [

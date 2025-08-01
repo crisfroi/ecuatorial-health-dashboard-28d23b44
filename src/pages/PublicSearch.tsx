@@ -233,6 +233,10 @@ const PublicSearch = () => {
             <CardContent>
               <div className="space-y-2 text-blue-700">
                 <p>• Solo se muestran profesionales con estado "Acreditado"</p>
+                <p>• Los estados se actualizan automáticamente según las fechas de caducidad</p>
+                <p>• <span className="font-medium text-green-700">Verde:</span> Carnet vigente</p>
+                <p>• <span className="font-medium text-yellow-700">Amarillo:</span> Próximo a vencer (30 días o menos)</p>
+                <p>• <span className="font-medium text-red-700">Rojo:</span> Carnet vencido</p>
                 <p>• Verifique siempre la fecha de validez del carnet profesional</p>
                 <p>• En caso de dudas, contacte al Ministerio de Sanidad</p>
                 <p>• Esta información es de carácter público y verificable</p>

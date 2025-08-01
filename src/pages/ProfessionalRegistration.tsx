@@ -386,9 +386,8 @@ const ProfessionalRegistration = () => {
         distrito_sanitario: data.distrito_sanitario || null,
         pertenece_brigada_medica: data.pertenece_brigada_medica,
         tipo_cooperacion: data.tipo_cooperacion || null,
-        // CAMBIO: 'documentos_cargados' ahora se refiere a 'documentos_adicionales' en Zod
-        // Si la columna en DB es 'documentos_adicionales', asegúrate de que coincida.
-        documentos_adicionales: documentosData, // Se envían los metadatos de los documentos
+        // URLs de documentos adicionales subidos al bucket
+        documentos_adicionales: documentosUrls, // URLs de los documentos subidos
         foto_carnet: fotoUrl, // URL de la foto subida
         // Eliminamos codigo_barras de la inserción inicial, ya que usaremos codigo_expediente de la DB
         estado_solicitud: "Recibido" as const,

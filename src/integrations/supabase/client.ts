@@ -5,39 +5,10 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://wdieynendfjbkbhfovrx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkaWV5bmVuZGZqYmtiaGZvdnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3ODI5MjEsImV4cCI6MjA2NjM1ODkyMX0.yFnLHavy8wzVjlg3sAI2mEG-XGDCV5FSr7OQsMefxL8";
 
-// Create Supabase client with enhanced configuration for better error handling
+// Import the supabase client like this:
+// import { supabase } from "@/integrations/supabase/client";
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  global: {
-    fetch: (url, options = {}) => {
-      // Add timeout and better error handling to fetch requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-      
-      return fetch(url, {
-        ...options,
-        signal: controller.signal,
-        headers: {
-          ...options.headers,
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-        },
-      }).finally(() => {
-        clearTimeout(timeoutId);
-      }).catch((error) => {
-        // Enhanced error handling for network issues
-        if (error.name === 'AbortError') {
-          throw new Error('Request timeout - please check your internet connection');
-        }
-        if (error.message?.includes('Failed to fetch')) {
-          throw new Error('Network error - unable to connect to database. Please check your internet connection and try again.');
-        }
-        throw error;
-      });
-    },
-  },
-  db: {
-    schema: 'public',
-  },
   auth: {
     autoRefreshToken: true,
     persistSession: true,

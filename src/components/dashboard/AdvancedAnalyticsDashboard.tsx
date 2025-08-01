@@ -987,6 +987,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       label={(entry) =>
                         `${entry.rango_edad} (${entry.porcentaje.toFixed(1)}%)`
                       }
+                      onClick={(data) => navigateToAgeRange(data.rango_edad)}
+                      className="cursor-pointer hover:opacity-80"
                     >
                       {ageRangeStats.map((entry, index) => (
                         <Cell

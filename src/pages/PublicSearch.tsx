@@ -46,6 +46,16 @@ const PublicSearch = () => {
                 </h1>
               </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={updateAccreditationStatus}
+              disabled={isUpdating}
+              className="flex items-center space-x-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} />
+              <span>{isUpdating ? 'Actualizando...' : 'Actualizar Estados'}</span>
+            </Button>
           </div>
         </div>
       </header>

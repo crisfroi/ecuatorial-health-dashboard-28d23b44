@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,13 +7,14 @@ import {
   Download,
   Eye,
   FileText,
-  X,
+  X, 
   AlertCircle,
   CheckCircle2,
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface AdditionalDocumentsProps {
   professionalId: string;
@@ -29,6 +30,9 @@ const AdditionalDocuments = ({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState<string>("");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -36,7 +40,7 @@ const AdditionalDocuments = ({
     const files = event.target.files;
     if (!files) return;
 
-    const newFiles = Array.from(files);
+    const newFiles = Array.from(files).slice(0, 5); // Limitar a 5 archivos por vez
     const validFiles = newFiles.filter((file) => {
       // Validar tamaño (máximo 10MB)
       if (file.size > 10 * 1024 * 1024) {
@@ -49,7 +53,7 @@ const AdditionalDocuments = ({
       }
 
       // Validar tipos de archivo
-      const allowedTypes = [
+      const allowedTypes = [ 
         "application/pdf",
         "image/jpeg",
         "image/png",
@@ -77,6 +81,14 @@ const AdditionalDocuments = ({
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Limpiar archivos seleccionados después de subida exitosa
+  const clearSelectedFiles = () => {
+    setSelectedFiles([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const uploadDocuments = async () => {
     if (selectedFiles.length === 0) {
       toast({
@@ -91,6 +103,7 @@ const AdditionalDocuments = ({
     setUploadProgress(0);
 
     try {
+      // Crear FormData para enviar archivos
       const formData = new FormData();
       formData.append("profesional_id", professionalId);
 
@@ -98,7 +111,7 @@ const AdditionalDocuments = ({
         formData.append("documentos_adicionales[]", file);
       });
 
-      // Simular progreso
+      // Simular progreso de subida
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => Math.min(prev + 10, 90));
       }, 200);
@@ -126,14 +139,11 @@ const AdditionalDocuments = ({
       if (result.success) {
         toast({
           title: "Documentos subidos exitosamente",
-          description: `Se subieron ${result.uploaded_urls.length} documentos`,
+          description: `Se subieron ${result.uploaded_urls?.length || 0} documentos correctamente`,
         });
 
         // Limpiar archivos seleccionados
-        setSelectedFiles([]);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
+        clearSelectedFiles();
 
         // Notificar al componente padre
         if (
@@ -142,6 +152,12 @@ const AdditionalDocuments = ({
         ) {
           onDocumentsUpdate(result.updated_record.documentos_adicionales);
         }
+
+        // Refrescar la lista de documentos
+        if (result.updated_record?.documentos_adicionales) {
+          // El componente padre debería manejar esto, pero podemos forzar un re-render
+          window.location.reload();
+        }
       } else {
         throw new Error(result.error || "Error desconocido");
       }
@@ -149,14 +165,34 @@ const AdditionalDocuments = ({
       console.error("Error uploading documents:", error);
       toast({
         title: "Error al subir documentos",
-        description:
-          error instanceof Error ? error.message : "Error desconocido",
+        description: error instanceof Error ? error.message : "Error desconocido",
         variant: "destructive",
       });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
     }
+  };
+
+  const openPreview = (url: string, filename?: string) => {
+    setPreviewUrl(url);
+    setPreviewFileName(filename || getFilenameFromUrl(url));
+    setIsPreviewOpen(true);
+  };
+
+  const closePreview = () => {
+    setPreviewUrl(null);
+    setPreviewFileName("");
+    setIsPreviewOpen(false);
+  };
+
+  const isImageFile = (filename: string) => {
+    const extension = filename.split(".").pop()?.toLowerCase();
+    return ["jpg", "jpeg", "png", "gif", "webp"].includes(extension || "");
+  };
+
+  const isPdfFile = (filename: string) => {
+    return filename.toLowerCase().endsWith(".pdf");
   };
 
   const downloadDocument = (url: string, filename?: string) => {
@@ -167,10 +203,6 @@ const AdditionalDocuments = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const openDocument = (url: string) => {
-    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const getFileIcon = (filename: string) => {
@@ -204,6 +236,13 @@ const AdditionalDocuments = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
+  // Efecto para limpiar archivos seleccionados cuando cambia el professionalId
+  useEffect(() => {
+    clearSelectedFiles();
+    setUploadProgress(0);
+    setIsUploading(false);
+  }, [professionalId]);
+
   return (
     <div className="space-y-6">
       {/* Sección de subida de archivos */}
@@ -235,7 +274,7 @@ const AdditionalDocuments = ({
             </Button>
             <p className="text-sm text-gray-600">
               Formatos permitidos: PDF, JPG, PNG, DOC, DOCX (máximo 10MB por
-              archivo)
+              archivo, máximo 5 archivos por vez)
             </p>
           </div>
 
@@ -307,7 +346,7 @@ const AdditionalDocuments = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            Documentos Subidos ({existingDocuments.length})
+            Documentos Subidos ({existingDocuments?.length || 0})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -321,7 +360,7 @@ const AdditionalDocuments = ({
             </div>
           ) : (
             <ScrollArea className="max-h-64">
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {existingDocuments.map((url, index) => {
                   const filename = getFilenameFromUrl(url);
                   return (
@@ -329,33 +368,35 @@ const AdditionalDocuments = ({
                       key={index}
                       className="flex items-center justify-between p-3 border rounded-md hover:bg-gray-50"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
                         {getFileIcon(filename)}
                         <div>
-                          <p className="text-sm font-medium">{filename}</p>
+                          <p className="text-sm font-medium truncate" title={filename}>
+                            {filename}
+                          </p>
                           <p className="text-xs text-gray-500">
                             Documento #{index + 1}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openDocument(url)}
-                          className="flex items-center gap-1"
+                          onClick={() => openPreview(url, filename)}
+                          className="flex items-center gap-1 h-8 px-2"
+                          title="Vista previa"
                         >
                           <Eye className="w-4 h-4" />
-                          Ver
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => downloadDocument(url, filename)}
-                          className="flex items-center gap-1"
+                          className="flex items-center gap-1 h-8 px-2"
+                          title="Descargar"
                         >
                           <Download className="w-4 h-4" />
-                          Descargar
                         </Button>
                       </div>
                     </div>
@@ -366,6 +407,52 @@ const AdditionalDocuments = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de vista previa */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Vista previa: {previewFileName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {previewUrl && (
+              <div className="w-full h-[70vh] border rounded-lg overflow-hidden bg-gray-50">
+                {isPdfFile(previewFileName) ? (
+                  <iframe
+                    src={previewUrl}
+                    className="w-full h-full border-none"
+                    title={`Vista previa de ${previewFileName}`}
+                  />
+                ) : isImageFile(previewFileName) ? (
+                  <div className="w-full h-full flex items-center justify-center p-4">
+                    <img
+                      src={previewUrl}
+                      alt={previewFileName}
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                      <p className="text-gray-600 mb-4">
+                        Vista previa no disponible para este tipo de archivo
+                      </p>
+                      <Button onClick={() => downloadDocument(previewUrl, previewFileName)}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Descargar archivo
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Información adicional */}
       <Card className="bg-blue-50 border-blue-200">
@@ -378,7 +465,7 @@ const AdditionalDocuments = ({
               </p>
               <ul className="text-blue-800 space-y-1">
                 <li>
-                  • Los documentos se almacenan de forma segura en el storage
+                  • Los documentos se almacenan de forma segura en Supabase Storage
                 </li>
                 <li>• Puedes subir múltiples archivos a la vez</li>
                 <li>
@@ -388,6 +475,9 @@ const AdditionalDocuments = ({
                 <li>
                   • Formatos soportados: PDF, imágenes (JPG, PNG) y documentos
                   Word
+                </li>
+                <li>
+                  • Máximo 10MB por archivo, hasta 5 archivos por vez
                 </li>
               </ul>
             </div>

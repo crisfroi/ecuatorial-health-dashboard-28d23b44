@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/main
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 
@@ -131,7 +135,11 @@ serve(async (req) => {
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> origin/main
     const rutaPlantilla = `plantillas-carnets/${categoria}.svg`;
     console.log(`Intentando obtener plantilla: ${rutaPlantilla}`);
 
@@ -210,10 +218,18 @@ serve(async (req) => {
     }
 
     // Marcar carnet como generado para evitar duplicados
+<<<<<<< HEAD
     const { data: marcadoExitoso, error: errorMarcar } = await supabaseAdmin.rpc('marcar_carnet_generado', {
       p_profesional_id: idProfesional,
       p_url_carnet: urlCarnet.publicUrl
     });
+=======
+    const { data: marcadoExitoso, error: errorMarcar } = await supabaseAdmin
+      .rpc('marcar_carnet_generado', {
+        p_profesional_id: idProfesional,
+        p_url_carnet: urlCarnet.publicUrl
+      });
+>>>>>>> origin/main
 
     if (errorMarcar) {
       console.error('Error al marcar carnet como generado:', errorMarcar);
@@ -240,12 +256,20 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error al generar carnet profesional:', error);
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> origin/main
     try {
       const supabaseAdmin = createClient(
         Deno.env.get('SUPABASE_URL'),
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
       );
+<<<<<<< HEAD
+=======
+      
+>>>>>>> origin/main
       await supabaseAdmin.from('logs_sistema').insert({
         accion: 'ERROR_GENERACION_CARNET',
         descripcion: `Error: ${error.message}`,
@@ -288,7 +312,11 @@ function arrayBufferToBase64(buffer) {
   let binary = '';
   const bytes = new Uint8Array(buffer);
   const len = bytes.byteLength;
+<<<<<<< HEAD
   for(let i = 0; i < len; i++){
+=======
+  for (let i = 0; i < len; i++) {
+>>>>>>> origin/main
     binary += String.fromCharCode(bytes[i]);
   }
   return btoa(binary);
@@ -321,6 +349,10 @@ async function getImageBase64(imageUrl, defaultMimeType) {
 // Función mejorada para procesar SVG con código de barras por categoría
 async function procesarSVGConReemplazo(svgContent, profesional, supabaseClient) {
   console.log("Iniciando procesamiento del SVG por reemplazo de strings (incrustando imágenes en Base64).");
+<<<<<<< HEAD
+=======
+  
+>>>>>>> origin/main
   let finalSvg = svgContent;
 
   // --- 1. Reemplazo de campos de texto ---
@@ -359,6 +391,10 @@ async function procesarSVGConReemplazo(svgContent, profesional, supabaseClient) 
     const { data: urlPublica, error: urlError } = await supabaseClient.storage
       .from('fotos-carnet')
       .getPublicUrl(profesional.foto_carnet);
+<<<<<<< HEAD
+=======
+    
+>>>>>>> origin/main
     if (urlError) {
       console.error(`[ERROR] FOTO_URL: Error al obtener URL pública para foto_carnet: ${urlError.message}`);
       const { data: urlDefecto } = await supabaseClient.storage

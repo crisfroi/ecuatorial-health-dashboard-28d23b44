@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState } from "react";
+import React, { useRef, useCallback, useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -40,8 +40,21 @@ const NewProfessionalModal = ({
 }: NewProfessionalModalProps) => {
   const approvalLetterRef = useRef<HTMLDivElement>(null);
   const [additionalDocuments, setAdditionalDocuments] = useState<string[]>(
-    professional?.documentos_adicionales || [],
+    Array.isArray(professional?.documentos_adicionales) 
+      ? professional.documentos_adicionales 
+      : [],
   );
+
+  // Actualizar documentos cuando cambie el profesional
+  useEffect(() => {
+    if (professional?.documentos_adicionales) {
+      setAdditionalDocuments(
+        Array.isArray(professional.documentos_adicionales) 
+          ? professional.documentos_adicionales 
+          : []
+      );
+    }
+  }, [professional]);
 
   if (!professional) {
     return null;
@@ -272,7 +285,7 @@ const NewProfessionalModal = ({
             </TabsTrigger>
             <TabsTrigger value="documents" className="flex items-center gap-2">
               <FolderOpen className="w-4 h-4" />
-              Documentos ({additionalDocuments.length})
+              Documentos ({additionalDocuments?.length || 0})
             </TabsTrigger>
           </TabsList>
 
@@ -517,7 +530,9 @@ const NewProfessionalModal = ({
                 <AdditionalDocuments
                   professionalId={professional.id}
                   existingDocuments={additionalDocuments}
-                  onDocumentsUpdate={setAdditionalDocuments}
+                  onDocumentsUpdate={(docs) => {
+                    setAdditionalDocuments(docs);
+                  }}
                 />
               </ScrollArea>
             </TabsContent>

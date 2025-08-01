@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
-// Configuración de CORS para permitir solicitudes desde tu frontend
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -8,7 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Maneja las solicitudes OPTIONS para CORS
 function handleCors(req: Request) {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
@@ -69,18 +67,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Inicializa el cliente Supabase con la clave anónima y el token de autorización del usuario
-    // El token de autorización permite que la función actúe en nombre del usuario autenticado.
+    // Inicializar cliente Supabase con service role para operaciones de storage
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
-      },
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     const formData = await req.formData();
@@ -101,10 +91,33 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const uploadedDocumentsUrls: string[] = []; // Para almacenar las URLs de los documentos subidos
-    const results: any[] = []; // Para resultados detallados de cada archivo
+    // Verificar que el profesional existe
+    const { data: professional, error: professionalError } = await supabaseClient
+      .from("profesionales_sanitarios")
+      .select("id, nombre_completo")
+      .eq("id", profesionalId)
+      .single();
 
-    // formData.getAll('documentos_adicionales[]') recogerá todos los archivos con ese nombre de campo
+    if (professionalError || !professional) {
+      return new Response(
+        JSON.stringify({
+          error: "Professional not found",
+          details: professionalError?.message,
+        }),
+        {
+          status: 404,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        },
+      );
+    }
+
+    const uploadedDocumentsUrls: string[] = [];
+    const results: any[] = [];
+
+    // Obtener todos los archivos del formulario
     const docFiles = formData.getAll("documentos_adicionales[]");
 
     if (docFiles.length === 0) {
@@ -125,107 +138,211 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Validar tipos de archivo permitidos
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/jpg", 
+      "image/png",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+
     for (const fileValue of docFiles) {
       if (fileValue instanceof File) {
         const file = fileValue;
 
+        // Validaciones
         if (file.size === 0) {
           results.push({
             name: file.name,
             status: "error",
-            error: "File is empty",
+            error: "El archivo está vacío",
           });
           continue;
         }
 
-        const fileExtension =
-          file.name.split(".").pop()?.toLowerCase() || "bin";
-
-        // Generar un nombre único y ruta para el Storage
-        // La ruta será: bucket_name/profesionales/profesionalId/documentos_adicionales/nombre_unico.ext
-        const uniqueFileName = `${profesionalId}_doc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExtension}`;
-        const filePath = `profesionales/${profesionalId}/documentos_adicionales/${uniqueFileName}`;
-
-        let contentType = file.type;
-        if (!contentType || contentType === "application/octet-stream") {
-          // Intenta inferir el tipo de contenido si no se proporciona o es genérico
-          if (fileExtension === "pdf") contentType = "application/pdf";
-          else if (["jpg", "jpeg"].includes(fileExtension))
-            contentType = "image/jpeg";
-          else if (fileExtension === "png") contentType = "image/png";
-          else if (fileExtension === "doc") contentType = "application/msword";
-          else if (fileExtension === "docx")
-            contentType =
-              "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-        }
-
-        const arrayBuffer = await file.arrayBuffer();
-        const fileContent = new Uint8Array(arrayBuffer);
-
-        // Subir el archivo al bucket 'documentos-profesionales' en Supabase Storage
-        const { data: uploadData, error: uploadError } =
-          await supabaseClient.storage
-            .from("documentos-profesionales") // Nombre del bucket con guiones medios
-            .upload(filePath, fileContent, {
-              contentType,
-              upsert: true, // Permite sobrescribir si el archivo ya existe (útil para re-subidas)
-            });
-
-        if (uploadError) {
-          console.error(
-            `Error uploading additional document ${file.name}:`,
-            uploadError,
-          );
+        if (file.size > maxFileSize) {
           results.push({
             name: file.name,
             status: "error",
-            error: uploadError.message,
+            error: "El archivo excede el tamaño máximo de 10MB",
           });
           continue;
         }
 
-        // Obtener la URL pública del archivo subido
-        const {
-          data: { publicUrl },
-        } = supabaseClient.storage
-          .from("documentos-profesionales") // Nombre del bucket con guiones medios
-          .getPublicUrl(filePath);
+        if (!allowedTypes.includes(file.type)) {
+          results.push({
+            name: file.name,
+            status: "error",
+            error: "Tipo de archivo no permitido. Solo se permiten PDF, JPG, PNG, DOC y DOCX",
+          });
+          continue;
+        }
 
-        uploadedDocumentsUrls.push(publicUrl); // Añadir a la lista de URLs de documentos adicionales
+        const fileExtension = file.name.split(".").pop()?.toLowerCase() || "bin";
+        
+        // Generar nombre único para evitar conflictos
+        const timestamp = Date.now();
+        const randomString = Math.random().toString(36).substring(2, 8);
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+        const uniqueFileName = `${timestamp}_${randomString}_${sanitizedFileName}`;
+        
+        // Estructura de carpetas: profesionales/{id}/documentos/{archivo}
+        const filePath = `profesionales/${profesionalId}/documentos/${uniqueFileName}`;
 
-        results.push({
-          name: file.name,
-          size: file.size,
-          type: contentType,
-          path: filePath,
-          url: publicUrl,
-          status: "success",
-        });
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const fileContent = new Uint8Array(arrayBuffer);
+
+          // Subir archivo al bucket 'documentos-profesionales'
+          const { data: uploadData, error: uploadError } = await supabaseClient.storage
+            .from("documentos-profesionales")
+            .upload(filePath, fileContent, {
+              contentType: file.type,
+              upsert: false, // No sobrescribir archivos existentes
+            });
+
+          if (uploadError) {
+            console.error(`Error uploading ${file.name}:`, uploadError);
+            results.push({
+              name: file.name,
+              status: "error",
+              error: uploadError.message,
+            });
+            continue;
+          }
+
+          // Obtener URL pública
+          const { data: { publicUrl } } = supabaseClient.storage
+            .from("documentos-profesionales")
+            .getPublicUrl(filePath);
+
+          uploadedDocumentsUrls.push(publicUrl);
+
+          results.push({
+            name: file.name,
+            originalName: file.name,
+            size: file.size,
+            type: file.type,
+            path: filePath,
+            url: publicUrl,
+            status: "success",
+            uploadedAt: new Date().toISOString(),
+          });
+
+          console.log(`Successfully uploaded: ${file.name} -> ${publicUrl}`);
+
+        } catch (uploadError) {
+          console.error(`Error processing ${file.name}:`, uploadError);
+          results.push({
+            name: file.name,
+            status: "error",
+            error: `Error al procesar el archivo: ${uploadError.message}`,
+          });
+        }
       }
     }
 
-    // --- Actualizar el registro existente en la base de datos con las URLs de los documentos adicionales ---
-    // Se asume que el registro del profesional ya existe en 'profesionales_sanitarios'
-    // y que 'id' es la clave primaria.
+    // Actualizar registro en la base de datos
+    if (uploadedDocumentsUrls.length > 0) {
+      // Obtener documentos existentes
+      const { data: existingData, error: fetchError } = await supabaseClient
+        .from("profesionales_sanitarios")
+        .select("documentos_adicionales")
+        .eq("id", profesionalId)
+        .single();
 
-    // Primero obtenemos los documentos existentes para no sobrescribirlos
-    const { data: existingData, error: fetchError } = await supabaseClient
-      .from("profesionales_sanitarios")
-      .select("documentos_adicionales")
-      .eq("id", profesionalId)
-      .single();
+      if (fetchError) {
+        console.error("Error fetching existing documents:", fetchError);
+        return new Response(
+          JSON.stringify({
+            error: "Error al obtener documentos existentes",
+            details: fetchError.message,
+            uploaded_urls: uploadedDocumentsUrls,
+            results,
+          }),
+          {
+            status: 500,
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          },
+        );
+      }
 
-    if (fetchError) {
-      console.error("Error fetching existing documents:", fetchError);
+      // Combinar documentos existentes con los nuevos
+      const existingDocs = Array.isArray(existingData?.documentos_adicionales) 
+        ? existingData.documentos_adicionales 
+        : [];
+      const allDocuments = [...existingDocs, ...uploadedDocumentsUrls];
+
+      // Actualizar registro
+      const { data: dbUpdateData, error: updateError } = await supabaseClient
+        .from("profesionales_sanitarios")
+        .update({
+          documentos_adicionales: allDocuments,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", profesionalId)
+        .select("documentos_adicionales")
+        .single();
+
+      if (updateError) {
+        console.error("Error updating database:", updateError);
+        return new Response(
+          JSON.stringify({
+            error: "Error al actualizar el registro con documentos adicionales",
+            details: updateError.message,
+            uploaded_urls: uploadedDocumentsUrls,
+            results,
+          }),
+          {
+            status: 500,
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
+          },
+        );
+      }
+
+      // Respuesta exitosa
       return new Response(
         JSON.stringify({
-          error: "Error al obtener documentos existentes",
-          details: fetchError.message,
+          success: true,
+          message: `${uploadedDocumentsUrls.length} documentos subidos correctamente.`,
+          profesional_id: profesionalId,
+          professional_name: professional.nombre_completo,
           uploaded_urls: uploadedDocumentsUrls,
+          total_documents: allDocuments.length,
+          results,
+          updated_record: dbUpdateData,
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        },
+      );
+    } else {
+      // No se subió ningún archivo exitosamente
+      const errorCount = results.filter(r => r.status === "error").length;
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: `No se pudo subir ningún documento. ${errorCount} errores encontrados.`,
+          profesional_id: profesionalId,
+          uploaded_urls: [],
           results,
         }),
         {
-          status: 500,
+          status: 400,
           headers: {
             "Content-Type": "application/json",
             ...corsHeaders,
@@ -234,63 +351,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Combinar documentos existentes con los nuevos
-    const existingDocs = existingData?.documentos_adicionales || [];
-    const allDocuments = [...existingDocs, ...uploadedDocumentsUrls];
-
-    const { data: dbUpdateData, error: updateError } = await supabaseClient
-      .from("profesionales_sanitarios")
-      .update({
-        documentos_adicionales: allDocuments,
-      }) // Actualiza solo esta columna
-      .eq("id", profesionalId) // Usa el ID del profesional para encontrar el registro
-      .select() // Para obtener el registro actualizado en la respuesta
-      .single();
-
-    if (updateError) {
-      console.error(
-        "Error updating profesionales_sanitarios with additional documents:",
-        updateError,
-      );
-      return new Response(
-        JSON.stringify({
-          error: "Error al actualizar el registro con documentos adicionales",
-          details: updateError.message,
-          uploaded_urls: uploadedDocumentsUrls,
-          results,
-        }),
-        {
-          status: 500,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        },
-      );
-    }
-
-    // Devolver respuesta exitosa con las URLs de los documentos subidos
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message:
-          "Documentos adicionales subidos y registro actualizado correctamente.",
-        profesional_id: profesionalId,
-        uploaded_urls: uploadedDocumentsUrls,
-        total_documents: allDocuments.length,
-        results,
-        updated_record: dbUpdateData,
-      }),
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      },
-    );
   } catch (error) {
-    console.error("Error processing request for additional documents:", error);
+    console.error("Error processing additional documents request:", error);
     return new Response(
       JSON.stringify({
         error: "Error interno del servidor",

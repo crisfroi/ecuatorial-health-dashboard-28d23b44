@@ -16,51 +16,25 @@ const ApprovalLetter = ({ formData, onDownload }: ApprovalLetterProps) => {
     if (!element) return;
 
     try {
-      // Crear un contenedor temporal sin marcos para el PDF
-      const tempContainer = document.createElement("div");
-      tempContainer.style.position = "absolute";
-      tempContainer.style.left = "-9999px";
-      tempContainer.style.width = "210mm";
-      tempContainer.style.background = "white";
-      tempContainer.style.padding = "20mm";
-      tempContainer.style.fontFamily = "system-ui, -apple-system, sans-serif";
-
-      // Clonar el contenido sin los estilos de contenedor
-      const contentToPrint = element.cloneNode(true) as HTMLElement;
-
-      // Remover clases que puedan generar marcos o bordes
-      contentToPrint.style.border = "none";
-      contentToPrint.style.boxShadow = "none";
-      contentToPrint.style.margin = "0";
-      contentToPrint.style.padding = "0";
-
-      tempContainer.appendChild(contentToPrint);
-      document.body.appendChild(tempContainer);
-
-      // Esperar un momento para que se renderice
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const canvas = await html2canvas(contentToPrint, {
+      // Capturar directamente el elemento sin contenedores adicionales
+      const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
-        removeContainer: true,
         logging: false,
-        width: contentToPrint.scrollWidth,
-        height: contentToPrint.scrollHeight
+        width: element.scrollWidth,
+        height: element.scrollHeight
       });
-
-      // Limpiar el contenedor temporal
-      document.body.removeChild(tempContainer);
 
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
 
-      const imgWidth = 190; // Reducir ancho para márgenes
-      const pageHeight = 270; // Reducir altura de página
-      const marginLeft = 10; // Margen izquierdo
-      const marginTop = 10; // Margen superior
+      // Márgenes mínimos para aprovechar más espacio
+      const imgWidth = 200; // Ancho más amplio
+      const pageHeight = 285; // Altura más amplia
+      const marginLeft = 5; // Margen izquierdo mínimo
+      const marginTop = 5; // Margen superior mínimo
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
       let position = 0;

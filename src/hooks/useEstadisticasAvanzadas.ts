@@ -190,14 +190,12 @@ export function useEstadisticasAvanzadas() {
         throw fetchError;
       }
 
-      // 1. FILTRAR PROFESIONALES APROBADOS PARA ESTADÍSTICAS ESPECÍFICAS (GÉNERO)
+      // 1. FILTRAR PROFESIONALES APROBADOS PARA TODAS LAS ESTADÍSTICAS PRINCIPALES
       const profesionalesAprobados = profesionales.filter(
         (p) => p.estado_solicitud === "Aprobado",
       );
 
-      // --- RESTO DE CÁLCULOS (SE MANTIENEN SOBRE TODOS LOS PROFESIONALES) ---
-
-      // Calcular estadísticas básicas
+      // Calcular estadísticas básicas (conteos de estados sobre todos los profesionales)
       const total = profesionales.length;
       const aprobados = profesionales.filter(
         (p) => p.estado_solicitud === "Aprobado",
@@ -212,8 +210,8 @@ export function useEstadisticasAvanzadas() {
         (p) => p.estado_solicitud === "Revisando",
       ).length;
 
-      // Estadísticas por área profesional
-      const porArea = profesionales.reduce(
+      // Estadísticas por área profesional - SOLO APROBADOS
+      const porArea = profesionalesAprobados.reduce(
         (acc, prof) => {
           const area = prof.area_profesional || "Sin especificar";
           acc[area] = (acc[area] || 0) + 1;
@@ -222,8 +220,8 @@ export function useEstadisticasAvanzadas() {
         {} as Record<string, number>,
       );
 
-      // Estadísticas por provincia
-      const porProvincia = profesionales.reduce(
+      // Estadísticas por provincia - SOLO APROBADOS
+      const porProvincia = profesionalesAprobados.reduce(
         (acc, prof) => {
           const provincia = prof.provincia || "Sin especificar";
           acc[provincia] = (acc[provincia] || 0) + 1;

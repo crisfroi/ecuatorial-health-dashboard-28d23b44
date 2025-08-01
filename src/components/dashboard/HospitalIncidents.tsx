@@ -16,6 +16,7 @@ const HospitalIncidents = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [incidentType, setIncidentType] = useState<'hospitalaria' | 'profesional'>('hospitalaria');
 
   // Datos simulados de incidencias
   const [incidencias, setIncidencias] = useState([

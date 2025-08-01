@@ -1,16 +1,18 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useGenerateCarnet } from "@/hooks/useGenerateCarnet";
 
 export function useProfesionalesMutations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const generateCarnet = useGenerateCarnet();
 
   const updateProfesional = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
       console.log("Actualizando profesional:", id, updates);
 
-      // Si se está cambiando a "Pendiente de Firma", generar automáticamente el carnet
+      // Si se está cambiando a "Pendiente de Firma", preparar fechas y generar carnet
       if (updates.estado_solicitud === "Pendiente de Firma") {
         updates.fecha_alta = new Date().toISOString().split("T")[0];
         updates.fecha_aprobacion = new Date().toISOString().split("T")[0];
@@ -55,6 +57,25 @@ export function useProfesionalesMutations() {
       }
 
       console.log("Profesional actualizado exitosamente:", data);
+
+      // Generar carnet automáticamente si se cambió a "Pendiente de Firma"
+      if (updates.estado_solicitud === "Pendiente de Firma") {
+        console.log(`Iniciando generación automática de carnet para profesional ${id}`);
+
+        // Llamar a la generación de carnet de forma asíncrona
+        // No esperamos el resultado para no bloquear la actualización del estado
+        generateCarnet.mutateAsync(id).catch((carnetError) => {
+          console.error("Error en generación automática de carnet:", carnetError);
+          // Mostrar notificación adicional solo para el error del carnet
+          toast({
+            title: "Advertencia",
+            description: "El estado se actualizó correctamente, pero hubo un error al generar el carnet. Puede intentar generarlo manualmente.",
+            variant: "destructive",
+            duration: 7000,
+          });
+        });
+      }
+
       return data;
     },
     onSuccess: (data) => {

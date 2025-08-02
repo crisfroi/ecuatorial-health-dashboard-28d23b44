@@ -1,238 +1,350 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { AlertCircle, CheckCircle, Database, RefreshCw } from 'lucide-react';
+import {
+  Database,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage, logError } from "@/utils/errorHandler";
 
 const DatabaseDiagnostics = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [results, setResults] = useState<any>(null);
-  const { toast } = useToast();
-
-  const availableTables = [
-    'profesionales_sanitarios',
-    'carnets_generados',
-    'centros_salud',
-    'distrito_sanitario',
-    'user_roles',
-    'sms_notifications_log'
-  ] as const;
-
-  const availableFunctions = [
-    'actualizar_numeros_correlativos_faltantes',
-    'buscar_centros_por_criterios',
-    'calcular_edad',
-    'generar_codigo_expediente_unico',
-    'generar_url_carnet_profesional',
-    'obtener_estadisticas_completas',
-    'trigger_renewal_notifications'
-  ] as const;
+  const [results, setResults] = useState<any[]>([]);
 
   const runDiagnostics = async () => {
     setIsRunning(true);
-    const diagnosticResults: any = {
-      timestamp: new Date().toISOString(),
-      tables: {},
-      functions: {},
-      connectivity: null,
-      performance: {},
-    };
+    setResults([]);
+    const diagnosticResults = [];
 
+    // Test 0: Internet connectivity
     try {
-      // Test connectivity
-      const { data: connectTest } = await supabase.from('profesionales_sanitarios').select('id').limit(1);
-      diagnosticResults.connectivity = {
-        status: 'connected',
-        message: 'Database connection successful'
-      };
+      console.log("Running diagnostic 0: Internet connectivity...");
+      const startTime = Date.now();
+      const response = await fetch("https://httpbin.org/status/200", {
+        method: "GET",
+        mode: "cors",
+      });
+      const endTime = Date.now();
 
-      // Test table access
-      for (const tableName of availableTables) {
-        try {
-          const { data, error, count } = await supabase
-            .from(tableName as any)
-            .select('*', { count: 'exact', head: true });
-          
-          if (error) {
-            diagnosticResults.tables[tableName] = {
-              status: 'error',
-              error: error.message,
-              accessible: false
-            };
-          } else {
-            diagnosticResults.tables[tableName] = {
-              status: 'success',
-              accessible: true,
-              recordCount: count || 0
-            };
-          }
-        } catch (err: any) {
-          diagnosticResults.tables[tableName] = {
-            status: 'error',
-            error: err.message,
-            accessible: false
-          };
-        }
+      diagnosticResults.push({
+        test: "Internet Connectivity",
+        status: response.ok ? "success" : "error",
+        message: response.ok
+          ? "Internet connection working"
+          : `Network error ${response.status}`,
+        duration: `${endTime - startTime}ms`,
+      });
+    } catch (err: any) {
+      logError("Internet connectivity test failed", err);
+      diagnosticResults.push({
+        test: "Internet Connectivity",
+        status: "error",
+        message: getErrorMessage(err),
+        duration: "N/A",
+        details: err,
+      });
+    }
+
+    // Test 1: Basic connection
+    try {
+      console.log("Running diagnostic 1: Basic connection...");
+      const startTime = Date.now();
+      const response = await fetch(
+        "https://wdieynendfjbkbhfovrx.supabase.co/rest/v1/",
+        {
+          headers: {
+            apikey:
+              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkaWV5bmVuZGZqYmtiaGZvdnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3ODI5MjEsImV4cCI6MjA2NjM1ODkyMX0.yFnLHavy8wzVjlg3sAI2mEG-XGDCV5FSr7OQsMefxL8",
+          },
+        },
+      );
+      const endTime = Date.now();
+
+      diagnosticResults.push({
+        test: "Basic HTTP Connection",
+        status: response.ok ? "success" : "error",
+        message: response.ok
+          ? `Connected (${response.status})`
+          : `HTTP Error ${response.status}`,
+        duration: `${endTime - startTime}ms`,
+      });
+    } catch (err: any) {
+      logError("Supabase HTTP test failed", err);
+      diagnosticResults.push({
+        test: "Basic HTTP Connection",
+        status: "error",
+        message: getErrorMessage(err),
+        duration: "N/A",
+        details: err,
+      });
+    }
+
+    // Test 2: Supabase client initialization
+    try {
+      console.log("Running diagnostic 2: Client initialization...");
+      const channel = supabase.channel("test");
+      diagnosticResults.push({
+        test: "Supabase Client",
+        status: "success",
+        message: "Client initialized successfully",
+        duration: "N/A",
+      });
+      channel.unsubscribe();
+    } catch (err: any) {
+      logError("Supabase client test failed", err);
+      diagnosticResults.push({
+        test: "Supabase Client",
+        status: "error",
+        message: getErrorMessage(err),
+        duration: "N/A",
+        details: err,
+      });
+    }
+
+    // Test 3: Database schema check
+    try {
+      console.log("Running diagnostic 3: Database schema...");
+      const startTime = Date.now();
+      const { data, error } = await supabase.rpc("version");
+      const endTime = Date.now();
+
+      if (error) {
+        logError("Schema test failed", error);
       }
 
-      // Test RPC functions
-      for (const functionName of availableFunctions) {
-        try {
-          // Just test if function exists by calling it (this might fail but we'll catch the error type)
-          await supabase.rpc(functionName as any);
-          diagnosticResults.functions[functionName] = {
-            status: 'available',
-            callable: true
-          };
-        } catch (err: any) {
-          // Function exists but parameters might be wrong - this is actually good
-          if (err.message.includes('missing') || err.message.includes('required')) {
-            diagnosticResults.functions[functionName] = {
-              status: 'available',
-              callable: true,
-              note: 'Function exists but requires parameters'
-            };
-          } else {
-            diagnosticResults.functions[functionName] = {
-              status: 'unavailable',
-              callable: false,
-              error: err.message
-            };
-          }
-        }
+      diagnosticResults.push({
+        test: "Database Schema Access",
+        status: error ? "error" : "success",
+        message: error ? getErrorMessage(error) : "Database schema accessible",
+        duration: `${endTime - startTime}ms`,
+        details: error ? error : data,
+      });
+    } catch (err: any) {
+      logError("Database schema test failed", err);
+      diagnosticResults.push({
+        test: "Database Schema Access",
+        status: "error",
+        message: getErrorMessage(err),
+        duration: "N/A",
+        details: err,
+      });
+    }
+
+    // Test 4: Table exists check
+    try {
+      console.log("Running diagnostic 3: Table existence...");
+      const startTime = Date.now();
+      const { data, error } = await supabase
+        .from("profesionales_sanitarios")
+        .select("count(*)", { count: "exact", head: true });
+      const endTime = Date.now();
+
+      if (error) {
+        logError("Table existence test failed", error);
       }
 
-      setResults(diagnosticResults);
-      toast({
-        title: "Diagnóstico Completado",
-        description: "Se han ejecutado todas las pruebas de diagnóstico.",
+      diagnosticResults.push({
+        test: "Table Existence",
+        status: error ? "error" : "success",
+        message: error
+          ? getErrorMessage(error)
+          : `Table accessible (count query)`,
+        duration: `${endTime - startTime}ms`,
+        details: error ? error : data,
       });
+    } catch (err: any) {
+      logError("Table existence test failed", err);
+      diagnosticResults.push({
+        test: "Table Existence",
+        status: "error",
+        message: getErrorMessage(err),
+        duration: "N/A",
+        details: err,
+      });
+    }
 
-    } catch (error: any) {
-      console.error('Error running diagnostics:', error);
-      diagnosticResults.connectivity = {
-        status: 'error',
-        message: error.message
-      };
-      setResults(diagnosticResults);
-      
-      toast({
-        title: "Error en Diagnóstico",
-        description: "Ocurrió un error durante las pruebas.",
-        variant: "destructive",
+    // Test 5: Simple select
+    try {
+      console.log("Running diagnostic 5: Simple select...");
+      const startTime = Date.now();
+      const { data, error } = await supabase
+        .from("profesionales_sanitarios")
+        .select("id")
+        .limit(1);
+      const endTime = Date.now();
+
+      diagnosticResults.push({
+        test: "Simple Select Query",
+        status: error ? "error" : "success",
+        message: error
+          ? error.message
+          : `Query successful (${data?.length || 0} records)`,
+        duration: `${endTime - startTime}ms`,
+        details: error ? error : data,
       });
-    } finally {
-      setIsRunning(false);
+    } catch (err: any) {
+      diagnosticResults.push({
+        test: "Simple Select Query",
+        status: "error",
+        message: err.message,
+        duration: "N/A",
+      });
+    }
+
+    // Test 6: Full select query (like estadisticas)
+    try {
+      console.log("Running diagnostic 6: Full select...");
+      const startTime = Date.now();
+      const { data, error } = await supabase
+        .from("profesionales_sanitarios")
+        .select("*")
+        .limit(5);
+      const endTime = Date.now();
+
+      diagnosticResults.push({
+        test: "Full Select Query",
+        status: error ? "error" : "success",
+        message: error
+          ? error.message
+          : `Query successful (${data?.length || 0} records)`,
+        duration: `${endTime - startTime}ms`,
+        details: error ? error : { recordCount: data?.length },
+      });
+    } catch (err: any) {
+      diagnosticResults.push({
+        test: "Full Select Query",
+        status: "error",
+        message: err.message,
+        duration: "N/A",
+      });
+    }
+
+    setResults(diagnosticResults);
+    setIsRunning(false);
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "success":
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case "error":
+        return <AlertCircle className="w-4 h-4 text-red-600" />;
+      default:
+        return <Loader2 className="w-4 h-4 animate-spin text-blue-600" />;
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'success':
-      case 'connected':
-      case 'available':
-        return <Badge variant="default" className="bg-green-100 text-green-800">✓ OK</Badge>;
-      case 'error':
-      case 'unavailable':
-        return <Badge variant="destructive">✗ Error</Badge>;
+      case "success":
+        return "bg-green-100 text-green-800 border-green-300";
+      case "error":
+        return "bg-red-100 text-red-800 border-red-300";
       default:
-        return <Badge variant="secondary">? Desconocido</Badge>;
+        return "bg-gray-100 text-gray-800 border-gray-300";
     }
   };
 
   return (
-    <Card className="w-full">
+    <Card className="mb-4">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Database className="w-5 h-5 text-blue-600" />
-          Diagnóstico de Base de Datos
-        </CardTitle>
-        <CardDescription>
-          Ejecuta pruebas de conectividad, acceso a tablas y funciones de la base de datos.
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
-        <div className="flex gap-2">
-          <Button 
-            onClick={runDiagnostics} 
-            disabled={isRunning}
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Database className="w-5 h-5" />
+            <span>Diagnósticos de Base de Datos</span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
             className="flex items-center gap-2"
           >
-            <RefreshCw className={`w-4 h-4 ${isRunning ? 'animate-spin' : ''}`} />
-            {isRunning ? 'Ejecutando...' : 'Ejecutar Diagnóstico'}
+            {isExpanded ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+            {isExpanded ? "Ocultar" : "Mostrar"}
           </Button>
-        </div>
+        </CardTitle>
+      </CardHeader>
 
-        {results && (
-          <div className="space-y-6">
-            <Separator />
-            
-            {/* Connectivity Results */}
-            <div>
-              <h3 className="font-medium mb-2 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4" />
-                Conectividad
-              </h3>
-              <div className="flex items-center gap-2">
-                {getStatusBadge(results.connectivity?.status || 'unknown')}
-                <span className="text-sm">{results.connectivity?.message || 'Sin información'}</span>
-              </div>
-            </div>
+      {isExpanded && (
+        <CardContent>
+          <div className="space-y-4">
+            <Button
+              onClick={runDiagnostics}
+              disabled={isRunning}
+              className="flex items-center gap-2"
+            >
+              {isRunning ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              {isRunning ? "Ejecutando..." : "Ejecutar Diagnósticos"}
+            </Button>
 
-            {/* Table Access Results */}
-            <div>
-              <h3 className="font-medium mb-3 flex items-center gap-2">
-                <Database className="w-4 h-4" />
-                Acceso a Tablas ({Object.keys(results.tables).length})
-              </h3>
-              <div className="grid gap-2">
-                {Object.entries(results.tables).map(([tableName, result]: [string, any]) => (
-                  <div key={tableName} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(result.status)}
-                      <span className="font-mono text-sm">{tableName}</span>
+            {results.length > 0 && (
+              <div className="space-y-3">
+                {results.map((result, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      {getStatusIcon(result.status)}
+                      <div className="flex-1">
+                        <div className="font-medium">{result.test}</div>
+                        <div className="text-sm text-gray-600">
+                          {result.message}
+                        </div>
+                        {result.details && (
+                          <details className="mt-1">
+                            <summary className="text-xs cursor-pointer text-blue-600">
+                              Ver detalles
+                            </summary>
+                            <pre className="mt-1 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-32">
+                              {JSON.stringify(result.details, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {result.accessible && `${result.recordCount || 0} registros`}
-                      {result.error && `Error: ${result.error}`}
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {result.duration}
+                      </Badge>
+                      <Badge
+                        className={`text-xs ${getStatusColor(result.status)}`}
+                      >
+                        {result.status}
+                      </Badge>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
 
-            {/* Functions Results */}
-            <div>
-              <h3 className="font-medium mb-3 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                Funciones RPC ({Object.keys(results.functions).length})
-              </h3>
-              <div className="grid gap-2">
-                {Object.entries(results.functions).map(([functionName, result]: [string, any]) => (
-                  <div key={functionName} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(result.status)}
-                      <span className="font-mono text-sm">{functionName}</span>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {result.note || result.error || 'Disponible'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="text-xs text-gray-400">
-              Diagnóstico ejecutado: {new Date(results.timestamp).toLocaleString()}
+            <div className="text-xs text-gray-500 space-y-1">
+              <p>
+                <strong>Información de conexión:</strong>
+              </p>
+              <p>• URL: https://wdieynendfjbkbhfovrx.supabase.co</p>
+              <p>• Proyecto: wdieynendfjbkbhfovrx</p>
+              <p>• Tabla: profesionales_sanitarios</p>
             </div>
           </div>
-        )}
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   );
 };

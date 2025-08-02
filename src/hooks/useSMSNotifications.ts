@@ -1,42 +1,36 @@
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
-export interface NotificacionSMS {
+export interface SMSNotification {
   id: string;
-  profesional_id?: string;
-  recipient_number: string;
-  message_body: string;
-  notification_type: string;
-  status: string;
-  twilio_sid?: string;
-  error_message?: string;
-  created_at: string;
+  profesional_id: string;
+  telefono: string;
+  tipo_notificacion: string;
+  fecha_envio: string;
+  estado: string;
+  mensaje_sid?: string;
 }
 
 export function useSMSNotifications(profesionalId?: string) {
   return useQuery({
     queryKey: ['sms-notifications', profesionalId],
-    queryFn: async (): Promise<NotificacionSMS[]> => {
+    queryFn: async () => {
       let query = supabase
         .from('sms_notifications_log')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('fecha_envio', { ascending: false });
 
       if (profesionalId) {
         query = query.eq('profesional_id', profesionalId);
       }
 
       const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching SMS notifications:', error);
-        throw error;
-      }
-
+      
+      if (error) throw error;
       return data || [];
     },
-    enabled: true,
+    enabled: !!profesionalId
   });
 }
 
@@ -47,22 +41,17 @@ export function useNotificationCount(profesionalId?: string) {
       if (!profesionalId) return null;
 
       const { data, error } = await supabase
-        .from('sms_notifications_log')
-        .select('id, created_at')
-        .eq('profesional_id', profesionalId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching notification count:', error);
-        throw error;
-      }
-
-      return {
-        total_notificaciones: data?.length || 0,
-        ultima_notificacion: data?.[0]?.created_at
+        .rpc('get_notification_count', { p_profesional_id: profesionalId });
+      
+      if (error) throw error;
+      return data?.[0] || {
+        total_notificaciones: 0,
+        notificaciones_30_dias: 0,
+        notificaciones_10_dias: 0,
+        ultima_notificacion: null
       };
     },
-    enabled: !!profesionalId,
+    enabled: !!profesionalId
   });
 }
 
@@ -70,11 +59,11 @@ export function useSendSMSNotification() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      profesionalId,
-      telefono,
-      tipoNotificacion,
-      mensaje
+    mutationFn: async ({ 
+      profesionalId, 
+      telefono, 
+      tipoNotificacion, 
+      mensaje 
     }: {
       profesionalId: string;
       telefono: string;
@@ -93,14 +82,19 @@ export function useSendSMSNotification() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, variables) => {
-      // Invalidate related queries to refresh the data
-      queryClient.invalidateQueries({
-        queryKey: ['sms-notifications', variables.profesionalId]
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['notification-count', variables.profesionalId]
-      });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sms-notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-count'] });
+    }
+  });
+}
+
+export function useCheckRenewalNotifications() {
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('check-renewal-notifications');
+      if (error) throw error;
+      return data;
     }
   });
 }

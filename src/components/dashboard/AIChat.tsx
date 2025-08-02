@@ -1,175 +1,391 @@
-
-import React, { useState, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useUser } from "@/hooks/useUser";
-import { Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useEstadisticas } from "@/hooks/useEstadisticas";
+import {
+  MessageCircle,
+  Send,
+  Bot,
+  User,
+  Loader2,
+  ExternalLink,
+} from "lucide-react";
+import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
+import {
+  useTopCenters,
+  useAreaProfessionalStats,
+  useDistrictStats,
+  useAgeRangeStats,
+  useGraduationYearStats,
+  useCountryStats,
+  useInstitutionStats,
+  useCenterCategoryStats,
+  useTitulacionCategoryStats,
+} from "@/hooks/useAdvancedAnalytics";
+import { supabase } from "@/integrations/supabase/client";
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
+interface NavigationAction {
+  type: "navigate";
+  tab: string;
+  filters?: any;
+  label: string;
 }
 
-const AIChat = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const { toast } = useToast();
-  const { user } = useUser();
-  const [isThinking, setIsThinking] = useState(false);
-  
-  const { data: estadisticas, isLoading: statsLoading } = useEstadisticas();
+interface Message {
+  id: string;
+  type: "user" | "bot";
+  content: string;
+  timestamp: Date;
+  navigationActions?: NavigationAction[];
+}
 
-  const sendMessageMutation = useMutation({
-    mutationFn: async (message: string) => {
-      setIsThinking(true);
-      const response = await fetch('/api/ai-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message, context: contextData }),
-      });
+interface AIChatProps {
+  onNavigateToTab?: (tab: string, filters?: any) => void;
+}
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send message');
-      }
-
-      const data = await response.json();
-      return data.response;
+const AIChat: React.FC<AIChatProps> = ({ onNavigateToTab }) => {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "1",
+      type: "bot",
+      content:
+        "¡Hola! Soy tu asistente de análisis de datos de RENAPROSA. Puedo ayudarte a analizar estadísticas de profesionales sanitarios, identificar tendencias y responder preguntas sobre los datos. ¿En qué puedo ayudarte?",
+      timestamp: new Date(),
     },
-    onSuccess: (response) => {
-      setIsThinking(false);
-      setMessages(prev => [...prev, { 
-        role: 'assistant' as const, 
-        content: response, 
-        timestamp: new Date().toLocaleTimeString() 
-      }]);
-    },
-    onError: (error: any) => {
-      setIsThinking(false);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send message.",
-        variant: "destructive",
-      });
-    },
-  });
+  ]);
+  const [inputMessage, setInputMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInput(e.target.value);
-  };
+  // All analytics data
+  const { data: stats } = useEstadisticasAvanzadas();
+  const { data: topCenters = [] } = useTopCenters();
+  const { data: areaStats = [] } = useAreaProfessionalStats();
+  const { data: districtStats = [] } = useDistrictStats();
+  const { data: ageRangeStats = [] } = useAgeRangeStats();
+  const { data: graduationStats = [] } = useGraduationYearStats();
+  const { data: countryStats = [] } = useCountryStats();
+  const { data: institutionStats = [] } = useInstitutionStats();
+  const { data: categoryStats = [] } = useCenterCategoryStats();
+  const { data: titulacionStats = [] } = useTitulacionCategoryStats();
 
-  const handleSendMessage = useCallback(async () => {
-    if (!input.trim()) return;
+  const suggestedQuestions = [
+    "¿Cuáles son las principales tendencias en las solicitudes de profesionales?",
+    "¿Qué centros de salud tienen más profesionales?",
+    "¿Cuál es la distribución por género en las diferentes áreas profesionales?",
+    "¿Qué distritos sanitarios necesitan más profesionales?",
+    "¿Cuáles son las áreas profesionales que necesitan refuerzo?",
+    "¿De qué países se forman más los profesionales?",
+    "¿Cuál es la distribución por edades de los profesionales?",
+    "¿Qué instituciones forman más profesionales?",
+    "¿Cuáles son las tendencias de graduación por año?",
+    "¿Cómo está distribuida la titulación por categorías?",
+    "¿Qué categorías de centros tienen más profesionales?",
+    "¿Hay algún patrón en los rechazos de solicitudes?",
+  ];
 
-    const newMessage: Message = { 
-      role: 'user' as const, 
-      content: input, 
-      timestamp: new Date().toLocaleTimeString() 
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const sendMessage = async (message: string) => {
+    if (!message.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: "user",
+      content: message,
+      timestamp: new Date(),
     };
-    setMessages(prev => [...prev, newMessage]);
-    setInput('');
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInputMessage("");
+    setIsLoading(true);
 
     try {
-      await sendMessageMutation.mutateAsync(input);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send message.",
-        variant: "destructive",
-      });
-    }
-  }, [input, sendMessageMutation, toast]);
+      // Comprehensive analytics data
+      const comprehensiveData = {
+        basicStats: stats,
+        topCenters,
+        areaStats,
+        districtStats,
+        ageRangeStats,
+        graduationStats,
+        countryStats,
+        institutionStats,
+        categoryStats,
+        titulacionStats,
+        summary: {
+          totalProfessionals: areaStats.reduce(
+            (sum, area) => sum + area.total,
+            0,
+          ),
+          totalApproved: areaStats.reduce(
+            (sum, area) => sum + area.aprobados,
+            0,
+          ),
+          totalCenters: topCenters.length,
+          totalDistricts: districtStats.length,
+          totalCountries: countryStats.length,
+          totalInstitutions: institutionStats.length,
+        },
+      };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+      const { data, error } = await supabase.functions.invoke(
+        "ai-chat-analysis",
+        {
+          body: {
+            message: message,
+            analytics: comprehensiveData,
+          },
+        },
+      );
+
+      if (error) throw error;
+
+      // Parse navigation actions from response
+      let navigationActions: NavigationAction[] = [];
+      let content =
+        data.response ||
+        "Lo siento, no pude procesar tu solicitud en este momento.";
+
+      // Look for navigation markers in the response
+      if (data.navigationSuggestions) {
+        navigationActions = data.navigationSuggestions;
+      }
+
+      const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: "bot",
+        content,
+        timestamp: new Date(),
+        navigationActions,
+      };
+
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      console.error("Error calling AI function:", error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: "bot",
+        content:
+          "Lo siento, hubo un error al procesar tu solicitud. Por favor, inténtalo de nuevo.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSendMessage = () => {
+    sendMessage(inputMessage);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
       handleSendMessage();
     }
   };
 
-  const contextData = useMemo(() => {
-    if (!estadisticas) return '';
-    
-    return `
-    Estadísticas actuales del sistema:
-    - Total de profesionales: ${estadisticas.total}
-    - Aprobados: ${estadisticas.aprobados}
-    - Pendientes de Firma: ${estadisticas.pendientes || 0}
-    - Recibidos: ${estadisticas.recibidos}
-    - Rechazados: ${estadisticas.rechazados}
-    - En revisión: ${estadisticas.revisando}
-    - Carnets que vencen pronto: ${estadisticas.vencimientosProximos}
-    - Carnets vencidos: ${estadisticas.carnetVencidos}
-    
-    Distribución por área: ${JSON.stringify(estadisticas.porArea)}
-    Distribución por provincia: ${JSON.stringify(estadisticas.porProvincia)}
-    `;
-  }, [estadisticas]);
+  const handleSuggestedQuestion = (question: string) => {
+    sendMessage(question);
+  };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
-        <CardTitle>Asistente Virtual</CardTitle>
-        <CardDescription>
-          Pregunta sobre los datos y el estado del sistema
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-grow overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="flex flex-col space-y-4 p-3">
-            {messages.map((msg, index) => (
-              <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className="flex flex-col">
-                  <div className={`rounded-lg p-2 max-w-sm ${msg.role === 'user' ? 'bg-blue-100 text-right' : 'bg-gray-100'}`}>
-                    <p className="text-sm">{msg.content}</p>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">{msg.timestamp}</div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold text-gray-900">Análisis IA</h2>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Chat Principal */}
+        <div className="lg:col-span-2">
+          <Card className="h-[600px] flex flex-col">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center space-x-2">
+                <MessageCircle className="w-5 h-5" />
+                <span>Chat de Análisis</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col p-0">
+              <ScrollArea ref={scrollAreaRef} className="flex-1 px-6">
+                <div className="space-y-4 pb-4">
+                  {messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex items-start space-x-3 ${
+                        msg.type === "user"
+                          ? "flex-row-reverse space-x-reverse"
+                          : ""
+                      }`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          msg.type === "user"
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-200 text-gray-600"
+                        }`}
+                      >
+                        {msg.type === "user" ? (
+                          <User className="w-4 h-4" />
+                        ) : (
+                          <Bot className="w-4 h-4" />
+                        )}
+                      </div>
+                      <div
+                        className={`max-w-[80%] ${
+                          msg.type === "user" ? "text-right" : "text-left"
+                        }`}
+                      >
+                        <div
+                          className={`p-3 rounded-lg break-words ${
+                            msg.type === "user"
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-100 text-gray-900"
+                          }`}
+                        >
+                          <div className="whitespace-pre-wrap">
+                            {msg.content}
+                          </div>
+                          {msg.navigationActions &&
+                            msg.navigationActions.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                                <div className="text-sm font-medium text-gray-700">
+                                  Navegar a:
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {msg.navigationActions.map(
+                                    (action, index) => (
+                                      <Button
+                                        key={index}
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() =>
+                                          onNavigateToTab?.(
+                                            action.tab,
+                                            action.filters,
+                                          )
+                                        }
+                                        className="text-xs h-7 px-2"
+                                      >
+                                        <ExternalLink className="w-3 h-3 mr-1" />
+                                        {action.label}
+                                      </Button>
+                                    ),
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {msg.timestamp.toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {isLoading && (
+                    <div className="flex items-start space-x-3">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center">
+                        <Bot className="w-4 h-4" />
+                      </div>
+                      <div className="bg-gray-100 p-3 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Analizando datos...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+
+              <div className="border-t p-4">
+                <div className="flex space-x-2">
+                  <Textarea
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Escribe tu pregunta sobre los datos..."
+                    className="flex-1 min-h-[44px] max-h-32 resize-none"
+                    disabled={isLoading}
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={!inputMessage.trim() || isLoading}
+                    className="h-11 px-4"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
-            ))}
-            {isThinking && (
-              <div className="flex justify-start">
-                <div className="flex flex-col">
-                  <div className="rounded-lg p-2 max-w-sm bg-gray-100">
-                    <p className="text-sm">Pensando...</p>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">{new Date().toLocaleTimeString()}</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
-      </CardContent>
-      <CardFooter>
-        <div className="w-full flex items-center space-x-2">
-          <Avatar>
-            <AvatarImage src={user?.user_metadata?.avatar_url} />
-            <AvatarFallback>{user?.user_metadata?.full_name?.substring(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <Input
-            type="text"
-            placeholder="Escribe tu mensaje..."
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            disabled={isThinking}
-          />
-          <Button onClick={handleSendMessage} disabled={isThinking}>
-            Enviar <Send className="ml-2 h-4 w-4" />
-          </Button>
+            </CardContent>
+          </Card>
         </div>
-      </CardFooter>
-    </Card>
+
+        {/* Panel de Preguntas Sugeridas */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Preguntas Sugeridas</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {suggestedQuestions.map((question, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  className="w-full text-left h-auto py-3 px-4 whitespace-normal"
+                  onClick={() => handleSuggestedQuestion(question)}
+                  disabled={isLoading}
+                >
+                  <div className="text-sm">{question}</div>
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Resumen de Datos */}
+          {stats && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Resumen de Datos</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-sm space-y-2">
+                  <div className="flex justify-between">
+                    <span>Total Profesionales:</span>
+                    <span className="font-semibold">{stats.total}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Aprobados:</span>
+                    <span className="font-semibold text-green-600">
+                      {stats.aprobados}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Pendientes:</span>
+                    <span className="font-semibold text-yellow-600">
+                      {stats.pendientes}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tasa de Aprobación:</span>
+                    <span className="font-semibold">
+                      {stats.tasaAprobacion}%
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

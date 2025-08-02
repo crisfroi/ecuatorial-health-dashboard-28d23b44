@@ -126,7 +126,7 @@ export const useProfesionalesMutations = () => {
     },
   });
 
-  // Helper function to maintain backward compatibility
+  // Helper functions to maintain backward compatibility
   const updateProfesional = updateProfesionalMutation.mutate;
 
   return {
@@ -138,5 +138,8 @@ export const useProfesionalesMutations = () => {
     isUpdating: updateProfesionalMutation.isPending,
     isDeleting: deleteProfesionalMutation.isPending,
     isBulkUpdating: bulkUpdateMutation.isPending,
+    // Add mutation object properties for direct access
+    mutateAsync: updateProfesionalMutation.mutateAsync,
+    isLoading: updateProfesionalMutation.isPending, // Backwards compatibility
   };
 };

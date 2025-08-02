@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface EstadisticasData {
   total: number;
   aprobados: number;
-  pendientes: number;  // Added missing property
+  pendientes: number;  // Será "Pendiente de Firma"
   recibidos: number;
   rechazados: number;
   revisando: number;

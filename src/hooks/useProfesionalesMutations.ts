@@ -128,15 +128,11 @@ export const useProfesionalesMutations = () => {
 
   return {
     updateProfesionalMutation,
-    updateProfesional: updateProfesionalMutation.mutateAsync, // Direct access to mutateAsync
     deleteProfesionalMutation,
     bulkUpdateMutation,
     // Provide isPending instead of isLoading for compatibility
     isUpdating: updateProfesionalMutation.isPending,
     isDeleting: deleteProfesionalMutation.isPending,
     isBulkUpdating: bulkUpdateMutation.isPending,
-    // Add mutation object properties for direct access
-    mutateAsync: updateProfesionalMutation.mutateAsync,
-    isLoading: updateProfesionalMutation.isPending, // Backwards compatibility
   };
 };

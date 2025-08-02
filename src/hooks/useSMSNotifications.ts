@@ -17,7 +17,7 @@ export function useSMSNotifications(profesionalId?: string) {
     queryKey: ['sms-notifications', profesionalId],
     queryFn: async () => {
       let query = supabase
-        .from('sms_notifications_log')
+        .from('notificaciones_sms')
         .select('*')
         .order('fecha_envio', { ascending: false });
 

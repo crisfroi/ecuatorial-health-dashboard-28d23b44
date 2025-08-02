@@ -389,7 +389,8 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <ErrorBoundary>
+      <div className="space-y-6">
       {hasActiveFilters && (
         <Card className="border-guinea-teal">
           <CardHeader className="pb-3">
@@ -772,7 +773,8 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

@@ -12,6 +12,7 @@ export type Profesional =
     numero_carnet_profesional?: string;
     foto_carnet_base64?: string;
     fecha_graduacion?: number;
+    codigo_barras?: string;
   };
 
 export type ProfesionalInsert =

@@ -266,6 +266,10 @@ export function useProfesionalesMutations() {
     updateProfesional,
     updateMultipleProfesionales,
     deleteProfesional,
+    // Export loading states using isPending instead of isLoading
+    isUpdatingProfesional: updateProfesional.isPending,
+    isUpdatingMultiple: updateMultipleProfesionales.isPending,
+    isDeletingProfesional: deleteProfesional.isPending,
   };
 }
 

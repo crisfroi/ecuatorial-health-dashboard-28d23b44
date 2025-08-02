@@ -1,7 +1,7 @@
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/utils/errorHandler";
 import type { ProfesionalUpdate } from "./useProfesionales";
 
 export const useProfesionalesMutations = () => {
@@ -9,22 +9,39 @@ export const useProfesionalesMutations = () => {
   const { toast } = useToast();
 
   const updateProfesionalMutation = useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & ProfesionalUpdate) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: ProfesionalUpdate }) => {
       console.log("Updating professional:", id, updates);
-      
-      const { data, error } = await supabase
-        .from("profesionales_sanitarios")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .single();
 
-      if (error) {
-        console.error("Error updating professional:", error);
-        throw error;
+      try {
+        const { data, error } = await supabase
+          .from("profesionales_sanitarios")
+          .update(updates)
+          .eq("id", id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Supabase error updating professional:", {
+            error,
+            id,
+            updates,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          throw new Error(getErrorMessage(error));
+        }
+
+        if (!data) {
+          throw new Error("No data returned from update operation");
+        }
+
+        return data;
+      } catch (networkError) {
+        console.error("Network/connection error:", networkError);
+        throw new Error(getErrorMessage(networkError));
       }
-
-      return data;
     },
     onSuccess: (data) => {
       console.log("Professional updated successfully:", data.id);
@@ -38,9 +55,10 @@ export const useProfesionalesMutations = () => {
     },
     onError: (error: any) => {
       console.error("Error updating professional:", error);
+      const errorMessage = getErrorMessage(error);
       toast({
         title: "Error al actualizar",
-        description: error.message || "No se pudo actualizar el profesional",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -74,9 +92,10 @@ export const useProfesionalesMutations = () => {
     },
     onError: (error: any) => {
       console.error("Error deleting professional:", error);
+      const errorMessage = getErrorMessage(error);
       toast({
         title: "Error al eliminar",
-        description: error.message || "No se pudo eliminar el profesional",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -118,18 +137,19 @@ export const useProfesionalesMutations = () => {
     },
     onError: (error: any) => {
       console.error("Error in bulk update:", error);
+      const errorMessage = getErrorMessage(error);
       toast({
         title: "Error en actualización masiva",
-        description: error.message || "No se pudo completar la actualización masiva",
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
 
   return {
-    updateProfesionalMutation,
-    deleteProfesionalMutation,
-    bulkUpdateMutation,
+    updateProfesional: updateProfesionalMutation,
+    deleteProfesional: deleteProfesionalMutation,
+    bulkUpdate: bulkUpdateMutation,
     // Provide isPending instead of isLoading for compatibility
     isUpdating: updateProfesionalMutation.isPending,
     isDeleting: deleteProfesionalMutation.isPending,

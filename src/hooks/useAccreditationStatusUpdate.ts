@@ -18,16 +18,41 @@ export const useAccreditationStatusUpdate = () => {
   const updateAccreditationStatus = useMutation({
     mutationFn: async (): Promise<AccreditationUpdateResponse> => {
       try {
-        const { data, error } = await supabase.functions.invoke('update-accreditation-status', {
-          body: {},
-        });
+        // Get current session for authentication
+        const { data: { session } } = await supabase.auth.getSession();
 
-        if (error) {
-          console.error('Supabase function error:', error);
-          throw new Error(`Error al actualizar estados: ${error.message}`);
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkaWV5bmVuZGZqYmtiaGZvdnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3ODI5MjEsImV4cCI6MjA2NjM1ODkyMX0.yFnLHavy8wzVjlg3sAI2mEG-XGDCV5FSr7OQsMefxL8",
+        };
+
+        // Add authorization if user is logged in
+        if (session?.access_token) {
+          headers["Authorization"] = `Bearer ${session.access_token}`;
         }
 
-        return data;
+        const response = await fetch(
+          "https://wdieynendfjbkbhfovrx.supabase.co/functions/v1/update-accreditation-status",
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify({}),
+          }
+        );
+
+        const text = await response.text();
+
+        if (!response.ok) {
+          console.error('Function response error:', { status: response.status, text });
+          throw new Error(`Error al actualizar estados (${response.status}): ${text}`);
+        }
+
+        try {
+          return JSON.parse(text);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError, 'Text:', text);
+          throw new Error(`Error parsing response: ${parseError}`);
+        }
       } catch (networkError) {
         console.error('Network/connection error:', networkError);
         throw new Error(`Error de conexión: ${networkError.message}`);

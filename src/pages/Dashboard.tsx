@@ -335,7 +335,10 @@ const Dashboard = () => {
     { id: "incidents", label: "Incidencias", icon: Activity },
     { id: "health-centers", label: "Centros", icon: MapPin },
     ...(userRole === "administrador"
-      ? [{ id: "users", label: "Usuarios", icon: Users }]
+      ? [
+          { id: "users", label: "Usuarios", icon: Users },
+          { id: "diagnostic", label: "Diagnóstico DB", icon: AlertTriangle }
+        ]
       : []),
   ];
 

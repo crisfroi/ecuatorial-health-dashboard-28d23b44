@@ -1,39 +1,47 @@
-import React, { Component, ErrorInfo, ReactNode } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from './button';
+import { Card, CardContent, CardHeader, CardTitle } from './card';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 interface State {
   hasError: boolean;
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
+  error?: Error;
+  errorInfo?: ErrorInfo;
 }
 
-class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false,
-    error: null,
-    errorInfo: null,
-  };
-
-  public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error, errorInfo: null };
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    
     this.setState({
       error,
       errorInfo,
     });
+
+    // Call optional error handler
+    this.props.onError?.(error, errorInfo);
   }
 
-  public render() {
+  handleReset = () => {
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+  };
+
+  render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
@@ -42,42 +50,62 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <Card className="border-red-200 bg-red-50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-700">
+            <CardTitle className="flex items-center gap-2 text-red-800">
               <AlertTriangle className="w-5 h-5" />
-              Error en el componente
+              Error de Aplicación
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-red-600">
-              Se produjo un error inesperado. Por favor, recarga la página.
-            </p>
-
-            {process.env.NODE_ENV === "development" && this.state.error && (
-              <div className="bg-red-100 p-3 rounded border border-red-200">
-                <h4 className="font-semibold text-red-800 mb-2">
-                  Detalles del error:
-                </h4>
-                <pre className="text-xs text-red-700 overflow-auto">
-                  {this.state.error.toString()}
-                  {this.state.errorInfo?.componentStack}
-                </pre>
-              </div>
-            )}
-
-            <Button
-              onClick={() => {
-                this.setState({
-                  hasError: false,
-                  error: null,
-                  errorInfo: null,
-                });
-                window.location.reload();
-              }}
-              className="w-full"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Recargar página
-            </Button>
+            <div className="text-red-700">
+              <p className="mb-2">
+                Se ha producido un error inesperado. Por favor, intente recargar la sección.
+              </p>
+              {this.state.error && (
+                <details className="mt-4 p-3 bg-red-100 rounded text-sm">
+                  <summary className="cursor-pointer font-medium">
+                    Detalles técnicos (para desarrollo)
+                  </summary>
+                  <div className="mt-2 space-y-2">
+                    <div>
+                      <strong>Error:</strong> {this.state.error.message}
+                    </div>
+                    {this.state.error.stack && (
+                      <div>
+                        <strong>Stack:</strong>
+                        <pre className="whitespace-pre-wrap text-xs mt-1">
+                          {this.state.error.stack}
+                        </pre>
+                      </div>
+                    )}
+                    {this.state.errorInfo && (
+                      <div>
+                        <strong>Component Stack:</strong>
+                        <pre className="whitespace-pre-wrap text-xs mt-1">
+                          {this.state.errorInfo.componentStack}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                </details>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={this.handleReset}
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Reintentar
+              </Button>
+              <Button
+                onClick={() => window.location.reload()}
+                variant="outline"
+                size="sm"
+              >
+                Recargar Página
+              </Button>
+            </div>
           </CardContent>
         </Card>
       );
@@ -87,4 +115,18 @@ class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-export default ErrorBoundary;
+// Hook version for functional components
+export const withErrorBoundary = <P extends object>(
+  Component: React.ComponentType<P>,
+  errorBoundaryProps?: Omit<Props, 'children'>
+) => {
+  const WrappedComponent = (props: P) => (
+    <ErrorBoundary {...errorBoundaryProps}>
+      <Component {...props} />
+    </ErrorBoundary>
+  );
+
+  WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`;
+  
+  return WrappedComponent;
+};

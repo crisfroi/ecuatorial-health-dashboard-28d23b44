@@ -35,6 +35,7 @@ import SimpleConnectionTest from "@/components/dashboard/SimpleConnectionTest";
 import SupabaseConnectionTest from "@/components/dashboard/SupabaseConnectionTest";
 import SupabaseDebugTest from "@/components/dashboard/SupabaseDebugTest";
 import UserRoleManagement from "@/components/dashboard/UserRoleManagement";
+import ConnectivityDiagnostic from "@/components/dashboard/ConnectivityDiagnostic";
 
 const AdminPanel = () => {
   const navigate = useNavigate();

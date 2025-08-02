@@ -126,18 +126,9 @@ export const useProfesionalesMutations = () => {
     },
   });
 
-  // Create a proper function wrapper for updateProfesional with mutateAsync
-  const updateProfesionalFunction = Object.assign(
-    updateProfesionalMutation.mutate,
-    {
-      mutateAsync: updateProfesionalMutation.mutateAsync,
-      isLoading: updateProfesionalMutation.isPending,
-    }
-  );
-
   return {
     updateProfesionalMutation,
-    updateProfesional: updateProfesionalFunction, // For backward compatibility
+    updateProfesional: updateProfesionalMutation.mutateAsync, // Direct access to mutateAsync
     deleteProfesionalMutation,
     bulkUpdateMutation,
     // Provide isPending instead of isLoading for compatibility

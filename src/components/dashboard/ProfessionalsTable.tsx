@@ -712,7 +712,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                               size="icon"
                               variant="ghost"
                               onClick={() => handleSaveState(profesional.id!)}
-                              disabled={updateProfesional.isLoading}
+                              disabled={updateProfesional.isPending}
                             >
                               <Save className="w-4 h-4 text-green-600" />
                             </Button>

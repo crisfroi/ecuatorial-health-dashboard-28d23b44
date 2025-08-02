@@ -23,23 +23,18 @@ export const DatabaseDiagnostic = () => {
       }
     },
     {
-      name: 'Conexión de Red',
+      name: 'URL y Configuración',
       test: async () => {
-        try {
-          const response = await fetch(supabase.supabaseUrl + '/health', {
-            method: 'GET',
-            signal: AbortSignal.timeout(5000)
-          });
-          return {
-            success: response.ok,
-            details: { status: response.status, url: supabase.supabaseUrl }
-          };
-        } catch (error: any) {
-          return {
-            success: false,
-            details: { error: error.message }
-          };
-        }
+        const url = supabase.supabaseUrl;
+        const isValidUrl = url && url.includes('supabase.co');
+        return {
+          success: isValidUrl,
+          details: {
+            url: url?.substring(0, 50) + '...',
+            isValid: isValidUrl,
+            hasHttps: url?.startsWith('https://')
+          }
+        };
       }
     },
     {

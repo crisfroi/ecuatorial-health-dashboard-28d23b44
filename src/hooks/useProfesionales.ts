@@ -42,7 +42,6 @@ interface Filtros {
   provincia?: string;
   genero?: string;
   tipo_sector?: string;
-  search?: string;
   distrito?: string;
   distrito_sanitario?: string;
   anoGraduacion?: string;
@@ -114,15 +113,12 @@ export function useProfesionales(filtros: Filtros = {}) {
         query = query.eq("distrito", filtros.distrito);
       }
 
-      if (filtros.anoGraduacion && filtros.anoGraduacion !== "todos") {
-        query = query.eq("año_graduacion", parseInt(filtros.anoGraduacion));
+      if (filtros.distrito_sanitario && filtros.distrito_sanitario !== "todos") {
+        query = query.eq("distrito_sanitario", filtros.distrito_sanitario);
       }
 
-      if (
-        filtros.distrito_sanitario &&
-        filtros.distrito_sanitario !== "todos"
-      ) {
-        query = query.eq("distrito_sanitario", filtros.distrito_sanitario);
+      if (filtros.anoGraduacion && filtros.anoGraduacion !== "todos") {
+        query = query.eq("año_graduacion", parseInt(filtros.anoGraduacion));
       }
 
       if (filtros.lugar_trabajo && filtros.lugar_trabajo !== "todos") {

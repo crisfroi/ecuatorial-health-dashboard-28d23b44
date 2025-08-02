@@ -1,3 +1,4 @@
+
 import { useCallback } from "react";
 
 export interface NavigationFilters {
@@ -10,6 +11,8 @@ export interface NavigationFilters {
   edad_minima?: number;
   edad_maxima?: number;
   año_graduacion?: number;
+  categoria_titulacion?: string;
+  categoria_centro?: string;
 }
 
 export interface DashboardNavigationProps {
@@ -108,9 +111,9 @@ export const useDashboardNavigation = (
   );
 
   const navigateToRenewals = useCallback(
-    (priority?: "alta" | "media" | "baja" | "vencido") => {
+    (priority?: "alta" | "media" | "baja" | "vencido" | "all") => {
       onNavigateToTab("renewals", {
-        prioridad_renovacion: priority || "all",
+        // prioridad_renovacion: priority || "all",
       });
     },
     [onNavigateToTab],

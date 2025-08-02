@@ -11,6 +11,7 @@ interface Filtros {
   genero?: string;
   tipo_sector?: string;
   distrito?: string;
+  distrito_sanitario?: string;
   anoGraduacion?: string;
 }
 
@@ -48,7 +49,7 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Área Profesional</label>
             <Select value={filters.area_profesional || 'todos'} onValueChange={(value) => updateFilter('area_profesional', value)}>
@@ -74,11 +75,11 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="Pendiente">Pendiente</SelectItem>
+                <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
                 <SelectItem value="Aprobado">Aprobado</SelectItem>
                 <SelectItem value="Rechazado">Rechazado</SelectItem>
                 <SelectItem value="Revisando">Revisando</SelectItem>
-                <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
+                <SelectItem value="Recibido">Recibido</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -99,6 +100,26 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
                 <SelectItem value="Kankan">Kankan</SelectItem>
                 <SelectItem value="Nzérékoré">Nzérékoré</SelectItem>
                 <SelectItem value="Mamou">Mamou</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Distrito Sanitario</label>
+            <Select value={filters.distrito_sanitario || 'todos'} onValueChange={(value) => updateFilter('distrito_sanitario', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los distritos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los distritos</SelectItem>
+                <SelectItem value="Distrito Sanitario de Conakry">Distrito Sanitario de Conakry</SelectItem>
+                <SelectItem value="Distrito Sanitario de Kindia">Distrito Sanitario de Kindia</SelectItem>
+                <SelectItem value="Distrito Sanitario de Boké">Distrito Sanitario de Boké</SelectItem>
+                <SelectItem value="Distrito Sanitario de Labé">Distrito Sanitario de Labé</SelectItem>
+                <SelectItem value="Distrito Sanitario de Faranah">Distrito Sanitario de Faranah</SelectItem>
+                <SelectItem value="Distrito Sanitario de Kankan">Distrito Sanitario de Kankan</SelectItem>
+                <SelectItem value="Distrito Sanitario de Nzérékoré">Distrito Sanitario de Nzérékoré</SelectItem>
+                <SelectItem value="Distrito Sanitario de Mamou">Distrito Sanitario de Mamou</SelectItem>
               </SelectContent>
             </Select>
           </div>

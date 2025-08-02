@@ -149,59 +149,65 @@ export const DatabaseDiagnostic = () => {
   };
 
   return (
-    <Card className="w-full max-w-4xl">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <AlertCircle className="h-5 w-5" />
-          Diagnóstico de Base de Datos
-        </CardTitle>
-        <Button 
-          onClick={runDiagnostics} 
-          disabled={isRunning}
-          className="w-fit"
-        >
-          {isRunning ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Ejecutando...
-            </>
-          ) : (
-            'Ejecutar Diagnóstico'
-          )}
-        </Button>
-      </CardHeader>
+    <div className="space-y-6 w-full max-w-4xl">
+      {/* Test Rápido */}
+      <QuickConnectivityTest />
       
-      <CardContent className="space-y-4">
-        {results.map((result, index) => (
-          <div key={index} className="border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                {getStatusIcon(result.success)}
-                <span className="font-medium">{result.name}</span>
-                <Badge variant={result.success ? "default" : "destructive"}>
-                  {result.success ? "OK" : "ERROR"}
-                </Badge>
-              </div>
-              <span className="text-sm text-muted-foreground">
-                {result.timestamp}
-              </span>
-            </div>
-            
-            <div className="bg-muted p-3 rounded text-sm">
-              <pre className="whitespace-pre-wrap">
-                {JSON.stringify(result.details, null, 2)}
-              </pre>
-            </div>
-          </div>
-        ))}
+      {/* Diagnóstico Completo */}
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            Diagnóstico Completo de Base de Datos
+          </CardTitle>
+          <Button 
+            onClick={runDiagnostics} 
+            disabled={isRunning}
+            className="w-fit"
+          >
+            {isRunning ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Ejecutando...
+              </>
+            ) : (
+              'Ejecutar Diagnóstico Completo'
+            )}
+          </Button>
+        </CardHeader>
         
-        {isRunning && results.length < tests.length && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Ejecutando test {results.length + 1} de {tests.length}...</span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        <CardContent className="space-y-4">
+          {results.map((result, index) => (
+            <div key={index} className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(result.success)}
+                  <span className="font-medium">{result.name}</span>
+                  <Badge variant={result.success ? "default" : "destructive"}>
+                    {result.success ? "OK" : "ERROR"}
+                  </Badge>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {result.timestamp}
+                </span>
+              </div>
+              
+              <div className="bg-muted p-3 rounded text-sm">
+                <pre className="whitespace-pre-wrap">
+                  {JSON.stringify(result.details, null, 2)}
+                </pre>
+              </div>
+            </div>
+          ))}
+          
+          {isRunning && results.length < tests.length && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Ejecutando test {results.length + 1} de {tests.length}...</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };

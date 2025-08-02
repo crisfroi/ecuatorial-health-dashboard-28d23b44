@@ -1,17 +1,23 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Shield, Calendar, User, Award, ArrowLeft } from 'lucide-react';
+import { Search, Shield, Calendar, User, Award, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePublicSearch } from '@/hooks/usePublicSearch';
+import { useAccreditationStatusUpdate } from '@/hooks/useAccreditationStatusUpdate';
 
 const PublicSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<'carnet' | 'nombre'>('carnet');
   const { data: results, isLoading, error, refetch } = usePublicSearch(searchTerm, searchType);
+  const { updateAccreditationStatus, isUpdating } = useAccreditationStatusUpdate();
+
+  // Ejecutar actualización automática de estados al cargar el componente
+  useEffect(() => {
+    updateAccreditationStatus();
+  }, [updateAccreditationStatus]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +46,16 @@ const PublicSearch = () => {
                 </h1>
               </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={updateAccreditationStatus}
+              disabled={isUpdating}
+              className="flex items-center space-x-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} />
+              <span>{isUpdating ? 'Actualizando...' : 'Actualizar Estados'}</span>
+            </Button>
           </div>
         </div>
       </header>
@@ -134,8 +150,18 @@ const PublicSearch = () => {
                         <User className="w-5 h-5 text-green-600" />
                         <span>{profesional.nombre_completo}</span>
                       </CardTitle>
-                      <Badge className="bg-green-100 text-green-800">
-                        {profesional.estado_solicitud === 'Aprobado' ? 'Acreditado' : profesional.estado_solicitud}
+                      <Badge className={`${
+                        profesional.estado_acreditacion === 'vigente'
+                          ? 'bg-green-100 text-green-800'
+                          : profesional.estado_acreditacion === 'proximo_vencimiento'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {profesional.estado_acreditacion === 'vigente'
+                          ? 'Acreditado Vigente'
+                          : profesional.estado_acreditacion === 'proximo_vencimiento'
+                          ? 'Próximo a Vencer'
+                          : 'Acreditación Vencida'}
                       </Badge>
                     </div>
                   </CardHeader>
@@ -171,13 +197,23 @@ const PublicSearch = () => {
                         </div>
                         <div className="flex items-center space-x-2">
                           <div className={`w-3 h-3 rounded-full ${
-                            new Date(profesional.fecha_validez) > new Date() 
-                              ? 'bg-green-500' 
+                            profesional.estado_acreditacion === 'vigente'
+                              ? 'bg-green-500'
+                              : profesional.estado_acreditacion === 'proximo_vencimiento'
+                              ? 'bg-yellow-500'
                               : 'bg-red-500'
                           }`}></div>
-                          <span className="text-sm font-medium">
-                            {new Date(profesional.fecha_validez) > new Date() 
-                              ? 'Carnet Vigente' 
+                          <span className={`text-sm font-medium ${
+                            profesional.estado_acreditacion === 'vigente'
+                              ? 'text-green-600'
+                              : profesional.estado_acreditacion === 'proximo_vencimiento'
+                              ? 'text-yellow-600'
+                              : 'text-red-600'
+                          }`}>
+                            {profesional.estado_acreditacion === 'vigente'
+                              ? 'Carnet Vigente'
+                              : profesional.estado_acreditacion === 'proximo_vencimiento'
+                              ? `Próximo a Vencer (${profesional.dias_hasta_vencimiento} días)`
                               : 'Carnet Vencido'}
                           </span>
                         </div>
@@ -197,6 +233,10 @@ const PublicSearch = () => {
             <CardContent>
               <div className="space-y-2 text-blue-700">
                 <p>• Solo se muestran profesionales con estado "Acreditado"</p>
+                <p>• Los estados se actualizan automáticamente según las fechas de caducidad</p>
+                <p>• <span className="font-medium text-green-700">Verde:</span> Carnet vigente</p>
+                <p>• <span className="font-medium text-yellow-700">Amarillo:</span> Próximo a vencer (30 días o menos)</p>
+                <p>• <span className="font-medium text-red-700">Rojo:</span> Carnet vencido</p>
                 <p>• Verifique siempre la fecha de validez del carnet profesional</p>
                 <p>• En caso de dudas, contacte al Ministerio de Sanidad</p>
                 <p>• Esta información es de carácter público y verificable</p>

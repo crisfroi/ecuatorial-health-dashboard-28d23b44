@@ -382,7 +382,7 @@ const RenewalAlerts = ({
             </Button>
 
             <DropdownMenu>
-              <DropdownMenuTrigger>
+              <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
                   Ver por:{" "}
                   {selectedPriorityFilter === "all"

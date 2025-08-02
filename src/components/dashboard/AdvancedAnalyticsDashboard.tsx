@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,7 @@ import {
   useCenterCategoryStats,
   useTitulacionCategoryStats,
 } from "@/hooks/useAdvancedAnalytics";
+import { useQueryClient } from "@tanstack/react-query";
 import DistrictAnalytics from "./DistrictAnalytics";
 import InteractiveCharts from "./InteractiveCharts";
 import AnalyticsSummary from "./AnalyticsSummary";
@@ -102,6 +103,23 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
 }) => {
   const [selectedView, setSelectedView] = useState("overview");
   const [selectedDistrict, setSelectedDistrict] = useState("all");
+  const queryClient = useQueryClient();
+
+  // Auto-refresh data every 30 seconds for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["topCenters"] });
+      queryClient.invalidateQueries({ queryKey: ["areaProfessionalStats"] });
+      queryClient.invalidateQueries({ queryKey: ["districtStats"] });
+      queryClient.invalidateQueries({ queryKey: ["ageRangeStats"] });
+      queryClient.invalidateQueries({ queryKey: ["countryStats"] });
+      queryClient.invalidateQueries({ queryKey: ["institutionStats"] });
+      queryClient.invalidateQueries({ queryKey: ["centerCategoryStats"] });
+      queryClient.invalidateQueries({ queryKey: ["titulacionCategoryStats"] });
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [queryClient]);
 
   // Navigation hooks
   const {
@@ -576,6 +594,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       label={(entry) =>
                         `${entry.categoria_titulacion} (${entry.total})`
                       }
+                      onClick={(data) => onNavigateToTab && onNavigateToTab("professionals", { categoria_titulacion: data.categoria_titulacion })}
+                      className="cursor-pointer hover:opacity-80"
                     >
                       {titulacionStats.slice(0, 8).map((entry, index) => (
                         <Cell
@@ -686,12 +706,15 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
         {/* Centers Tab */}
         <TabsContent value="centers" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-blue-300">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-blue-600" />
                   Top 10 Centros por Profesionales
                 </CardTitle>
+                <p className="text-sm text-gray-600">
+                  Clic en cualquier barra para ver profesionales del centro
+                </p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={350}>
@@ -705,18 +728,26 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       fontSize={10}
                     />
                     <Tooltip />
-                    <Bar dataKey="total_profesionales" fill="#0088FE" />
+                    <Bar
+                      dataKey="total_profesionales"
+                      fill="#0088FE"
+                      onClick={(data) => navigateToCenter(data.nombre)}
+                      className="cursor-pointer hover:opacity-80"
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-green-300">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <PieChartIcon className="w-5 h-5 text-green-600" />
                   Centros por Categoría
                 </CardTitle>
+                <p className="text-sm text-gray-600">
+                  Clic en cualquier sector para ver centros de esa categoría
+                </p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -731,6 +762,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       label={(entry) =>
                         `${entry.categoria} (${entry.total_centros})`
                       }
+                      onClick={(data) => onNavigateToTab && onNavigateToTab("professionals", { categoria_centro: data.categoria })}
+                      className="cursor-pointer hover:opacity-80"
                     >
                       {categoryStats.map((entry, index) => (
                         <Cell
@@ -746,9 +779,12 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
             </Card>
           </div>
 
-          <Card>
+          <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-purple-300">
             <CardHeader>
               <CardTitle>Análisis de Categorías de Centros</CardTitle>
+              <p className="text-sm text-gray-600">
+                Clic en cualquier barra para ver profesionales de esa categoría
+              </p>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -762,11 +798,15 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     dataKey="total_centros"
                     fill="#8884d8"
                     name="Total Centros"
+                    onClick={(data) => onNavigateToTab && onNavigateToTab("professionals", { categoria_centro: data.categoria })}
+                    className="cursor-pointer hover:opacity-80"
                   />
                   <Bar
                     dataKey="total_profesionales"
                     fill="#82ca9d"
                     name="Total Profesionales"
+                    onClick={(data) => onNavigateToTab && onNavigateToTab("professionals", { categoria_centro: data.categoria })}
+                    className="cursor-pointer hover:opacity-80"
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -934,7 +974,12 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     <XAxis dataKey="rango_edad" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="cantidad" fill="#8884d8" />
+                    <Bar
+                      dataKey="cantidad"
+                      fill="#8884d8"
+                      onClick={(data) => navigateToAgeRange(data.rango_edad)}
+                      className="cursor-pointer hover:opacity-80"
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -960,6 +1005,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       label={(entry) =>
                         `${entry.rango_edad} (${entry.porcentaje.toFixed(1)}%)`
                       }
+                      onClick={(data) => navigateToAgeRange(data.rango_edad)}
+                      className="cursor-pointer hover:opacity-80"
                     >
                       {ageRangeStats.map((entry, index) => (
                         <Cell
@@ -1028,7 +1075,12 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="cantidad" fill="#0088FE" />
+                    <Bar
+                      dataKey="cantidad"
+                      fill="#0088FE"
+                      onClick={(data) => navigateToCountry(data.pais_formacion)}
+                      className="cursor-pointer hover:opacity-80"
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>

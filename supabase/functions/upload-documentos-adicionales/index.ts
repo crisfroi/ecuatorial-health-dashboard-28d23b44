@@ -91,27 +91,34 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Verificar que el profesional existe
-    const { data: professional, error: professionalError } = await supabaseClient
-      .from("profesionales_sanitarios")
-      .select("id, nombre_completo")
-      .eq("id", profesionalId)
-      .single();
+    // Verificar si es un ID temporal para registro (comienza con "temp_")
+    const isTemporalId = profesionalId.startsWith("temp_");
+    let professional: any = null;
 
-    if (professionalError || !professional) {
-      return new Response(
-        JSON.stringify({
-          error: "Professional not found",
-          details: professionalError?.message,
-        }),
-        {
-          status: 404,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
+    if (!isTemporalId) {
+      // Verificar que el profesional existe para IDs regulares
+      const { data: profData, error: professionalError } = await supabaseClient
+        .from("profesionales_sanitarios")
+        .select("id, nombre_completo")
+        .eq("id", profesionalId)
+        .single();
+
+      if (professionalError || !profData) {
+        return new Response(
+          JSON.stringify({
+            error: "Professional not found",
+            details: professionalError?.message,
+          }),
+          {
+            status: 404,
+            headers: {
+              "Content-Type": "application/json",
+              ...corsHeaders,
+            },
           },
-        },
-      );
+        );
+      }
+      professional = profData;
     }
 
     const uploadedDocumentsUrls: string[] = [];
@@ -246,8 +253,8 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Actualizar registro en la base de datos
-    if (uploadedDocumentsUrls.length > 0) {
+    // Actualizar registro en la base de datos (solo si no es ID temporal)
+    if (uploadedDocumentsUrls.length > 0 && !isTemporalId) {
       // Obtener documentos existentes
       const { data: existingData, error: fetchError } = await supabaseClient
         .from("profesionales_sanitarios")
@@ -275,8 +282,8 @@ Deno.serve(async (req: Request) => {
       }
 
       // Combinar documentos existentes con los nuevos
-      const existingDocs = Array.isArray(existingData?.documentos_adicionales) 
-        ? existingData.documentos_adicionales 
+      const existingDocs = Array.isArray(existingData?.documentos_adicionales)
+        ? existingData.documentos_adicionales
         : [];
       const allDocuments = [...existingDocs, ...uploadedDocumentsUrls];
 
@@ -310,7 +317,7 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      // Respuesta exitosa
+      // Respuesta exitosa para profesional existente
       return new Response(
         JSON.stringify({
           success: true,
@@ -321,6 +328,27 @@ Deno.serve(async (req: Request) => {
           total_documents: allDocuments.length,
           results,
           updated_record: dbUpdateData,
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        },
+      );
+    }
+
+    // Respuesta para ID temporal (registro en progreso)
+    if (uploadedDocumentsUrls.length > 0 && isTemporalId) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: `${uploadedDocumentsUrls.length} documentos subidos correctamente para registro.`,
+          profesional_id: profesionalId,
+          is_temporal: true,
+          uploaded_urls: uploadedDocumentsUrls,
+          results,
         }),
         {
           status: 200,

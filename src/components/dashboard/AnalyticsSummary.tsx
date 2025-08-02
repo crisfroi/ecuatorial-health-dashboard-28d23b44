@@ -380,12 +380,14 @@ const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
             <AlertTriangle className="w-5 h-5 text-orange-600" />
             Áreas que Necesitan Mayor Refuerzo
           </CardTitle>
+          <p className="text-sm text-gray-600">
+            Áreas con menor número de profesionales aprobados
+          </p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {areaStats
-              .filter((area) => area.pendientes > 0)
-              .sort((a, b) => b.pendientes / b.total - a.pendientes / a.total)
+              .sort((a, b) => a.aprobados - b.aprobados)
               .slice(0, 6)
               .map((area, index) => (
                 <div
@@ -394,12 +396,18 @@ const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
                   onClick={() =>
                     onNavigateToArea && onNavigateToArea(area.area_profesional)
                   }
-                  title={`Haz clic para ver profesionales pendientes de ${area.area_profesional}`}
+                  title={`Haz clic para ver profesionales de ${area.area_profesional}`}
                 >
                   <h4 className="font-semibold text-sm mb-2">
                     {area.area_profesional}
                   </h4>
                   <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span>Aprobados:</span>
+                      <span className="font-medium text-red-600">
+                        {area.aprobados}
+                      </span>
+                    </div>
                     <div className="flex justify-between text-xs">
                       <span>Pendientes:</span>
                       <span className="font-medium text-orange-600">
@@ -409,12 +417,6 @@ const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
                     <div className="flex justify-between text-xs">
                       <span>Total:</span>
                       <span className="font-medium">{area.total}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span>% Pendiente:</span>
-                      <span className="font-medium text-red-600">
-                        {((area.pendientes / area.total) * 100).toFixed(1)}%
-                      </span>
                     </div>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-3">

@@ -1051,7 +1051,7 @@ const RequestsPanel = ({
 
                 {allSelectedArePendingFirm && (
                   <DropdownMenu>
-                    <DropdownMenuTrigger>
+                    <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
                         className="flex items-center gap-2"
@@ -1099,7 +1099,7 @@ const RequestsPanel = ({
                     />
                   </TableHead>
                   <TableHead>Nombre Completo</TableHead>
-                  <TableHead>Profesión</TableHead>
+                  <TableHead>Area Profesional</TableHead>
                   <TableHead>Centro de Trabajo</TableHead>
                   <TableHead>Distrito Sanitario</TableHead>
                   <TableHead>Fecha Solicitud</TableHead>
@@ -1264,7 +1264,7 @@ const RequestsPanel = ({
                                 </Button>
 
                                 <DropdownMenu>
-                                  <DropdownMenuTrigger>
+                                  <DropdownMenuTrigger asChild>
                                     <Button
                                       variant="ghost"
                                       size="sm"

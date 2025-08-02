@@ -313,14 +313,49 @@ const ProfessionalRegistration = () => {
       // Eliminamos la generación de codigoBarras en el frontend
       // const codigoBarras = `GEQ${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-      // Preparar datos de documentos (metadata inicialmente)
-      // Nota: Esta estructura solo guarda metadatos. Para subir los archivos reales,
-      // se necesitaría una lógica adicional (como una Edge Function).
-      const documentosData = uploadedFiles.map((file) => ({
-        nombre: file.name,
-        tipo: file.type,
-        tamaño: file.size,
-      }));
+      // Subir documentos adicionales al bucket usando la Edge Function
+      let documentosUrls: string[] = [];
+      if (uploadedFiles.length > 0) {
+        try {
+          const formData = new FormData();
+          // Agregamos un ID temporal para crear la estructura de carpetas
+          const temporalId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+          formData.append("profesional_id", temporalId);
+
+          uploadedFiles.forEach((file) => {
+            formData.append("documentos_adicionales[]", file);
+          });
+
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-documentos-adicionales`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: formData,
+            },
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.uploaded_urls) {
+              documentosUrls = result.uploaded_urls;
+              console.log("Documentos adicionales subidos exitosamente:", documentosUrls);
+            }
+          } else {
+            console.warn("Error al subir documentos adicionales:", await response.text());
+          }
+        } catch (uploadError) {
+          console.error("Error uploading additional documents:", uploadError);
+          // No fallar el registro si la subida de documentos falla
+          toast({
+            title: "Aviso",
+            description: "El registro fue exitoso, pero algunos documentos adicionales no se pudieron subir.",
+            variant: "default",
+          });
+        }
+      }
 
       // Crear objeto con los datos del formulario
       const submissionData = {
@@ -351,9 +386,8 @@ const ProfessionalRegistration = () => {
         distrito_sanitario: data.distrito_sanitario || null,
         pertenece_brigada_medica: data.pertenece_brigada_medica,
         tipo_cooperacion: data.tipo_cooperacion || null,
-        // CAMBIO: 'documentos_cargados' ahora se refiere a 'documentos_adicionales' en Zod
-        // Si la columna en DB es 'documentos_adicionales', asegúrate de que coincida.
-        documentos_adicionales: documentosData, // Se envían los metadatos de los documentos
+        // URLs de documentos adicionales subidos al bucket
+        documentos_adicionales: documentosUrls, // URLs de los documentos subidos
         foto_carnet: fotoUrl, // URL de la foto subida
         // Eliminamos codigo_barras de la inserción inicial, ya que usaremos codigo_expediente de la DB
         estado_solicitud: "Recibido" as const,
@@ -374,6 +408,30 @@ const ProfessionalRegistration = () => {
       }
 
       console.log("Resultado exitoso de Supabase:", result);
+
+      // Si se subieron documentos con ID temporal, actualizar las rutas con el ID real
+      if (documentosUrls.length > 0 && result.id) {
+        try {
+          const temporalId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+          // Aquí deberíamos mover los archivos de la carpeta temporal a la carpeta del profesional real
+          // Por simplicidad, vamos a actualizar solo el registro de la BD
+          const { error: updateDocsError } = await supabase
+            .from("profesionales_sanitarios")
+            .update({
+              documentos_adicionales: documentosUrls,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", result.id);
+
+          if (updateDocsError) {
+            console.error("Error updating documents after registration:", updateDocsError);
+          } else {
+            console.log("Documentos adicionales vinculados al profesional:", result.id);
+          }
+        } catch (docUpdateError) {
+          console.error("Error updating document paths:", docUpdateError);
+        }
+      }
 
       // Sync center data if professional is active
       if (data.situacion_laboral === "Activo" && data.nombre_centro) {

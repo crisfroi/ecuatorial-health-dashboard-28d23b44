@@ -38,66 +38,30 @@ export function useSupabaseConnectivity() {
 
         // Test 4: Try simplest possible database query
         console.log("Testing database access...");
+        const { data, error } = await supabase
+          .from("profesionales_sanitarios")
+          .select("id")
+          .limit(1);
 
-        // First try: Get table info (metadata query)
-        try {
-          const { error: metaError } = await supabase
-            .from("profesionales_sanitarios")
-            .select("id", { count: "exact", head: true });
-
-          if (metaError) {
-            console.log("Metadata query error:", {
-              message: metaError.message,
-              details: metaError.details,
-              hint: metaError.hint,
-              code: metaError.code,
-            });
-            throw metaError;
-          }
-
-          console.log("✓ Table metadata accessible");
-        } catch (metaErr: any) {
-          console.error("Table metadata failed:", metaErr);
-          const errorDetails = {
-            message: metaErr?.message || "Unknown error",
-            details: metaErr?.details || null,
-            hint: metaErr?.hint || null,
-            code: metaErr?.code || null,
-          };
-          const fullErrorMessage = `${errorDetails.message}${errorDetails.details ? ` (${errorDetails.details})` : ""}${errorDetails.hint ? ` Hint: ${errorDetails.hint}` : ""}${errorDetails.code ? ` Code: ${errorDetails.code}` : ""}`;
-          throw new Error(`Table access failed: ${fullErrorMessage}`);
+        if (error) {
+          console.log("Database query error:", {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+          });
+          throw error;
         }
 
-        // Test 5: Try to get one record
-        try {
-          const { data, error } = await supabase
-            .from("profesionales_sanitarios")
-            .select("id")
-            .limit(1);
+        console.log("✓ Database query successful");
+        console.log("- Records available:", data?.length || 0);
 
-          if (error) {
-            console.log("Single record query error:", error);
-            throw error;
-          }
-
-          console.log("✓ Database query successful");
-          console.log("- Records available:", data?.length || 0);
-
-          return {
-            status: "connected",
-            hasRecords: (data?.length || 0) > 0,
-            recordCount: data?.length || 0,
-            message: "Supabase connection successful",
-          };
-        } catch (queryErr: any) {
-          console.error("Database query failed:", queryErr);
-          const errorMessage =
-            queryErr?.message ||
-            queryErr?.details ||
-            queryErr?.hint ||
-            JSON.stringify(queryErr);
-          throw new Error(`Database query failed: ${errorMessage}`);
-        }
+        return {
+          status: "connected",
+          hasRecords: (data?.length || 0) > 0,
+          recordCount: data?.length || 0,
+          message: "Supabase connection successful",
+        };
       } catch (error: any) {
         console.error("=== CONNECTIVITY TEST FAILED ===");
         console.error("Error:", error);

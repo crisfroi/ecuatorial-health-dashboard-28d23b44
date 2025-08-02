@@ -642,7 +642,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre Completo</TableHead>
-                  <TableHead>Profesión</TableHead>
+                  <TableHead>Area Profesional</TableHead>
                   <TableHead>ID Profesional</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Provincia</TableHead>

@@ -89,7 +89,7 @@ const HealthCenters = () => {
     useQuery({
       queryKey: ["pendingCenters"],
       queryFn: getPendingCenters,
-      enabled: showPendingCenters,
+      enabled: true, // Siempre cargar para mostrar el conteo correcto
     });
 
   const categorias = [
@@ -326,11 +326,54 @@ const HealthCenters = () => {
           </CardContent>
         </Card>
 
+        {/* Estadísticas de profesionales */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {profesionalesDelCentro.filter(p => p.estado_solicitud === "Aprobado").length}
+                </div>
+                <div className="text-sm text-gray-600">Profesionales Aprobados</div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {profesionalesDelCentro.filter(p => p.estado_solicitud !== "Aprobado").length}
+                </div>
+                <div className="text-sm text-gray-600">Profesionales Pendientes</div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {new Set(profesionalesDelCentro.filter(p => p.estado_solicitud === "Aprobado").map(p => p.area_profesional)).size}
+                </div>
+                <div className="text-sm text-gray-600">Áreas Profesionales</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Profesionales del centro */}
         <Card>
           <CardHeader>
-            <CardTitle>
-              Profesionales Asignados ({profesionalesDelCentro.length})
+            <CardTitle className="flex items-center justify-between">
+              <span>Profesionales del Centro ({profesionalesDelCentro.length})</span>
+              <div className="flex items-center space-x-2 text-sm">
+                <span className="text-green-600 font-medium">
+                  {profesionalesDelCentro.filter(p => p.estado_solicitud === "Aprobado").length} Aprobados
+                </span>
+                <span className="text-gray-400">|</span>
+                <span className="text-orange-600 font-medium">
+                  {profesionalesDelCentro.filter(p => p.estado_solicitud !== "Aprobado").length} Pendientes
+                </span>
+              </div>
             </CardTitle>
             <div className="flex space-x-4">
               <Select value={filterArea} onValueChange={setFilterArea}>
@@ -339,7 +382,8 @@ const HealthCenters = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las áreas</SelectItem>
-                  {areasProf.map((area) => (
+                  {/* Mostrar solo áreas que existen en este centro */}
+                  {[...new Set(profesionalesDelCentro.map(p => p.area_profesional))].filter(Boolean).map((area) => (
                     <SelectItem key={area} value={area}>
                       {area}
                     </SelectItem>
@@ -352,32 +396,71 @@ const HealthCenters = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los estados</SelectItem>
-                  {estadosSolicitud.map((estado) => (
-                    <SelectItem key={estado} value={estado}>
-                      {estado}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="Aprobado">Solo Aprobados</SelectItem>
+                  <SelectItem value="Recibido">Recibido</SelectItem>
+                  <SelectItem value="En Revisión">En Revisión</SelectItem>
+                  <SelectItem value="Rechazado">Rechazado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            {/* Resumen por áreas profesionales */}
+            <div className="mb-6">
+              <h5 className="font-medium mb-3">Distribución por Áreas Profesionales:</h5>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {[...new Set(profesionalesDelCentro.filter(p => p.estado_solicitud === "Aprobado").map(p => p.area_profesional))].filter(Boolean).map((area) => {
+                  const count = profesionalesDelCentro.filter(p => p.area_profesional === area && p.estado_solicitud === "Aprobado").length;
+                  return (
+                    <div key={area} className="bg-blue-50 rounded-lg p-3 text-center">
+                      <div className="text-lg font-bold text-blue-600">{count}</div>
+                      <div className="text-xs text-blue-800">{area}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-3">
               {profesionalesDelCentro.map((prof) => (
-                <div key={prof.id} className="border rounded-lg p-4">
+                <div key={prof.id} className={`border rounded-lg p-4 ${prof.estado_solicitud === "Aprobado" ? "border-green-200 bg-green-50" : "border-gray-200"}`}>
                   <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-semibold">{prof.nombre_completo}</h4>
-                      <p className="text-sm text-gray-600">
-                        {prof.area_profesional}
-                      </p>
-                      <p className="text-sm text-gray-500">{prof.telefono}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <h4 className="font-semibold text-gray-900">{prof.nombre_completo}</h4>
+                        <Badge
+                          variant="outline"
+                          className={prof.estado_solicitud === "Aprobado" ? "bg-green-100 text-green-800 border-green-300" : "bg-gray-100 text-gray-800"}
+                        >
+                          {prof.area_profesional}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 space-y-1">
+                        {prof.telefono && (
+                          <p className="text-sm text-gray-600 flex items-center">
+                            <Phone className="w-3 h-3 mr-1" />
+                            {prof.telefono}
+                          </p>
+                        )}
+                        {prof.fecha_solicitud && (
+                          <p className="text-xs text-gray-500">
+                            Registrado: {new Date(prof.fecha_solicitud).toLocaleDateString('es-ES')}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <Badge
                       variant={
                         prof.estado_solicitud === "Aprobado"
                           ? "default"
+                          : prof.estado_solicitud === "Rechazado"
+                          ? "destructive"
                           : "secondary"
+                      }
+                      className={
+                        prof.estado_solicitud === "Aprobado"
+                          ? "bg-green-600 text-white"
+                          : ""
                       }
                     >
                       {prof.estado_solicitud}
@@ -387,8 +470,7 @@ const HealthCenters = () => {
               ))}
               {profesionalesDelCentro.length === 0 && (
                 <p className="text-center text-gray-500 py-8">
-                  No hay profesionales asignados a este centro con los filtros
-                  aplicados.
+                  No hay profesionales asignados a este centro con los filtros aplicados.
                 </p>
               )}
             </div>
@@ -788,20 +870,24 @@ const HealthCenters = () => {
                             setEditingCenter(centro);
                             setShowEditDialog(true);
                           }}
-                          className="flex-1"
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                          disabled={validateCenterMutation.isPending}
                         >
                           <Edit className="w-3 h-3 mr-1" />
-                          Validar
+                          {validateCenterMutation.isPending ? "Validando..." : "Validar"}
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleValidateCenter(centro.id, {
-                              estado: "rechazado",
-                            });
+                            if (window.confirm(`¿Estás seguro de que quieres rechazar el centro "${centro.nombre}"?`)) {
+                              handleValidateCenter(centro.id, {
+                                estado: "rechazado",
+                              });
+                            }
                           }}
+                          disabled={validateCenterMutation.isPending}
                         >
                           Rechazar
                         </Button>
@@ -1076,8 +1162,8 @@ const HealthCenters = () => {
                       </div>
 
                       {centro.distrito_sanitario && (
-                        <div className="text-sm text-gray-600">
-                          <strong>Distrito Sanitario:</strong>{" "}
+                        <div className="text-sm text-gray-600 flex items-center">
+                          <MapPin className="w-3 h-3 mr-1" />
                           {centro.distrito_sanitario}
                         </div>
                       )}
@@ -1086,7 +1172,18 @@ const HealthCenters = () => {
                         variant="outline"
                         size="sm"
                         className="w-full mt-4"
-                        onClick={() => setSelectedCenter(centro)}
+                        onClick={() => {
+                          console.log("Selecting center:", centro);
+                          if (!centro.id) {
+                            toast({
+                              title: "Error",
+                              description: "El centro seleccionado no tiene un ID válido",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          setSelectedCenter(centro);
+                        }}
                       >
                         <Eye className="w-4 h-4 mr-2" />
                         Ver Detalles
@@ -1180,7 +1277,18 @@ const HealthCenters = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setSelectedCenter(centro)}
+                              onClick={() => {
+                                console.log("Selecting center from table:", centro);
+                                if (!centro.id) {
+                                  toast({
+                                    title: "Error",
+                                    description: "El centro seleccionado no tiene un ID válido",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                setSelectedCenter(centro);
+                              }}
                             >
                               <Eye className="w-4 h-4 mr-1" />
                               Ver

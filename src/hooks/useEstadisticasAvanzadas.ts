@@ -190,14 +190,12 @@ export function useEstadisticasAvanzadas() {
         throw fetchError;
       }
 
-      // 1. FILTRAR PROFESIONALES APROBADOS PARA ESTADÍSTICAS ESPECÍFICAS (GÉNERO)
+      // 1. FILTRAR PROFESIONALES APROBADOS PARA TODAS LAS ESTADÍSTICAS PRINCIPALES
       const profesionalesAprobados = profesionales.filter(
         (p) => p.estado_solicitud === "Aprobado",
       );
 
-      // --- RESTO DE CÁLCULOS (SE MANTIENEN SOBRE TODOS LOS PROFESIONALES) ---
-
-      // Calcular estadísticas básicas
+      // Calcular estadísticas básicas (conteos de estados sobre todos los profesionales)
       const total = profesionales.length;
       const aprobados = profesionales.filter(
         (p) => p.estado_solicitud === "Aprobado",
@@ -212,8 +210,8 @@ export function useEstadisticasAvanzadas() {
         (p) => p.estado_solicitud === "Revisando",
       ).length;
 
-      // Estadísticas por área profesional
-      const porArea = profesionales.reduce(
+      // Estadísticas por área profesional - SOLO APROBADOS
+      const porArea = profesionalesAprobados.reduce(
         (acc, prof) => {
           const area = prof.area_profesional || "Sin especificar";
           acc[area] = (acc[area] || 0) + 1;
@@ -222,8 +220,8 @@ export function useEstadisticasAvanzadas() {
         {} as Record<string, number>,
       );
 
-      // Estadísticas por provincia
-      const porProvincia = profesionales.reduce(
+      // Estadísticas por provincia - SOLO APROBADOS
+      const porProvincia = profesionalesAprobados.reduce(
         (acc, prof) => {
           const provincia = prof.provincia || "Sin especificar";
           acc[provincia] = (acc[provincia] || 0) + 1;
@@ -232,7 +230,7 @@ export function useEstadisticasAvanzadas() {
         {} as Record<string, number>,
       );
 
-      // --- CÁLCULO DE GÉNERO (SOLO PARA APROBADOS) ---
+      // --- CÁLCULO DE G��NERO (SOLO PARA APROBADOS) ---
       // Estadísticas por género - AHORA SOLO DE PROFESIONALES APROBADOS
       const porGenero = profesionalesAprobados.reduce(
         (acc, prof) => {
@@ -248,8 +246,8 @@ export function useEstadisticasAvanzadas() {
       const generoFemenino = porGenero["Femenino"] || 0;
       // --- FIN CÁLCULO DE GÉNERO ---
 
-      // Estadísticas por tipo de sector
-      const porTipoSector = profesionales.reduce(
+      // Estadísticas por tipo de sector - SOLO APROBADOS
+      const porTipoSector = profesionalesAprobados.reduce(
         (acc, prof) => {
           const sector = prof.tipo_sector || "Sin especificar";
           acc[sector] = (acc[sector] || 0) + 1;
@@ -258,8 +256,8 @@ export function useEstadisticasAvanzadas() {
         {} as Record<string, number>,
       );
 
-      // Estadísticas por distrito
-      const porDistrito = profesionales.reduce(
+      // Estadísticas por distrito - SOLO APROBADOS
+      const porDistrito = profesionalesAprobados.reduce(
         (acc, prof) => {
           const distrito = prof.distrito || "Sin especificar";
           acc[distrito] = (acc[distrito] || 0) + 1;
@@ -275,7 +273,7 @@ export function useEstadisticasAvanzadas() {
       en30Dias.setDate(hoy.getDate() + 30);
       en30Dias.setHours(23, 59, 59, 999);
 
-      const vencimientosProximos = profesionales.filter((prof) => {
+      const vencimientosProximos = profesionalesAprobados.filter((prof) => {
         if (!prof.fecha_caducidad) return false;
         const fechaVencimiento = new Date(prof.fecha_caducidad);
         fechaVencimiento.setHours(0, 0, 0, 0);
@@ -283,8 +281,8 @@ export function useEstadisticasAvanzadas() {
         return fechaVencimiento >= hoy && fechaVencimiento <= en30Dias;
       }).length;
 
-      // Calcular carnets vencidos
-      const carnetVencidos = profesionales.filter((prof) => {
+      // Calcular carnets vencidos - SOLO APROBADOS
+      const carnetVencidos = profesionalesAprobados.filter((prof) => {
         if (!prof.fecha_caducidad) return false;
         const fechaVencimiento = new Date(prof.fecha_caducidad);
         fechaVencimiento.setHours(0, 0, 0, 0);
@@ -292,8 +290,8 @@ export function useEstadisticasAvanzadas() {
         return fechaVencimiento < hoy;
       }).length;
 
-      // Estadísticas por año de graduación
-      const porAnoGraduacion = profesionales.reduce(
+      // Estadísticas por año de graduación - SOLO APROBADOS
+      const porAnoGraduacion = profesionalesAprobados.reduce(
         (acc, prof) => {
           if (prof.año_graduacion) {
             const ano = prof.año_graduacion.toString();
@@ -311,7 +309,7 @@ export function useEstadisticasAvanzadas() {
         fecha.setMonth(fecha.getMonth() - i);
         const mesAno = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
 
-        const registrosDelMes = profesionales.filter((prof) => {
+        const registrosDelMes = profesionalesAprobados.filter((prof) => {
           if (!prof.created_at) return false;
           const fechaCreacion = new Date(prof.created_at);
           const mesAnoCreacion = `${fechaCreacion.getFullYear()}-${String(fechaCreacion.getMonth() + 1).padStart(2, "0")}`;

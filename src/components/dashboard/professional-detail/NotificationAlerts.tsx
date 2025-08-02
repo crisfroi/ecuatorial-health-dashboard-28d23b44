@@ -52,7 +52,7 @@ const NotificationAlerts = ({
                   ` (última: ${new Date(notificationCount.ultima_notificacion).toLocaleDateString("es-ES")})`}
               </span>
               <DropdownMenu>
-                <DropdownMenuTrigger>
+                <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Enviar SMS

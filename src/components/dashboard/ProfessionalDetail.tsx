@@ -166,7 +166,7 @@ const ProfessionalDetail = ({
             </span>
             <div className="flex items-center space-x-2">
               <DropdownMenu>
-                <DropdownMenuTrigger>
+                <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" disabled={isDownloading}>
                     <Download className="w-4 h-4 mr-2" />
                     Descargar

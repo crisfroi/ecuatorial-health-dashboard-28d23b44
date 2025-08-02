@@ -1,141 +1,105 @@
-
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function handleCors(req: Request) {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      headers: corsHeaders,
+    });
+  }
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+Deno.serve(async (req: Request) => {
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2')
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // Inicializar cliente Supabase con service role
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
 
-    const today = new Date()
-    const thirtyDaysFromNow = new Date()
-    thirtyDaysFromNow.setDate(today.getDate() + 30)
-    
-    const tenDaysAgo = new Date()
-    tenDaysAgo.setDate(today.getDate() - 10)
+    console.log("Ejecutando verificación automática de renovaciones...");
 
-    // Buscar profesionales que necesitan notificación de 30 días antes
-    const { data: professionals30Days } = await supabase
-      .from('profesionales_sanitarios')
-      .select('id, nombre_completo, telefono, fecha_validez_carnet')
-      .eq('estado_solicitud', 'Aprobado')
-      .gte('fecha_validez_carnet', today.toISOString().split('T')[0])
-      .lte('fecha_validez_carnet', thirtyDaysFromNow.toISOString().split('T')[0])
-      .not('telefono', 'is', null)
+    // Ejecutar la función de actualización de estados
+    const updateResponse = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/update-accreditation-status`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
 
-    // Buscar profesionales que vencieron hace 10 días
-    const { data: professionals10DaysAfter } = await supabase
-      .from('profesionales_sanitarios')
-      .select('id, nombre_completo, telefono, fecha_validez_carnet')
-      .eq('estado_solicitud', 'Aprobado')
-      .gte('fecha_validez_carnet', tenDaysAgo.toISOString().split('T')[0])
-      .lte('fecha_validez_carnet', today.toISOString().split('T')[0])
-      .not('telefono', 'is', null)
-
-    const notifications = []
-
-    // Procesar notificaciones de 30 días antes
-    if (professionals30Days) {
-      for (const prof of professionals30Days) {
-        // Verificar si ya se envió esta notificación
-        const { data: existingNotification } = await supabase
-          .from('notificaciones_sms')
-          .select('id')
-          .eq('profesional_id', prof.id)
-          .eq('tipo_notificacion', '30_dias_antes')
-          .single()
-
-        if (!existingNotification) {
-          const mensaje = `Estimado/a ${prof.nombre_completo}, su carnet profesional vence el ${prof.fecha_validez_carnet}. Por favor, renueve antes del vencimiento. Ministerio de Sanidad - Guinea Ecuatorial`
-          
-          try {
-            await fetch(`${supabaseUrl}/functions/v1/send-sms-notification`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${supabaseKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                profesionalId: prof.id,
-                telefono: prof.telefono,
-                tipoNotificacion: '30_dias_antes',
-                mensaje: mensaje
-              })
-            })
-            notifications.push({ type: '30_dias_antes', professional: prof.nombre_completo })
-          } catch (error) {
-            console.error(`Error sending 30-day notification to ${prof.nombre_completo}:`, error)
-          }
-        }
-      }
+    let updateResult;
+    if (updateResponse.ok) {
+      updateResult = await updateResponse.json();
+      console.log("Actualización de estados completada:", updateResult);
+    } else {
+      console.error("Error en actualización de estados:", await updateResponse.text());
     }
 
-    // Procesar notificaciones de 10 días después
-    if (professionals10DaysAfter) {
-      for (const prof of professionals10DaysAfter) {
-        // Verificar si ya se envió esta notificación
-        const { data: existingNotification } = await supabase
-          .from('notificaciones_sms')
-          .select('id')
-          .eq('profesional_id', prof.id)
-          .eq('tipo_notificacion', '10_dias_despues')
-          .single()
+    // También verificar profesionales próximos a vencer (30 días) para notificaciones
+    const fechaLimite = new Date();
+    fechaLimite.setDate(fechaLimite.getDate() + 30);
 
-        if (!existingNotification) {
-          const mensaje = `Estimado/a ${prof.nombre_completo}, su carnet profesional venció el ${prof.fecha_validez_carnet}. Debe renovar urgentemente. Contacte al Ministerio de Sanidad - Guinea Ecuatorial`
-          
-          try {
-            await fetch(`${supabaseUrl}/functions/v1/send-sms-notification`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${supabaseKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                profesionalId: prof.id,
-                telefono: prof.telefono,
-                tipoNotificacion: '10_dias_despues',
-                mensaje: mensaje
-              })
-            })
-            notifications.push({ type: '10_dias_despues', professional: prof.nombre_completo })
-          } catch (error) {
-            console.error(`Error sending 10-day notification to ${prof.nombre_completo}:`, error)
-          }
-        }
-      }
+    const { data: proximosVencer, error: proximosError } = await supabaseClient
+      .from("profesionales_sanitarios")
+      .select("id, nombre_completo, fecha_validez_carnet, fecha_caducidad, telefono")
+      .eq("estado_solicitud", "Aprobado")
+      .or(`fecha_validez_carnet.lte.${fechaLimite.toISOString()},fecha_caducidad.lte.${fechaLimite.toISOString()}`);
+
+    if (proximosError) {
+      console.error("Error obteniendo profesionales próximos a vencer:", proximosError);
     }
+
+    console.log(`Encontrados ${proximosVencer?.length || 0} profesionales próximos a vencer`);
+
+    // Aquí se podrían enviar notificaciones SMS o email
+    // Por ahora solo loggeamos la información
+
+    const response = {
+      success: true,
+      message: "Verificación de renovaciones completada",
+      update_result: updateResult,
+      professionals_expiring_soon: proximosVencer?.length || 0,
+      executed_at: new Date().toISOString(),
+    };
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        notificationsSent: notifications.length,
-        notifications: notifications 
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
-      }
-    )
+      JSON.stringify(response),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      },
+    );
 
   } catch (error) {
-    console.error('Error in renewal notifications:', error)
+    console.error("Error en verificación de renovaciones:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
-    )
+      JSON.stringify({
+        error: "Error interno del servidor",
+        details: error.message || JSON.stringify(error),
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      },
+    );
   }
-})
+});

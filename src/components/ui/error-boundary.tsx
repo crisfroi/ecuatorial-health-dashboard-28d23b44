@@ -15,7 +15,7 @@ interface State {
   errorInfo?: ErrorInfo;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
+class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false };
@@ -52,7 +52,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-800">
               <AlertTriangle className="w-5 h-5" />
-              Error de Aplicación
+              Error de Aplicaci��n
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

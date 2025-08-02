@@ -1,10 +1,11 @@
+
 import React, { useState, useCallback, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/hooks/useUser";
@@ -12,8 +13,14 @@ import { Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useEstadisticas } from "@/hooks/useEstadisticas";
 
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
 const AIChat = () => {
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string; timestamp: string; }[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const { toast } = useToast();
   const { user } = useUser();
@@ -21,8 +28,8 @@ const AIChat = () => {
   
   const { data: estadisticas, isLoading: statsLoading } = useEstadisticas();
 
-  const sendMessageMutation = useMutation(
-    async (message: string) => {
+  const sendMessageMutation = useMutation({
+    mutationFn: async (message: string) => {
       setIsThinking(true);
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
@@ -40,21 +47,23 @@ const AIChat = () => {
       const data = await response.json();
       return data.response;
     },
-    {
-      onSuccess: (response) => {
-        setIsThinking(false);
-        setMessages(prev => [...prev, { role: 'assistant', content: response, timestamp: new Date().toLocaleTimeString() }]);
-      },
-      onError: (error: any) => {
-        setIsThinking(false);
-        toast({
-          title: "Error",
-          description: error.message || "Failed to send message.",
-          variant: "destructive",
-        });
-      },
-    }
-  );
+    onSuccess: (response) => {
+      setIsThinking(false);
+      setMessages(prev => [...prev, { 
+        role: 'assistant' as const, 
+        content: response, 
+        timestamp: new Date().toLocaleTimeString() 
+      }]);
+    },
+    onError: (error: any) => {
+      setIsThinking(false);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send message.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
@@ -63,7 +72,11 @@ const AIChat = () => {
   const handleSendMessage = useCallback(async () => {
     if (!input.trim()) return;
 
-    const newMessage = { role: 'user', content: input, timestamp: new Date().toLocaleTimeString() };
+    const newMessage: Message = { 
+      role: 'user' as const, 
+      content: input, 
+      timestamp: new Date().toLocaleTimeString() 
+    };
     setMessages(prev => [...prev, newMessage]);
     setInput('');
 

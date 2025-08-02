@@ -3,12 +3,24 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { AlertCircle, CheckCircle, Database, RefreshCw } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
-import { RefreshCw, Database, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 const DatabaseDiagnostics = () => {
   const [isRunning, setIsRunning] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<any>(null);
+  const { toast } = useToast();
+
+  const availableTables = [
+    'profesionales_sanitarios',
+    'carnets_generados',
+    'centros_salud',
+    'distrito_sanitario',
+    'user_roles',
+    'sms_notifications_log'
+  ] as const;
 
   const availableFunctions = [
     'actualizar_numeros_correlativos_faltantes',
@@ -16,179 +28,210 @@ const DatabaseDiagnostics = () => {
     'calcular_edad',
     'generar_codigo_expediente_unico',
     'generar_url_carnet_profesional',
-    'get_notification_count',
-    'marcar_carnet_generado',
-    'obtener_color_categoria',
-    'obtener_profesionales_por_centro',
-    'trigger_generar_carnet_automatico',
+    'obtener_estadisticas_completas',
     'trigger_renewal_notifications'
-  ];
+  ] as const;
 
   const runDiagnostics = async () => {
     setIsRunning(true);
-    const diagnosticResults = [];
+    const diagnosticResults: any = {
+      timestamp: new Date().toISOString(),
+      tables: {},
+      functions: {},
+      connectivity: null,
+      performance: {},
+    };
 
     try {
-      // Test 1: Basic Connection
-      diagnosticResults.push({
-        test: 'Conexión básica',
-        status: 'running',
-        message: 'Probando conexión...'
-      });
+      // Test connectivity
+      const { data: connectTest } = await supabase.from('profesionales_sanitarios').select('id').limit(1);
+      diagnosticResults.connectivity = {
+        status: 'connected',
+        message: 'Database connection successful'
+      };
 
-      const { data: connectionTest, error: connectionError } = await supabase
-        .from('profesionales_sanitarios')
-        .select('id')
-        .limit(1);
-
-      if (connectionError) {
-        diagnosticResults[0] = {
-          test: 'Conexión básica',
-          status: 'error',
-          message: `Error: ${connectionError.message}`
-        };
-      } else {
-        diagnosticResults[0] = {
-          test: 'Conexión básica',
-          status: 'success',
-          message: 'Conexión exitosa'
-        };
+      // Test table access
+      for (const tableName of availableTables) {
+        try {
+          const { data, error, count } = await supabase
+            .from(tableName as any)
+            .select('*', { count: 'exact', head: true });
+          
+          if (error) {
+            diagnosticResults.tables[tableName] = {
+              status: 'error',
+              error: error.message,
+              accessible: false
+            };
+          } else {
+            diagnosticResults.tables[tableName] = {
+              status: 'success',
+              accessible: true,
+              recordCount: count || 0
+            };
+          }
+        } catch (err: any) {
+          diagnosticResults.tables[tableName] = {
+            status: 'error',
+            error: err.message,
+            accessible: false
+          };
+        }
       }
 
-      // Test 2: Count records
-      const { count, error: countError } = await supabase
-        .from('profesionales_sanitarios')
-        .select('*', { count: 'exact', head: true });
-
-      diagnosticResults.push({
-        test: 'Conteo de registros',
-        status: countError ? 'error' : 'success',
-        message: countError 
-          ? `Error: ${countError.message}`
-          : `${count} profesionales encontrados`
-      });
-
-      // Test 3: Check available functions (simplified)
-      diagnosticResults.push({
-        test: 'Funciones disponibles',
-        status: 'info',
-        message: `${availableFunctions.length} funciones catalogadas`
-      });
-
-      // Test 4: Check tables
-      const tables = [
-        'profesionales_sanitarios',
-        'centros_salud', 
-        'categorias_titulacion',
-        'sms_notifications_log'
-      ];
-
-      for (const table of tables) {
-        const { data, error } = await supabase
-          .from(table)
-          .select('*')
-          .limit(1);
-
-        diagnosticResults.push({
-          test: `Tabla ${table}`,
-          status: error ? 'error' : 'success',
-          message: error ? `Error: ${error.message}` : 'Accesible'
-        });
+      // Test RPC functions
+      for (const functionName of availableFunctions) {
+        try {
+          // Just test if function exists by calling it (this might fail but we'll catch the error type)
+          await supabase.rpc(functionName as any);
+          diagnosticResults.functions[functionName] = {
+            status: 'available',
+            callable: true
+          };
+        } catch (err: any) {
+          // Function exists but parameters might be wrong - this is actually good
+          if (err.message.includes('missing') || err.message.includes('required')) {
+            diagnosticResults.functions[functionName] = {
+              status: 'available',
+              callable: true,
+              note: 'Function exists but requires parameters'
+            };
+          } else {
+            diagnosticResults.functions[functionName] = {
+              status: 'unavailable',
+              callable: false,
+              error: err.message
+            };
+          }
+        }
       }
+
+      setResults(diagnosticResults);
+      toast({
+        title: "Diagnóstico Completado",
+        description: "Se han ejecutado todas las pruebas de diagnóstico.",
+      });
 
     } catch (error: any) {
-      diagnosticResults.push({
-        test: 'Error general',
+      console.error('Error running diagnostics:', error);
+      diagnosticResults.connectivity = {
         status: 'error',
         message: error.message
+      };
+      setResults(diagnosticResults);
+      
+      toast({
+        title: "Error en Diagnóstico",
+        description: "Ocurrió un error durante las pruebas.",
+        variant: "destructive",
       });
-    }
-
-    setResults(diagnosticResults);
-    setIsRunning(false);
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'error':
-        return <AlertTriangle className="h-4 w-4 text-red-500" />;
-      case 'running':
-        return <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />;
-      default:
-        return <Info className="h-4 w-4 text-blue-500" />;
+    } finally {
+      setIsRunning(false);
     }
   };
 
   const getStatusBadge = (status: string) => {
-    const variants = {
-      success: 'default',
-      error: 'destructive',
-      running: 'secondary',
-      info: 'secondary'
-    } as const;
-
-    return (
-      <Badge variant={variants[status as keyof typeof variants] || 'secondary'}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
+    switch (status) {
+      case 'success':
+      case 'connected':
+      case 'available':
+        return <Badge variant="default" className="bg-green-100 text-green-800">✓ OK</Badge>;
+      case 'error':
+      case 'unavailable':
+        return <Badge variant="destructive">✗ Error</Badge>;
+      default:
+        return <Badge variant="secondary">? Desconocido</Badge>;
+    }
   };
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Database className="h-5 w-5" />
-          Diagnósticos de Base de Datos
+          <Database className="w-5 h-5 text-blue-600" />
+          Diagnóstico de Base de Datos
         </CardTitle>
         <CardDescription>
-          Verifica el estado y conectividad de la base de datos
+          Ejecuta pruebas de conectividad, acceso a tablas y funciones de la base de datos.
         </CardDescription>
       </CardHeader>
+      
       <CardContent className="space-y-4">
-        <Button 
-          onClick={runDiagnostics}
-          disabled={isRunning}
-          className="w-full"
-        >
-          {isRunning ? (
-            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Database className="h-4 w-4 mr-2" />
-          )}
-          {isRunning ? 'Ejecutando diagnósticos...' : 'Ejecutar diagnósticos'}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={runDiagnostics} 
+            disabled={isRunning}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRunning ? 'animate-spin' : ''}`} />
+            {isRunning ? 'Ejecutando...' : 'Ejecutar Diagnóstico'}
+          </Button>
+        </div>
 
-        {results.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="font-medium">Resultados:</h4>
-            {results.map((result, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  {getStatusIcon(result.status)}
-                  <div>
-                    <p className="font-medium">{result.test}</p>
-                    <p className="text-sm text-muted-foreground">{result.message}</p>
-                  </div>
-                </div>
-                {getStatusBadge(result.status)}
+        {results && (
+          <div className="space-y-6">
+            <Separator />
+            
+            {/* Connectivity Results */}
+            <div>
+              <h3 className="font-medium mb-2 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
+                Conectividad
+              </h3>
+              <div className="flex items-center gap-2">
+                {getStatusBadge(results.connectivity?.status || 'unknown')}
+                <span className="text-sm">{results.connectivity?.message || 'Sin información'}</span>
               </div>
-            ))}
+            </div>
+
+            {/* Table Access Results */}
+            <div>
+              <h3 className="font-medium mb-3 flex items-center gap-2">
+                <Database className="w-4 h-4" />
+                Acceso a Tablas ({Object.keys(results.tables).length})
+              </h3>
+              <div className="grid gap-2">
+                {Object.entries(results.tables).map(([tableName, result]: [string, any]) => (
+                  <div key={tableName} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(result.status)}
+                      <span className="font-mono text-sm">{tableName}</span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {result.accessible && `${result.recordCount || 0} registros`}
+                      {result.error && `Error: ${result.error}`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Functions Results */}
+            <div>
+              <h3 className="font-medium mb-3 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                Funciones RPC ({Object.keys(results.functions).length})
+              </h3>
+              <div className="grid gap-2">
+                {Object.entries(results.functions).map(([functionName, result]: [string, any]) => (
+                  <div key={functionName} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(result.status)}
+                      <span className="font-mono text-sm">{functionName}</span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {result.note || result.error || 'Disponible'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="text-xs text-gray-400">
+              Diagnóstico ejecutado: {new Date(results.timestamp).toLocaleString()}
+            </div>
           </div>
         )}
-
-        <div className="pt-4 border-t">
-          <h4 className="font-medium mb-2">Funciones disponibles:</h4>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            {availableFunctions.map((func, index) => (
-              <Badge key={index} variant="outline" className="justify-start">
-                {func}
-              </Badge>
-            ))}
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

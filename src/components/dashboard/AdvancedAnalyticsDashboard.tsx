@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
@@ -6,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import InteractiveCharts from './InteractiveCharts';
+import { EstadisticasData } from '@/hooks/useEstadisticas';
 
 interface AreaProfessionalStats {
   area: string;
@@ -92,6 +94,30 @@ const AdvancedAnalyticsDashboard = ({ onNavigateToCenter }: AdvancedAnalyticsDas
     );
   }
 
+  // Create a complete EstadisticasData object for InteractiveCharts
+  const completeEstadisticas: EstadisticasData = {
+    total: estadisticas.total || 0,
+    aprobados: estadisticas.aprobados || 0,
+    pendientes: estadisticas.pendientes || 0,
+    recibidos: estadisticas.recibidos || 0,
+    rechazados: estadisticas.rechazados || 0,
+    revisando: estadisticas.revisando || 0,
+    vencimientosProximos: estadisticas.vencimientosProximos || 0,
+    carnetVencidos: estadisticas.carnetVencidos || 0,
+    porArea: estadisticas.porArea || {},
+    porProvincia: estadisticas.porProvincia || {},
+    generoMasculino: estadisticas.generoMasculino || 0,
+    generoFemenino: estadisticas.generoFemenino || 0,
+    totalPorGenero: estadisticas.totalPorGenero || { Masculino: 0, Femenino: 0 },
+    totalPorDistrito: estadisticas.totalPorDistrito || {},
+    totalPorTipoSector: estadisticas.totalPorTipoSector || {},
+    totalPorNacionalidad: estadisticas.totalPorNacionalidad || {},
+    totalPorAreaProfesional: estadisticas.totalPorAreaProfesional || {},
+    totalPorEstadoSolicitud: estadisticas.totalPorEstadoSolicitud || {},
+    totalPorDistritoSanitario: estadisticas.totalPorDistritoSanitario || {},
+    datosGraficoProvincias: estadisticas.datosGraficoProvincias || []
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -133,7 +159,7 @@ const AdvancedAnalyticsDashboard = ({ onNavigateToCenter }: AdvancedAnalyticsDas
       </Card>
       
       <InteractiveCharts 
-        data={estadisticas}
+        data={completeEstadisticas}
       />
     </div>
   );

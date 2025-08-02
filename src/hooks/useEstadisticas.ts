@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface EstadisticasData {
   total: number;
   aprobados: number;
-  pendientes: number;  // Será "Pendiente de Firma"
+  pendientes: number;  // Ahora será "Pendiente de Firma"
   recibidos: number;
   rechazados: number;
   revisando: number;

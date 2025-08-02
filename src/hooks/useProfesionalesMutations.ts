@@ -126,8 +126,12 @@ export const useProfesionalesMutations = () => {
     },
   });
 
+  // Helper function to maintain backward compatibility
+  const updateProfesional = updateProfesionalMutation.mutate;
+
   return {
     updateProfesionalMutation,
+    updateProfesional, // For backward compatibility
     deleteProfesionalMutation,
     bulkUpdateMutation,
     // Provide isPending instead of isLoading for compatibility

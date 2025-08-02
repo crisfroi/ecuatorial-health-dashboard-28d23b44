@@ -27,12 +27,17 @@ export const useAccreditationStatusUpdate = () => {
         },
       );
 
+      const text = await response.text();
+
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Error al actualizar estados: ${error}`);
+        throw new Error(`Error al actualizar estados: ${text}`);
       }
 
-      return response.json();
+      try {
+        return JSON.parse(text);
+      } catch (parseError) {
+        throw new Error(`Error parsing response: ${parseError}`);
+      }
     },
     onSuccess: (data) => {
       console.log("Actualización de estados exitosa:", data);

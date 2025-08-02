@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { QuickConnectivityTest } from './QuickConnectivityTest';
 
 export const DatabaseDiagnostic = () => {
   const [results, setResults] = useState<any[]>([]);

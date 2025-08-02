@@ -92,7 +92,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
           "Teléfono",
           "Email",
           "Fecha Registro",
-          "Fecha Graduación",
+          "Año Graduación",
           "Lugar de Trabajo",
         ],
         // Data rows
@@ -111,9 +111,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
           profesional.created_at
             ? new Date(profesional.created_at).toLocaleDateString("es-ES")
             : "",
-          profesional.fecha_graduacion
-            ? new Date(profesional.fecha_graduacion).toLocaleDateString("es-ES")
-            : "",
+          profesional.año_graduacion || "",
           profesional.nombre_centro || "",
         ]),
       ];
@@ -279,17 +277,15 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     try {
       await updateProfesional.mutateAsync({
         id: professionalId,
-        updates: {
-          estado_solicitud: newState,
-          fecha_revision:
-            newState !== "Pendiente"
-              ? new Date().toISOString().split("T")[0]
-              : null,
-          fecha_aprobacion:
-            newState === "Aprobado"
-              ? new Date().toISOString().split("T")[0]
-              : null,
-        },
+        estado_solicitud: newState,
+        fecha_revision:
+          newState !== "Pendiente"
+            ? new Date().toISOString().split("T")[0]
+            : null,
+        fecha_aprobacion:
+          newState === "Aprobado"
+            ? new Date().toISOString().split("T")[0]
+            : null,
       });
 
       setEditingStates((prev) => {
@@ -418,7 +414,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                 </Badge>
               )}
               {/* Ahora los filtros de dashboard se muestran si tienen un valor,
-                  y los locales si no son 'todos' (ya que género está aqu�� ahora) */}
+                  y los locales si no son 'todos' (ya que género está aquí ahora) */}
               {localFilters.area_profesional !== "todos" && (
                 <Badge
                   variant="secondary"

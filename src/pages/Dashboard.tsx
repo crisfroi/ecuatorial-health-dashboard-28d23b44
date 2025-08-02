@@ -1,9 +1,10 @@
+
 import React, { useState, useCallback } from 'react';
-import { MainLayout } from "@/layouts/MainLayout";
-import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
-import { StatsCards } from "@/components/dashboard/StatsCards";
-import { ProfessionalsTable } from "@/components/dashboard/ProfessionalsTable";
-import { RenewalAlerts } from "@/components/dashboard/RenewalAlerts";
+import MainLayout from "@/layouts/MainLayout";
+import DashboardFilters from "@/components/dashboard/DashboardFilters";
+import StatsCards from "@/components/dashboard/StatsCards";
+import ProfessionalsTable from "@/components/dashboard/ProfessionalsTable";
+import RenewalAlerts from "@/components/dashboard/RenewalAlerts";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -82,7 +83,6 @@ const Dashboard = () => {
 
           <StatsCards onNavigateToSection={handleNavigateToProfessionals} />
 
-          {/* Fix component props */}
           <ProfessionalsTable
             dashboardFilters={filters}
           />

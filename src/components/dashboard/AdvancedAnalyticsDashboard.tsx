@@ -1,38 +1,11 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { useAdvancedAnalytics } from "@/hooks/useAdvancedAnalytics";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown } from 'lucide-react';
 import InteractiveCharts from './InteractiveCharts';
 import { EstadisticasData } from '@/hooks/useEstadisticas';
-
-interface AreaProfessionalStats {
-  area: string;
-  count: number;
-}
-
-interface DistrictStats {
-  district: string;
-  count: number;
-}
-
-interface AgeRangeStats {
-  range: string;
-  count: number;
-}
-
-interface GraduationYearStats {
-  year: string;
-  count: number;
-}
-
-interface MonthlyTrend {
-  mes: string;
-  registros: number;
-}
 
 interface AdvancedAnalyticsDashboardProps {
   onNavigateToCenter?: (center: string) => void;
@@ -98,7 +71,7 @@ const AdvancedAnalyticsDashboard = ({ onNavigateToCenter }: AdvancedAnalyticsDas
   const completeEstadisticas: EstadisticasData = {
     total: estadisticas.total || 0,
     aprobados: estadisticas.aprobados || 0,
-    pendientes: estadisticas.pendientes || 0,
+    pendientes: 0, // Not available in advanced analytics, setting to 0
     recibidos: estadisticas.recibidos || 0,
     rechazados: estadisticas.rechazados || 0,
     revisando: estadisticas.revisando || 0,
@@ -108,14 +81,21 @@ const AdvancedAnalyticsDashboard = ({ onNavigateToCenter }: AdvancedAnalyticsDas
     porProvincia: estadisticas.porProvincia || {},
     generoMasculino: estadisticas.generoMasculino || 0,
     generoFemenino: estadisticas.generoFemenino || 0,
-    totalPorGenero: estadisticas.totalPorGenero || { Masculino: 0, Femenino: 0 },
-    totalPorDistrito: estadisticas.totalPorDistrito || {},
-    totalPorTipoSector: estadisticas.totalPorTipoSector || {},
-    totalPorNacionalidad: estadisticas.totalPorNacionalidad || {},
-    totalPorAreaProfesional: estadisticas.totalPorAreaProfesional || {},
-    totalPorEstadoSolicitud: estadisticas.totalPorEstadoSolicitud || {},
-    totalPorDistritoSanitario: estadisticas.totalPorDistritoSanitario || {},
-    datosGraficoProvincias: estadisticas.datosGraficoProvincias || []
+    totalPorGenero: estadisticas.porGenero || { Masculino: 0, Femenino: 0 },
+    totalPorDistrito: estadisticas.porDistrito || {},
+    totalPorTipoSector: estadisticas.porTipoSector || {},
+    totalPorNacionalidad: {},
+    totalPorAreaProfesional: estadisticas.porArea || {},
+    totalPorEstadoSolicitud: estadisticas.datosGraficoEstados?.reduce((acc, item) => {
+      acc[item.estado] = item.cantidad;
+      return acc;
+    }, {} as Record<string, number>) || {},
+    totalPorDistritoSanitario: {},
+    datosGraficoProvincias: estadisticas.datosGraficoProvincias?.map(item => ({
+      name: item.provincia,
+      value: item.cantidad,
+      color: `hsl(${Math.random() * 360}, 70%, 50%)`
+    })) || []
   };
 
   return (
@@ -146,7 +126,7 @@ const AdvancedAnalyticsDashboard = ({ onNavigateToCenter }: AdvancedAnalyticsDas
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={Object.entries(estadisticas.porAnoGraduacion).map(([year, count]) => ({ year, count: count as number }))}>
+            <BarChart data={Object.entries(estadisticas.porAnoGraduacion || {}).map(([year, count]) => ({ year, count: count as number }))}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="year" />
               <YAxis />

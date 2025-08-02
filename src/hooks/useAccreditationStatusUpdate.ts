@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AccreditationUpdateResponse {
   success: boolean;
@@ -16,23 +17,54 @@ export const useAccreditationStatusUpdate = () => {
 
   const updateAccreditationStatus = useMutation({
     mutationFn: async (): Promise<AccreditationUpdateResponse> => {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-accreditation-status`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
+      let response: Response;
+      let text: string;
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Error al actualizar estados: ${error}`);
+      try {
+        // Get current session for authentication
+        const { data: { session } } = await supabase.auth.getSession();
+
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkaWV5bmVuZGZqYmtiaGZvdnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3ODI5MjEsImV4cCI6MjA2NjM1ODkyMX0.yFnLHavy8wzVjlg3sAI2mEG-XGDCV5FSr7OQsMefxL8",
+          "Authorization": `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkaWV5bmVuZGZqYmtiaGZvdnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3ODI5MjEsImV4cCI6MjA2NjM1ODkyMX0.yFnLHavy8wzVjlg3sAI2mEG-XGDCV5FSr7OQsMefxL8`,
+        };
+
+        // Override with user token if available for better auth
+        if (session?.access_token) {
+          headers["Authorization"] = `Bearer ${session.access_token}`;
+        }
+
+        response = await fetch(
+          "https://wdieynendfjbkbhfovrx.supabase.co/functions/v1/update-accreditation-status",
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify({}),
+          }
+        );
+
+        text = await response.text();
+      } catch (networkError) {
+        console.error('Network/connection error:', networkError);
+        throw new Error(`Error de conexión: ${networkError.message}`);
       }
 
-      return response.json();
+      if (!response.ok) {
+        console.error('Function response error:', {
+          status: response.status,
+          statusText: response.statusText,
+          text
+        });
+        throw new Error(`Error al actualizar estados (${response.status}): ${text}`);
+      }
+
+      try {
+        return JSON.parse(text);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError, 'Text:', text);
+        throw new Error(`Error parsing response: ${parseError}`);
+      }
     },
     onSuccess: (data) => {
       console.log("Actualización de estados exitosa:", data);

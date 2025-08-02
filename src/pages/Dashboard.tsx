@@ -60,6 +60,7 @@ import ProfessionalSearch from "@/components/dashboard/ProfessionalSearch";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import ConnectionDebugPanel from "@/components/dashboard/ConnectionDebugPanel";
 import { OfflineNotification } from "@/components/ui/offline-notification";
+import { DatabaseDiagnostic } from "@/components/dashboard/DatabaseDiagnostic";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -334,7 +335,10 @@ const Dashboard = () => {
     { id: "incidents", label: "Incidencias", icon: Activity },
     { id: "health-centers", label: "Centros", icon: MapPin },
     ...(userRole === "administrador"
-      ? [{ id: "users", label: "Usuarios", icon: Users }]
+      ? [
+          { id: "users", label: "Usuarios", icon: Users },
+          { id: "diagnostic", label: "Diagnóstico DB", icon: AlertTriangle }
+        ]
       : []),
   ];
 
@@ -592,6 +596,14 @@ const Dashboard = () => {
 
           <TabsContent value="users" className="space-y-6">
             {userRole === "administrador" && <AdminPanel />}
+          </TabsContent>
+
+          <TabsContent value="diagnostic" className="space-y-6">
+            {userRole === "administrador" && (
+              <div className="flex justify-center">
+                <DatabaseDiagnostic />
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

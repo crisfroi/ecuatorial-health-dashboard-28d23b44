@@ -16,27 +16,20 @@ export const useAccreditationStatusUpdate = () => {
 
   const updateAccreditationStatus = useMutation({
     mutationFn: async (): Promise<AccreditationUpdateResponse> => {
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/update-accreditation-status`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      const text = await response.text();
-
-      if (!response.ok) {
-        throw new Error(`Error al actualizar estados: ${text}`);
-      }
-
       try {
-        return JSON.parse(text);
-      } catch (parseError) {
-        throw new Error(`Error parsing response: ${parseError}`);
+        const { data, error } = await supabase.functions.invoke('update-accreditation-status', {
+          body: {},
+        });
+
+        if (error) {
+          console.error('Supabase function error:', error);
+          throw new Error(`Error al actualizar estados: ${error.message}`);
+        }
+
+        return data;
+      } catch (networkError) {
+        console.error('Network/connection error:', networkError);
+        throw new Error(`Error de conexión: ${networkError.message}`);
       }
     },
     onSuccess: (data) => {

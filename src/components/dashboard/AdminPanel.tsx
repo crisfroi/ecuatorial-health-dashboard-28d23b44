@@ -370,6 +370,7 @@ const AdminPanel = () => {
 
         <TabsContent value="diagnostics">
           <div className="space-y-6">
+            <ConnectivityDiagnostic />
             <SupabaseDebugTest />
             <SupabaseConnectionTest />
             <SimpleConnectionTest />

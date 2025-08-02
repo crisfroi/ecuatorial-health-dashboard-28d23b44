@@ -17,6 +17,9 @@ export const useAccreditationStatusUpdate = () => {
 
   const updateAccreditationStatus = useMutation({
     mutationFn: async (): Promise<AccreditationUpdateResponse> => {
+      let response: Response;
+      let text: string;
+
       try {
         // Get current session for authentication
         const { data: { session } } = await supabase.auth.getSession();
@@ -31,7 +34,7 @@ export const useAccreditationStatusUpdate = () => {
           headers["Authorization"] = `Bearer ${session.access_token}`;
         }
 
-        const response = await fetch(
+        response = await fetch(
           "https://wdieynendfjbkbhfovrx.supabase.co/functions/v1/update-accreditation-status",
           {
             method: "POST",
@@ -40,22 +43,22 @@ export const useAccreditationStatusUpdate = () => {
           }
         );
 
-        const text = await response.text();
-
-        if (!response.ok) {
-          console.error('Function response error:', { status: response.status, text });
-          throw new Error(`Error al actualizar estados (${response.status}): ${text}`);
-        }
-
-        try {
-          return JSON.parse(text);
-        } catch (parseError) {
-          console.error('JSON parse error:', parseError, 'Text:', text);
-          throw new Error(`Error parsing response: ${parseError}`);
-        }
+        text = await response.text();
       } catch (networkError) {
         console.error('Network/connection error:', networkError);
         throw new Error(`Error de conexión: ${networkError.message}`);
+      }
+
+      if (!response.ok) {
+        console.error('Function response error:', { status: response.status, text });
+        throw new Error(`Error al actualizar estados (${response.status}): ${text}`);
+      }
+
+      try {
+        return JSON.parse(text);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError, 'Text:', text);
+        throw new Error(`Error parsing response: ${parseError}`);
       }
     },
     onSuccess: (data) => {

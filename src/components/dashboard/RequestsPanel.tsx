@@ -344,12 +344,7 @@ const RequestsPanel = ({
         },
       });
 
-      // Llama a la Edge Function si el nuevo estado es "Pendiente de Firma"
-      if (newState === "Pendiente de Firma") {
-        // Usa una función de espera para dar tiempo al trigger de DB a generar el código de barras
-        await sleep(2000); 
-        await handleGenerateCarnet(requestId);
-      }
+      // Carnet generation is now handled automatically by the mutation hook
 
       setEditingStates((prev) => {
         const newStates = { ...prev };

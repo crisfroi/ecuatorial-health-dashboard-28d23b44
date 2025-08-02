@@ -36,6 +36,7 @@ import SupabaseConnectionTest from "@/components/dashboard/SupabaseConnectionTes
 import SupabaseDebugTest from "@/components/dashboard/SupabaseDebugTest";
 import UserRoleManagement from "@/components/dashboard/UserRoleManagement";
 import ConnectivityDiagnostic from "@/components/dashboard/ConnectivityDiagnostic";
+import CarnetQueueProcessor from "@/components/dashboard/CarnetQueueProcessor";
 
 const AdminPanel = () => {
   const navigate = useNavigate();

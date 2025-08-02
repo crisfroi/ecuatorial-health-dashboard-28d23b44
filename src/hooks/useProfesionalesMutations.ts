@@ -147,11 +147,36 @@ export const useProfesionalesMutations = () => {
 
       return results;
     },
-    onSuccess: (results) => {
+    onSuccess: async (results, variables) => {
       console.log("Bulk update completed successfully:", results.length);
+
+      // Verificar si algún update cambió el estado a "Pendiente de Firma"
+      const pendienteFirmaUpdates = variables.filter(
+        update => update.changes.estado_solicitud === "Pendiente de Firma"
+      );
+
+      if (pendienteFirmaUpdates.length > 0) {
+        const idsForCarnet = pendienteFirmaUpdates.map(update => update.id);
+        console.log(`${idsForCarnet.length} profesionales cambiaron a "Pendiente de Firma". Generando carnets...`);
+
+        try {
+          await generateCarnetAfterStatusChange(idsForCarnet);
+          console.log(`Carnets generados automáticamente para ${idsForCarnet.length} profesionales`);
+        } catch (carnetError) {
+          console.error(`Error generando carnets masivos:`, carnetError);
+          toast({
+            title: "Carnets no generados",
+            description: `Los profesionales fueron actualizados pero hubo errores al generar algunos carnets: ${getErrorMessage(carnetError)}`,
+            variant: "destructive",
+          });
+        }
+      }
+
       queryClient.invalidateQueries({ queryKey: ["profesionales"] });
       queryClient.invalidateQueries({ queryKey: ["estadisticas"] });
       queryClient.invalidateQueries({ queryKey: ["centros"] });
+      queryClient.invalidateQueries({ queryKey: ["requests"] });
+
       toast({
         title: "Actualización masiva completada",
         description: `Se actualizaron ${results.length} profesionales exitosamente.`,

@@ -51,7 +51,6 @@ interface Filtros {
   año_graduacion?: number;
   categoria_titulacion?: string;
   categoria_centro?: string;
-  // Filtros de fecha
   fecha_solicitud_gte?: string;
   fecha_solicitud_lte?: string;
 }
@@ -80,7 +79,7 @@ export interface NavigationFilters {
 export function useProfesionales(filtros: Filtros = {}) {
   return useQuery({
     queryKey: ["profesionales", filtros],
-    queryFn: async () => {
+    queryFn: async (): Promise<Profesional[]> => {
       console.log("Fetching profesionales with filters:", filtros);
 
       let query = supabase
@@ -162,7 +161,13 @@ export function useProfesionales(filtros: Filtros = {}) {
       }
 
       console.log("Fetched profesionales:", data?.length || 0);
-      return data || [];
+      return (data || []).map(item => ({
+        ...item,
+        documento_identidad: item.numero_documento || '',
+        lugar_trabajo: item.nombre_centro || '',
+        universidad: item.institucion_1 || '',
+        numero_carnet_profesional: item.numero_autonumerico_correlativo?.toString() || ''
+      })) as Profesional[];
     },
   });
 }

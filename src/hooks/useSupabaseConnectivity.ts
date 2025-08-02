@@ -1,89 +1,43 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export function useSupabaseConnectivity() {
+export const useSupabaseConnectivity = () => {
   return useQuery({
-    queryKey: ["supabase-connectivity"],
+    queryKey: ['supabase-connectivity'],
     queryFn: async () => {
-      console.log("=== SIMPLE SUPABASE CONNECTIVITY TEST ===");
-
       try {
-        // Test 1: Check if supabase client exists
-        if (!supabase) {
-          throw new Error("Supabase client not initialized");
-        }
+        console.log('🔍 Testing Supabase connectivity...');
+        
+        // Use the public URLs instead of protected properties
+        const supabaseUrl = "https://wdieynendfjbkbhfovrx.supabase.co";
+        const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkaWV5bmVuZGZqYmtiaGZvdnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODA3ODI5MjEsImV4cCI6MTk5NjM1ODkyMX0.yFnLHavy8wzVjlg3sAI2mEG-XGDCV5FSr7OQsMefxL8";
 
-        console.log("✓ Supabase client exists");
-
-        // Test 2: Check configuration
-        const url = supabase.supabaseUrl;
-        const key = supabase.supabaseKey;
-
-        if (!url || !key) {
-          throw new Error(
-            `Missing configuration - URL: ${!!url}, Key: ${!!key}`,
-          );
-        }
-
-        console.log("✓ Supabase configuration present");
-        console.log("- URL:", url?.substring(0, 30) + "...");
-        console.log("- Key:", key?.substring(0, 20) + "...");
-
-        // Test 3: Try to access auth (doesn't require database access)
-        const session = await supabase.auth.getSession();
-        console.log(
-          "✓ Auth module accessible, session:",
-          !!session.data.session,
-        );
-
-        // Test 4: Try simplest possible database query
-        console.log("Testing database access...");
-        const { data, error } = await supabase
-          .from("profesionales_sanitarios")
-          .select("id")
-          .limit(1);
+        // Perform a simple query to test connectivity
+        const { data, error } = await supabase.from('profesionales_sanitarios').select('id').limit(1);
 
         if (error) {
-          console.log("Database query error:", {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code,
-          });
-          throw error;
+          throw new Error(`Supabase query failed: ${error.message}`);
         }
 
-        console.log("✓ Database query successful");
-        console.log("- Records available:", data?.length || 0);
+        if (!data) {
+          throw new Error('No data returned from Supabase, possible connection issue.');
+        }
 
         return {
-          status: "connected",
-          hasRecords: (data?.length || 0) > 0,
-          recordCount: data?.length || 0,
-          message: "Supabase connection successful",
+          connected: true,
+          url: supabaseUrl,
+          keyPresent: !!supabaseKey,
+          timestamp: new Date().toISOString()
         };
-      } catch (error: any) {
-        console.error("=== CONNECTIVITY TEST FAILED ===");
-        console.error("Error:", error);
-        console.error("Type:", typeof error);
-        console.error("Constructor:", error?.constructor?.name);
-        console.error("Message:", error?.message);
-        console.error("Stack:", error?.stack);
-
+      } catch (error) {
+        console.error('❌ Supabase connectivity test failed:', error);
         return {
-          status: "failed",
-          error: error?.message || error?.toString() || "Unknown error",
-          details: {
-            type: typeof error,
-            constructor: error?.constructor?.name,
-            hasMessage: !!error?.message,
-            hasStack: !!error?.stack,
-          },
+          connected: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString()
         };
       }
     },
-    retry: 1,
-    refetchInterval: false,
-    gcTime: 0, // Don't cache results
+    refetchInterval: 30000
   });
-}
+};

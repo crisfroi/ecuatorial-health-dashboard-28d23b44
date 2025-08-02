@@ -59,7 +59,8 @@ const UserRoleManagement = () => {
   const { inviteUser, getUserProfiles, updateUserRole, deleteUser, isLoading } = useUserManagement();
   const { testInvite, isLoading: isTestLoading } = useTestInvite();
   const { user: currentUser } = useAuth();
-  const { data: centrosSalud = [] } = useCentrosSalud();
+  const centrosQuery = useCentrosSalud();
+  const centrosData = centrosQuery.data || [];
 
   const roles: Array<{ value: UserRole; label: string }> = [
     { value: 'SUPER_ADMINISTRADOR', label: 'Super Administrador' },
@@ -252,7 +253,7 @@ const UserRoleManagement = () => {
                       <SelectValue placeholder="Seleccionar centro" />
                     </SelectTrigger>
                     <SelectContent>
-                      {centrosSalud.map((centro) => (
+                      {centrosData.map((centro) => (
                         <SelectItem key={centro.id} value={centro.id}>
                           {centro.nombre} - {centro.categoria}
                         </SelectItem>

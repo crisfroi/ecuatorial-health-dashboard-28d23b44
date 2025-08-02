@@ -100,6 +100,7 @@ const RequestsPanel = ({
 
   const { toast } = useToast();
   const { updateProfesional } = useProfesionalesMutations();
+  const { generateCarnetAfterStatusChange, isGenerating } = useCarnetGeneration();
 
   // Excel export functionality
   const exportRequestsToExcel = () => {

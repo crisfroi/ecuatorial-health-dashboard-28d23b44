@@ -51,7 +51,11 @@ export const useAccreditationStatusUpdate = () => {
       }
 
       if (!response.ok) {
-        console.error('Function response error:', { status: response.status, text });
+        console.error('Function response error:', {
+          status: response.status,
+          statusText: response.statusText,
+          text
+        });
         throw new Error(`Error al actualizar estados (${response.status}): ${text}`);
       }
 

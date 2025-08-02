@@ -597,6 +597,14 @@ const Dashboard = () => {
           <TabsContent value="users" className="space-y-6">
             {userRole === "administrador" && <AdminPanel />}
           </TabsContent>
+
+          <TabsContent value="diagnostic" className="space-y-6">
+            {userRole === "administrador" && (
+              <div className="flex justify-center">
+                <DatabaseDiagnostic />
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
     </div>

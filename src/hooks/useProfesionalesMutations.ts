@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getErrorMessage } from "@/utils/errorHandler";
+import { useCarnetGeneration } from "./useCarnetGeneration";
 import type { ProfesionalUpdate } from "./useProfesionales";
 
 export const useProfesionalesMutations = () => {

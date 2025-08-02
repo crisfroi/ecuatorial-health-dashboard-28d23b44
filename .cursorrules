@@ -1,0 +1,88 @@
+# Cursor Rules para Dashboard de Salud Ecuatorial
+
+## Configuración MCP de Supabase
+
+Este proyecto tiene configurado el Model Context Protocol (MCP) para Supabase. La configuración se encuentra en el directorio `.mcp/`.
+
+### Información del Proyecto Supabase:
+- **Project ID**: wdieynendfjbkbhfovrx
+- **URL**: https://wdieynendfjbkbhfovrx.supabase.co
+- **Anon Key**: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkaWV5bmVuZGZqYmtiaGZvdnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3ODI5MjEsImV4cCI6MjA2NjM1ODkyMX0.yFnLHavy8wzVjlg3sAI2mEG-XGDCV5FSr7OQsMefxL8
+
+### Para completar la configuración MCP:
+1. Obtener la Service Role Key desde el dashboard de Supabase
+2. Actualizar `.mcp/config.json` con la clave real
+3. Ejecutar `npm run setup-mcp` para verificar
+
+## Estructura del Proyecto
+
+Este es un dashboard de salud para Guinea Ecuatorial con las siguientes características:
+
+### Tecnologías:
+- React + TypeScript + Vite
+- Supabase (PostgreSQL + Auth + Storage)
+- Tailwind CSS + Shadcn/ui
+- React Query para gestión de estado
+- React Router para navegación
+
+### Funcionalidades Principales:
+- Gestión de profesionales de la salud
+- Generación de carnets profesionales
+- Análisis de estadísticas sanitarias
+- Gestión de centros de salud
+- Sistema de notificaciones SMS
+- Panel administrativo completo
+
+### Componentes Importantes:
+- `Dashboard.tsx`: Panel principal
+- `ProfessionalRegistration.tsx`: Registro de profesionales
+- `PublicSearch.tsx`: Búsqueda pública
+- `AdminPanel.tsx`: Panel administrativo
+- `CarnetGenerationStatus.tsx`: Estado de generación de carnets
+
+### Hooks Personalizados:
+- `useProfesionales.ts`: Gestión de profesionales
+- `useCarnetGeneration.ts`: Generación de carnets
+- `useSupabaseConnectivity.ts`: Conectividad con Supabase
+- `useAdvancedAnalytics.ts`: Análisis avanzado
+
+## Reglas de Desarrollo
+
+1. **TypeScript**: Usar tipos estrictos, evitar `any`
+2. **Componentes**: Usar Shadcn/ui para consistencia
+3. **Estado**: React Query para datos del servidor, Context para estado global
+4. **Estilos**: Tailwind CSS con clases utilitarias
+5. **Base de Datos**: Usar Supabase con RLS habilitado
+6. **Seguridad**: Validar datos en frontend y backend
+7. **Accesibilidad**: Usar componentes accesibles de Radix UI
+
+## Comandos Útiles
+
+```bash
+# Desarrollo
+npm run dev
+
+# Construcción
+npm run build
+
+# Configuración MCP
+npm run setup-mcp
+
+# Linting
+npm run lint
+```
+
+## Notas Importantes
+
+- El proyecto usa ES modules (type: "module" en package.json)
+- Las funciones de Supabase están en `supabase/functions/`
+- Las migraciones están en `supabase/migrations/`
+- Los tipos de TypeScript están en `src/types/`
+- Los hooks personalizados están en `src/hooks/`
+
+## MCP Configuration
+
+Para que el MCP funcione correctamente, asegúrate de que:
+1. La Service Role Key esté configurada en `.mcp/config.json`
+2. El servidor MCP esté instalado: `npx -y @modelcontextprotocol/server-supabase`
+3. Las variables de entorno estén correctamente configuradas 

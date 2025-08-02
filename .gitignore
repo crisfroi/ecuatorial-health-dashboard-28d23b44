@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# MCP Configuration (contains sensitive keys)
+.mcp/config.json
+.mcp/servers/supabase.json

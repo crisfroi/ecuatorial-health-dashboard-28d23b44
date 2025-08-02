@@ -8,6 +8,7 @@ import type { ProfesionalUpdate } from "./useProfesionales";
 export const useProfesionalesMutations = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { generateCarnetAfterStatusChange } = useCarnetGeneration();
 
   const updateProfesionalMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: ProfesionalUpdate }) => {

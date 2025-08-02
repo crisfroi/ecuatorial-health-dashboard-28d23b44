@@ -497,11 +497,7 @@ const RequestsPanel = ({
           },
         });
         
-        // Llama a la Edge Function si el nuevo estado es "Pendiente de Firma"
-        if (bulkUpdateStatus === "Pendiente de Firma") {
-          await sleep(2000); 
-          await handleGenerateCarnet(id);
-        }
+        // Carnet generation is now handled automatically by the mutation hook
         
         return { id, success: true };
       } catch (error) {

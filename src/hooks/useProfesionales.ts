@@ -1,16 +1,39 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-// Asegúrate de que tu tipo Profesional incluya 'motivo_rechazo'
 export type Profesional =
   Database["public"]["Tables"]["profesionales_sanitarios"]["Row"] & {
-    motivo_rechazo?: string; // Aseguramos que el tipo incluya esta propiedad
+    motivo_rechazo?: string;
+    universidad?: string;
+    lugar_trabajo?: string;
+    documento_identidad?: string;
+    numero_carnet_profesional?: string;
+    foto_carnet_base64?: string;
+    fecha_graduacion?: number;
   };
+
 export type ProfesionalInsert =
   Database["public"]["Tables"]["profesionales_sanitarios"]["Insert"];
 export type ProfesionalUpdate =
   Database["public"]["Tables"]["profesionales_sanitarios"]["Update"];
+
+// Tipo para las alertas de renovación
+export interface ProfesionalAlert {
+  id: string;
+  nombre_completo: string;
+  area_profesional: string;
+  fecha_caducidad: string;
+  estado_solicitud: string;
+  numero_carnet_profesional?: string;
+  lugar_trabajo?: string;
+  email?: string;
+  telefono?: string;
+}
+
+// Tipo para Professional (compatibilidad)
+export type Professional = Profesional;
 
 interface Filtros {
   area_profesional?: string;
@@ -18,7 +41,7 @@ interface Filtros {
   provincia?: string;
   genero?: string;
   tipo_sector?: string;
-  search?: string; // Para búsquedas de texto general
+  search?: string;
   distrito?: string;
   distrito_sanitario?: string;
   anoGraduacion?: string;
@@ -26,10 +49,32 @@ interface Filtros {
   edad_minima?: number;
   edad_maxima?: number;
   año_graduacion?: number;
-  // --- NUEVOS FILTROS DE FECHA ---
-  fecha_solicitud_gte?: string; // Greater Than or Equal (Fecha de inicio)
-  fecha_solicitud_lte?: string; // Less Than or Equal (Fecha de fin)
-  // --- FIN NUEVOS FILTROS ---
+  categoria_titulacion?: string;
+  categoria_centro?: string;
+  // Filtros de fecha
+  fecha_solicitud_gte?: string;
+  fecha_solicitud_lte?: string;
+}
+
+// Tipo para filtros de navegación
+export interface NavigationFilters {
+  area_profesional?: string;
+  estado_solicitud?: string;
+  provincia?: string;
+  genero?: string;
+  tipo_sector?: string;
+  search?: string;
+  distrito?: string;
+  distrito_sanitario?: string;
+  anoGraduacion?: string;
+  lugar_trabajo?: string;
+  edad_minima?: number;
+  edad_maxima?: number;
+  año_graduacion?: number;
+  categoria_titulacion?: string;
+  categoria_centro?: string;
+  fecha_solicitud_gte?: string;
+  fecha_solicitud_lte?: string;
 }
 
 export function useProfesionales(filtros: Filtros = {}) {

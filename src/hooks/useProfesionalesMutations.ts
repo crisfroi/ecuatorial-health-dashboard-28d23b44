@@ -35,12 +35,6 @@ export function useProfesionalesMutations() {
           }
 
           console.log("📊 Datos del profesional:", profesional);
-
-          // Verificar campos requeridos
-          if (!profesional?.id_profesional_unico) {
-            console.warn("⚠️ Falta ID profesional único, se generará automáticamente");
-          }
-
           console.log("✅ Profesional validado para cambio de estado");
         }
 

@@ -22,6 +22,7 @@ import { Search, Filter, X, Eye, Edit, Download, Save } from "lucide-react";
 import { useProfesionales, type Profesional } from "@/hooks/useProfesionales";
 import { useProfesionalesMutations } from "@/hooks/useProfesionalesMutations";
 import { useToast } from "@/hooks/use-toast";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 interface DashboardFilters {
   area_profesional?: string;

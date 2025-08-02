@@ -22,6 +22,7 @@ import { Search, Filter, X, Eye, Edit, Download, Save } from "lucide-react";
 import { useProfesionales, type Profesional } from "@/hooks/useProfesionales";
 import { useProfesionalesMutations } from "@/hooks/useProfesionalesMutations";
 import { useToast } from "@/hooks/use-toast";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 interface DashboardFilters {
   area_profesional?: string;
@@ -388,7 +389,8 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <ErrorBoundary>
+      <div className="space-y-6">
       {hasActiveFilters && (
         <Card className="border-guinea-teal">
           <CardHeader className="pb-3">
@@ -712,7 +714,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                               size="icon"
                               variant="ghost"
                               onClick={() => handleSaveState(profesional.id!)}
-                              disabled={updateProfesional.isLoading}
+                              disabled={updateProfesional.isPending}
                             >
                               <Save className="w-4 h-4 text-green-600" />
                             </Button>
@@ -771,7 +773,8 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

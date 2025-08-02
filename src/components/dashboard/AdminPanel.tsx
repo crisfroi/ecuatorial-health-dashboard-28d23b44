@@ -35,6 +35,8 @@ import SimpleConnectionTest from "@/components/dashboard/SimpleConnectionTest";
 import SupabaseConnectionTest from "@/components/dashboard/SupabaseConnectionTest";
 import SupabaseDebugTest from "@/components/dashboard/SupabaseDebugTest";
 import UserRoleManagement from "@/components/dashboard/UserRoleManagement";
+import ConnectivityDiagnostic from "@/components/dashboard/ConnectivityDiagnostic";
+import CarnetQueueProcessor from "@/components/dashboard/CarnetQueueProcessor";
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -369,6 +371,7 @@ const AdminPanel = () => {
 
         <TabsContent value="diagnostics">
           <div className="space-y-6">
+            <ConnectivityDiagnostic />
             <SupabaseDebugTest />
             <SupabaseConnectionTest />
             <SimpleConnectionTest />
@@ -379,6 +382,7 @@ const AdminPanel = () => {
 
         <TabsContent value="database">
           <div className="space-y-6">
+            <CarnetQueueProcessor />
             <DatabaseDiagnostics />
 
             <Card>

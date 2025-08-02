@@ -1,6 +1,6 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getErrorMessage } from "@/utils/errorHandler";
 import type { Database } from "@/integrations/supabase/types";
 
 export type Profesional =
@@ -165,12 +165,37 @@ export function useProfesionales(filtros: Filtros = {}) {
       const { data, error } = await query;
 
       if (error) {
-        console.error("Error fetching profesionales:", error.message || error);
-        throw error;
+        console.error("Error fetching profesionales:", {
+          error,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          filters: filtros
+        });
+
+        const errorMessage = getErrorMessage(error);
+        throw new Error(`Failed to fetch professionals: ${errorMessage}`);
       }
 
       console.log("Fetched profesionales:", data?.length || 0);
       return data || [];
+    },
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if ((error as any)?.code === 'PGRST301') return false;
+
+      // Don't retry on permission errors
+      if ((error as any)?.code === 'PGRST116') return false;
+
+      // Retry up to 3 times for other errors
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+    onError: (error) => {
+      console.error("useProfesionales query failed:", error);
     },
   });
 }

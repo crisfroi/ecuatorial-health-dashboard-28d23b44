@@ -1,159 +1,233 @@
-import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { 
+  CreditCard, 
   CheckCircle, 
-  AlertCircle, 
   Clock, 
-  Download, 
-  RefreshCw,
-  FileImage
-} from "lucide-react";
-import { useGenerateCarnet } from "@/hooks/useGenerateCarnet";
+  AlertTriangle, 
+  Download,
+  Eye,
+  RefreshCw
+} from 'lucide-react';
+import { useCarnetGeneration } from '@/hooks/useCarnetGeneration';
+import { useToast } from '@/hooks/use-toast';
 
-interface CarnetGenerationStatusProps {
+interface CarnetStatus {
   profesionalId: string;
-  estadoSolicitud: string;
-  urlCarnet?: string;
-  nombreCompleto?: string;
+  profesionalName: string;
+  status: 'pending' | 'generating' | 'completed' | 'error';
+  message?: string;
+  url_carnet?: string;
+  timestamp: string;
 }
 
-const CarnetGenerationStatus = ({
-  profesionalId,
-  estadoSolicitud,
-  urlCarnet,
-  nombreCompleto
-}: CarnetGenerationStatusProps) => {
-  const generateCarnet = useGenerateCarnet();
+interface CarnetGenerationStatusProps {
+  recentStatusChanges?: Array<{
+    profesionalId: string;
+    profesionalName: string;
+    newStatus: string;
+    timestamp: string;
+  }>;
+}
 
-  const handleGenerateCarnet = () => {
-    generateCarnet.mutate(profesionalId);
-  };
+const CarnetGenerationStatus = ({ recentStatusChanges = [] }: CarnetGenerationStatusProps) => {
+  const { isGenerating } = useCarnetGeneration();
+  const { toast } = useToast();
+  const [carnetStatuses, setCarnetStatuses] = useState<CarnetStatus[]>([]);
 
-  const handleDownloadCarnet = () => {
-    if (urlCarnet) {
-      window.open(urlCarnet, '_blank');
+  // Actualizar estados cuando hay cambios recientes a "Pendiente de Firma"
+  useEffect(() => {
+    const pendienteFirmaChanges = recentStatusChanges.filter(
+      change => change.newStatus === "Pendiente de Firma"
+    );
+
+    if (pendienteFirmaChanges.length > 0) {
+      const newStatuses: CarnetStatus[] = pendienteFirmaChanges.map(change => ({
+        profesionalId: change.profesionalId,
+        profesionalName: change.profesionalName,
+        status: 'generating',
+        message: 'Generando carnet automáticamente...',
+        timestamp: change.timestamp
+      }));
+
+      setCarnetStatuses(prev => [...newStatuses, ...prev].slice(0, 10)); // Mantener solo los últimos 10
+    }
+  }, [recentStatusChanges]);
+
+  const getStatusIcon = (status: CarnetStatus['status']) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="w-4 h-4 text-yellow-600" />;
+      case 'generating':
+        return <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />;
+      case 'completed':
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'error':
+        return <AlertTriangle className="w-4 h-4 text-red-600" />;
+      default:
+        return <Clock className="w-4 h-4 text-gray-600" />;
     }
   };
 
-  // Solo mostrar el componente si el estado es "Pendiente de Firma" o "Aprobado"
-  if (!["Pendiente de Firma", "Aprobado"].includes(estadoSolicitud)) {
-    return null;
+  const getStatusBadge = (status: CarnetStatus['status']) => {
+    const variants = {
+      pending: "bg-yellow-100 text-yellow-800",
+      generating: "bg-blue-100 text-blue-800",
+      completed: "bg-green-100 text-green-800",
+      error: "bg-red-100 text-red-800"
+    };
+
+    const labels = {
+      pending: "Pendiente",
+      generating: "Generando",
+      completed: "Completado",
+      error: "Error"
+    };
+
+    return (
+      <Badge className={variants[status]}>
+        {labels[status]}
+      </Badge>
+    );
+  };
+
+  const handleViewCarnet = (url_carnet: string) => {
+    window.open(url_carnet, '_blank');
+  };
+
+  const handleDownloadCarnet = async (url_carnet: string, profesionalName: string) => {
+    try {
+      const response = await fetch(url_carnet);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `carnet_${profesionalName.replace(/[^a-zA-Z0-9]/g, '_')}.svg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Descarga iniciada",
+        description: `Descargando carnet de ${profesionalName}`,
+      });
+    } catch (error) {
+      console.error('Error downloading carnet:', error);
+      toast({
+        title: "Error en descarga",
+        description: "No se pudo descargar el carnet",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Simular actualización de estados (en una implementación real, esto vendría de websockets o polling)
+  useEffect(() => {
+    const updateInterval = setInterval(() => {
+      setCarnetStatuses(prev => 
+        prev.map(status => {
+          // Simular que después de 5 segundos, los carnets en estado "generating" se completan
+          if (status.status === 'generating') {
+            const elapsedTime = Date.now() - new Date(status.timestamp).getTime();
+            if (elapsedTime > 5000) { // 5 segundos
+              return {
+                ...status,
+                status: 'completed' as const,
+                message: 'Carnet generado exitosamente',
+                url_carnet: `https://example.com/carnet/${status.profesionalId}.svg` // URL simulada
+              };
+            }
+          }
+          return status;
+        })
+      );
+    }, 1000);
+
+    return () => clearInterval(updateInterval);
+  }, []);
+
+  if (carnetStatuses.length === 0 && !isGenerating) {
+    return null; // No mostrar el componente si no hay actividad
   }
 
   return (
-    <Card className="border-blue-200 bg-blue-50">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <FileImage className="w-5 h-5 text-blue-600" />
-            <div>
-              <h4 className="text-sm font-semibold text-blue-900">
-                Carnet Profesional
-              </h4>
-              <p className="text-xs text-blue-700">
-                {nombreCompleto || `Profesional ${profesionalId}`}
-              </p>
-            </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CreditCard className="w-5 h-5 text-blue-600" />
+          Estado de Generación de Carnets
+          {isGenerating && (
+            <Badge className="bg-blue-100 text-blue-800 animate-pulse">
+              Procesando...
+            </Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        {carnetStatuses.length === 0 ? (
+          <div className="text-center py-4 text-gray-500">
+            <CreditCard className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+            <p>No hay generaciones de carnets recientes</p>
           </div>
-
-          <div className="flex items-center gap-2">
-            {/* Estado de generación */}
-            {generateCarnet.isPending && (
-              <div className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
-                <Badge variant="outline" className="text-blue-700 border-blue-300">
-                  Generando...
-                </Badge>
+        ) : (
+          <div className="space-y-3 max-h-60 overflow-y-auto">
+            {carnetStatuses.map((status, index) => (
+              <div key={`${status.profesionalId}-${index}`} className="border rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(status.status)}
+                    <span className="font-medium text-sm">{status.profesionalName}</span>
+                  </div>
+                  {getStatusBadge(status.status)}
+                </div>
+                
+                <p className="text-xs text-gray-600 mb-2">
+                  {status.message || 'Procesando carnet profesional...'}
+                </p>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">
+                    {new Date(status.timestamp).toLocaleString('es-ES')}
+                  </span>
+                  
+                  {status.status === 'completed' && status.url_carnet && (
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewCarnet(status.url_carnet!)}
+                        className="h-6 px-2 text-xs"
+                      >
+                        <Eye className="w-3 h-3 mr-1" />
+                        Ver
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDownloadCarnet(status.url_carnet!, status.profesionalName)}
+                        className="h-6 px-2 text-xs"
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        Descargar
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-
-            {urlCarnet && !generateCarnet.isPending && (
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <Badge className="bg-green-100 text-green-800">
-                  Disponible
-                </Badge>
-              </div>
-            )}
-
-            {!urlCarnet && !generateCarnet.isPending && estadoSolicitud === "Pendiente de Firma" && (
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-yellow-600" />
-                <Badge variant="outline" className="text-yellow-700 border-yellow-300">
-                  Pendiente
-                </Badge>
-              </div>
-            )}
-
-            {generateCarnet.isError && (
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-600" />
-                <Badge variant="outline" className="text-red-700 border-red-300">
-                  Error
-                </Badge>
-              </div>
-            )}
-
-            {/* Botones de acción */}
-            {urlCarnet ? (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleDownloadCarnet}
-                className="text-blue-700 border-blue-300 hover:bg-blue-100"
-              >
-                <Download className="w-3 h-3 mr-1" />
-                Descargar
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleGenerateCarnet}
-                disabled={generateCarnet.isPending}
-                className="text-blue-700 border-blue-300 hover:bg-blue-100"
-              >
-                {generateCarnet.isPending ? (
-                  <>
-                    <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                    Generando...
-                  </>
-                ) : (
-                  <>
-                    <FileImage className="w-3 h-3 mr-1" />
-                    Generar Carnet
-                  </>
-                )}
-              </Button>
-            )}
+            ))}
           </div>
+        )}
+
+        <Separator />
+        
+        <div className="text-xs text-gray-500 text-center">
+          Los carnets se generan automáticamente cuando el estado cambia a "Pendiente de Firma"
         </div>
-
-        {/* Mensaje de error */}
-        {generateCarnet.isError && (
-          <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-md">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600" />
-              <p className="text-xs text-red-700">
-                Error al generar carnet. Puede intentar nuevamente o contactar soporte.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Mensaje de éxito */}
-        {generateCarnet.isSuccess && urlCarnet && (
-          <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-md">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-green-600" />
-              <p className="text-xs text-green-700">
-                Carnet generado exitosamente y listo para descarga.
-              </p>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

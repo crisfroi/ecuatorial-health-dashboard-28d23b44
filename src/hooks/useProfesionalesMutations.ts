@@ -1,36 +1,75 @@
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/utils/errorHandler";
+import { useCarnetGeneration } from "./useCarnetGeneration";
 import type { ProfesionalUpdate } from "./useProfesionales";
 
 export const useProfesionalesMutations = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { generateCarnetAfterStatusChange } = useCarnetGeneration();
 
   const updateProfesionalMutation = useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & ProfesionalUpdate) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: ProfesionalUpdate }) => {
       console.log("Updating professional:", id, updates);
-      
-      const { data, error } = await supabase
-        .from("profesionales_sanitarios")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .single();
 
-      if (error) {
-        console.error("Error updating professional:", error);
-        throw error;
+      try {
+        const { data, error } = await supabase
+          .from("profesionales_sanitarios")
+          .update(updates)
+          .eq("id", id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Supabase error updating professional:", {
+            error,
+            id,
+            updates,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          throw new Error(getErrorMessage(error));
+        }
+
+        if (!data) {
+          throw new Error("No data returned from update operation");
+        }
+
+        return data;
+      } catch (networkError) {
+        console.error("Network/connection error:", networkError);
+        throw new Error(getErrorMessage(networkError));
+      }
+    },
+    onSuccess: async (data, variables) => {
+      console.log("Professional updated successfully:", data.id);
+
+      // Verificar si el estado cambió a "Pendiente de Firma" para generar carnet
+      if (variables.updates.estado_solicitud === "Pendiente de Firma") {
+        console.log(`Estado cambió a "Pendiente de Firma" para profesional ${data.id}. Generando carnet...`);
+
+        try {
+          await generateCarnetAfterStatusChange(data.id);
+          console.log(`Carnet generado automáticamente para profesional ${data.id}`);
+        } catch (carnetError) {
+          console.error(`Error generando carnet para profesional ${data.id}:`, carnetError);
+          toast({
+            title: "Carnet no generado",
+            description: `El profesional fue actualizado pero hubo un error al generar el carnet: ${getErrorMessage(carnetError)}`,
+            variant: "destructive",
+          });
+        }
       }
 
-      return data;
-    },
-    onSuccess: (data) => {
-      console.log("Professional updated successfully:", data.id);
       queryClient.invalidateQueries({ queryKey: ["profesionales"] });
       queryClient.invalidateQueries({ queryKey: ["estadisticas"] });
       queryClient.invalidateQueries({ queryKey: ["centros"] });
+      queryClient.invalidateQueries({ queryKey: ["requests"] });
+
       toast({
         title: "Profesional actualizado",
         description: "Los datos del profesional han sido actualizados exitosamente.",
@@ -38,9 +77,10 @@ export const useProfesionalesMutations = () => {
     },
     onError: (error: any) => {
       console.error("Error updating professional:", error);
+      const errorMessage = getErrorMessage(error);
       toast({
         title: "Error al actualizar",
-        description: error.message || "No se pudo actualizar el profesional",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -74,9 +114,10 @@ export const useProfesionalesMutations = () => {
     },
     onError: (error: any) => {
       console.error("Error deleting professional:", error);
+      const errorMessage = getErrorMessage(error);
       toast({
         title: "Error al eliminar",
-        description: error.message || "No se pudo eliminar el profesional",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -106,11 +147,36 @@ export const useProfesionalesMutations = () => {
 
       return results;
     },
-    onSuccess: (results) => {
+    onSuccess: async (results, variables) => {
       console.log("Bulk update completed successfully:", results.length);
+
+      // Verificar si algún update cambió el estado a "Pendiente de Firma"
+      const pendienteFirmaUpdates = variables.filter(
+        update => update.changes.estado_solicitud === "Pendiente de Firma"
+      );
+
+      if (pendienteFirmaUpdates.length > 0) {
+        const idsForCarnet = pendienteFirmaUpdates.map(update => update.id);
+        console.log(`${idsForCarnet.length} profesionales cambiaron a "Pendiente de Firma". Generando carnets...`);
+
+        try {
+          await generateCarnetAfterStatusChange(idsForCarnet);
+          console.log(`Carnets generados automáticamente para ${idsForCarnet.length} profesionales`);
+        } catch (carnetError) {
+          console.error(`Error generando carnets masivos:`, carnetError);
+          toast({
+            title: "Carnets no generados",
+            description: `Los profesionales fueron actualizados pero hubo errores al generar algunos carnets: ${getErrorMessage(carnetError)}`,
+            variant: "destructive",
+          });
+        }
+      }
+
       queryClient.invalidateQueries({ queryKey: ["profesionales"] });
       queryClient.invalidateQueries({ queryKey: ["estadisticas"] });
       queryClient.invalidateQueries({ queryKey: ["centros"] });
+      queryClient.invalidateQueries({ queryKey: ["requests"] });
+
       toast({
         title: "Actualización masiva completada",
         description: `Se actualizaron ${results.length} profesionales exitosamente.`,
@@ -118,18 +184,19 @@ export const useProfesionalesMutations = () => {
     },
     onError: (error: any) => {
       console.error("Error in bulk update:", error);
+      const errorMessage = getErrorMessage(error);
       toast({
         title: "Error en actualización masiva",
-        description: error.message || "No se pudo completar la actualización masiva",
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
 
   return {
-    updateProfesionalMutation,
-    deleteProfesionalMutation,
-    bulkUpdateMutation,
+    updateProfesional: updateProfesionalMutation,
+    deleteProfesional: deleteProfesionalMutation,
+    bulkUpdate: bulkUpdateMutation,
     // Provide isPending instead of isLoading for compatibility
     isUpdating: updateProfesionalMutation.isPending,
     isDeleting: deleteProfesionalMutation.isPending,

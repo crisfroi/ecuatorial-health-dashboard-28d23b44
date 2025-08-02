@@ -33,6 +33,7 @@ import {
 import { useProfesionales, type Profesional } from "@/hooks/useProfesionales";
 import { useProfesionalesMutations } from "@/hooks/useProfesionalesMutations";
 import { useToast } from "@/hooks/use-toast";
+import { useCarnetGeneration } from "@/hooks/useCarnetGeneration";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
@@ -52,7 +53,7 @@ import html2canvas from "html2canvas";
 
 // Importaciones necesarias para la nueva lógica
 import { supabase } from "@/lib/supabaseClient"; // Asegúrate de que esta ruta sea correcta
-import { sleep } from "@/lib/utils"; // Si usas una función de espera
+
 
 // Definimos los estados válidos y su orden para el flujo
 const STATUS_ORDER = [
@@ -99,6 +100,7 @@ const RequestsPanel = ({
 
   const { toast } = useToast();
   const { updateProfesional } = useProfesionalesMutations();
+  const { generateCarnetAfterStatusChange, isGenerating } = useCarnetGeneration();
 
   // Excel export functionality
   const exportRequestsToExcel = () => {
@@ -275,44 +277,8 @@ const RequestsPanel = ({
     }
   };
 
-  // --- Lógica de Generación de Carnet ---
-  const handleGenerateCarnet = async (professionalId: string) => {
-    try {
-      toast({
-        title: "Generando Carnet...",
-        description: "El proceso de generación del carnet ha iniciado. Puede tardar unos segundos.",
-      });
-
-      const edgeFunctionUrl = `${
-        import.meta.env.VITE_SUPABASE_URL
-      }/functions/v1/generar-carnet-profesional?id=${professionalId}`;
-
-      const response = await fetch(edgeFunctionUrl, {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error en la llamada a la Edge Function: ${response.statusText}`);
-      }
-
-      toast({
-        title: "Generación de Carnet iniciada",
-        description: "El carnet se está generando. La URL se actualizará en unos momentos.",
-        variant: "success",
-      });
-
-    } catch (error) {
-      console.error("Error en el proceso de generación del carnet:", error);
-      toast({
-        title: "Error de Generación",
-        description: `Hubo un problema al iniciar la generación del carnet. Inténtelo de nuevo.`,
-        variant: "destructive",
-      });
-    }
-  };
+  // Carnet generation is now handled automatically by the useProfesionalesMutations hook
+  // when the status changes to "Pendiente de Firma"
 
   const handleEditState = (requestId: string, currentState: string) => {
     setEditingStates((prev) => ({
@@ -378,12 +344,7 @@ const RequestsPanel = ({
         },
       });
 
-      // Llama a la Edge Function si el nuevo estado es "Pendiente de Firma"
-      if (newState === "Pendiente de Firma") {
-        // Usa una función de espera para dar tiempo al trigger de DB a generar el código de barras
-        await sleep(2000); 
-        await handleGenerateCarnet(requestId);
-      }
+      // Carnet generation is now handled automatically by the mutation hook
 
       setEditingStates((prev) => {
         const newStates = { ...prev };
@@ -536,11 +497,7 @@ const RequestsPanel = ({
           },
         });
         
-        // Llama a la Edge Function si el nuevo estado es "Pendiente de Firma"
-        if (bulkUpdateStatus === "Pendiente de Firma") {
-          await sleep(2000); 
-          await handleGenerateCarnet(id);
-        }
+        // Carnet generation is now handled automatically by the mutation hook
         
         return { id, success: true };
       } catch (error) {

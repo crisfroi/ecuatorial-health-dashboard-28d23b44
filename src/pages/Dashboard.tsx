@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Card,
   CardContent,
@@ -30,7 +31,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
 import {
@@ -230,9 +230,42 @@ const Dashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    console.log("Dashboard: Cerrar sesión.");
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      console.log("Dashboard: Cerrando sesión...");
+
+      // Cerrar sesión en Supabase
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error("Error al cerrar sesión:", error);
+        toast({
+          title: "Error al cerrar sesión",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Limpiar datos locales si es necesario
+      localStorage.removeItem('supabase.auth.token');
+
+      toast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión exitosamente.",
+      });
+
+      // Navegar al login
+      navigate("/");
+
+    } catch (error) {
+      console.error("Error inesperado al cerrar sesión:", error);
+      toast({
+        title: "Error inesperado",
+        description: "Ocurrió un error al cerrar sesión.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleUserSettings = () => {

@@ -1051,7 +1051,7 @@ const RequestsPanel = ({
 
                 {allSelectedArePendingFirm && (
                   <DropdownMenu>
-                    <DropdownMenuTrigger>
+                    <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
                         className="flex items-center gap-2"

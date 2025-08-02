@@ -33,6 +33,7 @@ import {
 import { useProfesionales, type Profesional } from "@/hooks/useProfesionales";
 import { useProfesionalesMutations } from "@/hooks/useProfesionalesMutations";
 import { useToast } from "@/hooks/use-toast";
+import { useCarnetGeneration } from "@/hooks/useCarnetGeneration";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,

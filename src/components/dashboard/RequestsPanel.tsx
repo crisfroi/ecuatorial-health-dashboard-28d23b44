@@ -53,7 +53,7 @@ import html2canvas from "html2canvas";
 
 // Importaciones necesarias para la nueva lógica
 import { supabase } from "@/lib/supabaseClient"; // Asegúrate de que esta ruta sea correcta
-import { sleep } from "@/lib/utils"; // Si usas una función de espera
+
 
 // Definimos los estados válidos y su orden para el flujo
 const STATUS_ORDER = [

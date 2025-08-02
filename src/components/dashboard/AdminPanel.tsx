@@ -382,6 +382,7 @@ const AdminPanel = () => {
 
         <TabsContent value="database">
           <div className="space-y-6">
+            <CarnetQueueProcessor />
             <DatabaseDiagnostics />
 
             <Card>

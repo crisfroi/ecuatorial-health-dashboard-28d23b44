@@ -52,7 +52,7 @@ class ErrorBoundary extends Component<Props, State> {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-800">
               <AlertTriangle className="w-5 h-5" />
-              Error de Aplicaci��n
+              Error de Aplicación
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -130,3 +130,6 @@ export const withErrorBoundary = <P extends object>(
   
   return WrappedComponent;
 };
+
+export default ErrorBoundary;
+export { ErrorBoundary };

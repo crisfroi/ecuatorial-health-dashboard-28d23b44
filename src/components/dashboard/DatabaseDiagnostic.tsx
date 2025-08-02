@@ -62,15 +62,22 @@ export const DatabaseDiagnostic = () => {
       name: 'Consulta Simple DB',
       test: async () => {
         try {
-          const { data, error } = await supabase
+          const dbPromise = supabase
             .from('profesionales_sanitarios')
-            .select('count')
+            .select('id')
             .limit(1);
-          
+
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout after 3 seconds')), 3000)
+          );
+
+          const { data, error } = await Promise.race([dbPromise, timeoutPromise]) as any;
+
           return {
             success: !error,
-            details: { 
+            details: {
               hasData: !!data,
+              count: data?.length || 0,
               error: error?.message,
               hint: error?.hint
             }

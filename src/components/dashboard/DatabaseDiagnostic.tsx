@@ -94,14 +94,20 @@ export const DatabaseDiagnostic = () => {
       name: 'RLS (Row Level Security)',
       test: async () => {
         try {
-          const { data, error } = await supabase
+          const rlsPromise = supabase
             .from('busqueda_profesionales_publica')
             .select('*')
             .limit(1);
-          
+
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('RLS timeout after 3 seconds')), 3000)
+          );
+
+          const { data, error } = await Promise.race([rlsPromise, timeoutPromise]) as any;
+
           return {
             success: !error,
-            details: { 
+            details: {
               hasData: !!data,
               count: data?.length || 0,
               error: error?.message

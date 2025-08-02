@@ -277,44 +277,8 @@ const RequestsPanel = ({
     }
   };
 
-  // --- Lógica de Generación de Carnet ---
-  const handleGenerateCarnet = async (professionalId: string) => {
-    try {
-      toast({
-        title: "Generando Carnet...",
-        description: "El proceso de generación del carnet ha iniciado. Puede tardar unos segundos.",
-      });
-
-      const edgeFunctionUrl = `${
-        import.meta.env.VITE_SUPABASE_URL
-      }/functions/v1/generar-carnet-profesional?id=${professionalId}`;
-
-      const response = await fetch(edgeFunctionUrl, {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error en la llamada a la Edge Function: ${response.statusText}`);
-      }
-
-      toast({
-        title: "Generación de Carnet iniciada",
-        description: "El carnet se está generando. La URL se actualizará en unos momentos.",
-        variant: "success",
-      });
-
-    } catch (error) {
-      console.error("Error en el proceso de generación del carnet:", error);
-      toast({
-        title: "Error de Generación",
-        description: `Hubo un problema al iniciar la generación del carnet. Inténtelo de nuevo.`,
-        variant: "destructive",
-      });
-    }
-  };
+  // Carnet generation is now handled automatically by the useProfesionalesMutations hook
+  // when the status changes to "Pendiente de Firma"
 
   const handleEditState = (requestId: string, currentState: string) => {
     setEditingStates((prev) => ({

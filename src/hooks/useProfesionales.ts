@@ -33,7 +33,7 @@ export interface ProfesionalAlert {
   telefono?: string;
 }
 
-// Tipo para Professional (compatibilidad)
+// Tipo para Professional (compatibilidad) - ahora incluye todos los campos necesarios
 export type Professional = Profesional;
 
 interface Filtros {
@@ -57,7 +57,7 @@ interface Filtros {
   fecha_solicitud_lte?: string;
 }
 
-// Tipo para filtros de navegación
+// Tipo para filtros de navegación - incluye todas las propiedades necesarias
 export interface NavigationFilters {
   area_profesional?: string;
   estado_solicitud?: string;
@@ -139,6 +139,14 @@ export function useProfesionales(filtros: Filtros = {}) {
 
       if (filtros.edad_maxima !== undefined) {
         query = query.lte("edad", filtros.edad_maxima);
+      }
+
+      if (filtros.categoria_titulacion && filtros.categoria_titulacion !== "todos") {
+        query = query.eq("categoria_titulacion", filtros.categoria_titulacion);
+      }
+
+      if (filtros.categoria_centro && filtros.categoria_centro !== "todos") {
+        query = query.eq("categoria_centro", filtros.categoria_centro);
       }
 
       // --- APLICAR FILTROS DE FECHA ---

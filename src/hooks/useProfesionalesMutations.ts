@@ -126,12 +126,18 @@ export const useProfesionalesMutations = () => {
     },
   });
 
-  // Helper functions to maintain backward compatibility
-  const updateProfesional = updateProfesionalMutation.mutate;
+  // Create a proper function wrapper for updateProfesional with mutateAsync
+  const updateProfesionalFunction = Object.assign(
+    updateProfesionalMutation.mutate,
+    {
+      mutateAsync: updateProfesionalMutation.mutateAsync,
+      isLoading: updateProfesionalMutation.isPending,
+    }
+  );
 
   return {
     updateProfesionalMutation,
-    updateProfesional, // For backward compatibility
+    updateProfesional: updateProfesionalFunction, // For backward compatibility
     deleteProfesionalMutation,
     bulkUpdateMutation,
     // Provide isPending instead of isLoading for compatibility

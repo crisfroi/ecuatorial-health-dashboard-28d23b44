@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -88,7 +87,6 @@ export function useProfesionales(filtros: Filtros = {}) {
         .select("*")
         .order("created_at", { ascending: false });
 
-      // Aplicar filtros existentes
       if (filtros.area_profesional && filtros.area_profesional !== "todos") {
         query = query.eq("area_profesional", filtros.area_profesional);
       }
@@ -145,22 +143,15 @@ export function useProfesionales(filtros: Filtros = {}) {
         query = query.eq("categoria_centro", filtros.categoria_centro);
       }
 
-      // --- APLICAR FILTROS DE FECHA ---
-      // Asumimos que la columna para la fecha de solicitud es 'created_at' en tu tabla
+      // Filtros de fecha
       if (filtros.fecha_solicitud_gte) {
         query = query.gte("created_at", filtros.fecha_solicitud_gte);
       }
       if (filtros.fecha_solicitud_lte) {
-        // Para incluir el día completo de la fecha final, ajustamos la fecha_lte
-        // Si la fecha_lte es 'YYYY-MM-DD', Supabase filtra hasta el inicio de ese día.
-        // Para incluir todo el día, le sumamos un día y usamos '<' (lt)
         const endDateObj = new Date(filtros.fecha_solicitud_lte);
-        endDateObj.setDate(endDateObj.getDate() + 1); // Suma un día
+        endDateObj.setDate(endDateObj.getDate() + 1);
         query = query.lt("created_at", endDateObj.toISOString().split("T")[0]);
-        // Alternativa más simple si quieres justo hasta el final del día elegido:
-        // query = query.lte('created_at', filtros.fecha_solicitud_lte + 'T23:59:59.999Z');
       }
-      // --- FIN FILTROS DE FECHA ---
 
       const { data, error } = await query;
 

@@ -6,7 +6,7 @@
       "env": {
         "SUPABASE_URL": "https://your-project-id.supabase.co",
         "SUPABASE_ANON_KEY": "your-anon-key-here",
-        "SUPABASE_SERVICE_ROLE_KEY": "your-service-role-key-here"
+        "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkaWV5bmVuZGZqYmtiaGZvdnJ4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDc4MjkyMSwiZXhwIjoyMDY2MzU4OTIxfQ.X3Irl85Dy5HdZiPsMQUczySZgAT-dDyz7CZKjSn0X8Y"
       }
     }
   }

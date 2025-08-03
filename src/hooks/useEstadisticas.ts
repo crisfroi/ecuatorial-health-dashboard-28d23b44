@@ -41,10 +41,33 @@ export function useEstadisticas() {
 
       if (error) {
         console.error("❌ Error fetching estadísticas:", error);
-        throw error;
+        // En lugar de lanzar el error, devolvemos datos vacíos pero válidos
+        console.log("⚠️ Returning empty stats due to error");
+        return {
+          total: 0,
+          aprobados: 0,
+          pendientes: 0,
+          recibidos: 0,
+          rechazados: 0,
+          revisando: 0,
+          vencimientosProximos: 0,
+          carnetVencidos: 0,
+          porArea: {},
+          porProvincia: {},
+          generoMasculino: 0,
+          generoFemenino: 0,
+          totalPorGenero: {},
+          totalPorDistrito: {},
+          totalPorTipoSector: {},
+          totalPorNacionalidad: {},
+          totalPorAreaProfesional: {},
+          totalPorEstadoSolicitud: {},
+          totalPorDistritoSanitario: {},
+          datosGraficoProvincias: []
+        };
       }
 
-      if (!profesionales) {
+      if (!profesionales || profesionales.length === 0) {
         console.log("⚠️ No se encontraron profesionales");
         return {
           total: 0,

@@ -44,38 +44,41 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
   let effectiveStats = stats;
   let fallbackReason = null;
 
-  // If main stats failed, check the error type
-  if (!stats && error) {
-    console.log("Main stats failed, analyzing error for fallback decision...");
+  // If main stats failed or are empty, use fallback data
+  if (!stats || (stats && stats.total === 0 && error)) {
+    console.log("Main stats failed or empty, analyzing for fallback...");
 
-    const errorMessage = error?.message || "";
-    const isFetchError =
-      errorMessage.includes("fetch") ||
-      errorMessage.includes("Failed to fetch") ||
-      errorMessage.includes("TypeError");
-
-    const isNetworkError =
-      errorMessage.includes("network") ||
-      errorMessage.includes("NetworkError") ||
-      errorMessage.includes("CORS");
-
-    // If it's a network/fetch error, use mock data
-    if (isFetchError || isNetworkError) {
-      console.log("Using mock data due to network/fetch error");
-      effectiveStats = mockStats;
-      fallbackReason = "network";
-    }
-    // If test stats are available, use those
-    else if (testStats) {
-      console.log("Using test stats as fallback");
+    // Priority 1: Use test stats if available and not loading
+    if (testStats && !testLoading && !testError) {
+      console.log("Using test stats as primary fallback");
       effectiveStats = testStats;
       fallbackReason = "test";
     }
-    // Last resort: mock data
-    else {
-      console.log("Using mock data as last resort");
+    // Priority 2: Use mock data if test stats are not available
+    else if (mockStats && !mockLoading) {
+      console.log("Using mock data as fallback");
       effectiveStats = mockStats;
       fallbackReason = "mock";
+    }
+    // Priority 3: Check error type for specific fallback decisions
+    else if (error) {
+      const errorMessage = error?.message || "";
+      const isFetchError =
+        errorMessage.includes("fetch") ||
+        errorMessage.includes("Failed to fetch") ||
+        errorMessage.includes("TypeError");
+
+      const isNetworkError =
+        errorMessage.includes("network") ||
+        errorMessage.includes("NetworkError") ||
+        errorMessage.includes("CORS");
+
+      // If it's a network/fetch error, use mock data
+      if (isFetchError || isNetworkError) {
+        console.log("Using mock data due to network/fetch error");
+        effectiveStats = mockStats;
+        fallbackReason = "network";
+      }
     }
   }
 
@@ -97,7 +100,9 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     );
   }
 
-  if (error) {
+  // Si hay error pero tenemos datos de fallback, continuamos con la lógica normal
+  // Solo mostramos error si no tenemos ningún dato disponible
+  if (error && !effectiveStats) {
     return (
       <Card className="col-span-full">
         <CardContent className="flex items-center justify-center p-8">

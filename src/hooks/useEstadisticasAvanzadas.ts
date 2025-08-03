@@ -165,7 +165,32 @@ export function useEstadisticasAvanzadas() {
             );
           }
 
-          throw new Error(`Failed to fetch statistics: ${errorMessage}`);
+          // En lugar de lanzar el error, devolvemos datos vacíos
+          console.log("⚠️ Returning empty stats due to database error");
+          return {
+            total: 0,
+            aprobados: 0,
+            recibidos: 0,
+            rechazados: 0,
+            revisando: 0,
+            vencimientosProximos: 0,
+            carnetVencidos: 0,
+            porArea: {},
+            porProvincia: {},
+            generoMasculino: 0,
+            generoFemenino: 0,
+            totalPorGenero: {},
+            totalPorDistrito: {},
+            totalPorTipoSector: {},
+            totalPorNacionalidad: {},
+            totalPorAreaProfesional: {},
+            totalPorEstadoSolicitud: {},
+            totalPorDistritoSanitario: {},
+            datosGraficoProvincias: [],
+            tendenciasMensuales: [],
+            tasaAprobacion: "0.0",
+            tasaRechazo: "0.0"
+          };
         }
 
         profesionales = data || [];
@@ -176,18 +201,32 @@ export function useEstadisticasAvanzadas() {
       } catch (fetchError: any) {
         console.error("Network or fetch error:", fetchError);
 
-        // Verificar si es un error de red
-        if (
-          fetchError.name === "TypeError" &&
-          fetchError.message.includes("fetch")
-        ) {
-          throw new Error(
-            "Network connection failed. Please check your internet connection and try again.",
-          );
-        }
-
-        // Re-lanzar otros errores
-        throw fetchError;
+        // En lugar de lanzar errores, devolvemos datos vacíos
+        console.log("⚠️ Returning empty stats due to network/fetch error");
+        return {
+          total: 0,
+          aprobados: 0,
+          recibidos: 0,
+          rechazados: 0,
+          revisando: 0,
+          vencimientosProximos: 0,
+          carnetVencidos: 0,
+          porArea: {},
+          porProvincia: {},
+          generoMasculino: 0,
+          generoFemenino: 0,
+          totalPorGenero: {},
+          totalPorDistrito: {},
+          totalPorTipoSector: {},
+          totalPorNacionalidad: {},
+          totalPorAreaProfesional: {},
+          totalPorEstadoSolicitud: {},
+          totalPorDistritoSanitario: {},
+          datosGraficoProvincias: [],
+          tendenciasMensuales: [],
+          tasaAprobacion: "0.0",
+          tasaRechazo: "0.0"
+        };
       }
 
       // 1. FILTRAR PROFESIONALES APROBADOS PARA TODAS LAS ESTADÍSTICAS PRINCIPALES

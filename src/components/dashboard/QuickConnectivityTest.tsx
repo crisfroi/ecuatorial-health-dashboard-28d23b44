@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 export const QuickConnectivityTest = () => {
@@ -14,13 +15,13 @@ export const QuickConnectivityTest = () => {
     setResult(null);
 
     try {
-      console.log("🧪 Iniciando test r��pido de conectividad...");
+      console.log("🧪 Iniciando test rápido de conectividad...");
       
       // Test 1: Configuración básica
-      const hasUrl = !!supabase.supabaseUrl;
-      const hasKey = !!supabase.supabaseKey;
+      const hasUrl = !!SUPABASE_URL;
+      const hasKey = !!SUPABASE_PUBLISHABLE_KEY;
       
-      console.log("🧪 Config:", { hasUrl, hasKey, url: supabase.supabaseUrl?.substring(0, 30) + '...' });
+      console.log("🧪 Config:", { hasUrl, hasKey, url: SUPABASE_URL?.substring(0, 30) + '...' });
 
       // Test 2: Autenticación
       let authResult;

@@ -93,8 +93,12 @@ const AdvancedAnalyticsResults: React.FC<AdvancedAnalyticsResultsProps> = ({
             <CardContent>
               <div className="space-y-4">
                 {Object.entries(data.distribucion_genero).map(([genero, cantidad]: [string, any]) => {
-                  const total = Object.values(data.distribucion_genero).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0);
-                  const percentage = total > 0 ? ((Number(cantidad) || 0) / total * 100).toFixed(1) : '0';
+                  const total = Object.values(data.distribucion_genero).reduce((sum: number, val: any) => {
+                    const numVal = Number(val) || 0;
+                    return sum + numVal;
+                  }, 0);
+                  const numCantidad = Number(cantidad) || 0;
+                  const percentage = total > 0 ? ((numCantidad / total) * 100).toFixed(1) : '0';
                   
                   return (
                     <div key={genero} className="space-y-2">
@@ -207,8 +211,12 @@ const AdvancedAnalyticsResults: React.FC<AdvancedAnalyticsResultsProps> = ({
             <CardContent>
               <div className="space-y-4">
                 {Object.entries(data.distribucion_edad).map(([rango, cantidad]: [string, any]) => {
-                  const total = Object.values(data.distribucion_edad).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0);
-                  const percentage = total > 0 ? ((Number(cantidad) || 0) / total * 100).toFixed(1) : '0';
+                  const total = Object.values(data.distribucion_edad).reduce((sum: number, val: any) => {
+                    const numVal = Number(val) || 0;
+                    return sum + numVal;
+                  }, 0);
+                  const numCantidad = Number(cantidad) || 0;
+                  const percentage = total > 0 ? ((numCantidad / total) * 100).toFixed(1) : '0';
                   
                   return (
                     <div key={rango} className="space-y-2">

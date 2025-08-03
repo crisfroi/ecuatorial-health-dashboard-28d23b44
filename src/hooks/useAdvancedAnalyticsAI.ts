@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -13,6 +14,14 @@ export interface AdvancedStatsResult {
   error?: string;
   query?: string;
   timestamp: string;
+  textResponse?: string;
+  summary?: {
+    total_profesionales?: number;
+    total_centros?: number;
+    total_distritos?: number;
+    areas_principales?: string[];
+    datos_principales?: Record<string, any>;
+  };
 }
 
 export interface AnalyticsCategory {
@@ -55,8 +64,7 @@ export const ANALYTICS_CATEGORIES: AnalyticsCategory[] = [
     examples: [
       '¿En qué países se formaron más profesionales?',
       '¿Cuál es la distribución por años de graduación?',
-      '¿Qué instituciones educativas son más comunes?',
-      '¿Qué tipos de formación predominan?'
+      '¿Qué instituciones educativas son más comunes?'
     ]
   },
   {
@@ -67,8 +75,7 @@ export const ANALYTICS_CATEGORIES: AnalyticsCategory[] = [
     examples: [
       '¿Qué centros tienen más profesionales?',
       '¿Cuántos profesionales hay por distrito sanitario?',
-      '¿Qué categorías de centro predominan?',
-      '¿Cuáles son las situaciones laborales más comunes?'
+      '¿Qué categorías de centro predominan?'
     ]
   },
   {
@@ -79,43 +86,7 @@ export const ANALYTICS_CATEGORIES: AnalyticsCategory[] = [
     examples: [
       '¿Cuántas solicitudes están en cada estado?',
       '¿Cuáles son los motivos de rechazo más comunes?',
-      '¿Cuántas solicitudes se reciben por mes?',
-      '¿Qué nivel de urgencia tienen las solicitudes?'
-    ]
-  },
-  {
-    id: 'carnet_generation',
-    name: 'Generación de Carnets',
-    description: 'Estadísticas de generación de carnets',
-    queries: ['carnet_generation'],
-    examples: [
-      '¿Cuántos carnets se han generado?',
-      '¿Cuántos están en cola de generación?',
-      '¿Cuáles son los estados de la cola?',
-      '¿Cuántos carnets se generan por día?'
-    ]
-  },
-  {
-    id: 'centers_analysis',
-    name: 'Análisis de Centros',
-    description: 'Estadísticas de centros de salud',
-    queries: ['centers_analysis'],
-    examples: [
-      '¿Cuántos centros de salud hay?',
-      '¿Qué categorías de centro predominan?',
-      '¿Cuántos centros hay por provincia?',
-      '¿Cuántos profesionales hay por centro?'
-    ]
-  },
-  {
-    id: 'temporal_analysis',
-    name: 'Análisis Temporal',
-    description: 'Tendencias y evolución temporal',
-    queries: ['temporal_analysis'],
-    examples: [
-      '¿Cómo evolucionan los registros por mes?',
-      '¿Cuántas aprobaciones hay por mes?',
-      '¿Cuál es la distribución por años de graduación?'
+      '¿Cuántas solicitudes se reciben por mes?'
     ]
   },
   {
@@ -135,43 +106,111 @@ export function useAdvancedAnalyticsAI() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<AdvancedStatsResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
+
+  const testConnection = useCallback(async (): Promise<boolean> => {
+    try {
+      setConnectionStatus('connecting');
+      
+      // Test básico de conectividad con timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Conexión timeout después de 5 segundos')), 5000)
+      );
+      
+      const connectionPromise = supabase
+        .from('profesionales_sanitarios')
+        .select('id')
+        .limit(1);
+      
+      const result = await Promise.race([connectionPromise, timeoutPromise]);
+      
+      if (result && !result.error) {
+        setConnectionStatus('connected');
+        console.log('✅ Conexión establecida correctamente');
+        return true;
+      } else {
+        throw new Error('Error en la consulta de prueba');
+      }
+    } catch (err) {
+      console.error('❌ Error de conexión:', err);
+      setConnectionStatus('error');
+      setError(`Error de conexión: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      return false;
+    }
+  }, []);
 
   const queryStats = useCallback(async (query: AdvancedStatsQuery): Promise<AdvancedStatsResult> => {
+    console.log('🔍 Iniciando consulta:', query);
     setLoading(true);
     setError(null);
 
     try {
-      // Intentar usar la función de Supabase primero
+      // Verificar conexión primero
+      const isConnected = await testConnection();
+      if (!isConnected) {
+        throw new Error('No se pudo establecer conexión con la base de datos');
+      }
+
+      console.log('📡 Invocando edge function...');
+      
+      // Configurar timeout específico para la edge function
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 15000); // 15 segundos timeout
+
       const { data, error: functionError } = await supabase.functions.invoke('ai-analytics-advanced', {
         body: {
           query: query.query,
-          filters: query.filters || {}
+          filters: query.filters || {},
+          description: query.description
+        },
+        headers: {
+          'Content-Type': 'application/json',
         }
       });
 
+      clearTimeout(timeoutId);
+
+      console.log('📨 Respuesta de edge function:', data);
+
       if (functionError) {
+        console.error('❌ Error en edge function:', functionError);
         throw new Error(`Error en función: ${functionError.message}`);
       }
 
+      if (!data || !data.success) {
+        console.error('❌ Datos inválidos:', data);
+        throw new Error(data?.error || 'Respuesta inválida del servidor');
+      }
+
+      // Generar respuesta de texto descriptiva
+      const textResponse = generateTextResponse(data.data, query);
+
       const result: AdvancedStatsResult = {
-        success: data.success,
+        success: true,
         data: data.data,
         query: query.query,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        textResponse,
+        summary: extractSummary(data.data)
       };
 
+      console.log('✅ Consulta completada exitosamente');
       setResults(prev => [...prev, result]);
       return result;
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      console.error('❌ Error en queryStats:', errorMessage);
       setError(errorMessage);
       
       const errorResult: AdvancedStatsResult = {
         success: false,
         error: errorMessage,
         query: query.query,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        textResponse: `Error: ${errorMessage}`
       };
 
       setResults(prev => [...prev, errorResult]);
@@ -179,30 +218,111 @@ export function useAdvancedAnalyticsAI() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [testConnection]);
 
-  const queryMultipleStats = useCallback(async (queries: AdvancedStatsQuery[]): Promise<AdvancedStatsResult[]> => {
-    setLoading(true);
-    setError(null);
+  const generateTextResponse = (data: any, query: AdvancedStatsQuery): string => {
+    if (!data) return 'No se obtuvieron datos válidos.';
 
     try {
-      const results = await Promise.all(
-        queries.map(query => queryStats(query))
-      );
+      const queryType = query.query;
+      let response = '';
 
-      return results;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      setError(errorMessage);
-      return [];
-    } finally {
-      setLoading(false);
+      switch (queryType) {
+        case 'demographics':
+          response = `📊 **Análisis Demográfico Completo**\n\n`;
+          if (data.total_profesionales) {
+            response += `**Total de profesionales:** ${data.total_profesionales}\n\n`;
+          }
+          if (data.distribucion_genero) {
+            response += `**Distribución por género:**\n`;
+            Object.entries(data.distribucion_genero).forEach(([genero, cantidad]: [string, any]) => {
+              response += `• ${genero}: ${cantidad} profesionales\n`;
+            });
+            response += '\n';
+          }
+          if (data.distribucion_edad) {
+            response += `**Distribución por edad:**\n`;
+            Object.entries(data.distribucion_edad).forEach(([rango, cantidad]: [string, any]) => {
+              response += `• ${rango}: ${cantidad} profesionales\n`;
+            });
+          }
+          break;
+
+        case 'professional_areas':
+          response = `🏥 **Análisis por Áreas Profesionales**\n\n`;
+          if (data.total_profesionales) {
+            response += `**Total de profesionales:** ${data.total_profesionales}\n\n`;
+          }
+          if (data.areas_profesionales) {
+            response += `**Top áreas profesionales:**\n`;
+            data.areas_profesionales.slice(0, 5).forEach((area: any, index: number) => {
+              response += `${index + 1}. **${area.area}**: ${area.cantidad} profesionales (${area.porcentaje}%)\n`;
+            });
+          }
+          break;
+
+        case 'work_centers':
+          response = `🏢 **Análisis de Centros de Trabajo**\n\n`;
+          if (data.total_centros) {
+            response += `**Total de centros:** ${data.total_centros}\n`;
+          }
+          if (data.total_profesionales) {
+            response += `**Total de profesionales:** ${data.total_profesionales}\n\n`;
+          }
+          if (data.top_centros) {
+            response += `**Centros con más profesionales:**\n`;
+            data.top_centros.slice(0, 5).forEach((centro: any, index: number) => {
+              response += `${index + 1}. **${centro.nombre}**: ${centro.profesionales} profesionales\n`;
+            });
+          }
+          break;
+
+        case 'comprehensive':
+          response = `📈 **Análisis Comprehensivo del Sistema**\n\n`;
+          if (data.resumen_general) {
+            const resumen = data.resumen_general;
+            response += `**Resumen General:**\n`;
+            response += `• Total de profesionales: ${resumen.total_profesionales || 'N/A'}\n`;
+            response += `• Total de centros: ${resumen.total_centros || 'N/A'}\n`;
+            response += `• Distritos sanitarios: ${resumen.total_distritos || 'N/A'}\n`;
+            response += `• Países de formación: ${resumen.total_paises || 'N/A'}\n\n`;
+          }
+          break;
+
+        default:
+          response = `📋 **Resultados del Análisis**\n\n`;
+          if (data.total_profesionales) {
+            response += `**Total de profesionales:** ${data.total_profesionales}\n\n`;
+          }
+          response += `**Datos disponibles:** ${Object.keys(data).length} categorías de información`;
+      }
+
+      return response;
+    } catch (error) {
+      console.error('Error generando respuesta de texto:', error);
+      return 'Se obtuvieron datos pero hubo un error al formatear la respuesta.';
     }
-  }, [queryStats]);
+  };
+
+  const extractSummary = (data: any): any => {
+    try {
+      return {
+        total_profesionales: data?.total_profesionales || data?.resumen_general?.total_profesionales || 0,
+        total_centros: data?.total_centros || data?.resumen_general?.total_centros || 0,
+        total_distritos: data?.total_distritos || data?.resumen_general?.total_distritos || 0,
+        areas_principales: data?.areas_profesionales?.slice(0, 3)?.map((a: any) => a.area) || [],
+        datos_principales: data
+      };
+    } catch (error) {
+      console.error('Error extrayendo resumen:', error);
+      return {};
+    }
+  };
 
   const clearResults = useCallback(() => {
     setResults([]);
     setError(null);
+    setConnectionStatus('idle');
   }, []);
 
   const getCategoryByQuery = useCallback((query: string): AnalyticsCategory | undefined => {
@@ -222,61 +342,50 @@ export function useAdvancedAnalyticsAI() {
       });
     });
 
-    return suggestions.slice(0, 5); // Máximo 5 sugerencias
+    return suggestions.slice(0, 5);
   }, []);
 
   const parseNaturalLanguage = useCallback((userInput: string): AdvancedStatsQuery | null => {
     const input = userInput.toLowerCase();
     
-    // Mapeo de palabras clave a consultas
     const keywordMappings: Record<string, string> = {
       'demografía': 'demographics',
-      'demografico': 'demographics',
-      'genero': 'demographics',
+      'demográfico': 'demographics',
+      'género': 'demographics',
       'edad': 'demographics',
       'nacionalidad': 'demographics',
       'provincia': 'demographics',
       
-      'area': 'professional_areas',
+      'área': 'professional_areas',
       'especialidad': 'professional_areas',
       'profesional': 'professional_areas',
-      'categoria': 'professional_areas',
+      'categoría': 'professional_areas',
       
-      'formacion': 'education',
-      'educacion': 'education',
-      'graduacion': 'education',
-      'institucion': 'education',
+      'formación': 'education',
+      'educación': 'education',
+      'graduación': 'education',
+      'institución': 'education',
       'universidad': 'education',
-      'pais': 'education',
+      'país': 'education',
       
       'centro': 'work_centers',
       'trabajo': 'work_centers',
       'distrito': 'work_centers',
-      'sector': 'work_centers',
-      'situacion': 'work_centers',
+      'hospital': 'work_centers',
+      'clínica': 'work_centers',
       
       'solicitud': 'application_status',
       'estado': 'application_status',
-      'aprobacion': 'application_status',
+      'aprobación': 'application_status',
       'rechazo': 'application_status',
-      'urgencia': 'application_status',
-      
-      'carnet': 'carnet_generation',
-      'generacion': 'carnet_generation',
-      'cola': 'carnet_generation',
-      
-      'temporal': 'temporal_analysis',
-      'tiempo': 'temporal_analysis',
-      'evolucion': 'temporal_analysis',
-      'tendencia': 'temporal_analysis',
       
       'completo': 'comprehensive',
       'comprehensive': 'comprehensive',
       'todo': 'comprehensive',
-      'resumen': 'comprehensive'
+      'resumen': 'comprehensive',
+      'general': 'comprehensive'
     };
 
-    // Buscar la consulta más apropiada
     for (const [keyword, query] of Object.entries(keywordMappings)) {
       if (input.includes(keyword)) {
         return {
@@ -286,7 +395,7 @@ export function useAdvancedAnalyticsAI() {
       }
     }
 
-    // Si no se encuentra una coincidencia específica, devolver análisis comprehensivo
+    // Por defecto, análisis comprehensivo
     return {
       query: 'comprehensive',
       description: userInput
@@ -297,12 +406,13 @@ export function useAdvancedAnalyticsAI() {
     loading,
     results,
     error,
+    connectionStatus,
     queryStats,
-    queryMultipleStats,
     clearResults,
     getCategoryByQuery,
     getSuggestions,
     parseNaturalLanguage,
+    testConnection,
     categories: ANALYTICS_CATEGORIES
   };
-} 
+}

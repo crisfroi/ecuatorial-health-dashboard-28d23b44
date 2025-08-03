@@ -1,386 +1,359 @@
+
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   BarChart3, 
   Users, 
+  Building, 
+  MapPin, 
   GraduationCap, 
-  Building2, 
-  FileText, 
-  CreditCard, 
   Calendar,
   TrendingUp,
   PieChart,
-  Activity
+  ExternalLink
 } from 'lucide-react';
-import { AdvancedStatsResult, AnalyticsCategory } from '@/hooks/useAdvancedAnalyticsAI';
+import type { AdvancedStatsResult } from '@/hooks/useAdvancedAnalyticsAI';
 
 interface AdvancedAnalyticsResultsProps {
   results: AdvancedStatsResult[];
-  categories: AnalyticsCategory[];
+  onNavigateToTab?: (tab: string, filters?: any) => void;
 }
 
-const getCategoryIcon = (categoryId: string) => {
-  switch (categoryId) {
-    case 'demographics': return <Users className="h-4 w-4" />;
-    case 'professional_areas': return <BarChart3 className="h-4 w-4" />;
-    case 'education': return <GraduationCap className="h-4 w-4" />;
-    case 'work_centers': return <Building2 className="h-4 w-4" />;
-    case 'application_status': return <FileText className="h-4 w-4" />;
-    case 'carnet_generation': return <CreditCard className="h-4 w-4" />;
-    case 'centers_analysis': return <Building2 className="h-4 w-4" />;
-    case 'temporal_analysis': return <Calendar className="h-4 w-4" />;
-    case 'comprehensive': return <TrendingUp className="h-4 w-4" />;
-    default: return <Activity className="h-4 w-4" />;
-  }
-};
-
-const formatNumber = (num: number): string => {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num.toString();
-};
-
-const getColorForValue = (value: number, max: number): string => {
-  const percentage = (value / max) * 100;
-  if (percentage >= 80) return 'bg-green-500';
-  if (percentage >= 60) return 'bg-blue-500';
-  if (percentage >= 40) return 'bg-yellow-500';
-  if (percentage >= 20) return 'bg-orange-500';
-  return 'bg-red-500';
-};
-
-const renderStatsCard = (title: string, data: any, type: 'count' | 'distribution' | 'list') => {
-  if (!data || Object.keys(data).length === 0) {
+const AdvancedAnalyticsResults: React.FC<AdvancedAnalyticsResultsProps> = ({ 
+  results, 
+  onNavigateToTab 
+}) => {
+  if (!results || results.length === 0) {
     return (
-      <Card className="col-span-1">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">Sin datos disponibles</p>
-        </CardContent>
-      </Card>
+      <div className="text-center py-8 text-gray-500">
+        No hay resultados para mostrar
+      </div>
     );
   }
 
-  switch (type) {
-    case 'count':
-      return (
-        <Card className="col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(data)}</div>
-          </CardContent>
-        </Card>
-      );
+  const renderDataVisualization = (data: any, queryType: string) => {
+    if (!data) return null;
 
-    case 'distribution':
-      const maxValue = Math.max(...Object.values(data as Record<string, number>));
-      return (
-        <Card className="col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {Object.entries(data as Record<string, number>)
-              .sort(([,a], [,b]) => b - a)
-              .slice(0, 5)
-              .map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <span className="text-sm truncate flex-1">{key}</span>
-                  <div className="flex items-center gap-2">
-                    <Progress 
-                      value={(value / maxValue) * 100} 
-                      className="w-20 h-2"
-                    />
-                    <span className="text-sm font-medium min-w-[3rem] text-right">
-                      {formatNumber(value)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-          </CardContent>
-        </Card>
-      );
+    console.log('🎨 Renderizando visualización:', { queryType, data });
 
-    case 'list':
-      return (
-        <Card className="col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-1">
-              {Object.entries(data as Record<string, number>)
-                .sort(([,a], [,b]) => b - a)
-                .slice(0, 8)
-                .map(([key, value]) => (
-                  <Badge key={key} variant="secondary" className="text-xs">
-                    {key}: {formatNumber(value)}
-                  </Badge>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-      );
-
-    default:
-      return null;
-  }
-};
-
-const renderComprehensiveResults = (data: any) => {
-  if (!data) return null;
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {/* Demográficas */}
-      {data.demograficas && (
-        <>
-          {renderStatsCard('Total Profesionales', data.demograficas.total_profesionales, 'count')}
-          {renderStatsCard('Distribución por Género', data.demograficas.genero, 'distribution')}
-          {renderStatsCard('Grupos de Edad', data.demograficas.grupos_edad, 'distribution')}
-          {renderStatsCard('Nacionalidades', data.demograficas.nacionalidades, 'list')}
-          {renderStatsCard('Provincias', data.demograficas.provincias, 'list')}
-        </>
-      )}
-
-      {/* Áreas Profesionales */}
-      {data.areas_profesionales && (
-        <>
-          {renderStatsCard('Áreas Profesionales', data.areas_profesionales.areas_profesionales, 'distribution')}
-          {renderStatsCard('Especialidades', data.areas_profesionales.especialidades, 'list')}
-          {renderStatsCard('Categorías de Titulación', data.areas_profesionales.categorias_titulacion, 'list')}
-        </>
-      )}
-
-      {/* Educación */}
-      {data.educacion && (
-        <>
-          {renderStatsCard('Países de Formación', data.educacion.paises_formacion, 'list')}
-          {renderStatsCard('Años de Graduación', data.educacion.años_graduacion, 'distribution')}
-          {renderStatsCard('Instituciones', data.educacion.instituciones, 'list')}
-          {renderStatsCard('Tipos de Formación', data.educacion.tipos_formacion, 'list')}
-        </>
-      )}
-
-      {/* Centros de Trabajo */}
-      {data.centros_trabajo && (
-        <>
-          {renderStatsCard('Centros de Trabajo', data.centros_trabajo.centros_trabajo, 'list')}
-          {renderStatsCard('Categorías de Centro', data.centros_trabajo.categorias_centro, 'distribution')}
-          {renderStatsCard('Tipos de Sector', data.centros_trabajo.tipos_sector, 'distribution')}
-          {renderStatsCard('Distritos Sanitarios', data.centros_trabajo.distritos_sanitarios, 'list')}
-        </>
-      )}
-
-      {/* Estados de Solicitud */}
-      {data.estados_solicitud && (
-        <>
-          {renderStatsCard('Estados de Solicitud', data.estados_solicitud.estados_solicitud, 'distribution')}
-          {renderStatsCard('Niveles de Urgencia', data.estados_solicitud.urgencias, 'distribution')}
-          {renderStatsCard('Solicitudes por Mes', data.estados_solicitud.solicitudes_por_mes, 'distribution')}
-          {renderStatsCard('Motivos de Rechazo', data.estados_solicitud.motivos_rechazo, 'list')}
-        </>
-      )}
-
-      {/* Generación de Carnets */}
-      {data.generacion_carnets && (
-        <>
-          {renderStatsCard('Carnets Generados', data.generacion_carnets.carnets_generados, 'count')}
-          {renderStatsCard('En Cola de Generación', data.generacion_carnets.en_cola_generacion, 'count')}
-          {renderStatsCard('Estados de Cola', data.generacion_carnets.estados_cola, 'distribution')}
-          {renderStatsCard('Carnets por Fecha', data.generacion_carnets.carnets_por_fecha, 'distribution')}
-        </>
-      )}
-
-      {/* Análisis de Centros */}
-      {data.analisis_centros && (
-        <>
-          {renderStatsCard('Total Centros', data.analisis_centros.total_centros, 'count')}
-          {renderStatsCard('Centros por Categoría', data.analisis_centros.centros_por_categoria, 'distribution')}
-          {renderStatsCard('Centros por Provincia', data.analisis_centros.centros_por_provincia, 'list')}
-          {renderStatsCard('Centros por Distrito', data.analisis_centros.centros_por_distrito, 'list')}
-        </>
-      )}
-
-      {/* Análisis Temporal */}
-      {data.analisis_temporal && (
-        <>
-          {renderStatsCard('Registros por Mes', data.analisis_temporal.registros_por_mes, 'distribution')}
-          {renderStatsCard('Aprobaciones por Mes', data.analisis_temporal.aprobaciones_por_mes, 'distribution')}
-          {renderStatsCard('Años de Graduación', data.analisis_temporal.generaciones_graduacion, 'distribution')}
-        </>
-      )}
-    </div>
-  );
-};
-
-const renderSpecificResults = (data: any, query: string) => {
-  if (!data) return null;
-
-  switch (query) {
-    case 'demographics':
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {renderStatsCard('Total Profesionales', data.total_profesionales, 'count')}
-          {renderStatsCard('Distribución por Género', data.genero, 'distribution')}
-          {renderStatsCard('Grupos de Edad', data.grupos_edad, 'distribution')}
-          {renderStatsCard('Nacionalidades', data.nacionalidades, 'list')}
-          {renderStatsCard('Provincias', data.provincias, 'list')}
-        </div>
-      );
-
-    case 'professional_areas':
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {renderStatsCard('Áreas Profesionales', data.areas_profesionales, 'distribution')}
-          {renderStatsCard('Especialidades', data.especialidades, 'list')}
-          {renderStatsCard('Categorías de Titulación', data.categorias_titulacion, 'list')}
-        </div>
-      );
-
-    case 'education':
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {renderStatsCard('Países de Formación', data.paises_formacion, 'list')}
-          {renderStatsCard('Años de Graduación', data.años_graduacion, 'distribution')}
-          {renderStatsCard('Instituciones', data.instituciones, 'list')}
-          {renderStatsCard('Tipos de Formación', data.tipos_formacion, 'list')}
-        </div>
-      );
-
-    case 'work_centers':
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {renderStatsCard('Centros de Trabajo', data.centros_trabajo, 'list')}
-          {renderStatsCard('Categorías de Centro', data.categorias_centro, 'distribution')}
-          {renderStatsCard('Tipos de Sector', data.tipos_sector, 'distribution')}
-          {renderStatsCard('Distritos Sanitarios', data.distritos_sanitarios, 'list')}
-          {renderStatsCard('Situaciones Laborales', data.situaciones_laborales, 'distribution')}
-        </div>
-      );
-
-    case 'application_status':
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {renderStatsCard('Estados de Solicitud', data.estados_solicitud, 'distribution')}
-          {renderStatsCard('Niveles de Urgencia', data.urgencias, 'distribution')}
-          {renderStatsCard('Solicitudes por Mes', data.solicitudes_por_mes, 'distribution')}
-          {renderStatsCard('Motivos de Rechazo', data.motivos_rechazo, 'list')}
-        </div>
-      );
-
-    case 'carnet_generation':
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {renderStatsCard('Carnets Generados', data.carnets_generados, 'count')}
-          {renderStatsCard('En Cola de Generación', data.en_cola_generacion, 'count')}
-          {renderStatsCard('Estados de Cola', data.estados_cola, 'distribution')}
-          {renderStatsCard('Carnets por Fecha', data.carnets_por_fecha, 'distribution')}
-        </div>
-      );
-
-    case 'centers_analysis':
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {renderStatsCard('Total Centros', data.total_centros, 'count')}
-          {renderStatsCard('Centros por Categoría', data.centros_por_categoria, 'distribution')}
-          {renderStatsCard('Centros por Provincia', data.centros_por_provincia, 'list')}
-          {renderStatsCard('Centros por Distrito', data.centros_por_distrito, 'list')}
-          {renderStatsCard('Profesionales por Centro', data.profesionales_por_centro, 'list')}
-        </div>
-      );
-
-    case 'temporal_analysis':
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {renderStatsCard('Registros por Mes', data.registros_por_mes, 'distribution')}
-          {renderStatsCard('Aprobaciones por Mes', data.aprobaciones_por_mes, 'distribution')}
-          {renderStatsCard('Años de Graduación', data.generaciones_graduacion, 'distribution')}
-        </div>
-      );
-
-    default:
-      return (
-        <Card>
-          <CardContent className="pt-6">
-            <pre className="text-sm overflow-auto">
-              {JSON.stringify(data, null, 2)}
-            </pre>
-          </CardContent>
-        </Card>
-      );
-  }
-};
-
-export function AdvancedAnalyticsResults({ results, categories }: AdvancedAnalyticsResultsProps) {
-  if (results.length === 0) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center text-muted-foreground">
-            <PieChart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No hay resultados de análisis disponibles</p>
-            <p className="text-sm">Realiza una consulta para ver estadísticas</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {results.map((result, index) => {
-        const category = categories.find(cat => cat.queries.includes(result.query || ''));
-        
-        return (
-          <Card key={index} className="w-full">
+      <div className="space-y-6">
+        {/* Resumen General */}
+        {data.resumen_general && (
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
             <CardHeader>
-              <div className="flex items-center gap-2">
-                {result.query && getCategoryIcon(result.query)}
-                <CardTitle>
-                  {category?.name || 'Análisis de Datos'}
-                </CardTitle>
-                <Badge variant={result.success ? "default" : "destructive"}>
-                  {result.success ? "Exitoso" : "Error"}
-                </Badge>
-              </div>
-              <CardDescription>
-                {result.query && category?.description}
-                {result.timestamp && (
-                  <span className="block text-xs text-muted-foreground mt-1">
-                    {new Date(result.timestamp).toLocaleString('es-ES')}
-                  </span>
-                )}
-              </CardDescription>
+              <CardTitle className="flex items-center space-x-2 text-blue-800">
+                <BarChart3 className="w-5 h-5" />
+                <span>Resumen General del Sistema</span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              {result.error ? (
-                <div className="text-red-600 p-4 bg-red-50 rounded-lg">
-                  <p className="font-medium">Error en el análisis:</p>
-                  <p className="text-sm">{result.error}</p>
-                </div>
-              ) : (
-                <ScrollArea className="h-[600px] w-full">
-                  <div className="p-4">
-                    {result.query === 'comprehensive' 
-                      ? renderComprehensiveResults(result.data)
-                      : renderSpecificResults(result.data, result.query || '')
-                    }
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {data.resumen_general.total_profesionales || 'N/A'}
                   </div>
-                </ScrollArea>
-              )}
+                  <div className="text-sm text-gray-600">Total Profesionales</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                  <div className="text-2xl font-bold text-green-600">
+                    {data.resumen_general.total_centros || 'N/A'}
+                  </div>
+                  <div className="text-sm text-gray-600">Centros de Salud</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {data.resumen_general.total_distritos || 'N/A'}
+                  </div>
+                  <div className="text-sm text-gray-600">Distritos Sanitarios</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {data.resumen_general.total_paises || 'N/A'}
+                  </div>
+                  <div className="text-sm text-gray-600">Países de Formación</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        );
-      })}
+        )}
+
+        {/* Distribución por Género */}
+        {data.distribucion_genero && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Users className="w-5 h-5 text-pink-600" />
+                <span>Distribución por Género</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {Object.entries(data.distribucion_genero).map(([genero, cantidad]: [string, any]) => {
+                  const total = Object.values(data.distribucion_genero).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0);
+                  const percentage = total > 0 ? ((Number(cantidad) || 0) / total * 100).toFixed(1) : '0';
+                  
+                  return (
+                    <div key={genero} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium capitalize">{genero}</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600">{cantidad}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {percentage}%
+                          </Badge>
+                        </div>
+                      </div>
+                      <Progress 
+                        value={Number(percentage)} 
+                        className="h-2" 
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Áreas Profesionales */}
+        {data.areas_profesionales && Array.isArray(data.areas_profesionales) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Building className="w-5 h-5 text-blue-600" />
+                <span>Áreas Profesionales</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {data.areas_profesionales.slice(0, 10).map((area: any, index: number) => (
+                  <div key={area.area || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <div className="font-medium">{area.area || 'Sin especificar'}</div>
+                        <div className="text-sm text-gray-600">{area.cantidad || 0} profesionales</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="secondary">
+                        {area.porcentaje || '0'}%
+                      </Badge>
+                      {onNavigateToTab && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onNavigateToTab('professionals', { area_profesional: area.area })}
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Top Centros */}
+        {data.top_centros && Array.isArray(data.top_centros) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <MapPin className="w-5 h-5 text-green-600" />
+                <span>Centros con Más Profesionales</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {data.top_centros.slice(0, 8).map((centro: any, index: number) => (
+                  <div key={centro.nombre || index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">{centro.nombre || 'Centro sin nombre'}</div>
+                        <div className="text-sm text-gray-600">{centro.categoria || 'Sin categoría'}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-green-600">{centro.profesionales || centro.total_profesionales || 0}</div>
+                      <div className="text-xs text-gray-500">profesionales</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Distribución por Edad */}
+        {data.distribucion_edad && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Calendar className="w-5 h-5 text-purple-600" />
+                <span>Distribución por Edad</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {Object.entries(data.distribucion_edad).map(([rango, cantidad]: [string, any]) => {
+                  const total = Object.values(data.distribucion_edad).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0);
+                  const percentage = total > 0 ? ((Number(cantidad) || 0) / total * 100).toFixed(1) : '0';
+                  
+                  return (
+                    <div key={rango} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">{rango}</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600">{cantidad}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {percentage}%
+                          </Badge>
+                        </div>
+                      </div>
+                      <Progress 
+                        value={Number(percentage)} 
+                        className="h-2" 
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Países de Formación */}
+        {data.paises_formacion && Array.isArray(data.paises_formacion) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <GraduationCap className="w-5 h-5 text-indigo-600" />
+                <span>Países de Formación</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {data.paises_formacion.slice(0, 10).map((pais: any, index: number) => (
+                  <div key={pais.pais || index} className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xs font-bold">
+                        {index + 1}
+                      </div>
+                      <span className="font-medium">{pais.pais || 'No especificado'}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-semibold">{pais.cantidad || 0}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {pais.porcentaje || '0'}%
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Distritos Sanitarios */}
+        {data.distritos_sanitarios && Array.isArray(data.distritos_sanitarios) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <MapPin className="w-5 h-5 text-teal-600" />
+                <span>Distribución por Distritos Sanitarios</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {data.distritos_sanitarios.slice(0, 8).map((distrito: any, index: number) => (
+                  <div key={distrito.distrito || index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center text-sm font-bold">
+                        {index + 1}
+                      </div>
+                      <span className="font-medium">{distrito.distrito || distrito.nombre || 'Sin nombre'}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600">{distrito.profesionales || distrito.total_profesionales || 0} profesionales</span>
+                      {onNavigateToTab && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onNavigateToTab('professionals', { distrito: distrito.distrito })}
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Datos adicionales si existen */}
+        {data.total_profesionales && !data.resumen_general && (
+          <Card className="bg-blue-50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 text-blue-800">
+                <TrendingUp className="w-5 h-5" />
+                <span>Información General</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600 mb-2">
+                  {data.total_profesionales}
+                </div>
+                <div className="text-gray-600">Total de profesionales en el sistema</div>
+                {data.total_centros && (
+                  <div className="mt-4 text-xl text-green-600">
+                    {data.total_centros} centros de salud
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="w-full space-y-6">
+      {results.map((result, index) => (
+        <div key={`result-${index}`} className="w-full">
+          {result.success ? (
+            renderDataVisualization(result.data, result.query || '')
+          ) : (
+            <Card className="border-red-200 bg-red-50">
+              <CardHeader>
+                <CardTitle className="text-red-800 flex items-center space-x-2">
+                  <PieChart className="w-5 h-5" />
+                  <span>Error en el Análisis</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-red-700">{result.error}</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      ))}
     </div>
   );
-} 
+};
+
+export default AdvancedAnalyticsResults;

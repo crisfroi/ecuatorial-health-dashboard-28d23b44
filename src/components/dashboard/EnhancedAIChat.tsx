@@ -1,64 +1,38 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   MessageCircle,
   Send,
   Bot,
   User,
   Loader2,
-  BarChart3,
-  TrendingUp,
-  Database,
   Sparkles,
-  Filter,
-  Download,
-  RefreshCw
+  RefreshCw,
+  AlertCircle,
+  CheckCircle,
+  Database,
+  TrendingUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import useRoleBasedData from "@/hooks/useRoleBasedData";
-import { AVAILABLE_METRICS, ADVANCED_ANALYTICS, COMPLEX_QUERIES } from "@/utils/availableMetrics";
-import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
-import {
-  useTopCenters,
-  useAreaProfessionalStats,
-  useDistrictStats,
-  useAgeRangeStats,
-  useGraduationYearStats,
-  useCountryStats,
-  useInstitutionStats,
-  useCenterCategoryStats,
-  useTitulacionCategoryStats,
-} from "@/hooks/useAdvancedAnalytics";
+import { useAdvancedAnalyticsAI, type AdvancedStatsQuery } from "@/hooks/useAdvancedAnalyticsAI";
+import AdvancedAnalyticsResults from "./AdvancedAnalyticsResults";
 
 interface Message {
   id: string;
-  type: "user" | "bot" | "system";
+  type: "user" | "bot" | "system" | "results";
   content: string;
   timestamp: Date;
   metadata?: {
     queryType?: string;
-    dataSource?: string;
-    resultCount?: number;
-    executionTime?: number;
+    resultData?: any;
+    summary?: any;
   };
-  attachments?: {
-    charts?: any[];
-    tables?: any[];
-    downloadLinks?: string[];
-  };
-}
-
-interface QueryContext {
-  timeRange?: string;
-  filters?: Record<string, any>;
-  aggregationType?: string;
-  compareWith?: string;
 }
 
 interface EnhancedAIChatProps {
@@ -68,54 +42,53 @@ interface EnhancedAIChatProps {
 const EnhancedAIChat: React.FC<EnhancedAIChatProps> = ({ onNavigateToTab }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [queryContext, setQueryContext] = useState<QueryContext>({});
-  const [selectedMetricCategory, setSelectedMetricCategory] = useState<string>("all");
+  const [showResults, setShowResults] = useState(false);
+  const [currentResults, setCurrentResults] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { userRole, hasPermission } = useAuth();
-  const { getAllowedMetrics, canAccessSensitiveData } = useRoleBasedData();
 
-  // Cargar todas las métricas disponibles
-  const { data: estadisticasBasicas } = useEstadisticasAvanzadas();
-  const { data: topCenters } = useTopCenters();
-  const { data: areaStats } = useAreaProfessionalStats();
-  const { data: districtStats } = useDistrictStats();
-  const { data: ageRangeStats } = useAgeRangeStats();
-  const { data: graduationStats } = useGraduationYearStats();
-  const { data: countryStats } = useCountryStats();
-  const { data: institutionStats } = useInstitutionStats();
-  const { data: centerCategoryStats } = useCenterCategoryStats();
-  const { data: titulacionStats } = useTitulacionCategoryStats();
+  const {
+    loading,
+    results,
+    error,
+    connectionStatus,
+    queryStats,
+    clearResults,
+    testConnection,
+    parseNaturalLanguage,
+    getSuggestions,
+    categories
+  } = useAdvancedAnalyticsAI();
 
-  // Mensaje de bienvenida inicial
+  // Mensaje de bienvenida
   useEffect(() => {
     const welcomeMessage: Message = {
       id: "welcome",
       type: "system",
-      content: `¡Hola! Soy tu asistente de IA especializado en análisis de datos del sistema de profesionales sanitarios de Guinea Ecuatorial. 
+      content: `🤖 **Asistente de Análisis Avanzado con IA**
 
-Como usuario con rol "${userRole}", tienes acceso a ${getAllowedMetrics().length} tipos de métricas y análisis.
+¡Hola! Soy tu asistente especializado en análisis de datos del sistema de profesionales sanitarios de Guinea Ecuatorial.
 
 **¿Qué puedo hacer por ti?**
-• Analizar estadísticas de profesionales sanitarios
-• Generar reportes por área profesional, distrito, centro
-• Proporcionar tendencias temporales y proyecciones
-• Comparar métricas entre regiones o períodos
-• Identificar patrones y anomalías en los datos
-• Responder consultas específicas sobre el sistema
+• Analizar estadísticas demográficas
+• Revisar áreas profesionales y especialidades  
+• Evaluar centros de trabajo y distribución
+• Analizar formación y educación de profesionales
+• Generar reportes comprehensivos del sistema
 
 **Ejemplos de consultas:**
-• "¿Cuántos profesionales aprobados hay por área profesional?"
-• "Muéstrame las tendencias de registros en los últimos 6 meses"
-• "¿Qué distritos necesitan más profesionales de enfermería?"
-• "Compara la distribución de profesionales entre Bioko Norte y Litoral"
+• "¿Cuántos profesionales hay por área profesional?"
+• "Dame la distribución demográfica completa"
+• "¿Qué centros tienen más profesionales?"
+• "Necesito un análisis comprehensivo del sistema"
 
-¡Pregúntame cualquier cosa sobre los datos!`,
+**Estado de conexión:** ${connectionStatus === 'connected' ? '🟢 Conectado' : '🟡 Verificando...'}
+
+¡Pregúntame lo que necesites saber!`,
       timestamp: new Date()
     };
     setMessages([welcomeMessage]);
-  }, [userRole, getAllowedMetrics]);
+  }, [connectionStatus]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -125,252 +98,27 @@ Como usuario con rol "${userRole}", tienes acceso a ${getAllowedMetrics().length
     scrollToBottom();
   }, [messages]);
 
-  // Función para procesar consultas y generar respuestas inteligentes
-  const processQuery = async (query: string): Promise<string> => {
-    const lowercaseQuery = query.toLowerCase();
-    
-    // Analizar el tipo de consulta
-    let response = "";
-    let resultCount = 0;
-    const startTime = Date.now();
-
-    try {
-      // CONSULTAS SOBRE PROFESIONALES POR ÁREA
-      if (lowercaseQuery.includes("profesionales") && (lowercaseQuery.includes("área") || lowercaseQuery.includes("area"))) {
-        if (areaStats && areaStats.length > 0) {
-          const totalProfesionales = areaStats.reduce((sum, area) => sum + area.aprobados, 0);
-          const topAreas = areaStats.slice(0, 5);
-          
-          response = `📊 **Análisis de Profesionales por Área Profesional**
-
-**Total de profesionales aprobados:** ${totalProfesionales}
-
-**Top 5 áreas con más profesionales:**
-${topAreas.map((area, index) => 
-  `${index + 1}. **${area.area_profesional}**: ${area.aprobados} profesionales (${area.porcentaje.toFixed(1)}%)`
-).join('\n')}
-
-**Áreas que necesitan refuerzo:**
-${areaStats.sort((a, b) => a.aprobados - b.aprobados).slice(0, 3).map((area, index) => 
-  `${index + 1}. **${area.area_profesional}**: solo ${area.aprobados} profesionales`
-).join('\n')}`;
-          
-          resultCount = areaStats.length;
-        }
-      }
-
-      // CONSULTAS SOBRE CENTROS DE SALUD
-      else if (lowercaseQuery.includes("centros") || lowercaseQuery.includes("hospitales")) {
-        if (topCenters && topCenters.length > 0) {
-          const totalCentros = topCenters.length;
-          const centrosConProfesionales = topCenters.filter(c => c.total_profesionales > 0);
-          
-          response = `🏥 **Análisis de Centros de Salud**
-
-**Total de centros:** ${totalCentros}
-**Centros con profesionales asignados:** ${centrosConProfesionales.length}
-
-**Top 5 centros con más profesionales:**
-${topCenters.slice(0, 5).map((center, index) => 
-  `${index + 1}. **${center.nombre}** (${center.categoria}): ${center.total_profesionales} profesionales`
-).join('\n')}
-
-**Distribución por categoría:**
-${centerCategoryStats?.map(cat => 
-  `• **${cat.categoria}**: ${cat.total_centros} centros, ${cat.total_profesionales} profesionales`
-).join('\n') || 'Datos no disponibles'}`;
-          
-          resultCount = totalCentros;
-        }
-      }
-
-      // CONSULTAS SOBRE TENDENCIAS Y TIEMPO
-      else if (lowercaseQuery.includes("tendencia") || lowercaseQuery.includes("mes") || lowercaseQuery.includes("año")) {
-        if (estadisticasBasicas?.tendenciasMensuales) {
-          const tendencias = estadisticasBasicas.tendenciasMensuales;
-          const ultimosMeses = tendencias.slice(-6);
-          const crecimientoPromedio = ultimosMeses.length > 1 ? 
-            (ultimosMeses[ultimosMeses.length - 1].registros - ultimosMeses[0].registros) / ultimosMeses.length : 0;
-
-          response = `📈 **Análisis de Tendencias Temporales**
-
-**Últimos 6 meses de registros:**
-${ultimosMeses.map(mes => 
-  `• **${mes.mes}**: ${mes.registros} nuevos registros`
-).join('\n')}
-
-**Crecimiento promedio mensual:** ${crecimientoPromedio.toFixed(1)} registros
-
-**Proyección próximo mes:** ${Math.round(ultimosMeses[ultimosMeses.length - 1].registros + crecimientoPromedio)} registros esperados
-
-**Total acumulado:** ${estadisticasBasicas.total} profesionales registrados`;
-          
-          resultCount = tendencias.length;
-        }
-      }
-
-      // CONSULTAS SOBRE DISTRITOS Y GEOGRAFÍA
-      else if (lowercaseQuery.includes("distrito") || lowercaseQuery.includes("provincia") || lowercaseQuery.includes("región")) {
-        if (districtStats && districtStats.length > 0) {
-          const totalDistritos = districtStats.length;
-          const topDistritos = districtStats.sort((a, b) => b.total_profesionales - a.total_profesionales).slice(0, 5);
-          
-          response = `🗺️ **Análisis Geográfico - Distritos Sanitarios**
-
-**Total de distritos:** ${totalDistritos}
-
-**Top 5 distritos por número de profesionales:**
-${topDistritos.map((distrito, index) => 
-  `${index + 1}. **${distrito.distrito_sanitario}**: ${distrito.total_profesionales} profesionales, ${distrito.total_centros} centros`
-).join('\n')}
-
-**Cobertura promedio:** ${(districtStats.reduce((sum, d) => sum + d.total_profesionales, 0) / totalDistritos).toFixed(1)} profesionales por distrito
-
-**Áreas más comunes por distrito:**
-${districtStats.slice(0, 3).map(distrito => 
-  `• **${distrito.distrito_sanitario}**: ${distrito.areas_mas_comunes.slice(0, 2).join(', ')}`
-).join('\n')}`;
-          
-          resultCount = totalDistritos;
-        }
-      }
-
-      // CONSULTAS SOBRE EDAD Y DEMOGRAFÍA
-      else if (lowercaseQuery.includes("edad") || lowercaseQuery.includes("joven") || lowercaseQuery.includes("mayor")) {
-        if (ageRangeStats && ageRangeStats.length > 0) {
-          const totalProfesionales = ageRangeStats.reduce((sum, age) => sum + age.cantidad, 0);
-          
-          response = `👥 **Análisis Demográfico por Edad**
-
-**Distribución por rangos de edad:**
-${ageRangeStats.map(age => 
-  `• **${age.rango_edad}**: ${age.cantidad} profesionales (${age.porcentaje.toFixed(1)}%)`
-).join('\n')}
-
-**Total analizado:** ${totalProfesionales} profesionales
-
-**Perfil demográfico:**
-• Grupo más numeroso: **${ageRangeStats.sort((a, b) => b.cantidad - a.cantidad)[0]?.rango_edad}**
-• Edad promedio estimada: ${ageRangeStats.reduce((sum, age, index) => {
-  const midAge = age.rango_edad.includes('-') ? 
-    (parseInt(age.rango_edad.split('-')[0]) + parseInt(age.rango_edad.split('-')[1])) / 2 : 45;
-  return sum + (midAge * age.porcentaje / 100);
-}, 0).toFixed(1)} años`;
-          
-          resultCount = ageRangeStats.length;
-        }
-      }
-
-      // CONSULTAS SOBRE FORMACIÓN ACADÉMICA
-      else if (lowercaseQuery.includes("formación") || lowercaseQuery.includes("universidad") || lowercaseQuery.includes("titulación")) {
-        if (countryStats && institutionStats) {
-          response = `🎓 **Análisis de Formación Académica**
-
-**Países de formación (Top 5):**
-${countryStats.slice(0, 5).map((country, index) => 
-  `${index + 1}. **${country.pais_formacion}**: ${country.cantidad} profesionales (${country.porcentaje.toFixed(1)}%)`
-).join('\n')}
-
-**Instituciones principales:**
-${institutionStats.slice(0, 5).map((inst, index) => 
-  `${index + 1}. **${inst.institucion}**: ${inst.cantidad} graduados`
-).join('\n')}
-
-**Categorías de titulación:**
-${titulacionStats?.slice(0, 3).map(cat => 
-  `• **${cat.categoria_titulacion}**: ${cat.aprobados} profesionales aprobados`
-).join('\n') || 'Datos no disponibles'}`;
-          
-          resultCount = countryStats.length + institutionStats.length;
-        }
-      }
-
-      // CONSULTAS SOBRE ESTADÍSTICAS GENERALES
-      else if (lowercaseQuery.includes("total") || lowercaseQuery.includes("estadística") || lowercaseQuery.includes("resumen")) {
-        if (estadisticasBasicas) {
-          response = `📋 **Resumen Estadístico General**
-
-**Estado de profesionales:**
-• **Total registrados:** ${estadisticasBasicas.total}
-• **Aprobados:** ${estadisticasBasicas.aprobados} (${estadisticasBasicas.tasaAprobacion}%)
-• **Pendientes (Recibidos):** ${estadisticasBasicas.recibidos}
-• **En revisión:** ${estadisticasBasicas.revisando}
-• **Rechazados:** ${estadisticasBasicas.rechazados} (${estadisticasBasicas.tasaRechazo}%)
-
-**Distribución por género:**
-• **Masculino:** ${estadisticasBasicas.generoMasculino}
-• **Femenino:** ${estadisticasBasicas.generoFemenino}
-
-**Alertas importantes:**
-• **Carnets próximos a vencer:** ${estadisticasBasicas.vencimientosProximos}
-• **Carnets vencidos:** ${estadisticasBasicas.carnetVencidos}
-
-**Eficiencia del sistema:**
-• **Tasa de aprobación:** ${estadisticasBasicas.tasaAprobacion}%
-• **Procesamiento mensual promedio:** ${estadisticasBasicas.tendenciasMensuales?.slice(-3).reduce((sum, m) => sum + m.registros, 0) / 3 || 0} solicitudes`;
-          
-          resultCount = estadisticasBasicas.total;
-        }
-      }
-
-      // CONSULTA PREDETERMINADA
-      else {
-        response = `🤔 **Consulta recibida:** "${query}"
-
-No encontré una respuesta específica para tu consulta, pero aquí tienes algunas **sugerencias de análisis**:
-
-**📊 Consultas sobre datos:**
-• "Resumen estadístico general"
-• "Profesionales por área profesional"
-• "Tendencias de registro de los últimos meses"
-• "Análisis de centros de salud"
-
-**🔍 Consultas específicas:**
-• "¿Qué áreas necesitan más profesionales?"
-• "¿Cuál es la distribución por edad?"
-• "¿Dónde se forman nuestros profesionales?"
-• "¿Cuántos carnets están próximos a vencer?"
-
-**📈 Análisis avanzados:**
-• "Compara distritos sanitarios"
-• "Proyecciones de crecimiento"
-• "Eficiencia del sistema de aprobación"
-
-¿Te gustaría que analice alguno de estos aspectos específicos?`;
-      }
-
-      const executionTime = Date.now() - startTime;
-      
-      // Agregar metadatos a la respuesta
-      const botMessage: Message = {
-        id: Date.now().toString(),
-        type: "bot",
-        content: response,
-        timestamp: new Date(),
-        metadata: {
-          queryType: "data_analysis",
-          resultCount,
-          executionTime
-        }
-      };
-
-      return response;
-
-    } catch (error) {
-      console.error("Error processing query:", error);
-      return `❌ **Error al procesar la consulta**
-
-Lo siento, ocurrió un error al analizar tu solicitud. Esto puede deberse a:
-• Problemas de conectividad con la base de datos
-• Datos no disponibles temporalmente
-• Consulta demasiado compleja
-
-Por favor, intenta con una consulta más específica o vuelve a intentarlo en unos momentos.`;
-    }
-  };
+  // Test de conexión inicial
+  useEffect(() => {
+    testConnection();
+  }, [testConnection]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
+
+    // Verificar conexión antes de procesar
+    if (connectionStatus !== 'connected') {
+      toast({
+        title: "Error de Conexión",
+        description: "Verificando conexión a la base de datos...",
+        variant: "destructive",
+      });
+      
+      const isConnected = await testConnection();
+      if (!isConnected) {
+        return;
+      }
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -381,28 +129,88 @@ Por favor, intenta con una consulta más específica o vuelve a intentarlo en un
 
     setMessages(prev => [...prev, userMessage]);
     setInputMessage("");
-    setIsLoading(true);
+    setShowResults(false);
 
     try {
-      const botResponse = await processQuery(inputMessage);
+      // Parsear consulta en lenguaje natural
+      const parsedQuery = parseNaturalLanguage(inputMessage);
       
-      const botMessage: Message = {
+      if (!parsedQuery) {
+        throw new Error('No se pudo interpretar la consulta');
+      }
+
+      console.log('📝 Consulta parseada:', parsedQuery);
+
+      // Ejecutar consulta
+      const result = await queryStats(parsedQuery);
+
+      if (result.success && result.textResponse) {
+        // Primero mostrar la respuesta de texto
+        const textMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: "bot",
+          content: result.textResponse,
+          timestamp: new Date(),
+          metadata: {
+            queryType: parsedQuery.query,
+            summary: result.summary
+          }
+        };
+
+        setMessages(prev => [...prev, textMessage]);
+
+        // Luego mostrar los resultados visuales si hay datos
+        if (result.data && Object.keys(result.data).length > 0) {
+          setTimeout(() => {
+            const resultsMessage: Message = {
+              id: (Date.now() + 2).toString(),
+              type: "results",
+              content: "📊 **Resultados del Análisis Visual**",
+              timestamp: new Date(),
+              metadata: {
+                queryType: parsedQuery.query,
+                resultData: result.data,
+                summary: result.summary
+              }
+            };
+
+            setMessages(prev => [...prev, resultsMessage]);
+            setCurrentResults(result.data);
+            setShowResults(true);
+          }, 1000);
+        }
+
+      } else {
+        throw new Error(result.error || 'No se obtuvieron resultados válidos');
+      }
+
+    } catch (error) {
+      console.error("Error procesando mensaje:", error);
+      
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: "bot",
-        content: botResponse,
+        content: `❌ **Error al procesar la consulta**
+
+${error instanceof Error ? error.message : 'Error desconocido'}
+
+**Sugerencias:**
+• Verifica tu conexión a internet
+• Intenta con una consulta más específica
+• Usa uno de los ejemplos sugeridos
+
+**Ejemplos que puedes probar:**
+${getSuggestions("análisis").slice(0, 3).map(s => `• "${s}"`).join('\n')}`,
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, botMessage]);
-    } catch (error) {
-      console.error("Error sending message:", error);
+      setMessages(prev => [...prev, errorMessage]);
+      
       toast({
         title: "Error",
-        description: "No se pudo procesar tu mensaje. Intenta de nuevo.",
+        description: "No se pudo procesar tu consulta. Intenta de nuevo.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -413,36 +221,92 @@ Por favor, intenta con una consulta más específica o vuelve a intentarlo en un
     }
   };
 
-  const clearChat = () => {
+  const handleClearChat = () => {
     setMessages([]);
+    setShowResults(false);
+    setCurrentResults(null);
+    clearResults();
+  };
+
+  const handleRetryConnection = async () => {
+    toast({
+      title: "Reintentando conexión",
+      description: "Verificando conectividad...",
+    });
+    
+    const success = await testConnection();
+    if (success) {
+      toast({
+        title: "Conexión restaurada",
+        description: "Ya puedes hacer consultas normalmente.",
+      });
+    }
+  };
+
+  const getConnectionBadge = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return <Badge variant="default" className="bg-green-100 text-green-800 border-green-300">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Conectado
+        </Badge>;
+      case 'connecting':
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+          Conectando...
+        </Badge>;
+      case 'error':
+        return <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-300">
+          <AlertCircle className="w-3 h-3 mr-1" />
+          Error de conexión
+        </Badge>;
+      default:
+        return <Badge variant="outline">
+          <Database className="w-3 h-3 mr-1" />
+          Verificando...
+        </Badge>;
+    }
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[600px]">
-      <Card className="flex-1 flex flex-col">
-        <CardHeader>
+    <div className="flex flex-col h-full space-y-6">
+      {/* Tarjeta principal de chat */}
+      <Card className="flex-1 flex flex-col min-h-[600px]">
+        <CardHeader className="pb-4">
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Sparkles className="w-5 h-5 text-purple-600" />
-              <span>AI Analytics Assistant</span>
-              <Badge variant="outline" className="text-xs">
-                {userRole}
-              </Badge>
+              <span>Análisis Avanzado con IA</span>
+              {getConnectionBadge()}
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={clearChat}>
+              {connectionStatus === 'error' && (
+                <Button variant="outline" size="sm" onClick={handleRetryConnection}>
+                  <RefreshCw className="w-4 h-4" />
+                  Reconectar
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={handleClearChat}>
                 <RefreshCw className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4" />
+                Limpiar
               </Button>
             </div>
           </CardTitle>
         </CardHeader>
 
         <CardContent className="flex-1 flex flex-col space-y-4">
+          {/* Mostrar error de conexión si existe */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Área de mensajes */}
-          <ScrollArea className="flex-1 h-96 pr-4">
+          <ScrollArea className="flex-1 min-h-96 pr-4">
             <div className="space-y-4">
               {messages.map((message) => (
                 <div
@@ -452,71 +316,86 @@ Por favor, intenta con una consulta más específica o vuelve a intentarlo en un
                   }`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
+                    className={`max-w-[85%] rounded-lg p-4 ${
                       message.type === "user"
                         ? "bg-blue-600 text-white"
                         : message.type === "system"
-                        ? "bg-purple-50 border border-purple-200 text-purple-800"
-                        : "bg-gray-100 text-gray-800"
+                        ? "bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 text-gray-800"
+                        : message.type === "results"
+                        ? "bg-gradient-to-r from-green-50 to-teal-50 border border-green-200 text-gray-800"
+                        : "bg-gray-50 border border-gray-200 text-gray-800"
                     }`}
                   >
-                    <div className="flex items-start space-x-2">
-                      {message.type === "bot" && <Bot className="w-4 h-4 mt-1 flex-shrink-0" />}
-                      {message.type === "user" && <User className="w-4 h-4 mt-1 flex-shrink-0" />}
-                      {message.type === "system" && <Database className="w-4 h-4 mt-1 flex-shrink-0" />}
+                    <div className="flex items-start space-x-3">
+                      {message.type === "bot" && <Bot className="w-5 h-5 mt-1 flex-shrink-0 text-blue-600" />}
+                      {message.type === "user" && <User className="w-5 h-5 mt-1 flex-shrink-0" />}
+                      {message.type === "system" && <Database className="w-5 h-5 mt-1 flex-shrink-0 text-purple-600" />}
+                      {message.type === "results" && <TrendingUp className="w-5 h-5 mt-1 flex-shrink-0 text-green-600" />}
+                      
                       <div className="flex-1">
-                        <div className="whitespace-pre-wrap text-sm">
+                        <div className="whitespace-pre-wrap text-sm leading-relaxed">
                           {message.content}
                         </div>
-                        {message.metadata && (
-                          <div className="flex items-center space-x-2 mt-2 text-xs opacity-70">
-                            {message.metadata.resultCount && (
-                              <span>{message.metadata.resultCount} resultados</span>
-                            )}
-                            {message.metadata.executionTime && (
-                              <span>{message.metadata.executionTime}ms</span>
-                            )}
+                        
+                        {/* Mostrar resumen si está disponible */}
+                        {message.metadata?.summary && (
+                          <div className="mt-3 p-3 bg-white/50 rounded-lg border border-gray-200">
+                            <div className="text-xs font-medium text-gray-600 mb-2">Resumen de datos:</div>
+                            <div className="space-y-1">
+                              {message.metadata.summary.total_profesionales && (
+                                <div className="text-xs">
+                                  <span className="font-medium">Total profesionales:</span> {message.metadata.summary.total_profesionales}
+                                </div>
+                              )}
+                              {message.metadata.summary.total_centros && (
+                                <div className="text-xs">
+                                  <span className="font-medium">Total centros:</span> {message.metadata.summary.total_centros}
+                                </div>
+                              )}
+                              {message.metadata.summary.areas_principales?.length > 0 && (
+                                <div className="text-xs">
+                                  <span className="font-medium">Áreas principales:</span> {message.metadata.summary.areas_principales.join(', ')}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
+                        
+                        <div className="text-xs opacity-70 mt-2">
+                          {message.timestamp.toLocaleTimeString()}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
-              {isLoading && (
+              
+              {/* Indicador de carga */}
+              {loading && (
                 <div className="flex justify-start">
-                  <div className="bg-gray-100 rounded-lg p-3">
-                    <div className="flex items-center space-x-2">
-                      <Bot className="w-4 h-4" />
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="text-sm">Analizando datos...</span>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-xs">
+                    <div className="flex items-center space-x-3">
+                      <Bot className="w-5 h-5 text-blue-600" />
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        <span className="text-sm text-blue-700">
+                          Analizando datos del sistema...
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
+              
               <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
 
-          {/* Área de entrada */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Select value={selectedMetricCategory} onValueChange={setSelectedMetricCategory}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las métricas</SelectItem>
-                  {AVAILABLE_METRICS.map((category) => (
-                    <SelectItem key={category.category} value={category.category}>
-                      {category.category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Badge variant="outline" className="text-xs">
-                {getAllowedMetrics().length} métricas disponibles
-              </Badge>
+          {/* Área de entrada de mensaje */}
+          <div className="space-y-3 border-t pt-4">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span>Escribe tu consulta sobre el sistema sanitario</span>
+              <span>{categories.length} categorías de análisis disponibles</span>
             </div>
             
             <div className="flex space-x-2">
@@ -524,21 +403,51 @@ Por favor, intenta con una consulta más específica o vuelve a intentarlo en un
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Pregúntame sobre estadísticas, tendencias, distribuciones, análisis comparativos..."
-                className="flex-1 min-h-[60px] resize-none"
-                disabled={isLoading}
+                placeholder="Ejemplo: ¿Cuántos profesionales hay por área? o Dame un análisis comprehensivo..."
+                className="flex-1 min-h-[80px] resize-none"
+                disabled={loading || connectionStatus !== 'connected'}
               />
               <Button
                 onClick={handleSendMessage}
-                disabled={isLoading || !inputMessage.trim()}
-                className="px-6"
+                disabled={loading || !inputMessage.trim() || connectionStatus !== 'connected'}
+                className="px-6 h-20"
+                size="lg"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-5 h-5" />
               </Button>
             </div>
+            
+            {connectionStatus !== 'connected' && (
+              <div className="text-center text-sm text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                Verificando conexión a la base de datos...
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Resultados visuales */}
+      {showResults && currentResults && (
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <TrendingUp className="w-5 h-5 text-green-600" />
+              <span>Resultados del Análisis Visual</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AdvancedAnalyticsResults
+              results={[{
+                success: true,
+                data: currentResults,
+                query: '',
+                timestamp: new Date().toISOString()
+              }]}
+              onNavigateToTab={onNavigateToTab}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

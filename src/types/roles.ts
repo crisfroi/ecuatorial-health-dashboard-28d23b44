@@ -259,7 +259,10 @@ export const getUserPermissions = (userRole: UserRole): Permission[] => {
   return PERMISSIONS.filter(p => role.permissions.includes(p.id));
 };
 
-export const getRoleRestrictions = (userRole: UserRole) => {
+export const getRoleRestrictions = (userRole: UserRole | null) => {
+  if (!userRole || !ROLE_DEFINITIONS[userRole]) {
+    return {};
+  }
   return ROLE_DEFINITIONS[userRole].restrictions || {};
 };
 

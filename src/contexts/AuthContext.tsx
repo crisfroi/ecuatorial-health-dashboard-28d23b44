@@ -238,7 +238,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   };
 
   const getRestrictions = () => {
-    if (!userRole) return {};
     return getRoleRestrictions(userRole);
   };
 

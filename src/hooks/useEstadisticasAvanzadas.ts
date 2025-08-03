@@ -1,11 +1,13 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getErrorMessage, logError } from "@/utils/errorHandler";
+import type { EstadisticasData } from "@/types/estadisticas";
 
 export function useEstadisticasAvanzadas() {
   return useQuery({
-    queryKey: ["estadisticas-avanzadas"], // Mantenemos la queryKey original
-    queryFn: async () => {
+    queryKey: ["estadisticas-avanzadas"],
+    queryFn: async (): Promise<EstadisticasData> => {
       console.log("Fetching estadísticas avanzadas...");
 
       let profesionales = [];
@@ -41,7 +43,6 @@ export function useEstadisticasAvanzadas() {
 
             console.log(`Health check attempt ${attempt} failed:`, healthError);
 
-            // Check if it's a fetch error that should be retried
             const errorMessage = getErrorMessage(healthError);
             const isFetchError =
               errorMessage.includes("fetch") ||
@@ -55,7 +56,6 @@ export function useEstadisticasAvanzadas() {
               break;
             }
 
-            // Wait before retry
             if (attempt < maxRetries) {
               const delayMs = Math.pow(2, attempt) * 1000;
               console.log(`Waiting ${delayMs}ms before health check retry...`);
@@ -78,7 +78,6 @@ export function useEstadisticasAvanzadas() {
           logError("Health check failed", healthError);
           const errorMessage = getErrorMessage(healthError);
 
-          // If it's a fetch error, enable offline mode automatically
           if (
             errorMessage.includes("fetch") ||
             errorMessage.includes("Failed to fetch")
@@ -115,7 +114,6 @@ export function useEstadisticasAvanzadas() {
 
             console.log(`Main query attempt ${attempt} failed:`, error);
 
-            // Check if it's a fetch error that should be retried
             const errorMessage = getErrorMessage(error);
             const isFetchError =
               errorMessage.includes("fetch") ||
@@ -129,7 +127,6 @@ export function useEstadisticasAvanzadas() {
               break;
             }
 
-            // Wait before retry
             if (attempt < maxRetries) {
               const delayMs = Math.pow(2, attempt) * 1000;
               console.log(`Waiting ${delayMs}ms before main query retry...`);
@@ -152,7 +149,6 @@ export function useEstadisticasAvanzadas() {
           logError("Error fetching estadísticas avanzadas", error);
           const errorMessage = getErrorMessage(error);
 
-          // If it's a fetch error, enable offline mode automatically
           if (
             errorMessage.includes("fetch") ||
             errorMessage.includes("Failed to fetch")
@@ -165,32 +161,8 @@ export function useEstadisticasAvanzadas() {
             );
           }
 
-          // En lugar de lanzar el error, devolvemos datos vacíos
-          console.log("⚠️ Returning empty stats due to database error");
-          return {
-            total: 0,
-            aprobados: 0,
-            recibidos: 0,
-            rechazados: 0,
-            revisando: 0,
-            vencimientosProximos: 0,
-            carnetVencidos: 0,
-            porArea: {},
-            porProvincia: {},
-            generoMasculino: 0,
-            generoFemenino: 0,
-            totalPorGenero: {},
-            totalPorDistrito: {},
-            totalPorTipoSector: {},
-            totalPorNacionalidad: {},
-            totalPorAreaProfesional: {},
-            totalPorEstadoSolicitud: {},
-            totalPorDistritoSanitario: {},
-            datosGraficoProvincias: [],
-            tendenciasMensuales: [],
-            tasaAprobacion: "0.0",
-            tasaRechazo: "0.0"
-          };
+          // Return empty stats structure
+          return getEmptyStats();
         }
 
         profesionales = data || [];
@@ -200,41 +172,14 @@ export function useEstadisticasAvanzadas() {
         console.log("First professional sample:", profesionales[0]);
       } catch (fetchError: any) {
         console.error("Network or fetch error:", fetchError);
-
-        // En lugar de lanzar errores, devolvemos datos vacíos
-        console.log("⚠️ Returning empty stats due to network/fetch error");
-        return {
-          total: 0,
-          aprobados: 0,
-          recibidos: 0,
-          rechazados: 0,
-          revisando: 0,
-          vencimientosProximos: 0,
-          carnetVencidos: 0,
-          porArea: {},
-          porProvincia: {},
-          generoMasculino: 0,
-          generoFemenino: 0,
-          totalPorGenero: {},
-          totalPorDistrito: {},
-          totalPorTipoSector: {},
-          totalPorNacionalidad: {},
-          totalPorAreaProfesional: {},
-          totalPorEstadoSolicitud: {},
-          totalPorDistritoSanitario: {},
-          datosGraficoProvincias: [],
-          tendenciasMensuales: [],
-          tasaAprobacion: "0.0",
-          tasaRechazo: "0.0"
-        };
+        return getEmptyStats();
       }
 
-      // 1. FILTRAR PROFESIONALES APROBADOS PARA TODAS LAS ESTADÍSTICAS PRINCIPALES
+      // Calculate statistics
       const profesionalesAprobados = profesionales.filter(
         (p) => p.estado_solicitud === "Aprobado",
       );
 
-      // Calcular estadísticas básicas (conteos de estados sobre todos los profesionales)
       const total = profesionales.length;
       const aprobados = profesionales.filter(
         (p) => p.estado_solicitud === "Aprobado",
@@ -246,10 +191,13 @@ export function useEstadisticasAvanzadas() {
         (p) => p.estado_solicitud === "Rechazado",
       ).length;
       const revisando = profesionales.filter(
-        (p) => p.estado_solicitud === "Revisando",
+        (p) => p.estado_solicitud === "En Revisión",
+      ).length;
+      const pendientes = profesionales.filter(
+        (p) => p.estado_solicitud === "Pendiente de Firma",
       ).length;
 
-      // Estadísticas por área profesional - SOLO APROBADOS
+      // Area statistics - only approved professionals
       const porArea = profesionalesAprobados.reduce(
         (acc, prof) => {
           const area = prof.area_profesional || "Sin especificar";
@@ -259,7 +207,7 @@ export function useEstadisticasAvanzadas() {
         {} as Record<string, number>,
       );
 
-      // Estadísticas por provincia - SOLO APROBADOS
+      // Province statistics - only approved professionals
       const porProvincia = profesionalesAprobados.reduce(
         (acc, prof) => {
           const provincia = prof.provincia || "Sin especificar";
@@ -269,8 +217,7 @@ export function useEstadisticasAvanzadas() {
         {} as Record<string, number>,
       );
 
-      // --- CÁLCULO DE G��NERO (SOLO PARA APROBADOS) ---
-      // Estadísticas por género - AHORA SOLO DE PROFESIONALES APROBADOS
+      // Gender statistics - only approved professionals
       const porGenero = profesionalesAprobados.reduce(
         (acc, prof) => {
           const genero = prof.genero || "Sin especificar";
@@ -280,12 +227,10 @@ export function useEstadisticasAvanzadas() {
         {} as Record<string, number>,
       );
 
-      // Extraer conteos específicos para género de APROBADOS
       const generoMasculino = porGenero["Masculino"] || 0;
       const generoFemenino = porGenero["Femenino"] || 0;
-      // --- FIN CÁLCULO DE GÉNERO ---
 
-      // Estadísticas por tipo de sector - SOLO APROBADOS
+      // Sector statistics - only approved professionals
       const porTipoSector = profesionalesAprobados.reduce(
         (acc, prof) => {
           const sector = prof.tipo_sector || "Sin especificar";
@@ -295,7 +240,7 @@ export function useEstadisticasAvanzadas() {
         {} as Record<string, number>,
       );
 
-      // Estadísticas por distrito - SOLO APROBADOS
+      // District statistics - only approved professionals
       const porDistrito = profesionalesAprobados.reduce(
         (acc, prof) => {
           const distrito = prof.distrito || "Sin especificar";
@@ -305,7 +250,7 @@ export function useEstadisticasAvanzadas() {
         {} as Record<string, number>,
       );
 
-      // Calcular vencimientos próximos (próximos 30 días)
+      // Calculate upcoming expirations (next 30 days)
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
       const en30Dias = new Date();
@@ -316,20 +261,18 @@ export function useEstadisticasAvanzadas() {
         if (!prof.fecha_caducidad) return false;
         const fechaVencimiento = new Date(prof.fecha_caducidad);
         fechaVencimiento.setHours(0, 0, 0, 0);
-
         return fechaVencimiento >= hoy && fechaVencimiento <= en30Dias;
       }).length;
 
-      // Calcular carnets vencidos - SOLO APROBADOS
+      // Calculate expired cards - only approved professionals
       const carnetVencidos = profesionalesAprobados.filter((prof) => {
         if (!prof.fecha_caducidad) return false;
         const fechaVencimiento = new Date(prof.fecha_caducidad);
         fechaVencimiento.setHours(0, 0, 0, 0);
-
         return fechaVencimiento < hoy;
       }).length;
 
-      // Estadísticas por año de graduación - SOLO APROBADOS
+      // Graduation year statistics - only approved professionals
       const porAnoGraduacion = profesionalesAprobados.reduce(
         (acc, prof) => {
           if (prof.año_graduacion) {
@@ -341,7 +284,7 @@ export function useEstadisticasAvanzadas() {
         {} as Record<string, number>,
       );
 
-      // Tendencias mensuales (últimos 12 meses) - Basado en 'created_at'
+      // Monthly trends (last 12 months) - based on 'created_at'
       const tendenciasMensuales = [];
       for (let i = 11; i >= 0; i--) {
         const fecha = new Date();
@@ -364,82 +307,81 @@ export function useEstadisticasAvanzadas() {
         });
       }
 
-      const estadisticas = {
-        // Estadísticas básicas (todas sobre el total de profesionales)
+      const estadisticas: EstadisticasData = {
         total,
         aprobados,
+        pendientes,
         recibidos,
         rechazados,
         revisando,
         vencimientosProximos,
         carnetVencidos,
-
-        // Distribuciones (todas sobre el total de profesionales)
         porArea,
         porProvincia,
-
-        // ¡Estos son los que querías que se refieran solo a APROBADOS!
         generoMasculino,
         generoFemenino,
+        totalPorGenero: porGenero,
+        totalPorDistrito: porDistrito,
+        totalPorTipoSector: porTipoSector,
+        totalPorNacionalidad: {},
+        totalPorAreaProfesional: porArea,
+        totalPorEstadoSolicitud: {
+          "Recibido": recibidos,
+          "En Revisión": revisando,
+          "Aprobado": aprobados,
+          "Pendiente de Firma": pendientes,
+          "Rechazado": rechazados
+        },
+        totalPorDistritoSanitario: {},
         porGenero,
-
         porTipoSector,
         porDistrito,
         porAnoGraduacion,
-
-        // Tendencias
         tendenciasMensuales,
-
-        // Tasas de conversión
-        tasaAprobacion:
-          total > 0 ? ((aprobados / total) * 100).toFixed(1) : "0",
+        tasaAprobacion: total > 0 ? ((aprobados / total) * 100).toFixed(1) : "0",
         tasaRechazo: total > 0 ? ((rechazados / total) * 100).toFixed(1) : "0",
-
-        // Datos para gráficos
         datosGraficoEstados: [
           { estado: "Aprobado", cantidad: aprobados, color: "#22c55e" },
           { estado: "Recibido", cantidad: recibidos, color: "#f59e0b" },
           { estado: "Rechazado", cantidad: rechazados, color: "#ef4444" },
           { estado: "Revisando", cantidad: revisando, color: "#3b82f6" },
+          { estado: "Pendiente de Firma", cantidad: pendientes, color: "#8b5cf6" }
         ],
-
         datosGraficoAreas: Object.entries(porArea).map(([area, cantidad]) => ({
           area,
           cantidad: cantidad as number,
         })),
-
         datosGraficoProvincias: Object.entries(porProvincia).map(
-          ([provincia, cantidad]) => ({
-            provincia,
-            cantidad: cantidad as number,
+          ([name, value]) => ({
+            name,
+            value: value as number,
+            color: `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`
           }),
         ),
+        sampleData: profesionales.slice(0, 5).map(p => ({
+          id: p.id,
+          estado_solicitud: p.estado_solicitud
+        }))
       };
 
       console.log("Estadísticas avanzadas calculadas:", estadisticas);
       return estadisticas;
     },
     refetchInterval: () => {
-      // Don't auto-refetch in offline mode
       const offlineMode = localStorage.getItem("app-offline-mode") === "true";
       if (offlineMode) {
         return false;
       }
-
-      // Return normal interval if not in offline mode
-      return 30000; // Normal 30 second interval
+      return 30000;
     },
     retry: (failureCount, error) => {
       console.log(`Retry attempt ${failureCount} for error:`, error?.message);
-
-      // Don't retry in offline mode
       const offlineMode = localStorage.getItem("app-offline-mode") === "true";
       if (offlineMode) {
         console.log("Offline mode active, not retrying");
         return false;
       }
 
-      // Don't retry fetch errors at this level (handled in queryFn)
       if (
         error?.message?.includes("fetch") ||
         error?.message?.includes("Failed to fetch")
@@ -448,7 +390,6 @@ export function useEstadisticasAvanzadas() {
         return false;
       }
 
-      // Retry network connection errors
       if (
         error?.message?.includes("Network connection failed") ||
         error?.message?.includes("Database connection failed")
@@ -459,34 +400,47 @@ export function useEstadisticasAvanzadas() {
       return failureCount < 1;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-    // Proporcionar datos de fallback cuando falle
-    placeholderData: {
-      total: 0,
-      aprobados: 0,
-      recibidos: 0,
-      rechazados: 0,
-      revisando: 0,
-      vencimientosProximos: 0,
-      carnetVencidos: 0,
-      porArea: {},
-      porProvincia: {},
-      generoMasculino: 0,
-      generoFemenino: 0,
-      porGenero: {},
-      porTipoSector: {},
-      porDistrito: {},
-      porAnoGraduacion: {},
-      tendenciasMensuales: [],
-      tasaAprobacion: "0",
-      tasaRechazo: "0",
-      datosGraficoEstados: [
-        { estado: "Aprobado", cantidad: 0, color: "#22c55e" },
-        { estado: "Recibido", cantidad: 0, color: "#f59e0b" },
-        { estado: "Rechazado", cantidad: 0, color: "#ef4444" },
-        { estado: "Revisando", cantidad: 0, color: "#3b82f6" },
-      ],
-      datosGraficoAreas: [],
-      datosGraficoProvincias: [],
-    },
+    placeholderData: getEmptyStats(),
   });
+}
+
+function getEmptyStats(): EstadisticasData {
+  return {
+    total: 0,
+    aprobados: 0,
+    pendientes: 0,
+    recibidos: 0,
+    rechazados: 0,
+    revisando: 0,
+    vencimientosProximos: 0,
+    carnetVencidos: 0,
+    porArea: {},
+    porProvincia: {},
+    generoMasculino: 0,
+    generoFemenino: 0,
+    totalPorGenero: {},
+    totalPorDistrito: {},
+    totalPorTipoSector: {},
+    totalPorNacionalidad: {},
+    totalPorAreaProfesional: {},
+    totalPorEstadoSolicitud: {},
+    totalPorDistritoSanitario: {},
+    porGenero: {},
+    porTipoSector: {},
+    porDistrito: {},
+    porAnoGraduacion: {},
+    tendenciasMensuales: [],
+    tasaAprobacion: "0",
+    tasaRechazo: "0",
+    datosGraficoEstados: [
+      { estado: "Aprobado", cantidad: 0, color: "#22c55e" },
+      { estado: "Recibido", cantidad: 0, color: "#f59e0b" },
+      { estado: "Rechazado", cantidad: 0, color: "#ef4444" },
+      { estado: "Revisando", cantidad: 0, color: "#3b82f6" },
+      { estado: "Pendiente de Firma", cantidad: 0, color: "#8b5cf6" }
+    ],
+    datosGraficoAreas: [],
+    datosGraficoProvincias: [],
+    sampleData: []
+  };
 }

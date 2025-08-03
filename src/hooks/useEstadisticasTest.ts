@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getErrorMessage, logError } from "@/utils/errorHandler";
-import type { EstadisticasData } from "./useEstadisticas";
+import type { EstadisticasData } from "@/types/estadisticas";
 
 export function useEstadisticasTest() {
   return useQuery({
@@ -68,8 +68,13 @@ export function useEstadisticasTest() {
             { estado: "Revisando", cantidad: revisando, color: "#3b82f6" },
             { estado: "Pendiente de Firma", cantidad: pendientes, color: "#8b5cf6" }
           ],
+          tendenciasMensuales: [],
           tasaAprobacion: total > 0 ? ((aprobados / total) * 100).toFixed(1) : "0",
-          tasaRechazo: total > 0 ? ((rechazados / total) * 100).toFixed(1) : "0"
+          tasaRechazo: total > 0 ? ((rechazados / total) * 100).toFixed(1) : "0",
+          sampleData: data?.map(p => ({
+            id: p.id,
+            estado_solicitud: p.estado_solicitud
+          })) || []
         };
       } catch (err: any) {
         console.error("Estadisticas test failed:", err);

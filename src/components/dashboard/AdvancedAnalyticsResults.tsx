@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -92,8 +91,8 @@ const AdvancedAnalyticsResults: React.FC<AdvancedAnalyticsResultsProps> = ({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {Object.entries(data.distribucion_genero).map(([genero, cantidad]: [string, any]) => {
-                  const total = Object.values(data.distribucion_genero).reduce((sum: number, val: any) => {
+                {Object.entries(data.distribucion_genero).map(([genero, cantidad]: [string, unknown]) => {
+                  const total = Object.values(data.distribucion_genero).reduce((sum: number, val: unknown) => {
                     const numVal = Number(val) || 0;
                     return sum + numVal;
                   }, 0);
@@ -105,7 +104,49 @@ const AdvancedAnalyticsResults: React.FC<AdvancedAnalyticsResultsProps> = ({
                       <div className="flex justify-between items-center">
                         <span className="font-medium capitalize">{genero}</span>
                         <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-600">{cantidad}</span>
+                          <span className="text-sm text-gray-600">{String(cantidad)}</span>
+                          <Badge variant="outline">
+                            {percentage}%
+                          </Badge>
+                        </div>
+                      </div>
+                      <Progress 
+                        value={Number(percentage)} 
+                        className="h-2" 
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Distribución por Edad */}
+        {data.distribucion_edad && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Calendar className="w-5 h-5 text-purple-600" />
+                <span>Distribución por Edad</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {Object.entries(data.distribucion_edad).map(([rango, cantidad]: [string, unknown]) => {
+                  const total = Object.values(data.distribucion_edad).reduce((sum: number, val: unknown) => {
+                    const numVal = Number(val) || 0;
+                    return sum + numVal;
+                  }, 0);
+                  const numCantidad = Number(cantidad) || 0;
+                  const percentage = total > 0 ? ((numCantidad / total) * 100).toFixed(1) : '0';
+                  
+                  return (
+                    <div key={rango} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">{rango}</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600">{String(cantidad)}</span>
                           <Badge variant="outline">
                             {percentage}%
                           </Badge>
@@ -194,48 +235,6 @@ const AdvancedAnalyticsResults: React.FC<AdvancedAnalyticsResultsProps> = ({
                     </div>
                   </div>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Distribución por Edad */}
-        {data.distribucion_edad && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Calendar className="w-5 h-5 text-purple-600" />
-                <span>Distribución por Edad</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {Object.entries(data.distribucion_edad).map(([rango, cantidad]: [string, any]) => {
-                  const total = Object.values(data.distribucion_edad).reduce((sum: number, val: any) => {
-                    const numVal = Number(val) || 0;
-                    return sum + numVal;
-                  }, 0);
-                  const numCantidad = Number(cantidad) || 0;
-                  const percentage = total > 0 ? ((numCantidad / total) * 100).toFixed(1) : '0';
-                  
-                  return (
-                    <div key={rango} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">{rango}</span>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-600">{cantidad}</span>
-                          <Badge variant="outline">
-                            {percentage}%
-                          </Badge>
-                        </div>
-                      </div>
-                      <Progress 
-                        value={Number(percentage)} 
-                        className="h-2" 
-                      />
-                    </div>
-                  );
-                })}
               </div>
             </CardContent>
           </Card>

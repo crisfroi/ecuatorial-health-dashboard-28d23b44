@@ -1,53 +1,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { EstadisticasData } from "@/types/estadisticas";
 
-export interface EstadisticasData {
-  total: number;
-  aprobados: number;
-  pendientes: number;  // Será "Pendiente de Firma"
-  recibidos: number;
-  rechazados: number;
-  revisando: number;
-  vencimientosProximos: number;
-  carnetVencidos: number;
-  porArea: any;
-  porProvincia: any;
-  generoMasculino: any;
-  generoFemenino: any;
-  totalPorGenero: any;
-  totalPorDistrito: any;
-  totalPorTipoSector: any;
-  totalPorNacionalidad: any;
-  totalPorAreaProfesional: any;
-  totalPorEstadoSolicitud: any;
-  totalPorDistritoSanitario: any;
-  datosGraficoProvincias: Array<{
-    name: string;
-    value: number;
-    color: string;
-  }>;
-  // Propiedades adicionales requeridas por los componentes
-  datosGraficoAreas: Array<{
-    area: string;
-    cantidad: number;
-  }>;
-  datosGraficoEstados: Array<{
-    estado: string;
-    cantidad: number;
-    color: string;
-  }>;
-  tendenciasMensuales?: Array<{
-    mes: string;
-    registros: number;
-  }>;
-  tasaAprobacion?: string;
-  tasaRechazo?: string;
-  porGenero?: any;
-  porTipoSector?: any;
-  porDistrito?: any;
-  porAnoGraduacion?: any;
-}
+export { type EstadisticasData } from "@/types/estadisticas";
 
 export function useEstadisticas() {
   return useQuery({
@@ -61,67 +17,16 @@ export function useEstadisticas() {
 
       if (error) {
         console.error("❌ Error fetching estadísticas:", error);
-        // En lugar de lanzar el error, devolvemos datos vacíos pero válidos
         console.log("⚠️ Returning empty stats due to error");
-        return {
-          total: 0,
-          aprobados: 0,
-          pendientes: 0,
-          recibidos: 0,
-          rechazados: 0,
-          revisando: 0,
-          vencimientosProximos: 0,
-          carnetVencidos: 0,
-          porArea: {},
-          porProvincia: {},
-          generoMasculino: 0,
-          generoFemenino: 0,
-          totalPorGenero: {},
-          totalPorDistrito: {},
-          totalPorTipoSector: {},
-          totalPorNacionalidad: {},
-          totalPorAreaProfesional: {},
-          totalPorEstadoSolicitud: {},
-          totalPorDistritoSanitario: {},
-          datosGraficoProvincias: [],
-          datosGraficoAreas: [],
-          datosGraficoEstados: [],
-          tasaAprobacion: "0",
-          tasaRechazo: "0"
-        };
+        return getEmptyStats();
       }
 
       if (!profesionales || profesionales.length === 0) {
         console.log("⚠️ No se encontraron profesionales");
-        return {
-          total: 0,
-          aprobados: 0,
-          pendientes: 0,
-          recibidos: 0,
-          rechazados: 0,
-          revisando: 0,
-          vencimientosProximos: 0,
-          carnetVencidos: 0,
-          porArea: {},
-          porProvincia: {},
-          generoMasculino: 0,
-          generoFemenino: 0,
-          totalPorGenero: {},
-          totalPorDistrito: {},
-          totalPorTipoSector: {},
-          totalPorNacionalidad: {},
-          totalPorAreaProfesional: {},
-          totalPorEstadoSolicitud: {},
-          totalPorDistritoSanitario: {},
-          datosGraficoProvincias: [],
-          datosGraficoAreas: [],
-          datosGraficoEstados: [],
-          tasaAprobacion: "0",
-          tasaRechazo: "0"
-        };
+        return getEmptyStats();
       }
 
-      // Calcular estadísticas
+      // Calculate statistics
       const total = profesionales.length;
       const aprobados = profesionales.filter(p => p.estado_solicitud === "Aprobado").length;
       const pendientes = profesionales.filter(p => p.estado_solicitud === "Pendiente de Firma").length;
@@ -129,7 +34,7 @@ export function useEstadisticas() {
       const rechazados = profesionales.filter(p => p.estado_solicitud === "Rechazado").length;
       const revisando = profesionales.filter(p => p.estado_solicitud === "En Revisión").length;
 
-      // Calcular vencimientos
+      // Calculate expirations
       const hoy = new Date();
       const treintaDias = new Date();
       treintaDias.setDate(hoy.getDate() + 30);
@@ -146,25 +51,25 @@ export function useEstadisticas() {
         return fechaCaducidad <= hoy;
       }).length;
 
-      // Estadísticas por área profesional
+      // Professional area statistics
       const porArea = profesionales.reduce((acc: any, p) => {
         const area = p.area_profesional || "Sin especificar";
         acc[area] = (acc[area] || 0) + 1;
         return acc;
       }, {});
 
-      // Estadísticas por provincia
+      // Province statistics
       const porProvincia = profesionales.reduce((acc: any, p) => {
         const provincia = p.provincia || "Sin especificar";
         acc[provincia] = (acc[provincia] || 0) + 1;
         return acc;
       }, {});
 
-      // Estadísticas por género
+      // Gender statistics
       const generoMasculino = profesionales.filter(p => p.genero === "Masculino").length;
       const generoFemenino = profesionales.filter(p => p.genero === "Femenino").length;
 
-      // Generar datos para gráficos
+      // Generate chart data
       const datosGraficoAreas = Object.entries(porArea).map(([area, cantidad]) => ({
         area,
         cantidad: cantidad as number
@@ -178,7 +83,7 @@ export function useEstadisticas() {
         { estado: "Pendiente de Firma", cantidad: pendientes, color: "#8b5cf6" }
       ];
 
-      // Calcular tasas
+      // Calculate rates
       const tasaAprobacion = total > 0 ? ((aprobados / total) * 100).toFixed(1) : "0";
       const tasaRechazo = total > 0 ? ((rechazados / total) * 100).toFixed(1) : "0";
 
@@ -231,6 +136,7 @@ export function useEstadisticas() {
         })),
         datosGraficoAreas,
         datosGraficoEstados,
+        tendenciasMensuales: [],
         tasaAprobacion,
         tasaRechazo
       };
@@ -238,6 +144,36 @@ export function useEstadisticas() {
       console.log("✅ Estadísticas calculadas:", estadisticas);
       return estadisticas;
     },
-    refetchInterval: 30000, // Refrescar cada 30 segundos
+    refetchInterval: 30000,
   });
+}
+
+function getEmptyStats(): EstadisticasData {
+  return {
+    total: 0,
+    aprobados: 0,
+    pendientes: 0,
+    recibidos: 0,
+    rechazados: 0,
+    revisando: 0,
+    vencimientosProximos: 0,
+    carnetVencidos: 0,
+    porArea: {},
+    porProvincia: {},
+    generoMasculino: 0,
+    generoFemenino: 0,
+    totalPorGenero: {},
+    totalPorDistrito: {},
+    totalPorTipoSector: {},
+    totalPorNacionalidad: {},
+    totalPorAreaProfesional: {},
+    totalPorEstadoSolicitud: {},
+    totalPorDistritoSanitario: {},
+    datosGraficoProvincias: [],
+    datosGraficoAreas: [],
+    datosGraficoEstados: [],
+    tendenciasMensuales: [],
+    tasaAprobacion: "0",
+    tasaRechazo: "0"
+  };
 }

@@ -9,7 +9,7 @@ export interface AdvancedStatsQuery {
 
 export interface AdvancedStatsResult {
   success: boolean;
-  data: any;
+  data?: any;
   error?: string;
   query?: string;
   timestamp: string;
@@ -111,7 +111,6 @@ export function useAdvancedAnalyticsAI() {
     try {
       setConnectionStatus('connecting');
       
-      // Test básico de conectividad con timeout
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Conexión timeout después de 5 segundos')), 5000)
       );
@@ -123,7 +122,7 @@ export function useAdvancedAnalyticsAI() {
       
       const result = await Promise.race([connectionPromise, timeoutPromise]);
       
-      if (result && !result.error) {
+      if (result && !(result as any).error) {
         setConnectionStatus('connected');
         console.log('✅ Conexión establecida correctamente');
         return true;
@@ -144,7 +143,6 @@ export function useAdvancedAnalyticsAI() {
     setError(null);
 
     try {
-      // Verificar conexión primero
       const isConnected = await testConnection();
       if (!isConnected) {
         throw new Error('No se pudo establecer conexión con la base de datos');
@@ -152,11 +150,10 @@ export function useAdvancedAnalyticsAI() {
 
       console.log('📡 Invocando edge function...');
       
-      // Configurar timeout específico para la edge function
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-      }, 15000); // 15 segundos timeout
+      }, 15000);
 
       const { data, error: functionError } = await supabase.functions.invoke('ai-analytics-advanced', {
         body: {
@@ -183,7 +180,6 @@ export function useAdvancedAnalyticsAI() {
         throw new Error(data?.error || 'Respuesta inválida del servidor');
       }
 
-      // Generar respuesta de texto descriptiva
       const textResponse = generateTextResponse(data.data, query);
 
       const result: AdvancedStatsResult = {
@@ -206,6 +202,7 @@ export function useAdvancedAnalyticsAI() {
       
       const errorResult: AdvancedStatsResult = {
         success: false,
+        data: null,
         error: errorMessage,
         query: query.query,
         timestamp: new Date().toISOString(),
@@ -219,7 +216,7 @@ export function useAdvancedAnalyticsAI() {
     }
   }, [testConnection]);
 
-  const runAdvancedAnalytics = useCallback(async (analysisType: string = 'comprehensive') => {
+  const runAdvancedAnalytics = useCallback(async (analysisType: string = 'comprehensive'): Promise<AdvancedStatsResult> => {
     try {
       setLoading(true);
       setError(null);
@@ -375,30 +372,25 @@ export function useAdvancedAnalyticsAI() {
       'edad': 'demographics',
       'nacionalidad': 'demographics',
       'provincia': 'demographics',
-      
       'área': 'professional_areas',
       'especialidad': 'professional_areas',
       'profesional': 'professional_areas',
       'categoría': 'professional_areas',
-      
       'formación': 'education',
       'educación': 'education',
       'graduación': 'education',
       'institución': 'education',
       'universidad': 'education',
       'país': 'education',
-      
       'centro': 'work_centers',
       'trabajo': 'work_centers',
       'distrito': 'work_centers',
       'hospital': 'work_centers',
       'clínica': 'work_centers',
-      
       'solicitud': 'application_status',
       'estado': 'application_status',
       'aprobación': 'application_status',
       'rechazo': 'application_status',
-      
       'completo': 'comprehensive',
       'comprehensive': 'comprehensive',
       'todo': 'comprehensive',
@@ -415,7 +407,6 @@ export function useAdvancedAnalyticsAI() {
       }
     }
 
-    // Por defecto, análisis comprehensivo
     return {
       query: 'comprehensive',
       description: userInput

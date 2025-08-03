@@ -1,9 +1,33 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { EstadisticasData } from "@/types/estadisticas";
 
-export { type EstadisticasData } from "@/types/estadisticas";
+export interface EstadisticasData {
+  total: number;
+  aprobados: number;
+  pendientes: number;  // Será "Pendiente de Firma"
+  recibidos: number;
+  rechazados: number;
+  revisando: number;
+  vencimientosProximos: number;
+  carnetVencidos: number;
+  porArea: any;
+  porProvincia: any;
+  generoMasculino: any;
+  generoFemenino: any;
+  totalPorGenero: any;
+  totalPorDistrito: any;
+  totalPorTipoSector: any;
+  totalPorNacionalidad: any;
+  totalPorAreaProfesional: any;
+  totalPorEstadoSolicitud: any;
+  totalPorDistritoSanitario: any;
+  datosGraficoProvincias: Array<{
+    name: string;
+    value: number;
+    color: string;
+  }>;
+}
 
 export function useEstadisticas() {
   return useQuery({
@@ -17,16 +41,59 @@ export function useEstadisticas() {
 
       if (error) {
         console.error("❌ Error fetching estadísticas:", error);
+        // En lugar de lanzar el error, devolvemos datos vacíos pero válidos
         console.log("⚠️ Returning empty stats due to error");
-        return getEmptyStats();
+        return {
+          total: 0,
+          aprobados: 0,
+          pendientes: 0,
+          recibidos: 0,
+          rechazados: 0,
+          revisando: 0,
+          vencimientosProximos: 0,
+          carnetVencidos: 0,
+          porArea: {},
+          porProvincia: {},
+          generoMasculino: 0,
+          generoFemenino: 0,
+          totalPorGenero: {},
+          totalPorDistrito: {},
+          totalPorTipoSector: {},
+          totalPorNacionalidad: {},
+          totalPorAreaProfesional: {},
+          totalPorEstadoSolicitud: {},
+          totalPorDistritoSanitario: {},
+          datosGraficoProvincias: []
+        };
       }
 
       if (!profesionales || profesionales.length === 0) {
         console.log("⚠️ No se encontraron profesionales");
-        return getEmptyStats();
+        return {
+          total: 0,
+          aprobados: 0,
+          pendientes: 0,
+          recibidos: 0,
+          rechazados: 0,
+          revisando: 0,
+          vencimientosProximos: 0,
+          carnetVencidos: 0,
+          porArea: {},
+          porProvincia: {},
+          generoMasculino: 0,
+          generoFemenino: 0,
+          totalPorGenero: {},
+          totalPorDistrito: {},
+          totalPorTipoSector: {},
+          totalPorNacionalidad: {},
+          totalPorAreaProfesional: {},
+          totalPorEstadoSolicitud: {},
+          totalPorDistritoSanitario: {},
+          datosGraficoProvincias: []
+        };
       }
 
-      // Calculate statistics
+      // Calcular estadísticas
       const total = profesionales.length;
       const aprobados = profesionales.filter(p => p.estado_solicitud === "Aprobado").length;
       const pendientes = profesionales.filter(p => p.estado_solicitud === "Pendiente de Firma").length;
@@ -34,7 +101,7 @@ export function useEstadisticas() {
       const rechazados = profesionales.filter(p => p.estado_solicitud === "Rechazado").length;
       const revisando = profesionales.filter(p => p.estado_solicitud === "En Revisión").length;
 
-      // Calculate expirations
+      // Calcular vencimientos
       const hoy = new Date();
       const treintaDias = new Date();
       treintaDias.setDate(hoy.getDate() + 30);
@@ -51,41 +118,23 @@ export function useEstadisticas() {
         return fechaCaducidad <= hoy;
       }).length;
 
-      // Professional area statistics
+      // Estadísticas por área profesional
       const porArea = profesionales.reduce((acc: any, p) => {
         const area = p.area_profesional || "Sin especificar";
         acc[area] = (acc[area] || 0) + 1;
         return acc;
       }, {});
 
-      // Province statistics
+      // Estadísticas por provincia
       const porProvincia = profesionales.reduce((acc: any, p) => {
         const provincia = p.provincia || "Sin especificar";
         acc[provincia] = (acc[provincia] || 0) + 1;
         return acc;
       }, {});
 
-      // Gender statistics
+      // Estadísticas por género
       const generoMasculino = profesionales.filter(p => p.genero === "Masculino").length;
       const generoFemenino = profesionales.filter(p => p.genero === "Femenino").length;
-
-      // Generate chart data
-      const datosGraficoAreas = Object.entries(porArea).map(([area, cantidad]) => ({
-        area,
-        cantidad: cantidad as number
-      }));
-
-      const datosGraficoEstados = [
-        { estado: "Aprobado", cantidad: aprobados, color: "#22c55e" },
-        { estado: "Recibido", cantidad: recibidos, color: "#f59e0b" },
-        { estado: "Rechazado", cantidad: rechazados, color: "#ef4444" },
-        { estado: "Revisando", cantidad: revisando, color: "#3b82f6" },
-        { estado: "Pendiente de Firma", cantidad: pendientes, color: "#8b5cf6" }
-      ];
-
-      // Calculate rates
-      const tasaAprobacion = total > 0 ? ((aprobados / total) * 100).toFixed(1) : "0";
-      const tasaRechazo = total > 0 ? ((rechazados / total) * 100).toFixed(1) : "0";
 
       const estadisticas: EstadisticasData = {
         total,
@@ -133,47 +182,12 @@ export function useEstadisticas() {
           name,
           value: value as number,
           color: `hsl(${index * 45}, 70%, 50%)`
-        })),
-        datosGraficoAreas,
-        datosGraficoEstados,
-        tendenciasMensuales: [],
-        tasaAprobacion,
-        tasaRechazo
+        }))
       };
 
       console.log("✅ Estadísticas calculadas:", estadisticas);
       return estadisticas;
     },
-    refetchInterval: 30000,
+    refetchInterval: 30000, // Refrescar cada 30 segundos
   });
-}
-
-function getEmptyStats(): EstadisticasData {
-  return {
-    total: 0,
-    aprobados: 0,
-    pendientes: 0,
-    recibidos: 0,
-    rechazados: 0,
-    revisando: 0,
-    vencimientosProximos: 0,
-    carnetVencidos: 0,
-    porArea: {},
-    porProvincia: {},
-    generoMasculino: 0,
-    generoFemenino: 0,
-    totalPorGenero: {},
-    totalPorDistrito: {},
-    totalPorTipoSector: {},
-    totalPorNacionalidad: {},
-    totalPorAreaProfesional: {},
-    totalPorEstadoSolicitud: {},
-    totalPorDistritoSanitario: {},
-    datosGraficoProvincias: [],
-    datosGraficoAreas: [],
-    datosGraficoEstados: [],
-    tendenciasMensuales: [],
-    tasaAprobacion: "0",
-    tasaRechazo: "0"
-  };
 }

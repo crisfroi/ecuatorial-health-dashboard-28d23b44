@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,7 +33,7 @@ import {
   AdvancedStatsQuery, 
   ANALYTICS_CATEGORIES 
 } from "@/hooks/useAdvancedAnalyticsAI";
-import AdvancedAnalyticsResults from "./AdvancedAnalyticsResults";
+import { AdvancedAnalyticsResults } from "./AdvancedAnalyticsResults";
 
 interface Message {
   id: string;
@@ -428,7 +427,7 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
                 <div className="p-4">
                   <AdvancedAnalyticsResults 
                     results={results} 
-                    onNavigateToTab={onNavigateToTab}
+                    categories={categories} 
                   />
                 </div>
               </ScrollArea>
@@ -440,4 +439,4 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
   );
 };
 
-export default AIAdvancedAnalyticsChat;
+export default AIAdvancedAnalyticsChat; 

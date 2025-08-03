@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -42,12 +41,28 @@ const queryClient = new QueryClient({
       
       // Configuración de refetch
       refetchOnWindowFocus: false,
-      refetchOnReconnect: true
+      refetchOnReconnect: true,
+      
+      // Manejo de errores
+      onError: (error: any) => {
+        console.error('Query error:', error);
+        
+        // Si es un error de red, no mostrar errores en consola
+        if (error?.message?.includes('fetch') || error?.message?.includes('network')) {
+          console.log('Network error detected, using fallback data');
+          return;
+        }
+      }
     },
     
     mutations: {
       // Configuración de reintentos para mutaciones
-      retry: 1
+      retry: 1,
+      
+      // Manejo de errores para mutaciones
+      onError: (error: any) => {
+        console.error('Mutation error:', error);
+      }
     }
   }
 });

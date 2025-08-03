@@ -1,443 +1,361 @@
-
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-// Inicializar cliente de Supabase
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+}
 
 serve(async (req) => {
-  // Manejar preflight CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    console.log('🚀 AI Analytics Advanced: Iniciando análisis');
-    const startTime = Date.now();
-    
-    const { query, filters = {}, description } = await req.json();
-    console.log('📝 Consulta recibida:', { query, filters, description });
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    // Verificar conexión a la base de datos
-    const { data: connectionTest, error: connectionError } = await supabase
-      .from('profesionales_sanitarios')
-      .select('id')
-      .limit(1);
+    const { query, filters } = await req.json()
 
-    if (connectionError) {
-      console.error('❌ Error de conexión:', connectionError);
-      throw new Error(`Error de conexión a la base de datos: ${connectionError.message}`);
-    }
+    // Función para obtener estadísticas avanzadas
+    const getAdvancedStats = async (query: string, filters: any = {}) => {
+      let result: any = {}
 
-    console.log('✅ Conexión a BD establecida correctamente');
+      switch (query) {
+        case 'demographics':
+          // Estadísticas demográficas
+          const demographics = await supabaseClient
+            .from('profesionales_sanitarios')
+            .select('genero, edad, nacionalidad, provincia, distrito')
+            .not('genero', 'is', null)
 
-    let analysisData = {};
+          const genderStats = demographics.data?.reduce((acc: any, prof: any) => {
+            acc[prof.genero] = (acc[prof.genero] || 0) + 1
+            return acc
+          }, {})
 
-    switch (query) {
-      case 'demographics':
-        analysisData = await getDemographicsAnalysis();
-        break;
-      case 'professional_areas':
-        analysisData = await getProfessionalAreasAnalysis();
-        break;
-      case 'education':
-        analysisData = await getEducationAnalysis();
-        break;
-      case 'work_centers':
-        analysisData = await getWorkCentersAnalysis();
-        break;
-      case 'application_status':
-        analysisData = await getApplicationStatusAnalysis();
-        break;
-      case 'comprehensive':
-        analysisData = await getComprehensiveAnalysis();
-        break;
-      default:
-        analysisData = await getComprehensiveAnalysis();
-    }
+          const ageStats = demographics.data?.reduce((acc: any, prof: any) => {
+            if (prof.edad) {
+              const ageGroup = prof.edad < 30 ? '20-29' : 
+                             prof.edad < 40 ? '30-39' : 
+                             prof.edad < 50 ? '40-49' : 
+                             prof.edad < 60 ? '50-59' : '60+'
+              acc[ageGroup] = (acc[ageGroup] || 0) + 1
+            }
+            return acc
+          }, {})
 
-    const executionTime = Date.now() - startTime;
-    console.log(`⚡ Análisis completado en ${executionTime}ms`);
+          result = {
+            total_profesionales: demographics.data?.length || 0,
+            genero: genderStats,
+            grupos_edad: ageStats,
+            nacionalidades: demographics.data?.reduce((acc: any, prof: any) => {
+              if (prof.nacionalidad) {
+                acc[prof.nacionalidad] = (acc[prof.nacionalidad] || 0) + 1
+              }
+              return acc
+            }, {}),
+            provincias: demographics.data?.reduce((acc: any, prof: any) => {
+              if (prof.provincia) {
+                acc[prof.provincia] = (acc[prof.provincia] || 0) + 1
+              }
+              return acc
+            }, {})
+          }
+          break
 
-    return new Response(JSON.stringify({
-      success: true,
-      data: analysisData,
-      query,
-      executionTime,
-      timestamp: new Date().toISOString()
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+        case 'professional_areas':
+          // Áreas profesionales
+          const areas = await supabaseClient
+            .from('profesionales_sanitarios')
+            .select('area_profesional, especialidad, categoria_titulacion')
+            .not('area_profesional', 'is', null)
 
-  } catch (error) {
-    console.error('❌ Error en ai-analytics-advanced:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message || 'Error interno del servidor',
-      timestamp: new Date().toISOString()
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-});
+          result = {
+            areas_profesionales: areas.data?.reduce((acc: any, prof: any) => {
+              acc[prof.area_profesional] = (acc[prof.area_profesional] || 0) + 1
+              return acc
+            }, {}),
+            especialidades: areas.data?.reduce((acc: any, prof: any) => {
+              if (prof.especialidad) {
+                acc[prof.especialidad] = (acc[prof.especialidad] || 0) + 1
+              }
+              return acc
+            }, {}),
+            categorias_titulacion: areas.data?.reduce((acc: any, prof: any) => {
+              if (prof.categoria_titulacion) {
+                acc[prof.categoria_titulacion] = (acc[prof.categoria_titulacion] || 0) + 1
+              }
+              return acc
+            }, {})
+          }
+          break
 
-// Funciones de análisis optimizadas
-async function getDemographicsAnalysis() {
-  console.log('👥 Ejecutando análisis demográfico...');
-  
-  try {
-    // Consulta optimizada para demografía
-    const { data: demographics, error } = await supabase
-      .from('profesionales_sanitarios')
-      .select(`
-        genero,
-        provincia_residencia,
-        nacionalidad,
-        fecha_graduacion
-      `);
+        case 'education':
+          // Formación y educación
+          const education = await supabaseClient
+            .from('profesionales_sanitarios')
+            .select('pais_formacion_1, pais_formacion_2, año_graduacion, institucion_1, institucion_2, tipo_formacion_1, tipo_formacion_2')
+            .not('pais_formacion_1', 'is', null)
 
-    if (error) throw error;
+          result = {
+            paises_formacion: education.data?.reduce((acc: any, prof: any) => {
+              if (prof.pais_formacion_1) {
+                acc[prof.pais_formacion_1] = (acc[prof.pais_formacion_1] || 0) + 1
+              }
+              if (prof.pais_formacion_2) {
+                acc[prof.pais_formacion_2] = (acc[prof.pais_formacion_2] || 0) + 1
+              }
+              return acc
+            }, {}),
+            años_graduacion: education.data?.reduce((acc: any, prof: any) => {
+              if (prof.año_graduacion) {
+                const yearGroup = prof.año_graduacion < 2000 ? 'Antes de 2000' :
+                                prof.año_graduacion < 2010 ? '2000-2009' :
+                                prof.año_graduacion < 2020 ? '2010-2019' : '2020+'
+                acc[yearGroup] = (acc[yearGroup] || 0) + 1
+              }
+              return acc
+            }, {}),
+            instituciones: education.data?.reduce((acc: any, prof: any) => {
+              if (prof.institucion_1) {
+                acc[prof.institucion_1] = (acc[prof.institucion_1] || 0) + 1
+              }
+              if (prof.institucion_2) {
+                acc[prof.institucion_2] = (acc[prof.institucion_2] || 0) + 1
+              }
+              return acc
+            }, {}),
+            tipos_formacion: education.data?.reduce((acc: any, prof: any) => {
+              if (prof.tipo_formacion_1) {
+                acc[prof.tipo_formacion_1] = (acc[prof.tipo_formacion_1] || 0) + 1
+              }
+              if (prof.tipo_formacion_2) {
+                acc[prof.tipo_formacion_2] = (acc[prof.tipo_formacion_2] || 0) + 1
+              }
+              return acc
+            }, {})
+          }
+          break
 
-    const total_profesionales = demographics.length;
+        case 'work_centers':
+          // Centros de trabajo
+          const workCenters = await supabaseClient
+            .from('profesionales_sanitarios')
+            .select('nombre_centro, categoria_centro, tipo_sector, distrito_sanitario, situacion_laboral, estado_trabajo')
 
-    // Distribución por género
-    const distribucion_genero = demographics.reduce((acc: any, prof: any) => {
-      const genero = prof.genero || 'No especificado';
-      acc[genero] = (acc[genero] || 0) + 1;
-      return acc;
-    }, {});
+          result = {
+            centros_trabajo: workCenters.data?.reduce((acc: any, prof: any) => {
+              if (prof.nombre_centro) {
+                acc[prof.nombre_centro] = (acc[prof.nombre_centro] || 0) + 1
+              }
+              return acc
+            }, {}),
+            categorias_centro: workCenters.data?.reduce((acc: any, prof: any) => {
+              if (prof.categoria_centro) {
+                acc[prof.categoria_centro] = (acc[prof.categoria_centro] || 0) + 1
+              }
+              return acc
+            }, {}),
+            tipos_sector: workCenters.data?.reduce((acc: any, prof: any) => {
+              if (prof.tipo_sector) {
+                acc[prof.tipo_sector] = (acc[prof.tipo_sector] || 0) + 1
+              }
+              return acc
+            }, {}),
+            distritos_sanitarios: workCenters.data?.reduce((acc: any, prof: any) => {
+              if (prof.distrito_sanitario) {
+                acc[prof.distrito_sanitario] = (acc[prof.distrito_sanitario] || 0) + 1
+              }
+              return acc
+            }, {}),
+            situaciones_laborales: workCenters.data?.reduce((acc: any, prof: any) => {
+              if (prof.situacion_laboral) {
+                acc[prof.situacion_laboral] = (acc[prof.situacion_laboral] || 0) + 1
+              }
+              return acc
+            }, {})
+          }
+          break
 
-    // Distribución por provincia
-    const distribucion_provincia = demographics.reduce((acc: any, prof: any) => {
-      const provincia = prof.provincia_residencia || 'No especificada';
-      acc[provincia] = (acc[provincia] || 0) + 1;
-      return acc;
-    }, {});
+        case 'application_status':
+          // Estados de solicitud
+          const status = await supabaseClient
+            .from('profesionales_sanitarios')
+            .select('estado_solicitud, fecha_solicitud, fecha_aprobacion, fecha_rechazo, motivo_rechazo, urgencia_solicitud')
 
-    // Distribución por nacionalidad
-    const distribucion_nacionalidad = demographics.reduce((acc: any, prof: any) => {
-      const nacionalidad = prof.nacionalidad || 'No especificada';
-      acc[nacionalidad] = (acc[nacionalidad] || 0) + 1;
-      return acc;
-    }, {});
+          result = {
+            estados_solicitud: status.data?.reduce((acc: any, prof: any) => {
+              if (prof.estado_solicitud) {
+                acc[prof.estado_solicitud] = (acc[prof.estado_solicitud] || 0) + 1
+              }
+              return acc
+            }, {}),
+            urgencias: status.data?.reduce((acc: any, prof: any) => {
+              if (prof.urgencia_solicitud) {
+                acc[prof.urgencia_solicitud] = (acc[prof.urgencia_solicitud] || 0) + 1
+              }
+              return acc
+            }, {}),
+            solicitudes_por_mes: status.data?.reduce((acc: any, prof: any) => {
+              if (prof.fecha_solicitud) {
+                const month = new Date(prof.fecha_solicitud).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+                acc[month] = (acc[month] || 0) + 1
+              }
+              return acc
+            }, {}),
+            motivos_rechazo: status.data?.reduce((acc: any, prof: any) => {
+              if (prof.motivo_rechazo) {
+                acc[prof.motivo_rechazo] = (acc[prof.motivo_rechazo] || 0) + 1
+              }
+              return acc
+            }, {})
+          }
+          break
 
-    // Distribución por edad (calculada desde fecha_graduacion)
-    const distribucion_edad: any = {
-      "20-30 años": 0,
-      "31-40 años": 0,
-      "41-50 años": 0,
-      "51-60 años": 0,
-      "60+ años": 0,
-      "No especificado": 0
-    };
+        case 'carnet_generation':
+          // Generación de carnets
+          const carnets = await supabaseClient
+            .from('carnets_generados')
+            .select('*')
 
-    demographics.forEach((prof: any) => {
-      if (prof.fecha_graduacion) {
-        const anoGraduacion = new Date(prof.fecha_graduacion).getFullYear();
-        const edadAproximada = new Date().getFullYear() - anoGraduacion + 23; // Asumiendo graduación a los 23
-        
-        if (edadAproximada <= 30) distribucion_edad["20-30 años"]++;
-        else if (edadAproximada <= 40) distribucion_edad["31-40 años"]++;
-        else if (edadAproximada <= 50) distribucion_edad["41-50 años"]++;
-        else if (edadAproximada <= 60) distribucion_edad["51-60 años"]++;
-        else distribucion_edad["60+ años"]++;
-      } else {
-        distribucion_edad["No especificado"]++;
+          const colaCarnets = await supabaseClient
+            .from('cola_generacion_carnets')
+            .select('*')
+
+          result = {
+            carnets_generados: carnets.data?.length || 0,
+            en_cola_generacion: colaCarnets.data?.filter(c => c.estado === 'pendiente').length || 0,
+            estados_cola: colaCarnets.data?.reduce((acc: any, item: any) => {
+              acc[item.estado] = (acc[item.estado] || 0) + 1
+              return acc
+            }, {}),
+            carnets_por_fecha: carnets.data?.reduce((acc: any, carnet: any) => {
+              if (carnet.fecha_generacion) {
+                const date = new Date(carnet.fecha_generacion).toLocaleDateString('es-ES')
+                acc[date] = (acc[date] || 0) + 1
+              }
+              return acc
+            }, {})
+          }
+          break
+
+        case 'centers_analysis':
+          // Análisis de centros de salud
+          const centers = await supabaseClient
+            .from('centros_salud')
+            .select('*')
+
+          const professionalsByCenter = await supabaseClient
+            .from('profesionales_sanitarios')
+            .select('centro_salud_id, area_profesional')
+
+          result = {
+            total_centros: centers.data?.length || 0,
+            centros_por_categoria: centers.data?.reduce((acc: any, center: any) => {
+              acc[center.categoria] = (acc[center.categoria] || 0) + 1
+              return acc
+            }, {}),
+            centros_por_provincia: centers.data?.reduce((acc: any, center: any) => {
+              acc[center.provincia] = (acc[center.provincia] || 0) + 1
+              return acc
+            }, {}),
+            centros_por_distrito: centers.data?.reduce((acc: any, center: any) => {
+              if (center.distrito_sanitario) {
+                acc[center.distrito_sanitario] = (acc[center.distrito_sanitario] || 0) + 1
+              }
+              return acc
+            }, {}),
+            profesionales_por_centro: professionalsByCenter.data?.reduce((acc: any, prof: any) => {
+              if (prof.centro_salud_id) {
+                acc[prof.centro_salud_id] = (acc[prof.centro_salud_id] || 0) + 1
+              }
+              return acc
+            }, {})
+          }
+          break
+
+        case 'temporal_analysis':
+          // Análisis temporal
+          const temporal = await supabaseClient
+            .from('profesionales_sanitarios')
+            .select('created_at, fecha_solicitud, fecha_aprobacion, fecha_nacimiento, año_graduacion')
+
+          result = {
+            registros_por_mes: temporal.data?.reduce((acc: any, prof: any) => {
+              if (prof.created_at) {
+                const month = new Date(prof.created_at).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+                acc[month] = (acc[month] || 0) + 1
+              }
+              return acc
+            }, {}),
+            aprobaciones_por_mes: temporal.data?.reduce((acc: any, prof: any) => {
+              if (prof.fecha_aprobacion) {
+                const month = new Date(prof.fecha_aprobacion).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+                acc[month] = (acc[month] || 0) + 1
+              }
+              return acc
+            }, {}),
+            generaciones_graduacion: temporal.data?.reduce((acc: any, prof: any) => {
+              if (prof.año_graduacion) {
+                acc[prof.año_graduacion] = (acc[prof.año_graduacion] || 0) + 1
+              }
+              return acc
+            }, {})
+          }
+          break
+
+        case 'comprehensive':
+          // Análisis comprehensivo - todas las estadísticas
+          const allStats = await Promise.all([
+            getAdvancedStats('demographics'),
+            getAdvancedStats('professional_areas'),
+            getAdvancedStats('education'),
+            getAdvancedStats('work_centers'),
+            getAdvancedStats('application_status'),
+            getAdvancedStats('carnet_generation'),
+            getAdvancedStats('centers_analysis'),
+            getAdvancedStats('temporal_analysis')
+          ])
+
+          result = {
+            demograficas: allStats[0],
+            areas_profesionales: allStats[1],
+            educacion: allStats[2],
+            centros_trabajo: allStats[3],
+            estados_solicitud: allStats[4],
+            generacion_carnets: allStats[5],
+            analisis_centros: allStats[6],
+            analisis_temporal: allStats[7]
+          }
+          break
+
+        default:
+          result = { error: 'Consulta no reconocida' }
       }
-    });
 
-    console.log('✅ Análisis demográfico completado');
-    
-    return {
-      total_profesionales,
-      distribucion_genero,
-      distribucion_provincia,
-      distribucion_nacionalidad,
-      distribucion_edad
-    };
+      return result
+    }
 
-  } catch (error) {
-    console.error('❌ Error en análisis demográfico:', error);
-    throw error;
-  }
-}
+    const stats = await getAdvancedStats(query, filters)
 
-async function getProfessionalAreasAnalysis() {
-  console.log('🏥 Ejecutando análisis de áreas profesionales...');
-  
-  try {
-    const { data: professionals, error } = await supabase
-      .from('profesionales_sanitarios')
-      .select('area_profesional, estado_solicitud');
-
-    if (error) throw error;
-
-    const total_profesionales = professionals.length;
-
-    // Análisis por áreas profesionales
-    const areasCount = professionals.reduce((acc: any, prof: any) => {
-      const area = prof.area_profesional || 'Sin especificar';
-      acc[area] = (acc[area] || 0) + 1;
-      return acc;
-    }, {});
-
-    const areas_profesionales = Object.entries(areasCount)
-      .map(([area, cantidad]: [string, any]) => ({
-        area,
-        cantidad,
-        porcentaje: ((cantidad / total_profesionales) * 100).toFixed(1)
-      }))
-      .sort((a, b) => b.cantidad - a.cantidad);
-
-    console.log('✅ Análisis de áreas profesionales completado');
-    
-    return {
-      total_profesionales,
-      areas_profesionales
-    };
+    return new Response(
+      JSON.stringify({ success: true, data: stats }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    )
 
   } catch (error) {
-    console.error('❌ Error en análisis de áreas profesionales:', error);
-    throw error;
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      }
+    )
   }
-}
-
-async function getEducationAnalysis() {
-  console.log('🎓 Ejecutando análisis de educación...');
-  
-  try {
-    const { data: education, error } = await supabase
-      .from('profesionales_sanitarios')
-      .select(`
-        pais_formacion,
-        institucion_formacion,
-        fecha_graduacion,
-        categoria_titulacion
-      `);
-
-    if (error) throw error;
-
-    const total_profesionales = education.length;
-
-    // Análisis por países de formación
-    const paisesCount = education.reduce((acc: any, prof: any) => {
-      const pais = prof.pais_formacion || 'No especificado';
-      acc[pais] = (acc[pais] || 0) + 1;
-      return acc;
-    }, {});
-
-    const paises_formacion = Object.entries(paisesCount)
-      .map(([pais, cantidad]: [string, any]) => ({
-        pais,
-        cantidad,
-        porcentaje: ((cantidad / total_profesionales) * 100).toFixed(1)
-      }))
-      .sort((a, b) => b.cantidad - a.cantidad);
-
-    // Análisis por instituciones
-    const institucionesCount = education.reduce((acc: any, prof: any) => {
-      const institucion = prof.institucion_formacion || 'No especificada';
-      acc[institucion] = (acc[institucion] || 0) + 1;
-      return acc;
-    }, {});
-
-    const instituciones_formacion = Object.entries(institucionesCount)
-      .map(([institucion, cantidad]: [string, any]) => ({
-        institucion,
-        cantidad
-      }))
-      .sort((a, b) => b.cantidad - a.cantidad);
-
-    console.log('✅ Análisis de educación completado');
-    
-    return {
-      total_profesionales,
-      paises_formacion,
-      instituciones_formacion
-    };
-
-  } catch (error) {
-    console.error('❌ Error en análisis de educación:', error);
-    throw error;
-  }
-}
-
-async function getWorkCentersAnalysis() {
-  console.log('🏢 Ejecutando análisis de centros de trabajo...');
-  
-  try {
-    const { data: centers, error } = await supabase
-      .from('profesionales_sanitarios')
-      .select(`
-        centro_trabajo,
-        distrito_sanitario,
-        sector_trabajo
-      `);
-
-    if (error) throw error;
-
-    // Obtener datos de centros de salud
-    const { data: healthCenters, error: centersError } = await supabase
-      .from('centros_salud')
-      .select('nombre, categoria, distrito_sanitario');
-
-    if (centersError) console.warn('⚠️ No se pudieron obtener datos de centros de salud:', centersError);
-
-    const total_profesionales = centers.length;
-    const total_centros = healthCenters?.length || 0;
-
-    // Top centros por cantidad de profesionales
-    const centrosCount = centers.reduce((acc: any, prof: any) => {
-      const centro = prof.centro_trabajo || 'Sin especificar';
-      acc[centro] = (acc[centro] || 0) + 1;
-      return acc;
-    }, {});
-
-    const top_centros = Object.entries(centrosCount)
-      .map(([nombre, profesionales]: [string, any]) => ({
-        nombre,
-        profesionales,
-        categoria: 'Centro de Salud' // Default
-      }))
-      .sort((a, b) => b.profesionales - a.profesionales);
-
-    // Análisis por distritos sanitarios
-    const distritosCount = centers.reduce((acc: any, prof: any) => {
-      const distrito = prof.distrito_sanitario || 'Sin especificar';
-      acc[distrito] = (acc[distrito] || 0) + 1;
-      return acc;
-    }, {});
-
-    const distritos_sanitarios = Object.entries(distritosCount)
-      .map(([distrito, profesionales]: [string, any]) => ({
-        distrito,
-        profesionales
-      }))
-      .sort((a, b) => b.profesionales - a.profesionales);
-
-    console.log('✅ Análisis de centros de trabajo completado');
-    
-    return {
-      total_profesionales,
-      total_centros,
-      top_centros,
-      distritos_sanitarios
-    };
-
-  } catch (error) {
-    console.error('❌ Error en análisis de centros de trabajo:', error);
-    throw error;
-  }
-}
-
-async function getApplicationStatusAnalysis() {
-  console.log('📋 Ejecutando análisis de estados de solicitud...');
-  
-  try {
-    const { data: applications, error } = await supabase
-      .from('profesionales_sanitarios')
-      .select('estado_solicitud, fecha_solicitud, motivo_rechazo');
-
-    if (error) throw error;
-
-    const total_solicitudes = applications.length;
-
-    // Distribución por estados
-    const estados_solicitud = applications.reduce((acc: any, app: any) => {
-      const estado = app.estado_solicitud || 'Sin especificar';
-      acc[estado] = (acc[estado] || 0) + 1;
-      return acc;
-    }, {});
-
-    console.log('✅ Análisis de estados de solicitud completado');
-    
-    return {
-      total_solicitudes,
-      estados_solicitud
-    };
-
-  } catch (error) {
-    console.error('❌ Error en análisis de estados de solicitud:', error);
-    throw error;
-  }
-}
-
-async function getComprehensiveAnalysis() {
-  console.log('📊 Ejecutando análisis comprehensivo...');
-  
-  try {
-    // Ejecutar análisis básicos en paralelo para mejor performance
-    const [
-      demographics,
-      professionalAreas,
-      education,
-      workCenters,
-      applicationStatus
-    ] = await Promise.all([
-      getDemographicsAnalysis().catch(e => ({ error: e.message })),
-      getProfessionalAreasAnalysis().catch(e => ({ error: e.message })),
-      getEducationAnalysis().catch(e => ({ error: e.message })),
-      getWorkCentersAnalysis().catch(e => ({ error: e.message })),
-      getApplicationStatusAnalysis().catch(e => ({ error: e.message }))
-    ]);
-
-    // Obtener resumen general
-    const { data: totalCount, error: countError } = await supabase
-      .from('profesionales_sanitarios')
-      .select('id', { count: 'exact', head: true });
-
-    const { data: centersCount, error: centersCountError } = await supabase
-      .from('centros_salud')
-      .select('id', { count: 'exact', head: true });
-
-    const total_profesionales = totalCount?.length || 0;
-    const total_centros = centersCount?.length || 0;
-
-    // Calcular distritos únicos
-    const { data: districts } = await supabase
-      .from('profesionales_sanitarios')
-      .select('distrito_sanitario')
-      .not('distrito_sanitario', 'is', null);
-
-    const uniqueDistricts = [...new Set(districts?.map(d => d.distrito_sanitario))];
-    const total_distritos = uniqueDistricts.length;
-
-    // Calcular países únicos
-    const { data: countries } = await supabase
-      .from('profesionales_sanitarios')
-      .select('pais_formacion')
-      .not('pais_formacion', 'is', null);
-
-    const uniqueCountries = [...new Set(countries?.map(c => c.pais_formacion))];
-    const total_paises = uniqueCountries.length;
-
-    console.log('✅ Análisis comprehensivo completado');
-
-    return {
-      resumen_general: {
-        total_profesionales,
-        total_centros,
-        total_distritos,
-        total_paises
-      },
-      // Incluir datos de otros análisis si están disponibles
-      ...(demographics.error ? {} : demographics),
-      ...(professionalAreas.error ? {} : professionalAreas),
-      ...(education.error ? {} : education),
-      ...(workCenters.error ? {} : workCenters),
-      ...(applicationStatus.error ? {} : applicationStatus)
-    };
-
-  } catch (error) {
-    console.error('❌ Error en análisis comprehensivo:', error);
-    throw error;
-  }
-}
+}) 

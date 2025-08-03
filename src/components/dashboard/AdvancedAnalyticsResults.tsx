@@ -102,7 +102,7 @@ const AdvancedAnalyticsResults: React.FC<AdvancedAnalyticsResultsProps> = ({
                         <span className="font-medium capitalize">{genero}</span>
                         <div className="flex items-center space-x-2">
                           <span className="text-sm text-gray-600">{cantidad}</span>
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline">
                             {percentage}%
                           </Badge>
                         </div>
@@ -216,7 +216,7 @@ const AdvancedAnalyticsResults: React.FC<AdvancedAnalyticsResultsProps> = ({
                         <span className="font-medium">{rango}</span>
                         <div className="flex items-center space-x-2">
                           <span className="text-sm text-gray-600">{cantidad}</span>
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline">
                             {percentage}%
                           </Badge>
                         </div>
@@ -254,7 +254,7 @@ const AdvancedAnalyticsResults: React.FC<AdvancedAnalyticsResultsProps> = ({
                     </div>
                     <div className="flex items-center space-x-2">
                       <span className="text-sm font-semibold">{pais.cantidad || 0}</span>
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary">
                         {pais.porcentaje || '0'}%
                       </Badge>
                     </div>

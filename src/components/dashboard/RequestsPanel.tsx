@@ -1,1315 +1,709 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+
+import React, { useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  FileText,
-  Eye,
-  Edit,
-  Save,
-  X,
-  RefreshCw,
-  MoreVertical,
-  Download,
-  ChevronDown,
-} from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProfesionales, type Profesional } from "@/hooks/useProfesionales";
 import { useProfesionalesMutations } from "@/hooks/useProfesionalesMutations";
 import { useToast } from "@/hooks/use-toast";
-import { useCarnetGeneration } from "@/hooks/useCarnetGeneration";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { 
+  Search, 
+  Filter, 
+  FileText, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  User,
+  MapPin,
+  GraduationCap,
+  Building,
+  Phone,
+  Mail,
+  Calendar,
+  Eye,
+  Edit,
+  Trash2,
+  Download,
+  MoreVertical,
+  AlertCircle,
+  CheckCheck,
+  X
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-// Importamos el nuevo modal y los componentes de generación de PDF
-import NewProfessionalModal from "@/components/dashboard/NewProfessionalModal";
-import ApprovalLetter from "@/components/registration/ApprovalLetter"; // Para generación oculta
-// PDFSummary ya no se importa ni se usa aquí
-
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-
-// Importaciones necesarias para la nueva lógica
-import { supabase } from "@/lib/supabaseClient"; // Asegúrate de que esta ruta sea correcta
-
-
-// Definimos los estados válidos y su orden para el flujo
-const STATUS_ORDER = [
-  "Recibido",
-  "Revisando",
-  "Pendiente de Firma",
-  "Aprobado",
-  "Rechazado",
-];
-
-interface RequestsPanelProps {
-  userRole: string;
-  initialStatusFilter?: string;
-  onSelectProfessional?: (professional: Profesional) => void;
-}
-
-const RequestsPanel = ({
-  userRole,
-  initialStatusFilter,
-  onSelectProfessional,
-}: RequestsPanelProps) => {
-  const [statusFilter, setStatusFilter] = useState(
-    initialStatusFilter || "Recibido",
-  );
-  const [editingStates, setEditingStates] = useState<Record<string, string>>(
-    {},
-  );
-  const [rejectionReasons, setRejectionReasons] = useState<
-    Record<string, string>
-  >({});
-
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
-
-  const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
-  const [bulkUpdateStatus, setBulkUpdateStatus] = useState<string>("");
-  const [bulkRejectionReason, setBulkRejectionReason] = useState<string>("");
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedProfessionalForModal, setSelectedProfessionalForModal] =
-    useState<Profesional | null>(null);
-
-  const hiddenPdfContainerRef = useRef<HTMLDivElement>(null);
+const RequestsPanel = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const [areaFilter, setAreaFilter] = useState("todos");
+  const [provinceFilter, setProvinceFilter] = useState("todos");
+  const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
+  const [selectedProfessional, setSelectedProfessional] = useState<Profesional | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [bulkAction, setBulkAction] = useState("");
 
   const { toast } = useToast();
-  const { updateProfesional } = useProfesionalesMutations();
-  const { generateCarnetAfterStatusChange, isGenerating } = useCarnetGeneration();
 
-  // Excel export functionality
-  const exportRequestsToExcel = () => {
-    try {
-      // Create worksheet data
-      const worksheetData = [
-        // Header row
-        [
-          "ID",
-          "Nombre Completo",
-          "Área Profesional",
-          "Estado Solicitud",
-          "Provincia",
-          "Teléfono",
-          "Email",
-          "Fecha Solicitud",
-          "Fecha Graduación",
-          "Universidad",
-          "Lugar de Trabajo",
-          "Motivo Rechazo",
-        ],
-        // Data rows
-        ...filteredRequests.map((request) => [
-          request.id || "",
-          request.nombre_completo || "",
-          request.area_profesional || "",
-          request.estado_solicitud || "",
-          request.provincia || "",
-          request.telefono || "",
-          request.email || "",
-          request.created_at
-            ? new Date(request.created_at).toLocaleDateString("es-ES")
-            : "",
-          request.fecha_graduacion
-            ? new Date(request.fecha_graduacion).toLocaleDateString("es-ES")
-            : "",
-          request.universidad || "",
-          request.lugar_trabajo || "",
-          request.motivo_rechazo || "",
-        ]),
-      ];
+  // Fetch all professionals with filters
+  const filtros = useMemo(() => ({
+    area_profesional: areaFilter !== "todos" ? areaFilter : undefined,
+    estado_solicitud: statusFilter !== "todos" ? statusFilter : undefined,
+    provincia: provinceFilter !== "todos" ? provinceFilter : undefined,
+  }), [areaFilter, statusFilter, provinceFilter]);
 
-      // Create CSV content
-      const csvContent = worksheetData
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
-        .join("\n");
+  const { data: professionals = [], isLoading, error } = useProfesionales(filtros);
+  const { updateProfesional, bulkUpdate } = useProfesionalesMutations();
 
-      // Create and download file
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `Solicitudes_${statusFilter}_${new Date().toISOString().split("T")[0]}.csv`,
-      );
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast({
-        title: "Exportación exitosa",
-        description: `Se ha descargado la lista de ${filteredRequests.length} solicitudes.`,
-      });
-    } catch (error) {
-      console.error("Error exporting to Excel:", error);
-      toast({
-        title: "Error en la exportación",
-        description: "No se pudo exportar la lista. Intente nuevamente.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  useEffect(() => {
-    console.log(
-      "RequestsPanel: initialStatusFilter received in useEffect:",
-      initialStatusFilter,
-    );
-    if (
-      initialStatusFilter !== undefined &&
-      initialStatusFilter !== statusFilter
-    ) {
-      setStatusFilter(initialStatusFilter);
-    } else if (
-      initialStatusFilter === undefined &&
-      statusFilter !== "Recibido"
-    ) {
-      setStatusFilter("Recibido");
-    }
-    setStartDate("");
-    setEndDate("");
-  }, [initialStatusFilter]);
-
-  const queryFilters = useMemo(() => {
-    const filters: { [key: string]: any } = {
-      estado_solicitud: statusFilter === "todos" ? "" : statusFilter,
-    };
-    if (startDate) {
-      filters.fecha_solicitud_gte = startDate;
-    }
-    if (endDate) {
-      filters.fecha_solicitud_lte = endDate;
-    }
-    console.log("RequestsPanel: Query filters for useProfesionales:", filters);
-    return filters;
-  }, [statusFilter, startDate, endDate]);
-
-  const {
-    data: profesionales = [],
-    isLoading,
-    refetch,
-    error,
-  } = useProfesionales(queryFilters);
-
-  const filteredRequests = useMemo(() => {
-    if (statusFilter === "todos") {
-      return profesionales.filter((req) => req.estado_solicitud !== "Aprobado");
-    }
-    return profesionales;
-  }, [profesionales, statusFilter]);
-
-  console.log(
-    "Total professionals from DB (filtered by hook):",
-    profesionales.length,
-  );
-  console.log(
-    "Filtered requests (non-approved, post-hook):",
-    filteredRequests.length,
-  );
-  console.log("Applied status filter:", statusFilter);
-
-  const getAvailableStatusOptions = useCallback(
-    (currentStatus: string | undefined) => {
-      const currentStatusIndex = STATUS_ORDER.indexOf(
-        currentStatus || "Recibido",
-      );
-      const options = [
-        "Revisando",
-        "Pendiente de Firma",
-        "Aprobado",
-        "Rechazado",
-      ];
-
-      return options.filter((option) => {
-        const optionIndex = STATUS_ORDER.indexOf(option);
-
-        if (currentStatus === "Recibido" && option === "Aprobado") return false;
-
-        if (optionIndex < currentStatusIndex && option !== "Rechazado") {
-          return false;
-        }
-        return true;
-      });
-    },
-    [],
-  );
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Pendiente":
-        return "bg-yellow-100 text-yellow-800 border-yellow-300";
-      case "Revisando":
-        return "bg-blue-100 text-blue-800 border-blue-300";
-      case "Pendiente de Firma":
-        return "bg-orange-100 text-orange-800 border-orange-300";
-      case "Rechazado":
-        return "bg-red-100 text-red-800 border-red-300";
-      case "Aprobado":
-        return "bg-green-100 text-green-800 border-green-300";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-300";
-    }
-  };
-
-  // Carnet generation is now handled automatically by the useProfesionalesMutations hook
-  // when the status changes to "Pendiente de Firma"
-
-  const handleEditState = (requestId: string, currentState: string) => {
-    setEditingStates((prev) => ({
-      ...prev,
-      [requestId]: currentState,
-    }));
-    setRejectionReasons((prev) => {
-      const newReasons = { ...prev };
-      delete newReasons[requestId];
-      return newReasons;
+  // Filter professionals based on search term
+  const filteredProfessionals = useMemo(() => {
+    if (!Array.isArray(professionals)) return [];
+    
+    return professionals.filter((prof) => {
+      const matchesSearch = !searchTerm || 
+        prof.nombres?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        prof.apellidos?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        prof.numero_documento?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        prof.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return matchesSearch;
     });
+  }, [professionals, searchTerm]);
+
+  // Statistics
+  const stats = useMemo(() => {
+    if (!Array.isArray(professionals)) return { total: 0, pending: 0, approved: 0, rejected: 0 };
+    
+    return {
+      total: professionals.length,
+      pending: professionals.filter(p => p.estado_solicitud === "Recibido" || p.estado_solicitud === "En Revisión").length,
+      approved: professionals.filter(p => p.estado_solicitud === "Aprobado").length,
+      rejected: professionals.filter(p => p.estado_solicitud === "Rechazado").length,
+    };
+  }, [professionals]);
+
+  // Get status badge variant
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "Aprobado":
+        return <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">Aprobado</Badge>;
+      case "Rechazado":
+        return <Badge variant="destructive">Rechazado</Badge>;
+      case "En Revisión":
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">En Revisión</Badge>;
+      case "Recibido":
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">Recibido</Badge>;
+      case "Pendiente de Firma":
+        return <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200">Pendiente de Firma</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
 
-  const handleSaveState = async (requestId: string) => {
-    const newState = editingStates[requestId];
-    if (!newState) return;
-
-    const currentProfesional = profesionales.find((p) => p.id === requestId);
-    const currentStatus = currentProfesional?.estado_solicitud || "Recibido";
-
-    const availableOptions = getAvailableStatusOptions(currentStatus);
-    if (!availableOptions.includes(newState) && newState !== currentStatus) {
-      if (currentStatus === "Recibido" && newState === "Aprobado") {
-        toast({
-          title: "Error de Flujo",
-          description:
-            "No se puede pasar de 'Recibido' a 'Aprobado' directamente. Debe pasar por 'Pendiente de Firma'.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    if (newState === "Rechazado" && !rejectionReasons[requestId]) {
-      toast({
-        title: "Motivo de Rechazo Requerido",
-        description: "Debe introducir un motivo si el estado es 'Rechazado'.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  // Handle status change
+  const handleStatusChange = async (professionalId: string, newStatus: string) => {
     try {
-      console.log("Updating request state:", requestId, "to:", newState);
-
       await updateProfesional.mutateAsync({
-        id: requestId,
-        updates: {
-          estado_solicitud: newState,
-          fecha_revision:
-            newState !== "Recibido" &&
-            newState !== "Revisando" &&
-            newState !== "Rechazado"
-              ? new Date().toISOString().split("T")[0]
-              : null,
-          fecha_aprobacion:
-            newState === "Aprobado"
-              ? new Date().toISOString().split("T")[0]
-              : null,
-          revisor_solicitud: newState !== "Recibido" ? "Sistema" : null,
-          motivo_rechazo:
-            newState === "Rechazado" ? rejectionReasons[requestId] : null,
-        },
+        id: professionalId,
+        updates: { 
+          estado_solicitud: newStatus,
+          motivo_rechazo: newStatus === "Rechazado" ? rejectionReason : null
+        }
       });
-
-      // Carnet generation is now handled automatically by the mutation hook
-
-      setEditingStates((prev) => {
-        const newStates = { ...prev };
-        delete newStates[requestId];
-        return newStates;
-      });
-      setRejectionReasons((prev) => {
-        const newReasons = { ...prev };
-        delete newReasons[requestId];
-        return newReasons;
-      });
-
-      await refetch();
 
       toast({
         title: "Estado actualizado",
-        description: `El estado de la solicitud ha sido actualizado a ${newState}`,
+        description: `La solicitud ha sido ${newStatus.toLowerCase()}.`,
       });
+
+      if (newStatus === "Rechazado") {
+        setRejectionReason("");
+        setRejectDialogOpen(false);
+      }
     } catch (error) {
-      console.error("Error updating request state:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el estado de la solicitud",
-        variant: "destructive",
-      });
+      console.error("Error updating status:", error);
     }
   };
 
-  const handleCancelEdit = (requestId: string) => {
-    setEditingStates((prev) => {
-      const newStates = { ...prev };
-      delete newStates[requestId];
-      return newStates;
-    });
-    setRejectionReasons((prev) => {
-      const newReasons = { ...prev };
-      delete newReasons[requestId];
-      return newReasons;
-    });
-  };
+  // Handle bulk actions
+  const handleBulkAction = async () => {
+    if (!bulkAction || selectedRequests.length === 0) return;
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "N/A";
-    return date.toLocaleDateString("es-ES");
-  };
+    const updates = selectedRequests.map(id => ({
+      id,
+      changes: { 
+        estado_solicitud: bulkAction,
+        motivo_rechazo: bulkAction === "Rechazado" ? rejectionReason : null
+      }
+    }));
 
-  const handleRefresh = async () => {
     try {
-      await refetch();
+      await bulkUpdate.mutateAsync(updates);
+      
       toast({
-        title: "Datos actualizados",
-        description: "La lista de solicitudes se ha actualizado correctamente",
+        title: "Actualización masiva completada",
+        description: `Se actualizaron ${selectedRequests.length} solicitudes.`,
       });
+
+      setSelectedRequests([]);
+      setBulkAction("");
+      if (bulkAction === "Rechazado") {
+        setRejectionReason("");
+      }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron actualizar los datos",
-        variant: "destructive",
-      });
+      console.error("Error in bulk update:", error);
     }
   };
 
-  // --- Lógica de Selección Masiva ---
-  const handleCheckboxChange = (requestId: string, isChecked: boolean) => {
-    setSelectedRequestIds((prev) => {
-      if (isChecked) {
-        return [...prev, requestId];
-      } else {
-        return prev.filter((id) => id !== requestId);
-      }
-    });
-  };
-
-  const handleSelectAll = (isChecked: boolean) => {
-    if (isChecked) {
-      const allIds = filteredRequests.map((req) => req.id);
-      setSelectedRequestIds(allIds);
+  // Handle select all
+  const handleSelectAll = () => {
+    const currentPageIds = filteredProfessionals.map(p => p.id);
+    if (selectedRequests.length === currentPageIds.length) {
+      setSelectedRequests([]);
     } else {
-      setSelectedRequestIds([]);
+      setSelectedRequests(currentPageIds);
     }
   };
 
-  const handleBulkUpdate = async () => {
-    if (!bulkUpdateStatus) {
-      toast({
-        title: "Estado Requerido",
-        description: "Debe seleccionar un estado para la actualización masiva.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Export to CSV
+  const exportToCSV = () => {
+    const csvData = filteredProfessionals.map(prof => ({
+      'Nombres': prof.nombres,
+      'Apellidos': prof.apellidos,
+      'Documento': prof.numero_documento,
+      'Email': prof.email,
+      'Area Profesional': prof.area_profesional,
+      'Estado': prof.estado_solicitud,
+      'Provincia': prof.provincia,
+      'Fecha Solicitud': prof.created_at ? new Date(prof.created_at).toLocaleDateString() : ''
+    }));
 
-    if (bulkUpdateStatus === "Rechazado" && !bulkRejectionReason) {
-      toast({
-        title: "Motivo de Rechazo Requerido",
-        description:
-          "Debe introducir un motivo si el estado es 'Rechazado' en la actualización masiva.",
-        variant: "destructive",
-      });
-      return;
-    }
+    const csvString = [
+      Object.keys(csvData[0]).join(','),
+      ...csvData.map(row => Object.values(row).join(','))
+    ].join('\n');
 
-    if (selectedRequestIds.length === 0) {
-      toast({
-        title: "Sin Seleccionar",
-        description: "No hay solicitudes seleccionadas para actualizar.",
-        variant: "default",
-      });
-      return;
-    }
-
-    const updates = selectedRequestIds.map(async (id) => {
-      const currentProfesional = profesionales.find((p) => p.id === id);
-      const currentStatus = currentProfesional?.estado_solicitud || "Recibido";
-
-      const availableOptions = getAvailableStatusOptions(currentStatus);
-      if (
-        !availableOptions.includes(bulkUpdateStatus) &&
-        bulkUpdateStatus !== currentStatus
-      ) {
-        if (currentStatus === "Recibido" && bulkUpdateStatus === "Aprobado") {
-          console.warn(
-            `Saltando actualización para ${id}: No se puede pasar de 'Recibido' a 'Aprobado'.`,
-          );
-          return { id, success: false, reason: "Invalid status transition" };
-        }
-      }
-
-      try {
-        await updateProfesional.mutateAsync({
-          id: id,
-          updates: {
-            estado_solicitud: bulkUpdateStatus,
-            fecha_revision:
-              bulkUpdateStatus !== "Recibido" &&
-              bulkUpdateStatus !== "Revisando" &&
-              bulkUpdateStatus !== "Rechazado"
-                ? new Date().toISOString().split("T")[0]
-                : null,
-            fecha_aprobacion:
-              bulkUpdateStatus === "Aprobado"
-                ? new Date().toISOString().split("T")[0]
-                : null,
-            revisor_solicitud:
-              bulkUpdateStatus !== "Recibido" ? "Sistema" : null,
-            motivo_rechazo:
-              bulkUpdateStatus === "Rechazado" ? bulkRejectionReason : null,
-          },
-        });
-        
-        // Carnet generation is now handled automatically by the mutation hook
-        
-        return { id, success: true };
-      } catch (error) {
-        console.error(`Error updating professional ${id}:`, error);
-        return { id, success: false, reason: (error as Error).message };
-      }
-    });
-
-    const results = await Promise.all(updates);
-    const successfulUpdates = results.filter((r) => r.success).length;
-    const failedUpdates = results.filter((r) => !r.success).length;
-
-    if (successfulUpdates > 0) {
-      toast({
-        title: "Actualización Masiva Completa",
-        description: `Se actualizaron ${successfulUpdates} solicitudes. ${failedUpdates > 0 ? `(${failedUpdates} fallaron o fueron omitidas por reglas de flujo).` : ""}`,
-      });
-      setSelectedRequestIds([]);
-      setBulkUpdateStatus("");
-      setBulkRejectionReason("");
-      await refetch();
-    } else {
-      toast({
-        title: "Actualización Fallida",
-        description:
-          "Ninguna solicitud pudo ser actualizada. Revise las reglas de flujo o los errores.",
-        variant: "destructive",
-      });
-    }
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'solicitudes.csv';
+    a.click();
   };
 
-  // --- Lógica para abrir el modal de detalles ---
-  const handleOpenDetailsModal = (professional: Profesional) => {
-    setSelectedProfessionalForModal(professional);
-    setIsModalOpen(true);
+  // Find professional by ID for actions
+  const findProfessional = (id: string) => {
+    if (!Array.isArray(professionals)) return null;
+    return professionals.find((p: any) => p.id === id);
   };
-
-  // --- Lógica de Generación de PDFs Ocultos (para descargas directas) ---
-  const generatePdfFromHiddenElement = useCallback(
-    async (
-      professional: Profesional,
-      Component: React.ComponentType<{
-        formData: any;
-        onDownload?: () => void;
-      }>, // Added onDownload as optional
-      elementId: string,
-      filenamePrefix: string,
-    ) => {
-      if (!hiddenPdfContainerRef.current) {
-        toast({
-          title: "Error",
-          description: "Contenedor de PDF no disponible.",
-          variant: "destructive",
-        });
-        return {
-          id: professional.id,
-          success: false,
-          reason: "Hidden container not found",
-        };
-      }
-
-      const formDataForDocuments = {
-        ...professional,
-        nombre: professional.nombre || "",
-        apellidos: professional.apellidos || "",
-        numero_dip: professional.numero_dip || "",
-        numero_pasaporte: professional.numero_pasaporte || "",
-        area_profesional: professional.area_profesional || "",
-        especialidad: professional.especialidad || "No especificada",
-        titulacion_especifica_1: professional.titulacion_especifica_1 || "",
-        institucion_1: professional.institucion_1 || "",
-        pais_formacion_1: professional.pais_formacion_1 || "",
-        genero: professional.genero || "",
-        nacionalidad: professional.nacionalidad || "",
-        fecha_nacimiento: professional.fecha_nacimiento
-          ? new Date(professional.fecha_nacimiento).toLocaleDateString("es-ES")
-          : "N/A",
-        edad: professional.fecha_nacimiento
-          ? Math.floor(
-              (new Date().getTime() -
-                new Date(professional.fecha_nacimiento).getTime()) /
-                31557600000,
-            )
-          : "N/A",
-        telefono: professional.telefono || "",
-        domicilio: professional.domicilio || "",
-        provincia: professional.provincia || "",
-        distrito: professional.distrito || "",
-        categoria_titulacion: professional.categoria_titulacion || "",
-        periodo_formacion: professional.periodo_formacion || "",
-        situacion_laboral: professional.situacion_laboral || "",
-        nombre_centro: professional.nombre_centro || "",
-        categoria_centro: professional.categoria_centro || "",
-        tipo_sector: professional.tipo_sector || "",
-        distrito_sanitario: professional.distrito_sanitario || "",
-        pertenece_brigada_medica: professional.pertenece_brigada_medica,
-        tipo_cooperacion: professional.tipo_cooperacion || "",
-        codigo_expediente: professional.codigo_expediente,
-        foto_carnet_base64: professional.foto_carnet_base64,
-        codigo_barras: professional.url_codigo_barras,
-        foto_carnet: professional.foto_carnet, // Ensure this property is passed
-      };
-
-      const tempDiv = document.createElement("div");
-      tempDiv.id = elementId; // Using the unique ID passed
-      tempDiv.style.position = "absolute";
-      tempDiv.style.left = "-9999px";
-      tempDiv.style.width = "210mm"; // A4 width
-      tempDiv.style.height = "297mm"; // A4 height
-      tempDiv.style.overflow = "hidden"; // Prevents scrollbars in temp div
-      hiddenPdfContainerRef.current.appendChild(tempDiv);
-
-      let root = null;
-      if ((window as any).ReactDOM && (window as any).ReactDOM.createRoot) {
-        root = (window as any).ReactDOM.createRoot(tempDiv);
-        root.render(
-          <Component formData={formDataForDocuments} onDownload={() => {}} />,
-        ); // Pass onDownload
-      } else if ((window as any).ReactDOM) {
-        // Fallback for React 17 or older versions
-        (window as any).ReactDOM.render(
-          <Component formData={formDataForDocuments} onDownload={() => {}} />,
-          tempDiv,
-        ); // Pass onDownload
-      } else {
-        console.error(
-          "ReactDOM no está disponible globalmente. La generación de PDF oculta puede fallar.",
-        );
-        toast({
-          title: "Error",
-          description: "Configuración de React incompleta para PDF.",
-          variant: "destructive",
-        });
-        if (
-          hiddenPdfContainerRef.current &&
-          tempDiv.parentNode === hiddenPdfContainerRef.current
-        ) {
-          hiddenPdfContainerRef.current.removeChild(tempDiv);
-        }
-        return {
-          id: professional.id,
-          success: false,
-          reason: "ReactDOM not global",
-        };
-      }
-
-      // Increased timeout for better rendering reliability
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      try {
-        const canvas = await html2canvas(tempDiv, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: "#ffffff",
-        });
-
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "mm", "a4");
-        const imgWidth = 210;
-        const pageHeight = 295;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
-
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        while (heightLeft >= 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
-        }
-
-        pdf.save(
-          `${filenamePrefix}-${professional.nombre || ""}-${professional.apellidos?.replace(/\s+/g, "-") || "profesional"}.pdf`,
-        );
-        toast({
-          title: "Descarga Exitosa",
-          description: `"${filenamePrefix}" para ${professional.nombre} ha sido generado y descargado.`,
-        });
-        return { id: professional.id, success: true };
-      } catch (error) {
-        console.error(`Error generating PDF for ${professional.id}:`, error);
-        toast({
-          title: "Error de Generación",
-          description: `Hubo un problema al generar el ${filenamePrefix} para ${professional.nombre}.`,
-          variant: "destructive",
-        });
-        return {
-          id: professional.id,
-          success: false,
-          reason: (error as Error).message,
-        };
-      } finally {
-        if (root) {
-          root.unmount();
-        } else {
-          (window as any).ReactDOM.unmountComponentAtNode(tempDiv);
-        }
-        if (
-          hiddenPdfContainerRef.current &&
-          tempDiv.parentNode === hiddenPdfContainerRef.current
-        ) {
-          hiddenPdfContainerRef.current.removeChild(tempDiv);
-        }
-      }
-    },
-    [],
-  );
-
-  const handleDownloadSingleLetter = async (professional: Profesional) => {
-    // Added async
-    toast({
-      // Added toast for user feedback
-      title: "Generando Carta",
-      description: `Por favor, espere mientras se genera la carta para ${professional.nombre || "el profesional"}...`,
-      duration: 3000,
-    });
-    const result = await generatePdfFromHiddenElement(
-      professional,
-      ApprovalLetter,
-      `hidden-approval-letter-content-${professional.id}`,
-      "carta-aprobacion",
-    ); // Unique ID for each call
-    if (result.success) {
-      // Added success/failure toast
-      toast({
-        title: "Descarga Exitosa",
-        description: `Carta para ${professional.nombre || "el profesional"} generada y descargada.`,
-      });
-    } else {
-      toast({
-        title: "Error de Descarga",
-        description: `No se pudo descargar la carta para ${professional.nombre || "el profesional"}. ${result.reason || ""}`,
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Removed handleDownloadSingleSummary
-
-  const handleDownloadSingleCarnet = (professional: Profesional) => {
-    if (professional.url_carnet) {
-      window.open(professional.url_carnet, "_blank");
-      toast({
-        title: "Carnet Abierto",
-        description:
-          "El carnet se ha abierto en una nueva pestaña para su visualización/descarga.",
-      });
-    } else {
-      toast({
-        title: "Carnet No Disponible",
-        description:
-          "La URL del carnet no está disponible para este profesional.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // --- Funciones para Descarga Masiva ---
-  const handleBulkDownloadCarnets = () => {
-    const pendingFirmSelected = filteredRequests.filter(
-      (req) =>
-        selectedRequestIds.includes(req.id) &&
-        req.estado_solicitud === "Pendiente de Firma" &&
-        req.url_carnet,
-    );
-
-    if (pendingFirmSelected.length === 0) {
-      toast({
-        title: "Advertencia",
-        description:
-          "No hay carnets seleccionados disponibles para descarga masiva en estado 'Pendiente de Firma'.",
-      });
-      return;
-    }
-
-    toast({
-      title: "Iniciando Descarga Masiva",
-      description: `Abriendo ${pendingFirmSelected.length} carnets... Puede que su navegador requiera permiso.`,
-    });
-
-    pendingFirmSelected.forEach((professional) => {
-      window.open(professional.url_carnet, "_blank");
-    });
-    setSelectedRequestIds([]);
-  };
-
-  const handleBulkDownloadDocuments = async (
-    Component: React.ComponentType<{ formData: any; onDownload?: () => void }>, // Added onDownload as optional
-    elementIdPrefix: string,
-    filenamePrefix: string,
-    maxDownloads: number = 5,
-  ) => {
-    const pendingFirmSelected = filteredRequests.filter(
-      (req) =>
-        selectedRequestIds.includes(req.id) &&
-        req.estado_solicitud === "Pendiente de Firma",
-    );
-
-    if (pendingFirmSelected.length === 0) {
-      toast({
-        title: "Advertencia",
-        description: `No hay solicitudes seleccionadas en estado 'Pendiente de Firma' para descargar ${filenamePrefix}.`,
-      });
-      return;
-    }
-
-    if (pendingFirmSelected.length > maxDownloads) {
-      toast({
-        title: "Demasiadas Solicitudes",
-        description: `Se han seleccionado ${pendingFirmSelected.length} solicitudes. Por favor, selecciona un máximo de ${maxDownloads} para la descarga masiva de ${filenamePrefix}s para evitar problemas de rendimiento.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Preparando Descarga Masiva",
-      description: `Generando ${filenamePrefix}s para ${pendingFirmSelected.length} solicitudes... Esto puede tardar.`,
-      duration: 5000,
-    }); // Added duration
-
-    let successfulDownloads = 0;
-    for (const professional of pendingFirmSelected) {
-      const result = await generatePdfFromHiddenElement(
-        professional,
-        Component,
-        `${elementIdPrefix}-${professional.id}`, // Unique ID for each render
-        filenamePrefix,
-      );
-      if (result.success) {
-        successfulDownloads++;
-      }
-      // Small pause to avoid overwhelming the browser
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-
-    toast({
-      title: "Descarga Masiva Completa",
-      description: `Se descargaron ${successfulDownloads} ${filenamePrefix}s exitosamente.`,
-    });
-    setSelectedRequestIds([]);
-  };
-
-  const isAllSelected =
-    filteredRequests.length > 0 &&
-    selectedRequestIds.length === filteredRequests.length;
-  const isIndeterminate =
-    selectedRequestIds.length > 0 &&
-    selectedRequestIds.length < filteredRequests.length;
-
-  const allSelectedArePendingFirm =
-    selectedRequestIds.length > 0 &&
-    selectedRequestIds.every(
-      (id) =>
-        filteredRequests.find((req) => req.id === id)?.estado_solicitud ===
-        "Pendiente de Firma",
-    );
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-red-600">
-            Error al cargar solicitudes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-red-600">Error: {error.message}</p>
-          <Button onClick={handleRefresh} className="mt-4">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Reintentar
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Cargando solicitudes...</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-12 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="p-4">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-2 text-red-600">
+              <AlertCircle className="w-5 h-5" />
+              <span>Error al cargar las solicitudes</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Gestión de Solicitudes</h2>
+          <p className="text-muted-foreground">
+            Administra las solicitudes de registro de profesionales sanitarios
+          </p>
+        </div>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={exportToCSV}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar CSV
+          </Button>
+        </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-2">
+              <FileText className="w-5 h-5 text-blue-500" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total</p>
+                <p className="text-2xl font-bold">{stats.total}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-2">
+              <Clock className="w-5 h-5 text-yellow-500" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Pendientes</p>
+                <p className="text-2xl font-bold">{stats.pending}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Aprobadas</p>
+                <p className="text-2xl font-bold">{stats.approved}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-2">
+              <XCircle className="w-5 h-5 text-red-500" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Rechazadas</p>
+                <p className="text-2xl font-bold">{stats.rejected}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Search */}
       <Card>
-        <CardHeader>
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <CardTitle className="flex items-center space-x-2">
-              <FileText className="w-5 h-5 text-blue-600" />
-              <span>Gestión de Solicitudes</span>
-              <Badge variant="outline" className="ml-2">
-                {filteredRequests.length} solicitudes
-              </Badge>
-            </CardTitle>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex gap-2">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  placeholder="Fecha Inicio"
-                  className="w-auto"
-                />
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  placeholder="Fecha Fin"
-                  className="w-auto"
+                  placeholder="Buscar por nombre, documento, email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
                 />
               </div>
-
-              <div className="flex items-center space-x-2">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Filtrar por estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos los estados</SelectItem>
-                    <SelectItem value="Recibido">Recibido</SelectItem>
-                    <SelectItem value="Revisando">Revisando</SelectItem>
-                    <SelectItem value="Pendiente de Firma">
-                      Pendiente de Firma
-                    </SelectItem>
-                    <SelectItem value="Rechazado">Rechazado</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={exportRequestsToExcel}
-                  className="flex items-center gap-1"
-                >
-                  <Download className="w-4 h-4" />
-                  Exportar Excel
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={isLoading}
-                >
-                  <RefreshCw
-                    className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
-                  />
-                </Button>
-              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {selectedRequestIds.length > 0 && (
-            <div className="flex items-center justify-between p-3 mb-4 bg-gray-50 border rounded-md shadow-sm">
-              <span className="text-sm font-medium">
-                {selectedRequestIds.length} solicitudes seleccionadas
-              </span>
-              <div className="flex items-center space-x-3">
-                <Select
-                  value={bulkUpdateStatus}
-                  onValueChange={setBulkUpdateStatus}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Cambiar estado a..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getAvailableStatusOptions(undefined).map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {bulkUpdateStatus === "Rechazado" && (
-                  <Input
-                    placeholder="Motivo de rechazo masivo"
-                    value={bulkRejectionReason}
-                    onChange={(e) => setBulkRejectionReason(e.target.value)}
-                    className="w-64"
-                  />
-                )}
-                <Button
-                  onClick={handleBulkUpdate}
-                  disabled={
-                    updateProfesional.isLoading ||
-                    !bulkUpdateStatus ||
-                    (bulkUpdateStatus === "Rechazado" && !bulkRejectionReason)
-                  }
-                >
-                  Aplicar <Save className="w-4 h-4 ml-2" />
-                </Button>
+            
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los estados</SelectItem>
+                <SelectItem value="Recibido">Recibido</SelectItem>
+                <SelectItem value="En Revisión">En Revisión</SelectItem>
+                <SelectItem value="Aprobado">Aprobado</SelectItem>
+                <SelectItem value="Rechazado">Rechazado</SelectItem>
+                <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
+              </SelectContent>
+            </Select>
 
-                {allSelectedArePendingFirm && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="flex items-center gap-2"
-                      >
-                        <Download className="w-4 h-4" />
-                        Descargar Seleccionados
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuItem onClick={handleBulkDownloadCarnets}>
-                        <Download className="w-4 h-4 mr-2" /> Descargar Carnets
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() =>
-                          handleBulkDownloadDocuments(
-                            ApprovalLetter,
-                            "hidden-bulk-approval-letter",
-                            "carta-aprobacion",
-                            5,
-                          )
-                        }
-                      >
-                        <Download className="w-4 h-4 mr-2" /> Descargar Cartas
-                        (Max 5)
-                      </DropdownMenuItem>
-                      {/* Removed bulk download for summary */}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px] text-center">
-                    <Checkbox
-                      checked={isAllSelected}
-                      onCheckedChange={handleSelectAll}
-                      indeterminate={isIndeterminate ? true : undefined}
-                    />
-                  </TableHead>
-                  <TableHead>Nombre Completo</TableHead>
-                  <TableHead>Area Profesional</TableHead>
-                  <TableHead>Centro de Trabajo</TableHead>
-                  <TableHead>Distrito Sanitario</TableHead>
-                  <TableHead>Fecha Solicitud</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRequests.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="text-center py-8 text-gray-500"
-                    >
-                      <div className="flex flex-col items-center justify-center">
-                        <FileText className="w-10 h-10 mb-3 text-gray-400" />
-                        <p className="text-lg font-medium">
-                          {statusFilter === "todos"
-                            ? "No hay solicitudes pendientes o activas en este momento."
-                            : `No hay solicitudes con el estado: "${statusFilter}".`}
-                        </p>
-                        {startDate || endDate ? (
-                          <p className="text-sm text-gray-400 mt-1">
-                            Ajusta tu rango de fechas o los filtros.
-                          </p>
-                        ) : (
-                          <p className="text-sm text-gray-400 mt-1">
-                            Revisa el filtro de estado o los rangos de fecha.
-                          </p>
-                        )}
-                        <Button
-                          variant="link"
-                          onClick={() => setStatusFilter("todos")}
-                          className="mt-2"
-                        >
-                          Mostrar todos los estados
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredRequests.map((request) => (
-                    <TableRow key={request.id} className="hover:bg-gray-50">
-                      <TableCell className="w-[50px] text-center">
-                        <Checkbox
-                          checked={selectedRequestIds.includes(request.id)}
-                          onCheckedChange={(checked) =>
-                            handleCheckboxChange(request.id, !!checked)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {request.nombre_completo ||
-                          `${request.nombre || ""} ${request.apellidos || ""}`.trim()}
-                      </TableCell>
-                      <TableCell>{request.area_profesional || "N/A"}</TableCell>
-                      <TableCell>{request.nombre_centro || "N/A"}</TableCell>
-                      <TableCell>
-                        {request.distrito_sanitario || "N/A"}
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(
-                          request.created_at || request.fecha_solicitud,
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {editingStates[request.id] !== undefined ? (
-                          <div className="flex flex-col space-y-2">
-                            <Select
-                              value={editingStates[request.id]}
-                              onValueChange={(value) => {
-                                setEditingStates((prev) => ({
-                                  ...prev,
-                                  [request.id]: value,
-                                }));
-                                if (value !== "Rechazado") {
-                                  setRejectionReasons((prev) => {
-                                    const newReasons = { ...prev };
-                                    delete newReasons[request.id];
-                                    return newReasons;
-                                  });
-                                } else {
-                                  setRejectionReasons((prev) => ({
-                                    ...prev,
-                                    [request.id]: prev[request.id] || "",
-                                  }));
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="w-40">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {getAvailableStatusOptions(
-                                  request.estado_solicitud,
-                                ).map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {editingStates[request.id] === "Rechazado" && (
-                              <Textarea
-                                placeholder="Motivo de rechazo..."
-                                value={rejectionReasons[request.id] || ""}
-                                onChange={(e) =>
-                                  setRejectionReasons((prev) => ({
-                                    ...prev,
-                                    [request.id]: e.target.value,
-                                  }))
-                                }
-                                className="mt-2 resize-y"
-                              />
-                            )}
-                            <div className="flex space-x-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleSaveState(request.id)}
-                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                disabled={
-                                  updateProfesional.isLoading ||
-                                  (editingStates[request.id] === "Rechazado" &&
-                                    !rejectionReasons[request.id])
-                                }
-                              >
-                                <Save className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleCancelEdit(request.id)}
-                                className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <Badge
-                              className={`${getStatusColor(request.estado_solicitud || "Pendiente")} border`}
-                            >
-                              {request.estado_solicitud || "Pendiente"}
-                            </Badge>
-                            {(userRole === "administrador" ||
-                              userRole === "comite") && (
-                              <div className="flex space-x-1">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() =>
-                                    handleEditState(
-                                      request.id,
-                                      request.estado_solicitud || "Pendiente",
-                                    )
-                                  }
-                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                >
-                                  <Edit className="w-3 h-3" />
-                                </Button>
-
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <span className="sr-only">
-                                        Abrir menú
-                                      </span>
-                                      <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        handleOpenDetailsModal(request)
-                                      }
-                                    >
-                                      <Eye className="mr-2 h-4 w-4" /> Ver
-                                      Detalles
-                                    </DropdownMenuItem>
-
-                                    {request.estado_solicitud ===
-                                      "Pendiente de Firma" && (
-                                      <>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                          onClick={() =>
-                                            handleDownloadSingleLetter(request)
-                                          }
-                                        >
-                                          <Download className="mr-2 h-4 w-4" />{" "}
-                                          Descargar Carta
-                                        </DropdownMenuItem>
-                                        {/* Removed single download for summary */}
-                                        {request.url_carnet && (
-                                          <DropdownMenuItem
-                                            onClick={() =>
-                                              handleDownloadSingleCarnet(
-                                                request,
-                                              )
-                                            }
-                                          >
-                                            <Download className="mr-2 h-4 w-4" />{" "}
-                                            Descargar Carnet
-                                          </DropdownMenuItem>
-                                        )}
-                                      </>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <Select value={areaFilter} onValueChange={setAreaFilter}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Área profesional" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas las áreas</SelectItem>
+                <SelectItem value="Medicina General">Medicina General</SelectItem>
+                <SelectItem value="Enfermería">Enfermería</SelectItem>
+                <SelectItem value="Odontología">Odontología</SelectItem>
+                <SelectItem value="Farmacia">Farmacia</SelectItem>
+                <SelectItem value="Psicología">Psicología</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Modal de Detalles del Profesional */}
-      {selectedProfessionalForModal && (
-        <NewProfessionalModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          professional={selectedProfessionalForModal}
-        />
+      {/* Bulk Actions */}
+      {selectedRequests.length > 0 && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <span className="text-sm font-medium">
+                {selectedRequests.length} solicitud(es) seleccionada(s)
+              </span>
+              
+              <div className="flex gap-2">
+                <Select value={bulkAction} onValueChange={setBulkAction}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Acción masiva" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="En Revisión">Poner en revisión</SelectItem>
+                    <SelectItem value="Aprobado">Aprobar</SelectItem>
+                    <SelectItem value="Rechazado">Rechazar</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button 
+                  onClick={handleBulkAction}
+                  disabled={!bulkAction || bulkUpdate.isPending}
+                >
+                  {bulkUpdate.isPending ? "Procesando..." : "Aplicar"}
+                </Button>
+
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSelectedRequests([])}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Contenedor oculto para la generación de PDFs (html2canvas necesita elementos en el DOM) */}
-      <div
-        ref={hiddenPdfContainerRef}
-        style={{
-          position: "fixed",
-          left: "-9999px",
-          top: "-9999px",
-          width: "210mm",
-          height: "297mm",
-          overflow: "hidden",
-          zIndex: -1,
-        }}
-      >
-        {/* Los componentes para generar PDFs se renderizarán aquí temporalmente */}
-      </div>
+      {/* Requests Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Lista de Solicitudes</CardTitle>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                checked={selectedRequests.length === filteredProfessionals.length && filteredProfessionals.length > 0}
+                onCheckedChange={handleSelectAll}
+              />
+              <Label className="text-sm">Seleccionar todo</Label>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              <span className="ml-2">Cargando solicitudes...</span>
+            </div>
+          ) : (
+            <ScrollArea className="h-[600px]">
+              <div className="space-y-4">
+                {filteredProfessionals.map((professional) => (
+                  <Card key={professional.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-4">
+                          <Checkbox 
+                            checked={selectedRequests.includes(professional.id)}
+                            onCheckedChange={(isChecked) => {
+                              if (isChecked) {
+                                setSelectedRequests([...selectedRequests, professional.id]);
+                              } else {
+                                setSelectedRequests(selectedRequests.filter(id => id !== professional.id));
+                              }
+                            }}
+                          />
+                          
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center space-x-3">
+                              <h3 className="font-semibold text-lg">
+                                {professional.nombres} {professional.apellidos}
+                              </h3>
+                              {getStatusBadge(professional.estado_solicitud)}
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center space-x-2">
+                                <User className="w-4 h-4" />
+                                <span>{professional.numero_documento}</span>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                <Mail className="w-4 h-4" />
+                                <span>{professional.email}</span>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                <GraduationCap className="w-4 h-4" />
+                                <span>{professional.area_profesional}</span>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                <MapPin className="w-4 h-4" />
+                                <span>{professional.provincia}</span>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                <Calendar className="w-4 h-4" />
+                                <span>
+                                  {professional.created_at ? 
+                                    new Date(professional.created_at).toLocaleDateString() : 
+                                    'N/A'
+                                  }
+                                </span>
+                              </div>
+                            </div>
+
+                            {professional.motivo_rechazo && (
+                              <div className="bg-red-50 border border-red-200 rounded p-3 mt-2">
+                                <p className="text-red-800 text-sm">
+                                  <strong>Motivo de rechazo:</strong> {professional.motivo_rechazo}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedProfessional(professional);
+                              setDetailsOpen(true);
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Ver
+                          </Button>
+                          
+                          {professional.estado_solicitud === "Recibido" && (
+                            <Button 
+                              size="sm"
+                              onClick={() => handleStatusChange(professional.id, "En Revisión")}
+                              disabled={updateProfesional.isPending}
+                            >
+                              <CheckCheck className="w-4 h-4 mr-1" />
+                              Revisar
+                            </Button>
+                          )}
+                          
+                          {professional.estado_solicitud === "En Revisión" && (
+                            <div className="flex space-x-1">
+                              <Button 
+                                size="sm"
+                                onClick={() => handleStatusChange(professional.id, "Aprobado")}
+                                disabled={updateProfesional.isPending}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Aprobar
+                              </Button>
+                              
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => {
+                                  setSelectedProfessional(professional);
+                                  setRejectDialogOpen(true);
+                                }}
+                                disabled={updateProfesional.isPending}
+                              >
+                                <XCircle className="w-4 h-4 mr-1" />
+                                Rechazar
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                
+                {filteredProfessionals.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No se encontraron solicitudes que coincidan con los filtros aplicados.
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Professional Details Dialog */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Detalles de la Solicitud - {selectedProfessional?.nombres} {selectedProfessional?.apellidos}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedProfessional && (
+            <div className="space-y-6">
+              <Tabs defaultValue="personal" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="personal">Personal</TabsTrigger>
+                  <TabsTrigger value="professional">Profesional</TabsTrigger>
+                  <TabsTrigger value="documents">Documentos</TabsTrigger>
+                  <TabsTrigger value="status">Estado</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="personal" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">Nombres</Label>
+                      <p className="text-sm text-muted-foreground">{selectedProfessional.nombres}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Apellidos</Label>
+                      <p className="text-sm text-muted-foreground">{selectedProfessional.apellidos}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Documento</Label>
+                      <p className="text-sm text-muted-foreground">{selectedProfessional.numero_documento}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Email</Label>
+                      <p className="text-sm text-muted-foreground">{selectedProfessional.email}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Teléfono</Label>
+                      <p className="text-sm text-muted-foreground">{selectedProfessional.telefono}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Género</Label>
+                      <p className="text-sm text-muted-foreground">{selectedProfessional.genero}</p>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="professional" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">Área Profesional</Label>
+                      <p className="text-sm text-muted-foreground">{selectedProfessional.area_profesional}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Especialidad</Label>
+                      <p className="text-sm text-muted-foreground">{selectedProfessional.especialidad}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Universidad</Label>
+                      <p className="text-sm text-muted-foreground">{selectedProfessional.universidad}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">País de Formación</Label>
+                      <p className="text-sm text-muted-foreground">{selectedProfessional.pais_formacion}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Año de Graduación</Label>
+                      <p className="text-sm text-muted-foreground">{selectedProfessional.año_graduacion}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Lugar de Trabajo</Label>
+                      <p className="text-sm text-muted-foreground">{selectedProfessional.lugar_trabajo}</p>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="documents" className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">Documentos Adjuntos</Label>
+                      <div className="space-y-2 mt-2">
+                        {selectedProfessional.url_titulo && (
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={selectedProfessional.url_titulo} target="_blank" rel="noopener noreferrer">
+                              <FileText className="w-4 h-4 mr-2" />
+                              Ver Título
+                            </a>
+                          </Button>
+                        )}
+                        {selectedProfessional.url_cedula && (
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={selectedProfessional.url_cedula} target="_blank" rel="noopener noreferrer">
+                              <FileText className="w-4 h-4 mr-2" />
+                              Ver Cédula
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="status" className="space-y-4">
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium">Estado Actual</Label>
+                      <div className="mt-1">
+                        {getStatusBadge(selectedProfessional.estado_solicitud)}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-medium">Fecha de Solicitud</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedProfessional.created_at ? 
+                          new Date(selectedProfessional.created_at).toLocaleDateString() : 
+                          'N/A'
+                        }
+                      </p>
+                    </div>
+                    
+                    {selectedProfessional.motivo_rechazo && (
+                      <div>
+                        <Label className="text-sm font-medium">Motivo de Rechazo</Label>
+                        <p className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                          {selectedProfessional.motivo_rechazo}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejection Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rechazar Solicitud</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="rejection-reason">Motivo del rechazo</Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="Describa el motivo por el cual se rechaza esta solicitud..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => selectedProfessional && handleStatusChange(selectedProfessional.id, "Rechazado")}
+                disabled={!rejectionReason.trim() || updateProfesional.isPending}
+              >
+                {updateProfesional.isPending ? "Procesando..." : "Rechazar Solicitud"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

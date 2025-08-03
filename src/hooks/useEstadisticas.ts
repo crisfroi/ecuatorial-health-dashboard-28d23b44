@@ -27,6 +27,26 @@ export interface EstadisticasData {
     value: number;
     color: string;
   }>;
+  // Propiedades adicionales requeridas por los componentes
+  datosGraficoAreas: Array<{
+    area: string;
+    cantidad: number;
+  }>;
+  datosGraficoEstados: Array<{
+    estado: string;
+    cantidad: number;
+    color: string;
+  }>;
+  tendenciasMensuales?: Array<{
+    mes: string;
+    registros: number;
+  }>;
+  tasaAprobacion?: string;
+  tasaRechazo?: string;
+  porGenero?: any;
+  porTipoSector?: any;
+  porDistrito?: any;
+  porAnoGraduacion?: any;
 }
 
 export function useEstadisticas() {
@@ -63,7 +83,11 @@ export function useEstadisticas() {
           totalPorAreaProfesional: {},
           totalPorEstadoSolicitud: {},
           totalPorDistritoSanitario: {},
-          datosGraficoProvincias: []
+          datosGraficoProvincias: [],
+          datosGraficoAreas: [],
+          datosGraficoEstados: [],
+          tasaAprobacion: "0",
+          tasaRechazo: "0"
         };
       }
 
@@ -89,7 +113,11 @@ export function useEstadisticas() {
           totalPorAreaProfesional: {},
           totalPorEstadoSolicitud: {},
           totalPorDistritoSanitario: {},
-          datosGraficoProvincias: []
+          datosGraficoProvincias: [],
+          datosGraficoAreas: [],
+          datosGraficoEstados: [],
+          tasaAprobacion: "0",
+          tasaRechazo: "0"
         };
       }
 
@@ -135,6 +163,24 @@ export function useEstadisticas() {
       // Estadísticas por género
       const generoMasculino = profesionales.filter(p => p.genero === "Masculino").length;
       const generoFemenino = profesionales.filter(p => p.genero === "Femenino").length;
+
+      // Generar datos para gráficos
+      const datosGraficoAreas = Object.entries(porArea).map(([area, cantidad]) => ({
+        area,
+        cantidad: cantidad as number
+      }));
+
+      const datosGraficoEstados = [
+        { estado: "Aprobado", cantidad: aprobados, color: "#22c55e" },
+        { estado: "Recibido", cantidad: recibidos, color: "#f59e0b" },
+        { estado: "Rechazado", cantidad: rechazados, color: "#ef4444" },
+        { estado: "Revisando", cantidad: revisando, color: "#3b82f6" },
+        { estado: "Pendiente de Firma", cantidad: pendientes, color: "#8b5cf6" }
+      ];
+
+      // Calcular tasas
+      const tasaAprobacion = total > 0 ? ((aprobados / total) * 100).toFixed(1) : "0";
+      const tasaRechazo = total > 0 ? ((rechazados / total) * 100).toFixed(1) : "0";
 
       const estadisticas: EstadisticasData = {
         total,
@@ -182,7 +228,11 @@ export function useEstadisticas() {
           name,
           value: value as number,
           color: `hsl(${index * 45}, 70%, 50%)`
-        }))
+        })),
+        datosGraficoAreas,
+        datosGraficoEstados,
+        tasaAprobacion,
+        tasaRechazo
       };
 
       console.log("✅ Estadísticas calculadas:", estadisticas);

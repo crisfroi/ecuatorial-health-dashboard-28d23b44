@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -220,6 +219,27 @@ export function useAdvancedAnalyticsAI() {
     }
   }, [testConnection]);
 
+  const runAdvancedAnalytics = useCallback(async (analysisType: string = 'comprehensive') => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const query: AdvancedStatsQuery = {
+        query: analysisType,
+        description: `Análisis ${analysisType} del sistema`
+      };
+
+      const result = await queryStats(query);
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [queryStats]);
+
   const generateTextResponse = (data: any, query: AdvancedStatsQuery): string => {
     if (!data) return 'No se obtuvieron datos válidos.';
 
@@ -408,6 +428,7 @@ export function useAdvancedAnalyticsAI() {
     error,
     connectionStatus,
     queryStats,
+    runAdvancedAnalytics,
     clearResults,
     getCategoryByQuery,
     getSuggestions,

@@ -33,8 +33,11 @@ export interface ProfesionalAlert {
   telefono?: string;
 }
 
-// Tipo para Professional (compatibilidad) - ahora incluye todos los campos necesarios
-export type Professional = Profesional;
+// Tipo Professional con todas las propiedades necesarias
+export type Professional = Profesional & {
+  documento_identidad: string;
+  lugar_trabajo: string;
+};
 
 interface Filtros {
   area_profesional?: string;
@@ -80,7 +83,7 @@ export interface NavigationFilters {
 export function useProfesionales(filtros: Filtros = {}) {
   return useQuery({
     queryKey: ["profesionales", filtros],
-    queryFn: async () => {
+    queryFn: async (): Promise<Professional[]> => {
       console.log("Fetching profesionales with filters:", filtros);
 
       let query = supabase
@@ -179,7 +182,15 @@ export function useProfesionales(filtros: Filtros = {}) {
       }
 
       console.log("Fetched profesionales:", data?.length || 0);
-      return data || [];
+      
+      // Ensure all required properties are present
+      const processedData = (data || []).map((item): Professional => ({
+        ...item,
+        documento_identidad: item.numero_documento || '',
+        lugar_trabajo: item.lugar_trabajo || item.centro_salud_nombre || ''
+      }));
+
+      return processedData;
     },
     retry: (failureCount, error) => {
       // Don't retry on authentication errors
@@ -193,7 +204,7 @@ export function useProfesionales(filtros: Filtros = {}) {
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime in v5)
     onError: (error) => {
       console.error("useProfesionales query failed:", error);
     },

@@ -25,9 +25,23 @@ export const useStatsSimple = () => {
   useEffect(() => {
     const fetchStats = async () => {
       console.log("🔍 Fetching simple stats...");
-      
+
       try {
         setStats(prev => ({ ...prev, loading: true, error: null }));
+
+        // Verificar conexión antes de hacer queries
+        console.log('🔗 Testing connection...');
+        const { data: testData, error: testError } = await supabase
+          .from("profesionales_sanitarios")
+          .select("id")
+          .limit(1);
+
+        if (testError) {
+          console.error('❌ Connection test failed:', testError);
+          throw new Error(`Conexión fallida: ${testError.message}`);
+        }
+
+        console.log('✅ Connection test passed, found records:', testData?.length || 0);
 
         // Query 1: Profesionales
         const { data: profesionales, error: profError } = await supabase

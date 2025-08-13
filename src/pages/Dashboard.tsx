@@ -118,6 +118,16 @@ const Dashboard = () => {
   const userName = user?.full_name || user?.email?.split('@')[0] || "Usuario";
   const userEmail = user?.email || "";
 
+  // Establecer tab inicial cuando userRole esté disponible
+  useEffect(() => {
+    if (userRole && activeTab === "overview") {
+      const defaultTab = getDefaultTab();
+      if (defaultTab !== "overview") {
+        setActiveTab(defaultTab);
+      }
+    }
+  }, [userRole]);
+
   // Validar tab activo cuando cambie el rol
   useEffect(() => {
     const validTabs = availableTabs.map(tab => tab.id);

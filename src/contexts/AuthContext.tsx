@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserRole, hasPermission, canAccessTab, getRoleRestrictions } from '@/types/roles';
 import { supabase } from '@/integrations/supabase/client';
@@ -80,7 +79,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
               role = 'REVISOR_SOLICITUDES';
             } else if (email.includes('ministro') || email.includes('ministerial') || email.includes('secretario')) {
               role = 'PERSONALIDAD_MINISTERIAL';
-            } else if (email.includes('director') || email.includes('centro') || email.includes('hospital')) {
+            } else if (email.includes('hospital') || email.includes('clinica')) {
+              role = 'HOSPITAL';
+            } else if (email.includes('director') || email.includes('centro')) {
               role = 'DIRECTIVO_CENTRO_SANITARIO';
             } else {
               role = 'OBSERVADOR'; // Rol más restrictivo por defecto

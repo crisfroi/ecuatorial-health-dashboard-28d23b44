@@ -63,8 +63,9 @@ const UserRoleManagement = () => {
 
   const roles: Array<{ value: UserRole; label: string }> = [
     { value: 'SUPER_ADMINISTRADOR', label: 'Super Administrador' },
-    { value: 'REVISOR_SOLICITUDES', label: 'Revisor de Solicitudes' },
+    { value: 'REVISOR_SOLICITUDES', label: 'Revisor de Solicitudes / Comité Evaluador' },
     { value: 'PERSONALIDAD_MINISTERIAL', label: 'Personalidad Ministerial' },
+    { value: 'HOSPITAL', label: 'Gestión Hospitalaria' },
     { value: 'DIRECTIVO_CENTRO_SANITARIO', label: 'Directivo Centro Sanitario' },
     { value: 'OBSERVADOR', label: 'Observador' },
   ];

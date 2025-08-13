@@ -11,6 +11,8 @@ import ProfessionalRegistration from "./pages/ProfessionalRegistration";
 import PublicSearch from "./pages/PublicSearch";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+// Clear any offline mode flags on app start
+import "@/utils/clearOfflineMode";
 
 const queryClient = new QueryClient({
   defaultOptions: {

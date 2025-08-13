@@ -426,12 +426,13 @@ const Dashboard = () => {
   });
 
   // Asegurar que siempre haya al menos las pestañas básicas
-  if (availableTabs.length === 0) {
-    console.warn('No tabs available, adding default tabs');
-    return allTabs.filter(tab => ['overview', 'professionals'].includes(tab.id));
-  }
+  const finalTabs = availableTabs.length === 0
+    ? allTabs.filter(tab => ['overview', 'professionals'].includes(tab.id))
+    : availableTabs;
 
-  console.log('Available tabs:', availableTabs.map(t => t.id), 'for role:', userRole);
+  console.log('Available tabs:', finalTabs.map(t => t.id), 'for role:', userRole);
+
+  return finalTabs;
 
   const tabsConfig = availableTabs;
 

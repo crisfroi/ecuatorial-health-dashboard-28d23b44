@@ -92,9 +92,10 @@ const Dashboard = () => {
   const [showStatsCards, setShowStatsCards] = useState(true);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, userRole, logout: authLogout, canAccessTab } = useAuth();
 
-  const userRole = "administrador";
-  const userName = "Admin User";
+  const userName = user?.full_name || user?.email?.split('@')[0] || "Usuario";
+  const userEmail = user?.email || "";
 
   const handleSelectProfessional = (professional: Profesional) => {
     console.log(

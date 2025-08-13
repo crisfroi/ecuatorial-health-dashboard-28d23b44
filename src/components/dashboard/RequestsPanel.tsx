@@ -1204,7 +1204,9 @@ const RequestsPanel = ({
                               {request.estado_solicitud || "Pendiente"}
                             </Badge>
                             {(userRole === "administrador" ||
-                              userRole === "comite") && (
+                              userRole === "comite" ||
+                              userRole === "SUPER_ADMINISTRADOR" ||
+                              userRole === "REVISOR_SOLICITUDES") && (
                               <div className="flex space-x-1">
                                 <Button
                                   size="sm"

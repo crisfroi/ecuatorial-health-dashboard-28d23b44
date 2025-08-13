@@ -152,8 +152,16 @@ const Dashboard = () => {
     setShowFilters(false);
   };
 
-  const handleNavigateToProfessionals = (filter: Filtros) => {
+  const handleNavigateToProfessionals = (filter: Filtros & { navigate_to?: string }) => {
     console.log("Dashboard: Stats card clicked. Filtro recibido:", filter);
+
+    // Manejar navegación especial a otras pestañas
+    if (filter.navigate_to === "health-centers") {
+      setActiveTab("health-centers");
+      console.log('Dashboard: Navegando directamente a la pestaña "health-centers"');
+      return;
+    }
+
     let newAppliedFilters: Filtros = {};
 
     if (filter.vencimiento_proximo) {

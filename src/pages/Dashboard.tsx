@@ -596,8 +596,8 @@ const Dashboard = () => {
           </Card>
         )}
 
-        {/* Panel de diagnóstico temporal */}
-        <DiagnosticPanel />
+        {/* Panel de diagnóstico temporal - OCULTO */}
+        {/* <DiagnosticPanel /> */}
 
         {showStatsCards && (
           <div className="mb-6">

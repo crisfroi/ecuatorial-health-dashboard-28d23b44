@@ -119,6 +119,30 @@ export const ANALYTICS_CATEGORIES: AnalyticsCategory[] = [
     ]
   },
   {
+    id: 'user_management',
+    name: 'Gestión de Usuarios',
+    description: 'Estadísticas de usuarios y roles del sistema',
+    queries: ['user_management'],
+    examples: [
+      '¿Cuántos usuarios hay por rol?',
+      '¿Cuántos usuarios están activos?',
+      '¿Qué departamentos tienen más usuarios?',
+      '¿Cuántos usuarios tienen centros asignados?'
+    ]
+  },
+  {
+    id: 'system_performance',
+    name: 'Rendimiento del Sistema',
+    description: 'Métricas de rendimiento y salud del sistema',
+    queries: ['system_performance'],
+    examples: [
+      '¿Cuántos registros hay en total?',
+      '¿Cuál es el estado de salud del sistema?',
+      '¿Cómo están distribuidos los registros por tabla?',
+      'Dame un reporte de rendimiento del sistema'
+    ]
+  },
+  {
     id: 'comprehensive',
     name: 'Análisis Comprehensivo',
     description: 'Todas las estadísticas disponibles',
@@ -126,7 +150,8 @@ export const ANALYTICS_CATEGORIES: AnalyticsCategory[] = [
     examples: [
       'Dame un resumen completo de todas las estadísticas',
       '¿Cuál es el panorama general del sistema?',
-      'Necesito un análisis completo de todos los datos'
+      'Necesito un análisis completo de todos los datos',
+      'Análisis integral del sistema de salud'
     ]
   }
 ];
@@ -305,4 +330,4 @@ export function useAdvancedAnalyticsAI() {
     parseNaturalLanguage,
     categories: ANALYTICS_CATEGORIES
   };
-} 
+}

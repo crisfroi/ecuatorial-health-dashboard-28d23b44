@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, AlertTriangle, RefreshCw, PersonStanding } from "lucide-react";
+import { Users, AlertTriangle, RefreshCw, PersonStanding, Clock, FileText } from "lucide-react";
 import { useStatsSimple } from "@/hooks/useStatsSimple";
 
 interface StatsCardsSimpleProps {
@@ -9,7 +9,7 @@ interface StatsCardsSimpleProps {
 }
 
 const StatsCardsSimple = ({ onNavigateToProfessionals }: StatsCardsSimpleProps) => {
-  const { total, aprobados, hombres, mujeres, centros, loading, error } = useStatsSimple();
+  const { total, aprobados, recibidos, revisando, hombres, mujeres, centros, loading, error } = useStatsSimple();
 
   const handleCardClick = (filters: any) => {
     console.log("StatsCards: Navigating with filters:", filters);
@@ -53,25 +53,11 @@ const StatsCardsSimple = ({ onNavigateToProfessionals }: StatsCardsSimpleProps) 
       {/* Debug Info */}
       <div className="bg-blue-50 border border-blue-200 p-3 rounded">
         <p className="text-sm text-blue-800">
-          <strong>Debug:</strong> Total: {total}, Aprobados: {aprobados}, Hombres: {hombres}, Mujeres: {mujeres}, Centros: {centros}
+          <strong>Debug:</strong> Total: {total}, Aprobados: {aprobados}, Recibidos: {recibidos}, Revisando: {revisando}, Hombres: {hombres}, Mujeres: {mujeres}, Centros: {centros}
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Profesionales */}
-        <Card
-          className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-blue-400"
-          onClick={() => handleCardClick({})}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Profesionales</CardTitle>
-            <Users className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{total}</div>
-            <p className="text-xs text-muted-foreground">Registrados en total</p>
-          </CardContent>
-        </Card>
 
         {/* Profesionales Acreditados */}
         <Card
@@ -88,15 +74,45 @@ const StatsCardsSimple = ({ onNavigateToProfessionals }: StatsCardsSimpleProps) 
           </CardContent>
         </Card>
 
-        {/* Centros de Salud */}
+        {/* Solicitudes Recibidas */}
+        <Card
+          className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-orange-400"
+          onClick={() => handleCardClick({ estado_solicitud: "Recibido" })}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Solicitudes Recibidas</CardTitle>
+            <Clock className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{recibidos}</div>
+            <p className="text-xs text-muted-foreground">En proceso de revisión</p>
+          </CardContent>
+        </Card>
+
+        {/* En Revisión */}
+        <Card
+          className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-blue-400"
+          onClick={() => handleCardClick({ estado_solicitud: "Revisando" })}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">En Revisión</CardTitle>
+            <FileText className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{revisando}</div>
+            <p className="text-xs text-muted-foreground">Siendo evaluadas</p>
+          </CardContent>
+        </Card>
+
+        {/* Establecimientos Sanitarios */}
         <Card className="hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Centros de Salud</CardTitle>
+            <CardTitle className="text-sm font-medium">Establecimientos Sanitarios</CardTitle>
             <Users className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">{centros}</div>
-            <p className="text-xs text-muted-foreground">Centros registrados</p>
+            <p className="text-xs text-muted-foreground">Establecimientos registrados</p>
           </CardContent>
         </Card>
 

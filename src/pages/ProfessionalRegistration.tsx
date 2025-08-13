@@ -133,6 +133,17 @@ const formSchema = z
         });
       }
     }
+
+    // Validar especialidad si la categoría de titulación es ESPECIALIDAD
+    if (data.categoria_titulacion === "ESPECIALIDAD") {
+      if (!data.especialidad || data.especialidad.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "La especialidad es requerida cuando selecciona ESPECIALIDAD como categoría de titulación",
+          path: ["especialidad"],
+        });
+      }
+    }
   });
 
 type FormData = z.infer<typeof formSchema>;

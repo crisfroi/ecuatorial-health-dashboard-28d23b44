@@ -396,10 +396,18 @@ const Dashboard = () => {
       return ['overview', 'professionals', 'analytics'].includes(tab.id);
     }
 
-    // Si canAccessTab está disponible, usarlo
+    // SUPER_ADMINISTRADOR tiene acceso completo SIEMPRE
+    if (userRole === 'SUPER_ADMINISTRADOR') {
+      console.log(`✅ SUPER_ADMINISTRADOR: permitiendo acceso a ${tab.id}`);
+      return true;
+    }
+
+    // Si canAccessTab está disponible, usarlo para otros roles
     if (canAccessTab) {
       try {
-        return canAccessTab(tab.id);
+        const hasAccess = canAccessTab(tab.id);
+        console.log(`🔐 Tab access for ${tab.id} (${userRole}):`, hasAccess);
+        return hasAccess;
       } catch (error) {
         console.warn(`Error checking access for tab ${tab.id}:`, error);
         return false;
@@ -408,8 +416,6 @@ const Dashboard = () => {
 
     // Verificar por userRole manualmente con lógica más permisiva
     switch (userRole) {
-      case 'SUPER_ADMINISTRADOR':
-        return true; // Acceso a todas las pestañas
       case 'REVISOR_SOLICITUDES':
         return !['ministerial', 'admin'].includes(tab.id);
       case 'PERSONALIDAD_MINISTERIAL':
@@ -426,9 +432,16 @@ const Dashboard = () => {
   });
 
   // Asegurar que siempre haya al menos las pestañas básicas
-  const availableTabs = filteredTabs.length === 0
-    ? allTabs.filter(tab => ['overview', 'professionals'].includes(tab.id))
-    : filteredTabs;
+  let availableTabs = filteredTabs;
+  if (filteredTabs.length === 0) {
+    availableTabs = allTabs.filter(tab => ['overview', 'professionals'].includes(tab.id));
+  }
+
+  // SUPER_ADMINISTRADOR debe tener TODAS las pestañas sin excepción
+  if (userRole === 'SUPER_ADMINISTRADOR' && availableTabs.length < allTabs.length) {
+    console.log('🚨 SUPER_ADMINISTRADOR: forzando acceso a todas las pestañas');
+    availableTabs = allTabs;
+  }
 
   console.log('Available tabs:', availableTabs.map(t => t.id), 'for role:', userRole);
 
@@ -452,7 +465,7 @@ const Dashboard = () => {
             onValueChange={setActiveTab}
             className="space-y-0"
           >
-            <TabsList className="grid w-full grid-cols-5 md:grid-cols-10">
+            <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(tabsConfig.length, 10)}, 1fr)` }}>
               {tabsConfig.map((tab) => {
                 const Icon = tab.icon;
                 return (

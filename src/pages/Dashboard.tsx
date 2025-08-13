@@ -345,23 +345,33 @@ const Dashboard = () => {
 
   const hasActiveFilters = Object.keys(appliedFilters).length > 0;
 
-  const tabsConfig = [
-    { id: "overview", label: "General", icon: BarChart3 },
-    { id: "professionals", label: "Profesionales", icon: Users },
-    { id: "requests", label: "Solicitudes", icon: FileText },
-    { id: "renewals", label: "Renovaciones", icon: Calendar },
-    { id: "analytics", label: "Analíticas", icon: TrendingUp },
-    { id: "ai-chat", label: "IA Chat", icon: MessageSquare },
-    { id: "ministerial", label: "Ministerial", icon: Settings },
-    { id: "incidents", label: "Incidencias", icon: Activity },
-    { id: "health-centers", label: "Centros", icon: MapPin },
-    ...(userRole === "administrador"
-      ? [
-          { id: "users", label: "Usuarios", icon: Users },
-          { id: "diagnostic", label: "Diagnóstico DB", icon: AlertTriangle }
-        ]
-      : []),
-  ];
+  // Filtrar tabs disponibles según los permisos del rol
+  const availableTabs = [
+    { id: "overview", label: "General", icon: BarChart3, permission: "view_dashboard" },
+    { id: "professionals", label: "Profesionales", icon: Users, permission: "view_professionals" },
+    { id: "requests", label: "Solicitudes", icon: FileText, permission: "view_requests" },
+    { id: "renewals", label: "Renovaciones", icon: Calendar, permission: "view_renewals" },
+    { id: "analytics", label: "Analíticas", icon: TrendingUp, permission: "view_analytics" },
+    { id: "ai-chat", label: "IA Chat", icon: MessageSquare, permission: "view_ai_chat" },
+    { id: "ministerial", label: "Ministerial", icon: Settings, permission: "view_ministerial_panel" },
+    { id: "incidents", label: "Incidencias", icon: Activity, permission: "view_incidents" },
+    { id: "health-centers", label: "Centros", icon: MapPin, permission: "view_centers" },
+    { id: "admin", label: "Administración", icon: UserCog, permission: "view_admin_panel" },
+  ].filter(tab => {
+    // Si canAccessTab está disponible, usarlo
+    if (canAccessTab) {
+      return canAccessTab(tab.id);
+    }
+    // Si no, verificar por userRole manualmente
+    return userRole === 'SUPER_ADMINISTRADOR' ||
+           (userRole === 'REVISOR_SOLICITUDES' && !['ministerial', 'admin'].includes(tab.id)) ||
+           (userRole === 'PERSONALIDAD_MINISTERIAL' && ['overview', 'analytics', 'ministerial', 'professionals', 'health-centers', 'ai-chat'].includes(tab.id)) ||
+           (userRole === 'HOSPITAL' && ['overview', 'professionals', 'requests', 'health-centers', 'incidents', 'renewals', 'ai-chat'].includes(tab.id)) ||
+           (userRole === 'DIRECTIVO_CENTRO_SANITARIO' && ['overview', 'professionals', 'health-centers', 'incidents', 'ai-chat'].includes(tab.id)) ||
+           (userRole === 'OBSERVADOR' && ['overview', 'professionals', 'analytics', 'health-centers', 'ai-chat'].includes(tab.id));
+  });
+
+  const tabsConfig = availableTabs;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

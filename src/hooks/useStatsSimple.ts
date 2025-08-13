@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 interface SimpleStats {
   total: number;
   aprobados: number;
+  recibidos: number;
+  revisando: number;
   hombres: number;
   mujeres: number;
   centros: number;
@@ -15,6 +17,8 @@ export const useStatsSimple = () => {
   const [stats, setStats] = useState<SimpleStats>({
     total: 0,
     aprobados: 0,
+    recibidos: 0,
+    revisando: 0,
     hombres: 0,
     mujeres: 0,
     centros: 0,
@@ -67,6 +71,8 @@ export const useStatsSimple = () => {
         // Calcular estadísticas
         const total = profesionales?.length || 0;
         const aprobados = profesionales?.filter(p => p.estado_solicitud === 'Aprobado').length || 0;
+        const recibidos = profesionales?.filter(p => p.estado_solicitud === 'Recibido').length || 0;
+        const revisando = profesionales?.filter(p => p.estado_solicitud === 'Revisando' || p.estado_solicitud === 'En Revisión').length || 0;
         const hombres = profesionales?.filter(p => p.genero === 'Masculino').length || 0;
         const mujeres = profesionales?.filter(p => p.genero === 'Femenino').length || 0;
         const totalCentros = centros?.length || 0;
@@ -74,6 +80,8 @@ export const useStatsSimple = () => {
         const newStats = {
           total,
           aprobados,
+          recibidos,
+          revisando,
           hombres,
           mujeres,
           centros: totalCentros,

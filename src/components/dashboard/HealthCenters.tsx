@@ -645,12 +645,16 @@ const HealthCenters = () => {
         <div className="flex items-center space-x-2">
           {pendingCenters.length > 0 && (
             <Button
-              variant="outline"
+              variant={showPendingCenters ? "default" : "outline"}
               onClick={() => setShowPendingCenters(!showPendingCenters)}
-              className="flex items-center gap-2 border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+              className={`flex items-center gap-2 ${
+                showPendingCenters
+                  ? "bg-yellow-600 text-white hover:bg-yellow-700"
+                  : "border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+              }`}
             >
               <AlertTriangle className="w-4 h-4" />
-              {pendingCenters.length} Centros Pendientes de Validación
+              {showPendingCenters ? "Ocultar" : "Ver"} {pendingCenters.length} Centros Pendientes
             </Button>
           )}
           <Button

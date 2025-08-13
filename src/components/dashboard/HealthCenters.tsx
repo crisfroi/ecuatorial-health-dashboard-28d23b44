@@ -28,6 +28,7 @@ import {
   Edit,
   Plus,
   Download,
+  AlertTriangle,
 } from "lucide-react";
 import {
   useBuscarCentros,

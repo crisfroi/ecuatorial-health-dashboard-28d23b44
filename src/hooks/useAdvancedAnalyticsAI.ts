@@ -289,16 +289,43 @@ export function useAdvancedAnalyticsAI() {
       'carnet': 'carnet_generation',
       'generacion': 'carnet_generation',
       'cola': 'carnet_generation',
-      
+      'vencimiento': 'carnet_generation',
+      'vigente': 'carnet_generation',
+
       'temporal': 'temporal_analysis',
       'tiempo': 'temporal_analysis',
       'evolucion': 'temporal_analysis',
       'tendencia': 'temporal_analysis',
-      
+      'historico': 'temporal_analysis',
+      'mes': 'temporal_analysis',
+      'año': 'temporal_analysis',
+
+      'usuario': 'user_management',
+      'usuarios': 'user_management',
+      'rol': 'user_management',
+      'roles': 'user_management',
+      'departamento': 'user_management',
+      'activo': 'user_management',
+      'gestión': 'user_management',
+
+      'sistema': 'system_performance',
+      'rendimiento': 'system_performance',
+      'performance': 'system_performance',
+      'salud': 'system_performance',
+      'registros': 'system_performance',
+      'tabla': 'system_performance',
+      'base': 'system_performance',
+      'datos': 'system_performance',
+
       'completo': 'comprehensive',
       'comprehensive': 'comprehensive',
       'todo': 'comprehensive',
-      'resumen': 'comprehensive'
+      'resumen': 'comprehensive',
+      'integral': 'comprehensive',
+      'general': 'comprehensive',
+      'panorama': 'comprehensive',
+      'dashboard': 'comprehensive',
+      'estadisticas': 'comprehensive'
     };
 
     // Buscar la consulta más apropiada

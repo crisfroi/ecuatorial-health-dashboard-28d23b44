@@ -48,7 +48,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
   // Enhanced fallback logic - priorizar estadísticas simples
   let effectiveStats = null;
   let fallbackReason = null;
-  let isLoadingStats = simplesLoading || isLoading;
+  let isLoadingStats = simplesLoading && isLoading && testLoading; // Solo loading si TODOS están cargando
 
   console.log("🔍 Evaluando estadísticas disponibles:", {
     statsSimples: statsSimples?.total || 0,
@@ -57,8 +57,8 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     mockStats: mockStats?.total || 0
   });
 
-  // Priorizar estadísticas simples si están disponibles
-  if (statsSimples && statsSimples.total >= 0) {
+  // Priorizar estadísticas simples si están disponibles (incluir cuando hay datos incluso si es 0)
+  if (statsSimples !== undefined && statsSimples !== null && !simplesLoading) {
     effectiveStats = {
       total: statsSimples.total,
       aprobados: statsSimples.aprobados,
@@ -80,38 +80,45 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     console.log("✅ Usando estadísticas simples:", effectiveStats);
   }
   // Si las estadísticas simples fallan, usar las avanzadas
-  else if (stats && stats.total > 0) {
+  else if (stats !== undefined && stats !== null && !isLoading) {
     effectiveStats = stats;
     console.log("✅ Usando estadísticas avanzadas:", effectiveStats);
   }
   // Si ambas fallan, usar estadísticas de prueba
-  else if (testStats && testStats.total > 0) {
+  else if (testStats !== undefined && testStats !== null && !testLoading) {
     effectiveStats = testStats;
     fallbackReason = "test";
     console.log("⚠️ Usando estadísticas de prueba");
   }
   // Último recurso: datos mock
-  else if (mockStats && mockStats.total > 0) {
+  else if (mockStats !== undefined && mockStats !== null && !mockLoading) {
     effectiveStats = mockStats;
     fallbackReason = "mock";
     console.log("⚠️ Usando estadísticas mock");
   }
-  // Si todo falla
-  else {
+  // Si todo falla, mostrar datos básicos en lugar de loading infinito
+  else if (!simplesLoading || !isLoading || !testLoading) {
     effectiveStats = {
       total: 0,
       aprobados: 0,
       pendientes: 0,
+      recibidos: 0,
+      revisando: 0,
       rechazados: 0,
+      generoMasculino: 0,
+      generoFemenino: 0,
       porGenero: { masculino: 0, femenino: 0 },
       centrosSalud: 0,
       proximosVencer: 0,
+      carnetVencidos: 0,
+      vencimientosProximos: 0
     };
-    fallbackReason = simplesError ? `Error: ${simplesError.message}` : "No hay datos disponibles";
-    console.error("❌ No hay estadísticas disponibles:", { simplesError, error, testError });
+    fallbackReason = simplesError ? `Error: ${simplesError.message}` : "Cargando datos...";
+    console.warn("⚠️ Usando estadísticas por defecto:", { simplesError, error, testError });
   }
 
-  if (isLoadingStats) {
+  // Solo mostrar loading si realmente estamos cargando y no hay datos alternativos
+  if (isLoadingStats && !effectiveStats) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[1, 2, 3, 4, 5, 6].map((i) => (

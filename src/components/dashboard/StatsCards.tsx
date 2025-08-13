@@ -16,6 +16,7 @@ import { useEstadisticasTest } from "@/hooks/useEstadisticasTest";
 import { useEstadisticasMock } from "@/hooks/useEstadisticasMock";
 import { useSupabaseConnectivity } from "@/hooks/useSupabaseConnectivity";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
+import { useEstadisticasSimples } from "@/hooks/useEstadisticasSimples";
 
 interface StatsCardsProps {
   onNavigateToProfessionals: (filters: any) => void;

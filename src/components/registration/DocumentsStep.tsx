@@ -159,11 +159,11 @@ export const DocumentsStep = ({
         </div>
       </div>
 
-      {/* ALERTA: Foto carnet obligatoria */}
+      {/* ALERTA: Documentos obligatorios */}
       <Alert className="bg-red-100 border-red-300 text-red-800">
         <AlertCircle className="h-4 w-4 mt-1" />
         <AlertDescription>
-          La foto tipo carnet es obligatoria. Puede cargar títulos académicos, certificados y otros documentos relevantes como documentos adicionales.
+          La foto tipo carnet Y al menos un documento adicional son obligatorios. Debe cargar títulos académicos, certificados y otros documentos relevantes que respalden su formación profesional.
         </AlertDescription>
       </Alert>
 

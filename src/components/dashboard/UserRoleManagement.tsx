@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mail, Plus, Edit, Trash2, Users, Shield, Crown, Eye, Building2 } from "lucide-react";
+import { Mail, Plus, Edit, Trash2, Users, Shield, Crown, Eye, Building2, Hospital } from "lucide-react";
 import { UserProfile, UserInvitation } from "@/types/database";
 import { UserRole } from "@/types/roles";
 import { useUserManagement } from "@/hooks/useUserManagement";
@@ -87,6 +87,8 @@ const UserRoleManagement = () => {
         return <Shield className="w-4 h-4" />;
       case 'PERSONALIDAD_MINISTERIAL':
         return <Users className="w-4 h-4" />;
+      case 'HOSPITAL':
+        return <Hospital className="w-4 h-4" />;
       case 'DIRECTIVO_CENTRO_SANITARIO':
         return <Building2 className="w-4 h-4" />;
       case 'OBSERVADOR':
@@ -104,6 +106,8 @@ const UserRoleManagement = () => {
         return 'bg-blue-100 text-blue-800';
       case 'PERSONALIDAD_MINISTERIAL':
         return 'bg-purple-100 text-purple-800';
+      case 'HOSPITAL':
+        return 'bg-teal-100 text-teal-800';
       case 'DIRECTIVO_CENTRO_SANITARIO':
         return 'bg-green-100 text-green-800';
       case 'OBSERVADOR':

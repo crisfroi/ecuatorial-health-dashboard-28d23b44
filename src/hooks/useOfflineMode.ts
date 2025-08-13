@@ -11,15 +11,12 @@ export function useOfflineMode(): OfflineModeState {
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
 
-  // Check localStorage for persisted offline mode
+  // Disable automatic offline mode initialization to prevent stuck state
   useEffect(() => {
-    const savedOfflineMode = localStorage.getItem("app-offline-mode");
-    const savedReason = localStorage.getItem("app-offline-reason");
-
-    if (savedOfflineMode === "true") {
-      setIsOfflineMode(true);
-      setReason(savedReason || "Unknown reason");
-    }
+    // Clear any stuck offline mode flags
+    localStorage.removeItem("app-offline-mode");
+    localStorage.removeItem("app-offline-reason");
+    console.log("🧹 Cleared offline mode flags on hook initialization");
   }, []);
 
   const enableOfflineMode = (offlineReason: string) => {

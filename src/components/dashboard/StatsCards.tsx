@@ -55,16 +55,16 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
   });
 
   // Priorizar estadísticas simples si están disponibles
-  if (statsSimples && statsSimples.total > 0) {
+  if (statsSimples && statsSimples.total >= 0) {
     effectiveStats = {
       total: statsSimples.total,
       aprobados: statsSimples.aprobados,
       pendientes: statsSimples.pendientes,
-      recibidos: 0, // No disponible en simples
-      revisando: 0, // No disponible en simples
+      recibidos: statsSimples.recibidos,
+      revisando: statsSimples.revisando,
       rechazados: statsSimples.rechazados,
       vencimientosProximos: statsSimples.proximosVencer,
-      carnetVencidos: 0, // Calcular si es necesario
+      carnetVencidos: statsSimples.carnetVencidos,
       generoMasculino: statsSimples.hombres,
       generoFemenino: statsSimples.mujeres,
       porGenero: {
@@ -288,7 +288,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {effectiveStats?.pendientes || 0}
+              {effectiveStats?.recibidos || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               En proceso de revisión
@@ -309,7 +309,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {effectiveStats?.recibidos || effectiveStats?.revisando || 0}
+              {effectiveStats?.revisando || 0}
             </div>
             <p className="text-xs text-muted-foreground">Siendo evaluadas</p>
             <div className="mt-2 text-xs text-blue-600 font-medium">

@@ -104,6 +104,155 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
     scrollToBottom();
   }, [messages]);
 
+  // Función para generar respuestas inteligentes basadas en los datos
+  const generateSmartResponse = (result: any, userQuestion: string) => {
+    if (!result.success) {
+      return `Lo siento, no pude obtener los datos solicitados. Error: ${result.error}`;
+    }
+
+    const data = result.data;
+    let response = "";
+
+    // Determinar el tipo de respuesta basado en la consulta
+    switch (result.query) {
+      case 'demographics':
+        response = `📊 **Análisis Demográfico:**\n\n`;
+
+        if (data.total_profesionales) {
+          response += `• **Total de profesionales registrados**: ${data.total_profesionales.toLocaleString()}\n`;
+        }
+
+        if (data.genero && Object.keys(data.genero).length > 0) {
+          const totalGenero = Object.values(data.genero).reduce((a: any, b: any) => a + b, 0);
+          response += `• **Distribución por género**:\n`;
+          Object.entries(data.genero).forEach(([genero, count]: [string, any]) => {
+            const percentage = ((count / totalGenero) * 100).toFixed(1);
+            response += `  - ${genero}: ${count} (${percentage}%)\n`;
+          });
+        }
+
+        if (data.grupos_edad && Object.keys(data.grupos_edad).length > 0) {
+          response += `• **Grupos de edad más representados**:\n`;
+          const sortedAges = Object.entries(data.grupos_edad)
+            .sort(([,a]: any, [,b]: any) => b - a)
+            .slice(0, 3);
+          sortedAges.forEach(([age, count]: [string, any]) => {
+            response += `  - ${age} años: ${count} profesionales\n`;
+          });
+        }
+
+        if (data.provincias && Object.keys(data.provincias).length > 0) {
+          const topProvincias = Object.entries(data.provincias)
+            .sort(([,a]: any, [,b]: any) => b - a)
+            .slice(0, 3);
+          response += `• **Provincias con más profesionales**:\n`;
+          topProvincias.forEach(([provincia, count]: [string, any]) => {
+            response += `  - ${provincia}: ${count} profesionales\n`;
+          });
+        }
+        break;
+
+      case 'professional_areas':
+        response = `👩‍⚕️ **Análisis de Áreas Profesionales:**\n\n`;
+
+        if (data.areas_profesionales) {
+          const sortedAreas = Object.entries(data.areas_profesionales)
+            .sort(([,a]: any, [,b]: any) => b - a)
+            .slice(0, 5);
+          response += `• **Áreas profesionales más comunes**:\n`;
+          sortedAreas.forEach(([area, count]: [string, any]) => {
+            response += `  - ${area}: ${count} profesionales\n`;
+          });
+        }
+
+        if (data.especialidades && Object.keys(data.especialidades).length > 0) {
+          const topEspecialidades = Object.entries(data.especialidades)
+            .sort(([,a]: any, [,b]: any) => b - a)
+            .slice(0, 3);
+          response += `• **Especialidades principales**:\n`;
+          topEspecialidades.forEach(([esp, count]: [string, any]) => {
+            response += `  - ${esp}: ${count}\n`;
+          });
+        }
+        break;
+
+      case 'work_centers':
+        response = `🏥 **Análisis de Centros de Trabajo:**\n\n`;
+
+        if (data.centros_registrados) {
+          response += `• **Total de centros registrados**: ${data.centros_registrados}\n`;
+        }
+
+        if (data.centros_por_categoria) {
+          response += `• **Distribución por categoría**:\n`;
+          Object.entries(data.centros_por_categoria).forEach(([cat, count]: [string, any]) => {
+            response += `  - ${cat}: ${count} centros\n`;
+          });
+        }
+
+        if (data.centros_pendientes_validacion > 0) {
+          response += `\n⚠️ **Atención**: Hay ${data.centros_pendientes_validacion} centros pendientes de validación.\n`;
+        }
+        break;
+
+      case 'carnet_generation':
+        response = `🆔 **Estado de Generación de Carnets:**\n\n`;
+
+        if (data.carnets_generados) {
+          response += `• **Carnets generados**: ${data.carnets_generados}\n`;
+        }
+
+        if (data.en_cola_generacion) {
+          response += `• **En cola de generación**: ${data.en_cola_generacion}\n`;
+        }
+
+        if (data.analisis_vencimientos) {
+          const v = data.analisis_vencimientos;
+          response += `• **Estado de vigencia**:\n`;
+          response += `  - Vigentes: ${v.vigentes || 0}\n`;
+          response += `  - Próximos a vencer: ${v.proximos_vencer || 0}\n`;
+          response += `  - Vencidos: ${v.vencidos || 0}\n`;
+
+          if ((v.vencidos || 0) > 0 || (v.proximos_vencer || 0) > 0) {
+            response += `\n⚠️ **Acción requerida**: ${v.vencidos || 0} carnets vencidos y ${v.proximos_vencer || 0} próximos a vencer.\n`;
+          }
+        }
+        break;
+
+      case 'comprehensive':
+        response = `📊 **Resumen Ejecutivo del Sistema:**\n\n`;
+
+        if (data.demograficas?.total_profesionales) {
+          response += `🔹 **${data.demograficas.total_profesionales.toLocaleString()}** profesionales registrados\n`;
+        }
+
+        if (data.analisis_centros?.total_centros) {
+          response += `🔹 **${data.analisis_centros.total_centros}** centros de salud\n`;
+        }
+
+        if (data.generacion_carnets?.carnets_generados) {
+          response += `🔹 **${data.generacion_carnets.carnets_generados}** carnets generados\n`;
+        }
+
+        response += `\n📈 **Principales insights:**\n`;
+
+        // Añadir insights inteligentes basados en los datos
+        if (data.demograficas?.genero) {
+          const generos = Object.entries(data.demograficas.genero);
+          if (generos.length > 0) {
+            const predominante = generos.reduce((a: any, b: any) => a[1] > b[1] ? a : b);
+            response += `• Predominancia de género: ${predominante[0]} (${predominante[1]} profesionales)\n`;
+          }
+        }
+        break;
+
+      default:
+        response = `📊 **Análisis de Datos:**\n\nHe procesado tu consulta y encontré información relevante. Los detalles están disponibles en el panel de resultados a la derecha.`;
+    }
+
+    return response;
+  };
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || loading) return;
 
@@ -439,4 +588,4 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
   );
 };
 
-export default AIAdvancedAnalyticsChat; 
+export default AIAdvancedAnalyticsChat;

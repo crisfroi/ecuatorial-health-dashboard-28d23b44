@@ -1,4 +1,3 @@
-
 import { useFormContext } from 'react-hook-form';
 import React from 'react';
 import { Button } from '@/components/ui/button';
@@ -109,7 +108,7 @@ export const DocumentsStep = ({
 
       {/* Documentos adicionales */}
       <div className="space-y-4">
-        <h4 className="font-medium text-lg">Documentos adicionales</h4>
+        <h4 className="font-medium text-lg">Documentos adicionales *</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
             <Upload className="mx-auto h-12 w-12 text-gray-400" />

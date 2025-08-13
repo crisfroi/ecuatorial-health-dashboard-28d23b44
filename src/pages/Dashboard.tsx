@@ -62,6 +62,7 @@ import ErrorBoundary from "@/components/ui/error-boundary";
 import ConnectionDebugPanel from "@/components/dashboard/ConnectionDebugPanel";
 import { OfflineNotification } from "@/components/ui/offline-notification";
 import { DatabaseDiagnostic } from "@/components/dashboard/DatabaseDiagnostic";
+import { DiagnosticPanel } from "@/components/dashboard/DiagnosticPanel";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -615,6 +616,9 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Panel de diagnóstico temporal */}
+        <DiagnosticPanel />
 
         {showStatsCards && (
           <div className="mb-6">

@@ -356,7 +356,7 @@ const Dashboard = () => {
     { id: "ministerial", label: "Ministerial", icon: Settings, permission: "view_ministerial_panel" },
     { id: "incidents", label: "Incidencias", icon: Activity, permission: "view_incidents" },
     { id: "health-centers", label: "Centros", icon: MapPin, permission: "view_centers" },
-    { id: "admin", label: "Administración", icon: UserCog, permission: "view_admin_panel" },
+    { id: "admin", label: "Administraci��n", icon: UserCog, permission: "view_admin_panel" },
   ].filter(tab => {
     // Si canAccessTab está disponible, usarlo
     if (canAccessTab) {
@@ -577,7 +577,7 @@ const Dashboard = () => {
             ) : (
               <ProfessionalsTable
                 onSelectProfessional={handleSelectProfessional}
-                userRole={userRole}
+                userRole={userRole || 'OBSERVADOR'}
                 appliedFilters={dashboardFilters}
                 onClearFilters={handleClearFilters}
               />
@@ -618,7 +618,7 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="ministerial" className="space-y-6">
-            {(userRole === "administrador" || userRole === "comite") && (
+            {(userRole === "SUPER_ADMINISTRADOR" || userRole === "PERSONALIDAD_MINISTERIAL") && (
               <MinisterialPanel />
             )}
           </TabsContent>
@@ -631,16 +631,8 @@ const Dashboard = () => {
             <HealthCenters />
           </TabsContent>
 
-          <TabsContent value="users" className="space-y-6">
-            {userRole === "administrador" && <AdminPanel />}
-          </TabsContent>
-
-          <TabsContent value="diagnostic" className="space-y-6">
-            {userRole === "administrador" && (
-              <div className="flex justify-center">
-                <DatabaseDiagnostic />
-              </div>
-            )}
+          <TabsContent value="admin" className="space-y-6">
+            {userRole === "SUPER_ADMINISTRADOR" && <AdminPanel />}
           </TabsContent>
         </Tabs>
       </div>

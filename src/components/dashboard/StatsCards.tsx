@@ -11,18 +11,21 @@ import {
   PersonStanding,
   RefreshCw,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
 import { useEstadisticasTest } from "@/hooks/useEstadisticasTest";
 import { useEstadisticasMock } from "@/hooks/useEstadisticasMock";
 import { useSupabaseConnectivity } from "@/hooks/useSupabaseConnectivity";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { useEstadisticasSimples } from "@/hooks/useEstadisticasSimples";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface StatsCardsProps {
   onNavigateToProfessionals: (filters: any) => void;
 }
 
 const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
+  const queryClient = useQueryClient();
   const { data: statsSimples, isLoading: simplesLoading, error: simplesError } = useEstadisticasSimples();
   const { data: stats, isLoading, error } = useEstadisticasAvanzadas();
   const {
@@ -192,8 +195,27 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     );
   }
 
+  const handleRefreshStats = () => {
+    console.log('🔄 Refrescando estadísticas...');
+    queryClient.invalidateQueries({ queryKey: ["estadisticas-simples"] });
+    queryClient.invalidateQueries({ queryKey: ["estadisticas"] });
+    queryClient.invalidateQueries({ queryKey: ["estadisticas-test"] });
+  };
+
   return (
     <div className="space-y-4">
+      {/* Botón de debug para refrescar */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefreshStats}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refrescar Estadísticas
+        </Button>
+      </div>
       {/* Offline mode indicator */}
       {(isOfflineMode || fallbackReason) && (
         <div

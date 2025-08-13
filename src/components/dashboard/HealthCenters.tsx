@@ -642,6 +642,16 @@ const HealthCenters = () => {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          {pendingCenters.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setShowPendingCenters(!showPendingCenters)}
+              className="flex items-center gap-2 border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              {pendingCenters.length} Centros Pendientes de Validación
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={exportCentersToExcel}

@@ -283,7 +283,8 @@ export const useRole = () => {
     isRevisor: userRole === 'REVISOR_SOLICITUDES',
     isMinisterial: userRole === 'PERSONALIDAD_MINISTERIAL',
     isObserver: userRole === 'OBSERVADOR',
-    isCenterDirector: userRole === 'DIRECTIVO_CENTRO_SANITARIO'
+    isCenterDirector: userRole === 'DIRECTIVO_CENTRO_SANITARIO',
+    isHospital: userRole === 'HOSPITAL'
   };
 };
 

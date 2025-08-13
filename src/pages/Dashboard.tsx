@@ -390,7 +390,7 @@ const Dashboard = () => {
     { id: "admin", label: "Administración", icon: UserCog, permission: "view_admin_panel" },
   ];
 
-  const availableTabs = allTabs.filter(tab => {
+  const filteredTabs = allTabs.filter(tab => {
     // Si no hay userRole, mostrar tabs básicas
     if (!userRole) {
       return ['overview', 'professionals', 'analytics'].includes(tab.id);
@@ -426,13 +426,11 @@ const Dashboard = () => {
   });
 
   // Asegurar que siempre haya al menos las pestañas básicas
-  const finalTabs = availableTabs.length === 0
+  const availableTabs = filteredTabs.length === 0
     ? allTabs.filter(tab => ['overview', 'professionals'].includes(tab.id))
-    : availableTabs;
+    : filteredTabs;
 
-  console.log('Available tabs:', finalTabs.map(t => t.id), 'for role:', userRole);
-
-  return finalTabs;
+  console.log('Available tabs:', availableTabs.map(t => t.id), 'for role:', userRole);
 
   const tabsConfig = availableTabs;
 

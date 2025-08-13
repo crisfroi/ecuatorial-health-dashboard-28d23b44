@@ -88,6 +88,11 @@ const Dashboard = () => {
   const [appliedFilters, setAppliedFilters] = useState<Filtros>({});
   const [showFilters, setShowFilters] = useState(false);
   const [dashboardFilters, setDashboardFilters] = useState<Filtros>({});
+  const [showStatsCards, setShowStatsCards] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { user, userRole, logout: authLogout, canAccessTab } = useAuth();
+
   // Establecer tab inicial basado en permisos del rol
   const getDefaultTab = () => {
     if (!userRole) return "overview";
@@ -108,11 +113,7 @@ const Dashboard = () => {
     }
   };
 
-  const [activeTab, setActiveTab] = useState(getDefaultTab());
-  const [showStatsCards, setShowStatsCards] = useState(true);
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  const { user, userRole, logout: authLogout, canAccessTab } = useAuth();
+  const [activeTab, setActiveTab] = useState("overview");
 
   const userName = user?.full_name || user?.email?.split('@')[0] || "Usuario";
   const userEmail = user?.email || "";

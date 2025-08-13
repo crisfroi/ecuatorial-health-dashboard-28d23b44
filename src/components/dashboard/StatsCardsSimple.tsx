@@ -105,7 +105,10 @@ const StatsCardsSimple = ({ onNavigateToProfessionals }: StatsCardsSimpleProps) 
         </Card>
 
         {/* Establecimientos Sanitarios */}
-        <Card className="hover:shadow-lg transition-all duration-200">
+        <Card
+          className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 hover:border-purple-400"
+          onClick={() => handleCardClick({ navigate_to: "health-centers" })}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Establecimientos Sanitarios</CardTitle>
             <Users className="h-4 w-4 text-purple-600" />
@@ -113,6 +116,9 @@ const StatsCardsSimple = ({ onNavigateToProfessionals }: StatsCardsSimpleProps) 
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">{centros}</div>
             <p className="text-xs text-muted-foreground">Establecimientos registrados</p>
+            <div className="mt-2 text-xs text-blue-600 font-medium">
+              Clic para ver centros →
+            </div>
           </CardContent>
         </Card>
 

@@ -42,46 +42,64 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     disableOfflineMode,
   } = useOfflineMode();
 
-  // Enhanced fallback logic based on error type
-  let effectiveStats = stats;
+  // Enhanced fallback logic - priorizar estadísticas simples
+  let effectiveStats = null;
   let fallbackReason = null;
+  let isLoadingStats = simplesLoading || isLoading;
 
-  // If main stats failed or are empty, use fallback data
-  if (!stats || (stats && stats.total === 0 && error)) {
-    console.log("Main stats failed or empty, analyzing for fallback...");
+  console.log("🔍 Evaluando estadísticas disponibles:", {
+    statsSimples: statsSimples?.total || 0,
+    stats: stats?.total || 0,
+    testStats: testStats?.total || 0,
+    mockStats: mockStats?.total || 0
+  });
 
-    // Priority 1: Use test stats if available and not loading
-    if (testStats && !testLoading && !testError) {
-      console.log("Using test stats as primary fallback");
-      effectiveStats = testStats;
-      fallbackReason = "test";
-    }
-    // Priority 2: Use mock data if test stats are not available
-    else if (mockStats && !mockLoading) {
-      console.log("Using mock data as fallback");
-      effectiveStats = mockStats;
-      fallbackReason = "mock";
-    }
-    // Priority 3: Check error type for specific fallback decisions
-    else if (error) {
-      const errorMessage = error?.message || "";
-      const isFetchError =
-        errorMessage.includes("fetch") ||
-        errorMessage.includes("Failed to fetch") ||
-        errorMessage.includes("TypeError");
-
-      const isNetworkError =
-        errorMessage.includes("network") ||
-        errorMessage.includes("NetworkError") ||
-        errorMessage.includes("CORS");
-
-      // If it's a network/fetch error, use mock data
-      if (isFetchError || isNetworkError) {
-        console.log("Using mock data due to network/fetch error");
-        effectiveStats = mockStats;
-        fallbackReason = "network";
-      }
-    }
+  // Priorizar estadísticas simples si están disponibles
+  if (statsSimples && statsSimples.total > 0) {
+    effectiveStats = {
+      total: statsSimples.total,
+      aprobados: statsSimples.aprobados,
+      pendientes: statsSimples.pendientes,
+      rechazados: statsSimples.rechazados,
+      porGenero: {
+        masculino: statsSimples.hombres,
+        femenino: statsSimples.mujeres
+      },
+      centrosSalud: statsSimples.centros,
+      proximosVencer: statsSimples.proximosVencer
+    };
+    console.log("✅ Usando estadísticas simples:", effectiveStats);
+  }
+  // Si las estadísticas simples fallan, usar las avanzadas
+  else if (stats && stats.total > 0) {
+    effectiveStats = stats;
+    console.log("✅ Usando estadísticas avanzadas:", effectiveStats);
+  }
+  // Si ambas fallan, usar estadísticas de prueba
+  else if (testStats && testStats.total > 0) {
+    effectiveStats = testStats;
+    fallbackReason = "test";
+    console.log("⚠️ Usando estadísticas de prueba");
+  }
+  // Último recurso: datos mock
+  else if (mockStats && mockStats.total > 0) {
+    effectiveStats = mockStats;
+    fallbackReason = "mock";
+    console.log("⚠️ Usando estadísticas mock");
+  }
+  // Si todo falla
+  else {
+    effectiveStats = {
+      total: 0,
+      aprobados: 0,
+      pendientes: 0,
+      rechazados: 0,
+      porGenero: { masculino: 0, femenino: 0 },
+      centrosSalud: 0,
+      proximosVencer: 0,
+    };
+    fallbackReason = simplesError ? `Error: ${simplesError.message}` : "No hay datos disponibles";
+    console.error("❌ No hay estadísticas disponibles:", { simplesError, error, testError });
   }
 
   if (isLoading) {

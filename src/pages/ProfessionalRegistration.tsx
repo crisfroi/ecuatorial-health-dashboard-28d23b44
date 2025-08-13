@@ -90,22 +90,25 @@ const formSchema = z
         "Formato de foto no válido (solo JPG/PNG).",
       ),
 
-    // Campo 'documentos' renombrado a 'documentos_adicionales' y validaciones para File[]
+    // Campo 'documentos' renombrado a 'documentos_adicionales' y validaciones para File[] - OBLIGATORIO
     documentos_adicionales: z
       .any()
+      .refine(
+        (files: File[] | undefined) => files && files.length > 0,
+        "Debe cargar al menos un documento adicional (título, certificado, etc.)."
+      )
       .refine((files: File[] | undefined) => {
-        if (!files || files.length === 0) return true; // Es opcional
+        if (!files || files.length === 0) return false;
         return files.every((file: File) => file.size <= 5 * 1024 * 1024);
       }, `Cada documento debe ser menor de 5MB.`)
       .refine((files: File[] | undefined) => {
-        if (!files || files.length === 0) return true; // Es opcional
+        if (!files || files.length === 0) return false;
         return files.every((file: File) =>
           ["application/pdf", "image/jpeg", "image/jpg", "image/png"].includes(
             file.type,
           ),
         );
-      }, "Formato de documento no válido (solo PDF, JPG, PNG).")
-      .optional(),
+      }, "Formato de documento no válido (solo PDF, JPG, PNG)."),
 
     acepta_politicas: z
       .boolean()

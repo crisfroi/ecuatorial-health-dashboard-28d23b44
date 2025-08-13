@@ -308,6 +308,20 @@ const ProfessionalRegistration = () => {
       return;
     }
 
+    if (!uploadedFiles || uploadedFiles.length === 0) {
+      setErrorEnvio(
+        "Debe cargar al menos un documento adicional (título, certificado, etc.).",
+      );
+      toast({
+        title: "Documentos Adicionales Requeridos",
+        description:
+          "Por favor, cargue al menos un documento adicional que respalde su formación profesional antes de enviar la solicitud.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorEnvio("");
 

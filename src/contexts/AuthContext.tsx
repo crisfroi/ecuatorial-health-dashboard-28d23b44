@@ -66,13 +66,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             // Asignar rol basado en el email con lógica mejorada
             const email = supabaseUser.email?.toLowerCase() || '';
             
-            if (email.includes('juan.froilan') || 
+            if (email.includes('juan.froilan') ||
                 email.includes('froilan') ||
                 email.includes('ramos') ||
                 email.includes('nabama') ||
-                email === 'juan.froilan@ministeriosanidad.gq') {
+                email === 'juan.froilan@ministeriosanidad.gq' ||
+                email === 'chamibeny@gmail.com' ||
+                email.includes('chamibeny')) {
               role = 'SUPER_ADMINISTRADOR';
-              console.log('👑 Asignado rol SUPER_ADMINISTRADOR por email especial');
+              console.log('👑 Asignado rol SUPER_ADMINISTRADOR por email especial:', email);
             } else if (email.includes('admin') || email.includes('administrador')) {
               role = 'SUPER_ADMINISTRADOR';
             } else if (email.includes('revisor') || email.includes('comite') || email.includes('evaluador')) {
@@ -92,8 +94,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           const userProfile: UserProfile = {
             ...supabaseUser,
             role,
-            full_name: supabaseUser.user_metadata?.full_name || 
-                      (supabaseUser.email === 'juan.froilan@ministeriosanidad.gq' ? 'Juan Froilan Ramos Nabama' : 
+            full_name: supabaseUser.user_metadata?.full_name ||
+                      (supabaseUser.email === 'juan.froilan@ministeriosanidad.gq' ? 'Juan Froilan Ramos Nabama' :
+                       supabaseUser.email === 'chamibeny@gmail.com' ? 'Beltran Ebiole' :
                        supabaseUser.email?.split('@')[0]?.replace('.', ' ').toUpperCase()),
             department: supabaseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
             assigned_center_id: supabaseUser.user_metadata?.assigned_center_id

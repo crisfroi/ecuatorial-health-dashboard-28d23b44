@@ -88,7 +88,27 @@ const Dashboard = () => {
   const [appliedFilters, setAppliedFilters] = useState<Filtros>({});
   const [showFilters, setShowFilters] = useState(false);
   const [dashboardFilters, setDashboardFilters] = useState<Filtros>({});
-  const [activeTab, setActiveTab] = useState("overview");
+  // Establecer tab inicial basado en permisos del rol
+  const getDefaultTab = () => {
+    if (!userRole) return "overview";
+
+    switch (userRole) {
+      case 'REVISOR_SOLICITUDES':
+        return "requests";
+      case 'PERSONALIDAD_MINISTERIAL':
+        return "analytics";
+      case 'HOSPITAL':
+        return "overview";
+      case 'DIRECTIVO_CENTRO_SANITARIO':
+        return "health-centers";
+      case 'OBSERVADOR':
+        return "overview";
+      default:
+        return "overview";
+    }
+  };
+
+  const [activeTab, setActiveTab] = useState(getDefaultTab());
   const [showStatsCards, setShowStatsCards] = useState(true);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -356,7 +376,7 @@ const Dashboard = () => {
     { id: "ministerial", label: "Ministerial", icon: Settings, permission: "view_ministerial_panel" },
     { id: "incidents", label: "Incidencias", icon: Activity, permission: "view_incidents" },
     { id: "health-centers", label: "Centros", icon: MapPin, permission: "view_centers" },
-    { id: "admin", label: "Administraci��n", icon: UserCog, permission: "view_admin_panel" },
+    { id: "admin", label: "Administración", icon: UserCog, permission: "view_admin_panel" },
   ].filter(tab => {
     // Si canAccessTab está disponible, usarlo
     if (canAccessTab) {

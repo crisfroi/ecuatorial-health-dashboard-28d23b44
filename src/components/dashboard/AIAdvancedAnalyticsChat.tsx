@@ -82,14 +82,42 @@ Como usuario con rol "${userRole}", tengo acceso completo a todos los datos del 
 📊 **Categorías de Análisis Disponibles:**
 ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
 
-**Ejemplos de consultas:**
+**Ejemplos de consultas que puedo responder:**
+
+🔍 **Preguntas generales:**
+• "¿Qué es este sistema?" / "¿Cómo funciona?"
+• "Dame un resumen completo de todos los datos"
+• "¿Cuál es el estado del sistema?"
+
+👥 **Sobre profesionales:**
 • "¿Cuántos profesionales hay por género?"
 • "¿Cuáles son las áreas profesionales más comunes?"
-• "¿En qué países se formaron más profesionales?"
-• "¿Qué centros tienen más profesionales?"
-• "Dame un análisis completo de todos los datos"
+• "¿Cuántos médicos tenemos registrados?"
 
-¡Pregúntame cualquier cosa sobre los datos del sistema!`,
+🏥 **Sobre centros de salud:**
+• "¿Qué centros tienen más profesionales?"
+• "¿Cuántos centros están pendientes de validación?"
+• "¿Cómo está la cobertura sanitaria por provincia?"
+
+🆔 **Sobre carnets:**
+• "¿Cuántos carnets se han generado?"
+• "¿Hay carnets próximos a vencer?"
+• "Estado de la cola de generación"
+
+📈 **Análisis temporales:**
+• "¿Cuántos registros hubo este mes?"
+• "¿Cómo evolucionan las solicitudes?"
+• "Tendencias de aprobación"
+
+🎓 **Formación académica:**
+• "¿En qué países se formaron más profesionales?"
+• "¿Qué instituciones son más frecuentes?"
+
+👤 **Gestión de usuarios:**
+• "¿Cuántos usuarios hay por rol?"
+• "¿Qué usuarios están activos?"
+
+**¡Puedes hacer preguntas en lenguaje natural! Soy inteligente y entenderé lo que necesitas.**`,
       timestamp: new Date()
     };
 
@@ -288,7 +316,7 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
         }
 
         if (data.tiempo_promedio_aprobacion) {
-          response += `• **Tiempo promedio de aprobación**: ${data.tiempo_promedio_aprobacion} días\n`;
+          response += `• **Tiempo promedio de aprobación**: ${data.tiempo_promedio_aprobacion} d��as\n`;
         }
 
         if (data.tendencias_mensuales?.registros) {

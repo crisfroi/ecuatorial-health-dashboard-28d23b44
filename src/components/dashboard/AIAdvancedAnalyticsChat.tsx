@@ -219,29 +219,203 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
         }
         break;
 
+      case 'application_status':
+        response = `📋 **Estado de Solicitudes:**\n\n`;
+
+        if (data.estados_solicitud) {
+          response += `• **Distribución por estado**:\n`;
+          Object.entries(data.estados_solicitud).forEach(([estado, count]: [string, any]) => {
+            response += `  - ${estado}: ${count} solicitudes\n`;
+          });
+        }
+
+        if (data.solicitudes_este_año) {
+          response += `• **Solicitudes este año**: ${data.solicitudes_este_año}\n`;
+        }
+
+        if (data.tiempo_promedio_aprobacion) {
+          response += `• **Tiempo promedio de aprobación**: ${data.tiempo_promedio_aprobacion} días\n`;
+        }
+        break;
+
+      case 'user_management':
+        response = `👥 **Gestión de Usuarios del Sistema:**\n\n`;
+
+        if (data.total_usuarios) {
+          response += `• **Total de usuarios**: ${data.total_usuarios}\n`;
+        }
+
+        if (data.usuarios_activos) {
+          response += `• **Usuarios activos**: ${data.usuarios_activos}\n`;
+        }
+
+        if (data.usuarios_por_rol) {
+          response += `• **Distribución por roles**:\n`;
+          Object.entries(data.usuarios_por_rol).forEach(([rol, count]: [string, any]) => {
+            response += `  - ${rol.replace('_', ' ')}: ${count} usuarios\n`;
+          });
+        }
+        break;
+
+      case 'system_performance':
+        response = `⚡ **Estado y Rendimiento del Sistema:**\n\n`;
+
+        if (data.total_registros) {
+          response += `• **Total de registros**: ${data.total_registros.toLocaleString()}\n`;
+        }
+
+        if (data.registros_por_tabla) {
+          response += `• **Distribución por tabla**:\n`;
+          Object.entries(data.registros_por_tabla).forEach(([tabla, count]: [string, any]) => {
+            const tableName = tabla.replace('_', ' ').replace('profesionales sanitarios', 'Profesionales').replace('centros salud', 'Centros de Salud');
+            response += `  - ${tableName}: ${count.toLocaleString()}\n`;
+          });
+        }
+
+        response += `• **Estado del sistema**: ✅ ${data.salud_sistema || 'Operativo'}\n`;
+        response += `• **Última actualización**: ${new Date().toLocaleString('es-ES')}\n`;
+        break;
+
+      case 'temporal_analysis':
+        response = `📅 **Análisis Temporal:**\n\n`;
+
+        if (data.registros_este_año) {
+          response += `• **Registros este año**: ${data.registros_este_año}\n`;
+        }
+
+        if (data.registros_este_mes) {
+          response += `• **Registros este mes**: ${data.registros_este_mes}\n`;
+        }
+
+        if (data.tiempo_promedio_aprobacion) {
+          response += `• **Tiempo promedio de aprobación**: ${data.tiempo_promedio_aprobacion} días\n`;
+        }
+
+        if (data.tendencias_mensuales?.registros) {
+          const meses = Object.keys(data.tendencias_mensuales.registros);
+          const ultimoMes = meses[meses.length - 1];
+          const penultimoMes = meses[meses.length - 2];
+
+          if (ultimoMes && penultimoMes) {
+            const cambio = data.tendencias_mensuales.registros[ultimoMes] - data.tendencias_mensuales.registros[penultimoMes];
+            const tendencia = cambio > 0 ? '📈 Incremento' : cambio < 0 ? '📉 Disminución' : '➡️ Estable';
+            response += `• **Tendencia reciente**: ${tendencia} de ${Math.abs(cambio)} registros\n`;
+          }
+        }
+        break;
+
+      case 'education':
+        response = `🎓 **Análisis de Formación Académica:**\n\n`;
+
+        if (data.paises_formacion) {
+          const topPaises = Object.entries(data.paises_formacion)
+            .sort(([,a]: any, [,b]: any) => b - a)
+            .slice(0, 5);
+          response += `• **Países de formación principales**:\n`;
+          topPaises.forEach(([pais, count]: [string, any]) => {
+            response += `  - ${pais}: ${count} profesionales\n`;
+          });
+        }
+
+        if (data.instituciones_principales) {
+          const topInstituciones = Object.entries(data.instituciones_principales)
+            .sort(([,a]: any, [,b]: any) => b - a)
+            .slice(0, 3);
+          response += `• **Instituciones más frecuentes**:\n`;
+          topInstituciones.forEach(([inst, count]: [string, any]) => {
+            response += `  - ${inst}: ${count}\n`;
+          });
+        }
+        break;
+
+      case 'centers_analysis':
+        response = `🏥 **Análisis Completo de Centros:**\n\n`;
+
+        if (data.total_centros) {
+          response += `• **Total de centros**: ${data.total_centros}\n`;
+        }
+
+        if (data.centros_pendientes_validacion > 0) {
+          response += `• **⚠️ Centros pendientes de validación**: ${data.centros_pendientes_validacion}\n`;
+        }
+
+        if (data.cobertura_sanitaria) {
+          response += `• **Cobertura sanitaria**:\n`;
+          response += `  - Centros con profesionales: ${data.cobertura_sanitaria.centros_con_profesionales}\n`;
+          response += `  - Promedio por centro: ${data.cobertura_sanitaria.promedio_profesionales_por_centro} profesionales\n`;
+        }
+
+        if (data.centros_por_provincia) {
+          const topProvincias = Object.entries(data.centros_por_provincia)
+            .sort(([,a]: any, [,b]: any) => b - a)
+            .slice(0, 3);
+          response += `• **Provincias con más centros**:\n`;
+          topProvincias.forEach(([prov, count]: [string, any]) => {
+            response += `  - ${prov}: ${count} centros\n`;
+          });
+        }
+        break;
+
       case 'comprehensive':
-        response = `📊 **Resumen Ejecutivo del Sistema:**\n\n`;
+        // Detectar si es una pregunta específica sobre el sistema
+        const lowerQuestion = userQuestion.toLowerCase();
 
-        if (data.demograficas?.total_profesionales) {
-          response += `🔹 **${data.demograficas.total_profesionales.toLocaleString()}** profesionales registrados\n`;
-        }
+        if (lowerQuestion.includes('que es') || lowerQuestion.includes('como funciona') || lowerQuestion.includes('que hace')) {
+          response = `🏥 **Sistema de Gestión de Profesionales Sanitarios de Guinea Ecuatorial**\n\n`;
+          response += `Este es un sistema integral para la gestión de profesionales de la salud que incluye:\n\n`;
+          response += `📋 **Funcionalidades principales:**\n`;
+          response += `• Registro y validación de profesionales sanitarios\n`;
+          response += `• Generación automática de carnets profesionales\n`;
+          response += `• Gestión de centros de salud y validación\n`;
+          response += `• Sistema de roles y permisos para usuarios\n`;
+          response += `• Análisis estadístico avanzado con IA\n`;
+          response += `• Monitoreo de renovaciones y vencimientos\n\n`;
+          response += `👥 **Tipos de usuarios:**\n`;
+          response += `• Super Administrador: Acceso completo\n`;
+          response += `• Revisor/Comité Evaluador: Validación de solicitudes\n`;
+          response += `• Personalidad Ministerial: Reportes ejecutivos\n`;
+          response += `• Gestión Hospitalaria: Centros de su red\n`;
+          response += `• Directivos de Centro: Su centro específico\n`;
+          response += `• Observador: Solo lectura\n\n`;
+        } else {
+          response = `📊 **Resumen Ejecutivo del Sistema:**\n\n`;
 
-        if (data.analisis_centros?.total_centros) {
-          response += `🔹 **${data.analisis_centros.total_centros}** centros de salud\n`;
-        }
+          if (data.demograficas?.total_profesionales) {
+            response += `🔹 **${data.demograficas.total_profesionales.toLocaleString()}** profesionales registrados\n`;
+          }
 
-        if (data.generacion_carnets?.carnets_generados) {
-          response += `🔹 **${data.generacion_carnets.carnets_generados}** carnets generados\n`;
-        }
+          if (data.analisis_centros?.total_centros) {
+            response += `🔹 **${data.analisis_centros.total_centros}** centros de salud\n`;
+          }
 
-        response += `\n📈 **Principales insights:**\n`;
+          if (data.generacion_carnets?.carnets_generados) {
+            response += `🔹 **${data.generacion_carnets.carnets_generados}** carnets generados\n`;
+          }
 
-        // Añadir insights inteligentes basados en los datos
-        if (data.demograficas?.genero) {
-          const generos = Object.entries(data.demograficas.genero);
-          if (generos.length > 0) {
-            const predominante = generos.reduce((a: any, b: any) => a[1] > b[1] ? a : b);
-            response += `• Predominancia de género: ${predominante[0]} (${predominante[1]} profesionales)\n`;
+          if (data.gestion_usuarios?.total_usuarios) {
+            response += `🔹 **${data.gestion_usuarios.total_usuarios}** usuarios del sistema\n`;
+          }
+
+          response += `\n📈 **Principales insights:**\n`;
+
+          // Añadir insights inteligentes basados en los datos
+          if (data.demograficas?.genero) {
+            const generos = Object.entries(data.demograficas.genero);
+            if (generos.length > 0) {
+              const predominante = generos.reduce((a: any, b: any) => a[1] > b[1] ? a : b);
+              response += `• Predominancia de género: ${predominante[0]} (${predominante[1]} profesionales)\n`;
+            }
+          }
+
+          if (data.analisis_centros?.centros_pendientes_validacion > 0) {
+            response += `• ⚠️ Hay ${data.analisis_centros.centros_pendientes_validacion} centros pendientes de validación\n`;
+          }
+
+          if (data.generacion_carnets?.analisis_vencimientos) {
+            const v = data.generacion_carnets.analisis_vencimientos;
+            if ((v.vencidos || 0) > 0) {
+              response += `• ⚠️ ${v.vencidos} carnets vencidos requieren atención\n`;
+            }
           }
         }
         break;

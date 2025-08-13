@@ -325,82 +325,46 @@ export function useAdvancedAnalyticsAI() {
       }
     }
 
-    // Mapeo de palabras clave a consultas
+    // Mapeo de palabras clave menos ambiguo
     const keywordMappings: Record<string, string> = {
-      'demografía': 'demographics',
-      'demografico': 'demographics',
+      // Solo si no se detecto en las frases específicas
       'genero': 'demographics',
       'edad': 'demographics',
-      'nacionalidad': 'demographics',
-      'provincia': 'demographics',
-      
-      'area': 'professional_areas',
+      'demografico': 'demographics',
+
       'especialidad': 'professional_areas',
-      'profesional': 'professional_areas',
-      'categoria': 'professional_areas',
-      
-      'formacion': 'education',
-      'educacion': 'education',
-      'graduacion': 'education',
-      'institucion': 'education',
+      'categoria de titulacion': 'professional_areas',
+
       'universidad': 'education',
-      'pais': 'education',
-      
-      'centro': 'work_centers',
-      'trabajo': 'work_centers',
-      'distrito': 'work_centers',
-      'sector': 'work_centers',
-      'situacion': 'work_centers',
-      
-      'solicitud': 'application_status',
-      'estado': 'application_status',
+      'graduacion': 'education',
+      'educacion': 'education',
+
+      'distrito sanitario': 'work_centers',
+
       'aprobacion': 'application_status',
       'rechazo': 'application_status',
-      'urgencia': 'application_status',
-      
-      'carnet': 'carnet_generation',
-      'generacion': 'carnet_generation',
-      'cola': 'carnet_generation',
+
       'vencimiento': 'carnet_generation',
       'vigente': 'carnet_generation',
 
-      'temporal': 'temporal_analysis',
-      'tiempo': 'temporal_analysis',
-      'evolucion': 'temporal_analysis',
       'tendencia': 'temporal_analysis',
       'historico': 'temporal_analysis',
-      'mes': 'temporal_analysis',
-      'año': 'temporal_analysis',
 
-      'usuario': 'user_management',
       'usuarios': 'user_management',
-      'rol': 'user_management',
       'roles': 'user_management',
-      'departamento': 'user_management',
-      'activo': 'user_management',
-      'gestión': 'user_management',
 
-      'sistema': 'system_performance',
       'rendimiento': 'system_performance',
       'performance': 'system_performance',
-      'salud': 'system_performance',
-      'registros': 'system_performance',
-      'tabla': 'system_performance',
-      'base': 'system_performance',
-      'datos': 'system_performance',
 
-      'completo': 'comprehensive',
-      'comprehensive': 'comprehensive',
-      'todo': 'comprehensive',
+      // Palabras que sugieren análisis completo
       'resumen': 'comprehensive',
-      'integral': 'comprehensive',
       'general': 'comprehensive',
       'panorama': 'comprehensive',
       'dashboard': 'comprehensive',
-      'estadisticas': 'comprehensive'
+      'estadisticas generales': 'comprehensive'
     };
 
-    // Buscar la consulta más apropiada
+    // Buscar la consulta más apropiada (solo si no se encontró frase específica)
     for (const [keyword, query] of Object.entries(keywordMappings)) {
       if (input.includes(keyword)) {
         return {
@@ -410,7 +374,23 @@ export function useAdvancedAnalyticsAI() {
       }
     }
 
+    // Manejo de preguntas simples por cantidad
+    if (input.includes('cuantos') || input.includes('cuantas')) {
+      if (input.includes('centro') || input.includes('establecimiento')) {
+        return { query: 'work_centers', description: userInput };
+      }
+      if (input.includes('solicitud')) {
+        return { query: 'application_status', description: userInput };
+      }
+      if (input.includes('carnet')) {
+        return { query: 'carnet_generation', description: userInput };
+      }
+      // Por defecto, preguntas de cantidad van a demografía
+      return { query: 'demographics', description: userInput };
+    }
+
     // Si no se encuentra una coincidencia específica, devolver análisis comprehensivo
+    console.log('No se encontró categoría específica para:', userInput);
     return {
       query: 'comprehensive',
       description: userInput

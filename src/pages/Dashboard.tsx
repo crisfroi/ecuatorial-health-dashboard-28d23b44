@@ -45,6 +45,7 @@ import {
 
 // Import components
 import StatsCards from "@/components/dashboard/StatsCards";
+import StatsCardsSimple from "@/components/dashboard/StatsCardsSimple";
 import DashboardCharts from "@/components/dashboard/DashboardCharts";
 import ProfessionalsTable from "@/components/dashboard/ProfessionalsTable";
 import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
@@ -622,7 +623,7 @@ const Dashboard = () => {
 
         {showStatsCards && (
           <div className="mb-6">
-            <StatsCards
+            <StatsCardsSimple
               onNavigateToProfessionals={handleNavigateToProfessionals}
             />
           </div>

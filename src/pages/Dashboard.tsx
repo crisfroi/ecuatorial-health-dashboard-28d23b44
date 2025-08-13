@@ -391,35 +391,44 @@ const Dashboard = () => {
   ];
 
   const availableTabs = allTabs.filter(tab => {
+    // Si no hay userRole, mostrar tabs básicas
+    if (!userRole) {
+      return ['overview', 'professionals', 'analytics'].includes(tab.id);
+    }
+
     // Si canAccessTab está disponible, usarlo
     if (canAccessTab) {
-      const hasAccess = canAccessTab(tab.id);
-      console.log(`canAccessTab(${tab.id}): ${hasAccess} for role ${userRole}`);
-      return hasAccess;
+      try {
+        return canAccessTab(tab.id);
+      } catch (error) {
+        console.warn(`Error checking access for tab ${tab.id}:`, error);
+        return false;
+      }
     }
 
-    // Si no hay userRole, mostrar solo overview
-    if (!userRole) {
-      console.log(`No userRole, showing only overview for tab ${tab.id}`);
-      return tab.id === 'overview';
+    // Verificar por userRole manualmente con lógica más permisiva
+    switch (userRole) {
+      case 'SUPER_ADMINISTRADOR':
+        return true; // Acceso a todas las pestañas
+      case 'REVISOR_SOLICITUDES':
+        return !['ministerial', 'admin'].includes(tab.id);
+      case 'PERSONALIDAD_MINISTERIAL':
+        return ['overview', 'analytics', 'ministerial', 'professionals', 'health-centers', 'ai-chat'].includes(tab.id);
+      case 'HOSPITAL':
+        return ['overview', 'professionals', 'requests', 'health-centers', 'incidents', 'renewals', 'ai-chat'].includes(tab.id);
+      case 'DIRECTIVO_CENTRO_SANITARIO':
+        return ['overview', 'professionals', 'health-centers', 'incidents', 'ai-chat'].includes(tab.id);
+      case 'OBSERVADOR':
+        return ['overview', 'professionals', 'analytics', 'health-centers', 'ai-chat'].includes(tab.id);
+      default:
+        return ['overview', 'professionals'].includes(tab.id); // Default básico
     }
-
-    // Verificar por userRole manualmente
-    const hasAccess = userRole === 'SUPER_ADMINISTRADOR' ||
-           (userRole === 'REVISOR_SOLICITUDES' && !['ministerial', 'admin'].includes(tab.id)) ||
-           (userRole === 'PERSONALIDAD_MINISTERIAL' && ['overview', 'analytics', 'ministerial', 'professionals', 'health-centers', 'ai-chat'].includes(tab.id)) ||
-           (userRole === 'HOSPITAL' && ['overview', 'professionals', 'requests', 'health-centers', 'incidents', 'renewals', 'ai-chat'].includes(tab.id)) ||
-           (userRole === 'DIRECTIVO_CENTRO_SANITARIO' && ['overview', 'professionals', 'health-centers', 'incidents', 'ai-chat'].includes(tab.id)) ||
-           (userRole === 'OBSERVADOR' && ['overview', 'professionals', 'analytics', 'health-centers', 'ai-chat'].includes(tab.id));
-
-    console.log(`Manual check for tab ${tab.id} with role ${userRole}: ${hasAccess}`);
-    return hasAccess;
   });
 
-  // Asegurar que siempre haya al menos la pestaña overview
+  // Asegurar que siempre haya al menos las pestañas básicas
   if (availableTabs.length === 0) {
-    console.warn('No tabs available, forcing overview tab');
-    availableTabs.push(allTabs[0]); // overview tab
+    console.warn('No tabs available, adding default tabs');
+    return allTabs.filter(tab => ['overview', 'professionals'].includes(tab.id));
   }
 
   console.log('Available tabs:', availableTabs.map(t => t.id), 'for role:', userRole);

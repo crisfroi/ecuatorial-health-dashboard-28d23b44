@@ -18,6 +18,7 @@ import { useEstadisticasMock } from "@/hooks/useEstadisticasMock";
 import { useSupabaseConnectivity } from "@/hooks/useSupabaseConnectivity";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { useEstadisticasSimples } from "@/hooks/useEstadisticasSimples";
+import { useEstadisticasDirectas } from "@/hooks/useEstadisticasDirectas";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface StatsCardsProps {
@@ -26,6 +27,7 @@ interface StatsCardsProps {
 
 const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
   const queryClient = useQueryClient();
+  const { data: statsDirectas, isLoading: directasLoading, error: directasError } = useEstadisticasDirectas();
   const { data: statsSimples, isLoading: simplesLoading, error: simplesError } = useEstadisticasSimples();
   const { data: stats, isLoading, error } = useEstadisticasAvanzadas();
   const {
@@ -45,20 +47,43 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     disableOfflineMode,
   } = useOfflineMode();
 
-  // Enhanced fallback logic - priorizar estadísticas simples
+  // Enhanced fallback logic - priorizar estadísticas directas
   let effectiveStats = null;
   let fallbackReason = null;
-  let isLoadingStats = simplesLoading && isLoading && testLoading; // Solo loading si TODOS están cargando
+  let isLoadingStats = directasLoading && simplesLoading && isLoading && testLoading; // Solo loading si TODOS están cargando
 
   console.log("🔍 Evaluando estadísticas disponibles:", {
+    statsDirectas: statsDirectas?.total || 0,
     statsSimples: statsSimples?.total || 0,
     stats: stats?.total || 0,
     testStats: testStats?.total || 0,
     mockStats: mockStats?.total || 0
   });
 
-  // Priorizar estadísticas simples si están disponibles (incluir cuando hay datos incluso si es 0)
-  if (statsSimples !== undefined && statsSimples !== null && !simplesLoading) {
+  // PRIORIDAD 1: Estadísticas directas
+  if (statsDirectas !== undefined && statsDirectas !== null && !directasLoading) {
+    effectiveStats = {
+      total: statsDirectas.total,
+      aprobados: statsDirectas.aprobados,
+      pendientes: statsDirectas.pendientes,
+      recibidos: statsDirectas.recibidos,
+      revisando: statsDirectas.revisando,
+      rechazados: statsDirectas.rechazados,
+      vencimientosProximos: statsDirectas.proximosVencer,
+      carnetVencidos: statsDirectas.carnetVencidos,
+      generoMasculino: statsDirectas.hombres,
+      generoFemenino: statsDirectas.mujeres,
+      porGenero: {
+        masculino: statsDirectas.hombres,
+        femenino: statsDirectas.mujeres
+      },
+      centrosSalud: statsDirectas.centros,
+      proximosVencer: statsDirectas.proximosVencer
+    };
+    console.log("✅ Usando estadísticas directas:", effectiveStats);
+  }
+  // PRIORIDAD 2: Estadísticas simples si están disponibles
+  else if (statsSimples !== undefined && statsSimples !== null && !simplesLoading) {
     effectiveStats = {
       total: statsSimples.total,
       aprobados: statsSimples.aprobados,
@@ -204,6 +229,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
 
   const handleRefreshStats = () => {
     console.log('🔄 Refrescando estadísticas...');
+    queryClient.invalidateQueries({ queryKey: ["estadisticas-directas"] });
     queryClient.invalidateQueries({ queryKey: ["estadisticas-simples"] });
     queryClient.invalidateQueries({ queryKey: ["estadisticas"] });
     queryClient.invalidateQueries({ queryKey: ["estadisticas-test"] });

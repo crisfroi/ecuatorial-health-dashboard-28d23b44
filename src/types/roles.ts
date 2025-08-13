@@ -4,12 +4,13 @@
  * Este archivo define todos los roles de usuario y sus permisos correspondientes
  */
 
-export type UserRole = 
+export type UserRole =
   | 'SUPER_ADMINISTRADOR'
   | 'REVISOR_SOLICITUDES'
   | 'PERSONALIDAD_MINISTERIAL'
   | 'OBSERVADOR'
-  | 'DIRECTIVO_CENTRO_SANITARIO';
+  | 'DIRECTIVO_CENTRO_SANITARIO'
+  | 'HOSPITAL';
 
 export interface Permission {
   id: string;

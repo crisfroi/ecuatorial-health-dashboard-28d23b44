@@ -236,21 +236,7 @@ const Dashboard = () => {
     try {
       console.log("Dashboard: Cerrando sesión...");
 
-      // Cerrar sesión en Supabase
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        console.error("Error al cerrar sesión:", error);
-        toast({
-          title: "Error al cerrar sesión",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Limpiar datos locales si es necesario
-      localStorage.removeItem('supabase.auth.token');
+      await authLogout();
 
       toast({
         title: "Sesión cerrada",

@@ -336,6 +336,11 @@ export const ROLE_DASHBOARD_VIEWS: Record<UserRole, {
     defaultTab: 'health-centers',
     featuredCards: ['center_professionals', 'center_incidents', 'center_statistics', 'assigned_staff'],
     hiddenSections: ['other_centers', 'global_admin', 'ministerial_data']
+  },
+  HOSPITAL: {
+    defaultTab: 'overview',
+    featuredCards: ['hospital_professionals', 'hospital_incidents', 'hospital_statistics', 'pending_hospital_requests'],
+    hiddenSections: ['ministerial_data', 'global_admin', 'system_configuration']
   }
 };
 

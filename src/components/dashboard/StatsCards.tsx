@@ -60,7 +60,13 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
       total: statsSimples.total,
       aprobados: statsSimples.aprobados,
       pendientes: statsSimples.pendientes,
+      recibidos: 0, // No disponible en simples
+      revisando: 0, // No disponible en simples
       rechazados: statsSimples.rechazados,
+      vencimientosProximos: statsSimples.proximosVencer,
+      carnetVencidos: 0, // Calcular si es necesario
+      generoMasculino: statsSimples.hombres,
+      generoFemenino: statsSimples.mujeres,
       porGenero: {
         masculino: statsSimples.hombres,
         femenino: statsSimples.mujeres
@@ -282,7 +288,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {effectiveStats?.recibidos || 0}
+              {effectiveStats?.pendientes || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               En proceso de revisión
@@ -303,7 +309,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {effectiveStats?.revisando || 0}
+              {effectiveStats?.recibidos || effectiveStats?.revisando || 0}
             </div>
             <p className="text-xs text-muted-foreground">Siendo evaluadas</p>
             <div className="mt-2 text-xs text-blue-600 font-medium">

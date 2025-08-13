@@ -102,7 +102,7 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     console.error("❌ No hay estadísticas disponibles:", { simplesError, error, testError });
   }
 
-  if (isLoading) {
+  if (isLoadingStats) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[1, 2, 3, 4, 5, 6].map((i) => (

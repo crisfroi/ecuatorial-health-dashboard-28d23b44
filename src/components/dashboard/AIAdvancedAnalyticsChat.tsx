@@ -288,12 +288,12 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
         // Ejecutar la consulta
         const result = await queryStats(parsedQuery);
 
-        // Mensaje de resultado
+        // Mensaje de resultado con respuesta inteligente
         const resultMessage: Message = {
           id: (Date.now() + 2).toString(),
           type: "bot",
-          content: result.success 
-            ? `✅ **Análisis completado exitosamente**\n\nHe encontrado datos relevantes para tu consulta. Los resultados se muestran a continuación.`
+          content: result.success
+            ? generateSmartResponse(result, userMessage.content)
             : `❌ **Error en el análisis**\n\nNo pude procesar tu consulta: ${result.error}`,
           timestamp: new Date(),
           query: parsedQuery

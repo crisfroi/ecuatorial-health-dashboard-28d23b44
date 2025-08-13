@@ -107,18 +107,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           console.log('✅ Usuario configurado:', { email: userProfile.email, role });
         } else {
           console.log('👤 No hay usuario autenticado, usando datos demo');
-          // Para desarrollo, crear usuario demo para Juan Froilan
+          // Para desarrollo, crear usuario demo
           const mockUser: UserProfile = {
-            id: 'juan-froilan-demo-id',
-            email: 'juan.froilan@ministeriosanidad.gq',
+            id: 'super-admin-demo-id',
+            email: 'chamibeny@gmail.com',
             role: 'SUPER_ADMINISTRADOR',
-            full_name: 'Juan Froilan Ramos Nabama',
+            full_name: 'Beltran Ebiole',
             department: 'Ministerio de Sanidad y Bienestar Social',
             aud: 'authenticated',
             app_metadata: {},
             user_metadata: {
               role: 'SUPER_ADMINISTRADOR',
-              full_name: 'Juan Froilan Ramos Nabama',
+              full_name: 'Beltran Ebiole',
               department: 'Ministerio de Sanidad y Bienestar Social'
             },
             created_at: new Date().toISOString()
@@ -131,9 +131,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         // En caso de error, usar usuario demo
         const mockUser: UserProfile = {
           id: 'error-fallback-id',
-          email: 'juan.froilan@ministeriosanidad.gq',
+          email: 'chamibeny@gmail.com',
           role: 'SUPER_ADMINISTRADOR',
-          full_name: 'Juan Froilan Ramos Nabama',
+          full_name: 'Beltran Ebiole',
           department: 'Ministerio de Sanidad y Bienestar Social',
           aud: 'authenticated',
           app_metadata: {},

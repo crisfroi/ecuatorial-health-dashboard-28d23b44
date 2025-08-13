@@ -23,6 +23,7 @@ interface StatsCardsProps {
 }
 
 const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
+  const { data: statsSimples, isLoading: simplesLoading, error: simplesError } = useEstadisticasSimples();
   const { data: stats, isLoading, error } = useEstadisticasAvanzadas();
   const {
     data: testStats,

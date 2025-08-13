@@ -252,7 +252,38 @@ export function useAdvancedAnalyticsAI() {
 
   const parseNaturalLanguage = useCallback((userInput: string): AdvancedStatsQuery | null => {
     const input = userInput.toLowerCase();
-    
+
+    // Preguntas específicas del sistema con respuestas directas
+    const directAnswers: Record<string, string> = {
+      'que es este sistema': 'comprehensive',
+      'como funciona': 'comprehensive',
+      'que datos tienes': 'comprehensive',
+      'que puedes hacer': 'comprehensive',
+      'ayuda': 'comprehensive',
+      'help': 'comprehensive',
+      'cuantos': 'demographics',
+      'donde': 'work_centers',
+      'cuando': 'temporal_analysis',
+      'como esta': 'system_performance',
+      'estado del sistema': 'system_performance',
+      'problemas': 'system_performance',
+      'errores': 'system_performance',
+      'validacion': 'centers_analysis',
+      'pendientes': 'application_status',
+      'aprobados': 'application_status',
+      'rechazados': 'application_status'
+    };
+
+    // Verificar respuestas directas primero
+    for (const [phrase, query] of Object.entries(directAnswers)) {
+      if (input.includes(phrase)) {
+        return {
+          query,
+          description: userInput
+        };
+      }
+    }
+
     // Mapeo de palabras clave a consultas
     const keywordMappings: Record<string, string> = {
       'demografía': 'demographics',

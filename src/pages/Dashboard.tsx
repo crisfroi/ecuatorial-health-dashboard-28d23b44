@@ -443,7 +443,16 @@ const Dashboard = () => {
     availableTabs = allTabs;
   }
 
-  console.log('Available tabs:', availableTabs.map(t => t.id), 'for role:', userRole);
+  console.log('🎭 ROLE DEBUG:', {
+    userRole,
+    email: user?.email,
+    fullName: user?.full_name,
+    isSuperAdmin: userRole === 'SUPER_ADMINISTRADOR',
+    allTabsCount: allTabs.length,
+    filteredTabsCount: filteredTabs.length,
+    availableTabsCount: availableTabs.length,
+    availableTabIds: availableTabs.map(t => t.id)
+  });
 
   const tabsConfig = availableTabs;
 

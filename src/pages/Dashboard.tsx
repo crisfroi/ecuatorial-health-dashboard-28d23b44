@@ -392,57 +392,35 @@ const Dashboard = () => {
     { id: "admin", label: "Administración", icon: UserCog, permission: "view_admin_panel" },
   ];
 
-  const filteredTabs = allTabs.filter(tab => {
-    // Si no hay userRole, mostrar tabs básicas
-    if (!userRole) {
-      return ['overview', 'professionals', 'analytics'].includes(tab.id);
-    }
+  // SIMPLIFICACIÓN: Forzar todas las pestañas para SUPER_ADMINISTRADOR
+  let availableTabs = allTabs; // Por defecto, mostrar todas
 
-    // SUPER_ADMINISTRADOR tiene acceso completo SIEMPRE
-    if (userRole === 'SUPER_ADMINISTRADOR') {
-      console.log(`✅ SUPER_ADMINISTRADOR: permitiendo acceso a ${tab.id}`);
-      return true;
-    }
-
-    // Si canAccessTab está disponible, usarlo para otros roles
-    if (canAccessTab) {
-      try {
-        const hasAccess = canAccessTab(tab.id);
-        console.log(`🔐 Tab access for ${tab.id} (${userRole}):`, hasAccess);
-        return hasAccess;
-      } catch (error) {
-        console.warn(`Error checking access for tab ${tab.id}:`, error);
-        return false;
+  // Solo restringir si NO es SUPER_ADMINISTRADOR
+  if (userRole !== 'SUPER_ADMINISTRADOR') {
+    const filteredTabs = allTabs.filter(tab => {
+      // Si no hay userRole, mostrar tabs básicas
+      if (!userRole) {
+        return ['overview', 'professionals', 'analytics'].includes(tab.id);
       }
-    }
 
-    // Verificar por userRole manualmente con lógica más permisiva
-    switch (userRole) {
-      case 'REVISOR_SOLICITUDES':
-        return !['ministerial', 'admin'].includes(tab.id);
-      case 'PERSONALIDAD_MINISTERIAL':
-        return ['overview', 'analytics', 'ministerial', 'professionals', 'health-centers', 'ai-chat'].includes(tab.id);
-      case 'HOSPITAL':
-        return ['overview', 'professionals', 'requests', 'health-centers', 'incidents', 'renewals', 'ai-chat'].includes(tab.id);
-      case 'DIRECTIVO_CENTRO_SANITARIO':
-        return ['overview', 'professionals', 'health-centers', 'incidents', 'ai-chat'].includes(tab.id);
-      case 'OBSERVADOR':
-        return ['overview', 'professionals', 'analytics', 'health-centers', 'ai-chat'].includes(tab.id);
-      default:
-        return ['overview', 'professionals'].includes(tab.id); // Default básico
-    }
-  });
+      // Lógica para otros roles
+      switch (userRole) {
+        case 'REVISOR_SOLICITUDES':
+          return !['ministerial', 'admin'].includes(tab.id);
+        case 'PERSONALIDAD_MINISTERIAL':
+          return ['overview', 'analytics', 'ministerial', 'professionals', 'health-centers', 'ai-chat'].includes(tab.id);
+        case 'HOSPITAL':
+          return ['overview', 'professionals', 'requests', 'health-centers', 'incidents', 'renewals', 'ai-chat'].includes(tab.id);
+        case 'DIRECTIVO_CENTRO_SANITARIO':
+          return ['overview', 'professionals', 'health-centers', 'incidents', 'ai-chat'].includes(tab.id);
+        case 'OBSERVADOR':
+          return ['overview', 'professionals', 'analytics', 'health-centers', 'ai-chat'].includes(tab.id);
+        default:
+          return ['overview', 'professionals'].includes(tab.id);
+      }
+    });
 
-  // Asegurar que siempre haya al menos las pestañas básicas
-  let availableTabs = filteredTabs;
-  if (filteredTabs.length === 0) {
-    availableTabs = allTabs.filter(tab => ['overview', 'professionals'].includes(tab.id));
-  }
-
-  // SUPER_ADMINISTRADOR debe tener TODAS las pestañas sin excepción
-  if (userRole === 'SUPER_ADMINISTRADOR' && availableTabs.length < allTabs.length) {
-    console.log('🚨 SUPER_ADMINISTRADOR: forzando acceso a todas las pestañas');
-    availableTabs = allTabs;
+    availableTabs = filteredTabs.length > 0 ? filteredTabs : allTabs.filter(tab => ['overview', 'professionals'].includes(tab.id));
   }
 
   console.log('🎭 ROLE DEBUG:', {
@@ -451,9 +429,9 @@ const Dashboard = () => {
     fullName: user?.full_name,
     isSuperAdmin: userRole === 'SUPER_ADMINISTRADOR',
     allTabsCount: allTabs.length,
-    filteredTabsCount: filteredTabs.length,
     availableTabsCount: availableTabs.length,
-    availableTabIds: availableTabs.map(t => t.id)
+    availableTabIds: availableTabs.map(t => t.id),
+    forcedAllTabs: userRole === 'SUPER_ADMINISTRADOR'
   });
 
   const tabsConfig = availableTabs;

@@ -661,14 +661,6 @@ const HealthCenters = () => {
             <Download className="w-4 h-4" />
             Exportar Excel
           </Button>
-          <Button
-            variant={showPendingCenters ? "default" : "outline"}
-            onClick={() => setShowPendingCenters(!showPendingCenters)}
-            className="flex items-center gap-2"
-          >
-            <Eye className="w-4 h-4" />
-            Centros Pendientes ({pendingCenters.length})
-          </Button>
 
           <div className="flex items-center border rounded-lg p-1">
             <Button

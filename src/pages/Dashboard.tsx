@@ -128,14 +128,6 @@ const Dashboard = () => {
     }
   }, [userRole]);
 
-  // Validar tab activo cuando cambie el rol
-  useEffect(() => {
-    const validTabs = availableTabs.map(tab => tab.id);
-    if (!validTabs.includes(activeTab)) {
-      setActiveTab(getDefaultTab());
-    }
-  }, [userRole, activeTab]);
-
   const handleSelectProfessional = (professional: Profesional) => {
     console.log(
       "Dashboard: Profesional seleccionado para ver detalle:",

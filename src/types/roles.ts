@@ -241,6 +241,45 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
         onlyAssignedCenter: true
       }
     }
+  },
+
+  HOSPITAL: {
+    id: 'HOSPITAL',
+    name: 'Gestión Hospitalaria',
+    description: 'Personal de gestión hospitalaria con acceso a profesionales y centros de su red',
+    permissions: [
+      'view_dashboard',
+      'view_professionals',
+      'view_requests',
+      'view_centers',
+      'view_incidents',
+      'view_renewals',
+      'edit_centers',
+      'assign_professionals_to_centers',
+      'create_incidents',
+      'resolve_incidents',
+      'manage_professional_incidents',
+      'export_data',
+      'generate_reports',
+      'ai_chat_basic',
+      'ai_chat_advanced'
+    ],
+    dashboardTabs: [
+      'overview',
+      'professionals',
+      'requests',
+      'health-centers',
+      'incidents',
+      'renewals',
+      'ai-chat'
+    ],
+    restrictions: {
+      dataFilters: {
+        // Puede ver datos de múltiples centros de su red hospitalaria
+        hospitalNetworkRestricted: true,
+        multiCenterAccess: true
+      }
+    }
   }
 };
 

@@ -253,29 +253,70 @@ export function useAdvancedAnalyticsAI() {
   const parseNaturalLanguage = useCallback((userInput: string): AdvancedStatsQuery | null => {
     const input = userInput.toLowerCase();
 
-    // Preguntas específicas del sistema con respuestas directas
-    const directAnswers: Record<string, string> = {
+    // Análisis de frases completas más específicas primero
+    const specificPhrases: Record<string, string> = {
       'que es este sistema': 'comprehensive',
       'como funciona': 'comprehensive',
       'que datos tienes': 'comprehensive',
       'que puedes hacer': 'comprehensive',
       'ayuda': 'comprehensive',
       'help': 'comprehensive',
-      'cuantos': 'demographics',
-      'donde': 'work_centers',
-      'cuando': 'temporal_analysis',
-      'como esta': 'system_performance',
+
+      // Demografía específica
+      'cuantos profesionales': 'demographics',
+      'cuantas mujeres': 'demographics',
+      'cuantos hombres': 'demographics',
+      'por genero': 'demographics',
+      'por nacionalidad': 'demographics',
+      'por provincia': 'demographics',
+      'distribución por edad': 'demographics',
+
+      // Centros de trabajo específicos
+      'cuantos centros': 'work_centers',
+      'que centros': 'work_centers',
+      'por distrito sanitario': 'work_centers',
+      'centros pendientes': 'centers_analysis',
+      'validar centros': 'centers_analysis',
+
+      // Estados de solicitud específicos
+      'solicitudes pendientes': 'application_status',
+      'solicitudes aprobadas': 'application_status',
+      'solicitudes rechazadas': 'application_status',
+      'estado de solicitudes': 'application_status',
+
+      // Carnets específicos
+      'generar carnets': 'carnet_generation',
+      'carnets generados': 'carnet_generation',
+      'carnets vencidos': 'carnet_generation',
+      'proximos a vencer': 'carnet_generation',
+
+      // Areas profesionales específicas
+      'areas profesionales': 'professional_areas',
+      'especialidades medicas': 'professional_areas',
+      'que especialidades': 'professional_areas',
+
+      // Educación específica
+      'formacion academica': 'education',
+      'donde estudiaron': 'education',
+      'universidades': 'education',
+      'años de graduacion': 'education',
+
+      // Sistema y rendimiento
       'estado del sistema': 'system_performance',
-      'problemas': 'system_performance',
+      'como esta el sistema': 'system_performance',
+      'problemas del sistema': 'system_performance',
       'errores': 'system_performance',
-      'validacion': 'centers_analysis',
-      'pendientes': 'application_status',
-      'aprobados': 'application_status',
-      'rechazados': 'application_status'
+
+      // Análisis temporal
+      'tendencias': 'temporal_analysis',
+      'evolucion': 'temporal_analysis',
+      'historico': 'temporal_analysis',
+      'por meses': 'temporal_analysis',
+      'por años': 'temporal_analysis'
     };
 
-    // Verificar respuestas directas primero
-    for (const [phrase, query] of Object.entries(directAnswers)) {
+    // Verificar frases específicas primero
+    for (const [phrase, query] of Object.entries(specificPhrases)) {
       if (input.includes(phrase)) {
         return {
           query,

@@ -5,11 +5,14 @@ interface EstadisticasSimples {
   total: number;
   aprobados: number;
   pendientes: number;
+  recibidos: number;
+  revisando: number;
   rechazados: number;
   hombres: number;
   mujeres: number;
   centros: number;
   proximosVencer: number;
+  carnetVencidos: number;
 }
 
 export const useEstadisticasSimples = () => {
@@ -51,21 +54,30 @@ export const useEstadisticasSimples = () => {
           return fechaCaducidad > hoy && fechaCaducidad <= treintaDias;
         }).length || 0;
 
+        const carnetVencidos = profesionales?.filter(p => {
+          if (!p.fecha_caducidad && !p.fecha_validez_carnet) return false;
+          const fechaCaducidad = new Date(p.fecha_caducidad || p.fecha_validez_carnet);
+          return fechaCaducidad <= hoy;
+        }).length || 0;
+
         const stats: EstadisticasSimples = {
           total: profesionales?.length || 0,
           aprobados: profesionales?.filter(p => p.estado_solicitud === 'Aprobado').length || 0,
           pendientes: profesionales?.filter(p =>
             p.estado_solicitud === 'Pendiente' ||
-            p.estado_solicitud === 'Recibido' ||
-            p.estado_solicitud === 'Revisando' ||
-            p.estado_solicitud === 'En Revisión' ||
             p.estado_solicitud === 'Pendiente de Firma'
+          ).length || 0,
+          recibidos: profesionales?.filter(p => p.estado_solicitud === 'Recibido').length || 0,
+          revisando: profesionales?.filter(p =>
+            p.estado_solicitud === 'Revisando' ||
+            p.estado_solicitud === 'En Revisión'
           ).length || 0,
           rechazados: profesionales?.filter(p => p.estado_solicitud === 'Rechazado' || p.estado_solicitud === 'Rechazada').length || 0,
           hombres: profesionales?.filter(p => p.genero === 'Masculino' || p.genero === 'Hombre').length || 0,
           mujeres: profesionales?.filter(p => p.genero === 'Femenino' || p.genero === 'Mujer').length || 0,
           centros: centros?.length || 0,
-          proximosVencer
+          proximosVencer,
+          carnetVencidos
         };
 
         console.log("📊 Estadísticas calculadas:", stats);
@@ -78,11 +90,14 @@ export const useEstadisticasSimples = () => {
           total: 0,
           aprobados: 0,
           pendientes: 0,
+          recibidos: 0,
+          revisando: 0,
           rechazados: 0,
           hombres: 0,
           mujeres: 0,
           centros: 0,
-          proximosVencer: 0
+          proximosVencer: 0,
+          carnetVencidos: 0
         };
       }
     },

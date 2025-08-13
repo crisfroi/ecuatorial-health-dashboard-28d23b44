@@ -404,6 +404,14 @@ const Dashboard = () => {
 
   const tabsConfig = availableTabs;
 
+  // Validar tab activo cuando cambie el rol (después de que availableTabs esté definido)
+  useEffect(() => {
+    const validTabs = availableTabs.map(tab => tab.id);
+    if (!validTabs.includes(activeTab)) {
+      setActiveTab(getDefaultTab());
+    }
+  }, [userRole, activeTab, availableTabs]);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <OfflineNotification />

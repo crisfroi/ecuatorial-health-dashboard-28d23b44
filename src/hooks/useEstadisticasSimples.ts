@@ -22,7 +22,7 @@ export const useEstadisticasSimples = () => {
         // Estadísticas básicas de profesionales
         const { data: profesionales, error: profError } = await supabase
           .from("profesionales_sanitarios")
-          .select("estado_solicitud, genero, fecha_validez_carnet");
+          .select("estado_solicitud, genero, fecha_validez_carnet, fecha_caducidad");
 
         if (profError) {
           console.error("Error obteniendo profesionales:", profError);
@@ -40,15 +40,32 @@ export const useEstadisticasSimples = () => {
           console.warn("Error obteniendo centros (continuando):", centrosError);
         }
 
+        // Calcular próximos a vencer
+        const hoy = new Date();
+        const treintaDias = new Date();
+        treintaDias.setDate(hoy.getDate() + 30);
+
+        const proximosVencer = profesionales?.filter(p => {
+          if (!p.fecha_caducidad && !p.fecha_validez_carnet) return false;
+          const fechaCaducidad = new Date(p.fecha_caducidad || p.fecha_validez_carnet);
+          return fechaCaducidad > hoy && fechaCaducidad <= treintaDias;
+        }).length || 0;
+
         const stats: EstadisticasSimples = {
           total: profesionales?.length || 0,
           aprobados: profesionales?.filter(p => p.estado_solicitud === 'Aprobado').length || 0,
-          pendientes: profesionales?.filter(p => p.estado_solicitud === 'Pendiente' || p.estado_solicitud === 'Recibido' || p.estado_solicitud === 'Revisando').length || 0,
+          pendientes: profesionales?.filter(p =>
+            p.estado_solicitud === 'Pendiente' ||
+            p.estado_solicitud === 'Recibido' ||
+            p.estado_solicitud === 'Revisando' ||
+            p.estado_solicitud === 'En Revisión' ||
+            p.estado_solicitud === 'Pendiente de Firma'
+          ).length || 0,
           rechazados: profesionales?.filter(p => p.estado_solicitud === 'Rechazado' || p.estado_solicitud === 'Rechazada').length || 0,
           hombres: profesionales?.filter(p => p.genero === 'Masculino' || p.genero === 'Hombre').length || 0,
           mujeres: profesionales?.filter(p => p.genero === 'Femenino' || p.genero === 'Mujer').length || 0,
           centros: centros?.length || 0,
-          proximosVencer: 0 // Por ahora simplificado
+          proximosVencer
         };
 
         console.log("📊 Estadísticas calculadas:", stats);

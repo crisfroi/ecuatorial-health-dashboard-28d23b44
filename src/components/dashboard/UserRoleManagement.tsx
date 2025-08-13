@@ -246,15 +246,17 @@ const UserRoleManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-              {newUser.role === 'DIRECTIVO_CENTRO_SANITARIO' && (
+              {(newUser.role === 'DIRECTIVO_CENTRO_SANITARIO' || newUser.role === 'HOSPITAL') && (
                 <div>
-                  <label className="text-sm font-medium">Centro Asignado</label>
-                  <Select 
-                    value={newUser.assigned_center_id} 
+                  <label className="text-sm font-medium">
+                    {newUser.role === 'HOSPITAL' ? 'Red Hospitalaria Asignada' : 'Centro Asignado'}
+                  </label>
+                  <Select
+                    value={newUser.assigned_center_id}
                     onValueChange={(value) => setNewUser({ ...newUser, assigned_center_id: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar centro" />
+                      <SelectValue placeholder={newUser.role === 'HOSPITAL' ? 'Seleccionar red hospitalaria' : 'Seleccionar centro'} />
                     </SelectTrigger>
                     <SelectContent>
                       {centrosSalud.map((centro) => (

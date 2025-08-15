@@ -56,6 +56,7 @@
     "html2canvas": "^1.4.1",
     "input-otp": "^1.2.4",
     "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
@@ -71,7 +72,9 @@
     "tailwindcss-animate": "^1.0.7",
     "topojson-client": "^3.1.0",
     "vaul": "^0.9.3",
-    "zod": "^3.23.8"
+    "xlsx": "^0.18.5",
+    "zod": "^3.23.8",
+    "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuardias } from '@/hooks/useGuardSystem';
-import { usePublicHospitals, useProfesionalesByHospital } from '@/hooks/useRealProfesionales';
+import { usePublicHospitals, useProfesionalesByHospital, useGuardProfessionals } from '@/hooks/useRealProfesionales';
 import { useMemo } from 'react';
 
 /**

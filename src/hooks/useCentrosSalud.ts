@@ -27,10 +27,7 @@ export interface BuscarCentrosParams {
 }
 
 export const useCentrosSalud = () => {
-  const queryClient = useQueryClient();
-
-  // Query para obtener todos los centros
-  const { data: centrosSalud = [], isLoading, error } = useQuery({
+  return useQuery({
     queryKey: ['centros-salud'],
     queryFn: async (): Promise<CentroSalud[]> => {
       console.log('🏥 Cargando centros de salud...');
@@ -49,26 +46,50 @@ export const useCentrosSalud = () => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
+};
 
-  // Función para buscar centros por criterios
-  const buscarCentros = async (params: BuscarCentrosParams): Promise<CentroSalud[]> => {
-    const { data, error } = await supabase
-      .rpc('buscar_centros_por_criterios', {
-        p_nombre_parcial: params.nombre_parcial || null,
-        p_categoria: params.categoria || null,
-        p_distrito_sanitario: params.distrito_sanitario || null
-      });
+export const useBuscarCentros = () => {
+  return useMutation({
+    mutationFn: async (params: BuscarCentrosParams): Promise<CentroSalud[]> => {
+      const { data, error } = await supabase
+        .rpc('buscar_centros_por_criterios', {
+          p_nombre_parcial: params.nombre_parcial || null,
+          p_categoria: params.categoria || null,
+          p_distrito_sanitario: params.distrito_sanitario || null
+        });
 
-    if (error) {
-      console.error('Error searching centros:', error);
-      throw error;
+      if (error) {
+        console.error('Error searching centros:', error);
+        throw error;
+      }
+
+      return data || [];
     }
+  });
+};
 
-    return data || [];
-  };
+export const useProfesionalesPorCentro = (centroId: string) => {
+  return useQuery({
+    queryKey: ['profesionales-por-centro', centroId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profesionales_sanitarios')
+        .select('*')
+        .eq('centro_salud_id', centroId)
+        .eq('estado_solicitud', 'aprobada');
 
-  // Mutación para crear centro
-  const crearCentroMutation = useMutation({
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!centroId,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useCrearCentro = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: async (nuevoCentro: Omit<CentroSalud, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
         .from('centros_salud')
@@ -87,9 +108,12 @@ export const useCentrosSalud = () => {
       toast.error('Error al crear centro: ' + error.message);
     }
   });
+};
 
-  // Mutación para actualizar centro
-  const actualizarCentroMutation = useMutation({
+export const useActualizarCentro = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<CentroSalud> & { id: string }) => {
       const { data, error } = await supabase
         .from('centros_salud')
@@ -109,13 +133,4 @@ export const useCentrosSalud = () => {
       toast.error('Error al actualizar centro: ' + error.message);
     }
   });
-
-  return {
-    data: centrosSalud,
-    isLoading,
-    error,
-    buscarCentros,
-    crearCentroMutation,
-    actualizarCentroMutation
-  };
 };

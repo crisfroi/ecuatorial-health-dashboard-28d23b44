@@ -43,11 +43,18 @@ const CuadrantesGuardias = () => {
   }, []);
 
   // Fetch guards data
-  const { data: guardias = [], isLoading: loadingGuardias } = useGuardias({
+  const { data: guardias = [], isLoading: loadingGuardias, error: guardiasError } = useGuardias({
     centroId: selectedHospital,
     mes: selectedMes,
     anio: selectedAnio
   });
+
+  // Show warning if database tables don't exist yet
+  React.useEffect(() => {
+    if (guardiasError) {
+      console.warn('Guardias error in CuadrantesGuardias:', guardiasError);
+    }
+  }, [guardiasError]);
 
   // Calculate statistics
   const estadisticas = React.useMemo(() => {

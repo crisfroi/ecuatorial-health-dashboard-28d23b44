@@ -64,6 +64,7 @@ import ConnectionDebugPanel from "@/components/dashboard/ConnectionDebugPanel";
 import { OfflineNotification } from "@/components/ui/offline-notification";
 import { DatabaseDiagnostic } from "@/components/dashboard/DatabaseDiagnostic";
 import { DiagnosticPanel } from "@/components/dashboard/DiagnosticPanel";
+import GuardiasDashboard from "@/components/dashboard/GuardiasDashboard";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -393,6 +394,7 @@ const Dashboard = () => {
     { id: "requests", label: "Solicitudes", icon: FileText, permission: "view_requests" },
     { id: "renewals", label: "Renovaciones", icon: Calendar, permission: "view_renewals" },
     { id: "analytics", label: "Analíticas", icon: TrendingUp, permission: "view_analytics" },
+    { id: "guardias", label: "Guardias", icon: Calendar, permission: "view_guardias" },
     { id: "ai-chat", label: "IA Chat", icon: MessageSquare, permission: "view_ai_chat" },
     { id: "ministerial", label: "Ministerial", icon: Settings, permission: "view_ministerial_panel" },
     { id: "incidents", label: "Incidencias", icon: Activity, permission: "view_incidents" },
@@ -711,6 +713,10 @@ const Dashboard = () => {
 
           <TabsContent value="health-centers" className="space-y-6">
             <HealthCenters />
+          </TabsContent>
+
+          <TabsContent value="guardias" className="space-y-6">
+            <GuardiasDashboard />
           </TabsContent>
 
           <TabsContent value="admin" className="space-y-6">

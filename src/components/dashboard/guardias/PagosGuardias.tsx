@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CreditCard, Download, Upload, Search, Plus, CheckCircle, Clock, AlertTriangle, XCircle, FileText } from 'lucide-react';
 import { useNominas, usePagos, useCreatePago } from '@/hooks/useGuardSystem';
-import { usePublicHospitals } from '@/hooks/useHospitals';
+import { usePublicHospitals } from '@/hooks/useRealProfesionales';
 import { useToast } from '@/hooks/use-toast';
 import { Pago } from '@/types/guardias';
 

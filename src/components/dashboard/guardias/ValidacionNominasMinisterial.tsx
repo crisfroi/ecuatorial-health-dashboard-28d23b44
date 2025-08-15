@@ -72,11 +72,18 @@ const ValidacionNominasMinisterial: React.FC = () => {
   const isMinisterialUser = user?.role === 'PERSONALIDAD_MINISTERIAL' || user?.role === 'SUPER_ADMINISTRADOR';
 
   const { data: hospitales = [] } = usePublicHospitals();
-  const { data: nominas = [], isLoading } = useNominas({
+  const { data: nominas = [], isLoading, error: nominasError } = useNominas({
     centroId: filterHospital === 'all' ? undefined : filterHospital,
     mes: filterMes,
     anio: filterAnio
   });
+
+  // Handle database errors gracefully
+  React.useEffect(() => {
+    if (nominasError) {
+      console.warn('Nominas error in ValidacionNominasMinisterial:', nominasError);
+    }
+  }, [nominasError]);
 
   // Filter payrolls based on search and filters
   const filteredNominas = useMemo(() => {

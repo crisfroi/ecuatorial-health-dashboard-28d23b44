@@ -11,8 +11,9 @@ import ProfessionalRegistration from "./pages/ProfessionalRegistration";
 import PublicSearch from "./pages/PublicSearch";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
-// Clear any offline mode flags on app start
+// Clear any offline mode flags and auth state on app start
 import "@/utils/clearOfflineMode";
+import "@/utils/clearAuthState";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,7 +39,7 @@ const queryClient = new QueryClient({
       // Tiempo de vida de los datos en caché
       staleTime: 5 * 60 * 1000, // 5 minutos
       
-      // Tiempo de vida de los datos en caché cuando no hay suscriptores
+      // Tiempo de vida de los datos en cach�� cuando no hay suscriptores
       gcTime: 10 * 60 * 1000, // 10 minutos
       
       // Configuración de refetch

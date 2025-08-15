@@ -1,148 +1,82 @@
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { 
-  DollarSign, 
-  CreditCard, 
-  Receipt, 
-  Upload, 
-  Download,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  XCircle,
-  FileText,
-  Building,
-  User,
-  Calendar,
-  Filter,
-  Search,
-  Eye
-} from 'lucide-react';
-import { useNominas } from '@/hooks/useGuardSystem';
-import { useGuardiasStore } from '@/stores/useGuardiasStore';
-import { usePublicHospitals } from '@/hooks/useRealProfesionales';
-import { 
-  Nomina,
-  Pago,
-  FormaPago 
-} from '@/types/guardias';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { toast } from 'sonner';
+import { CreditCard, Download, Upload, Search, Plus, CheckCircle, Clock, AlertTriangle, XCircle, FileText } from 'lucide-react';
+import { useNominas, usePagos, useCreatePago } from '@/hooks/useGuardSystem';
+import { usePublicHospitals } from '@/hooks/useHospitals';
+import { useToast } from '@/hooks/use-toast';
+import { Pago } from '@/types/guardias';
 
-interface PaymentRecord {
-  id: string;
-  profesionalId: string;
-  profesionalNombre: string;
-  categoria: string;
+interface PaymentFormData {
+  profesionalGuardiaId: string;
+  formaPago: 'transfer_trabajador' | 'transfer_hospital' | 'otro';
   monto: number;
-  formaPago: FormaPago;
-  fecha?: Date;
-  comprobante?: string;
-  estado: 'pendiente' | 'procesando' | 'pagado' | 'fallido';
-  observaciones?: string;
-  nominaId: string;
-  mes: number;
-  anio: number;
+  comprobanteUrl?: string;
+  observacion?: string;
 }
 
-const FORMAS_PAGO: { value: FormaPago; label: string; icon: any }[] = [
-  { value: 'transfer_trabajador', label: 'Transferencia a Trabajador', icon: CreditCard },
-  { value: 'transfer_hospital', label: 'Transferencia Hospital', icon: Building },
-  { value: 'otro', label: 'Otro Método', icon: Receipt }
-];
-
-const ESTADOS_PAGO = [
-  { value: 'pendiente', label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-  { value: 'procesando', label: 'Procesando', color: 'bg-blue-100 text-blue-800', icon: AlertCircle },
-  { value: 'pagado', label: 'Pagado', color: 'bg-green-100 text-green-800', icon: CheckCircle },
-  { value: 'fallido', label: 'Fallido', color: 'bg-red-100 text-red-800', icon: XCircle }
-];
-
 const PagosGuardias: React.FC = () => {
-  const { selectedHospital } = useGuardiasStore();
-  const [selectedMes, setSelectedMes] = useState(new Date().getMonth() + 1);
-  const [selectedAnio, setSelectedAnio] = useState(new Date().getFullYear());
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<PaymentRecord | null>(null);
-  const [filterEstado, setFilterEstado] = useState<string>('all');
+  const { toast } = useToast();
+  const [selectedHospital, setSelectedHospital] = useState<string>('');
+  const [filterEstado, setFilterEstado] = useState<'all' | 'pendiente' | 'procesando' | 'pagado' | 'fallido'>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-
-  const [paymentForm, setPaymentForm] = useState({
-    formaPago: '' as FormaPago,
-    fecha: '',
-    observacion: '',
-    comprobante: null as File | null
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedNomina, setSelectedNomina] = useState<string>('');
+  const [paymentFormData, setPaymentFormData] = useState<PaymentFormData>({
+    profesionalGuardiaId: '',
+    formaPago: 'transfer_trabajador',
+    monto: 0
   });
 
-  const { data: nominas = [], isLoading, error: nominasError } = useNominas({
-    centroId: selectedHospital,
-    mes: selectedMes,
-    anio: selectedAnio
-  });
-
-  // Show warning if database tables don't exist yet
-  React.useEffect(() => {
-    if (nominasError) {
-      console.warn('Nominas error in PagosGuardias:', nominasError);
-    }
-  }, [nominasError]);
-
+  // Fetch data
+  const { data: nominas = [] } = useNominas(selectedHospital ? { centroId: selectedHospital } : {});
+  const { data: pagos = [], isLoading: loadingPagos } = usePagos(selectedNomina ? { nominaId: selectedNomina } : {});
   const { data: hospitales = [] } = usePublicHospitals();
+  const createPago = useCreatePago();
+
   const selectedHospitalData = hospitales.find(h => h.id === selectedHospital);
 
-  // Mock payment records (in real implementation, fetch from Supabase)
-  const mockPaymentRecords: PaymentRecord[] = useMemo(() => {
-    if (nominas.length === 0) return [];
+  // Transform payments for display
+  const paymentRecords = useMemo(() => {
+    return pagos.map(pago => ({
+      id: pago.id,
+      profesionalId: pago.profesionalId,
+      profesionalNombre: pago.profesional?.nombre || 'N/A',
+      categoria: pago.profesional?.categoria || 'N/A',
+      monto: pago.monto,
+      formaPago: pago.formaPago,
+      fecha: pago.fecha,
+      estado: mapEstadoPago(pago.formaPago), // Map form of payment to status
+      observaciones: pago.observacion,
+      nominaId: pago.nominaId,
+      mes: pago.nomina?.mes || 0,
+      anio: pago.nomina?.anio || 0
+    }));
+  }, [pagos]);
 
-    const records: PaymentRecord[] = [];
-    nominas.forEach(nomina => {
-      // Simulate payment records for each professional in the payroll
-      const professionals = [
-        { id: '1', nombre: 'Dr. García López', categoria: 'Especialista', monto: 150000 },
-        { id: '2', nombre: 'Dra. María Santos', categoria: 'General', monto: 120000 },
-        { id: '3', nombre: 'Enfermero José Mbomio', categoria: 'Técnico', monto: 80000 },
-        { id: '4', nombre: 'Aux. Carmen Nguema', categoria: 'Auxiliar', monto: 60000 },
-      ];
-
-      professionals.forEach((prof, index) => {
-        const estados = ['pendiente', 'procesando', 'pagado', 'fallido'];
-        const estado = estados[index % estados.length] as 'pendiente' | 'procesando' | 'pagado' | 'fallido';
-        
-        records.push({
-          id: `${nomina.id}-${prof.id}`,
-          profesionalId: prof.id,
-          profesionalNombre: prof.nombre,
-          categoria: prof.categoria,
-          monto: prof.monto,
-          formaPago: 'transfer_trabajador',
-          fecha: estado === 'pagado' ? new Date() : undefined,
-          estado,
-          observaciones: estado === 'fallido' ? 'Error en datos bancarios' : undefined,
-          nominaId: nomina.id,
-          mes: nomina.mes,
-          anio: nomina.anio
-        });
-      });
-    });
-
-    return records;
-  }, [nominas]);
+  // Map forma_pago to display status
+  function mapEstadoPago(formaPago: string): 'pendiente' | 'procesando' | 'pagado' | 'fallido' {
+    switch (formaPago) {
+      case 'transfer_trabajador':
+      case 'transfer_hospital':
+        return 'pagado';
+      case 'otro':
+        return 'pendiente';
+      default:
+        return 'pendiente';
+    }
+  }
 
   // Filter payments
   const filteredPayments = useMemo(() => {
-    let filtered = mockPaymentRecords;
+    let filtered = paymentRecords;
 
     if (filterEstado !== 'all') {
       filtered = filtered.filter(p => p.estado === filterEstado);
@@ -156,18 +90,18 @@ const PagosGuardias: React.FC = () => {
     }
 
     return filtered;
-  }, [mockPaymentRecords, filterEstado, searchTerm]);
+  }, [paymentRecords, filterEstado, searchTerm]);
 
   // Calculate statistics
   const statistics = useMemo(() => {
-    const total = mockPaymentRecords.length;
-    const pendientes = mockPaymentRecords.filter(p => p.estado === 'pendiente').length;
-    const procesando = mockPaymentRecords.filter(p => p.estado === 'procesando').length;
-    const pagados = mockPaymentRecords.filter(p => p.estado === 'pagado').length;
-    const fallidos = mockPaymentRecords.filter(p => p.estado === 'fallido').length;
+    const total = paymentRecords.length;
+    const pendientes = paymentRecords.filter(p => p.estado === 'pendiente').length;
+    const procesando = paymentRecords.filter(p => p.estado === 'procesando').length;
+    const pagados = paymentRecords.filter(p => p.estado === 'pagado').length;
+    const fallidos = paymentRecords.filter(p => p.estado === 'fallido').length;
 
-    const totalMonto = mockPaymentRecords.reduce((sum, p) => sum + p.monto, 0);
-    const montoPagado = mockPaymentRecords
+    const totalMonto = paymentRecords.reduce((sum, p) => sum + p.monto, 0);
+    const montoPagado = paymentRecords
       .filter(p => p.estado === 'pagado')
       .reduce((sum, p) => sum + p.monto, 0);
     
@@ -183,438 +117,417 @@ const PagosGuardias: React.FC = () => {
       montoPagado,
       progresoPago
     };
-  }, [mockPaymentRecords]);
+  }, [paymentRecords]);
 
-  const handleProcessPayment = (payment: PaymentRecord) => {
-    setSelectedPayment(payment);
-    setPaymentForm({
-      formaPago: payment.formaPago,
-      fecha: payment.fecha ? format(payment.fecha, 'yyyy-MM-dd') : '',
-      observacion: payment.observaciones || '',
-      comprobante: null
-    });
-    setShowPaymentDialog(true);
-  };
+  const handleCreatePayment = async () => {
+    if (!selectedNomina || !paymentFormData.profesionalGuardiaId) {
+      toast({
+        title: "Error",
+        description: "Selecciona una nómina y un profesional",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const handleSavePayment = async () => {
-    if (!selectedPayment) return;
-
-    setIsUploading(true);
     try {
-      // Here you would update the payment in Supabase
-      // For now, just simulate success
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success('Pago actualizado exitosamente');
-      setShowPaymentDialog(false);
-      setSelectedPayment(null);
-    } catch (error: any) {
-      toast.error('Error al actualizar el pago');
-    } finally {
-      setIsUploading(false);
+      await createPago.mutateAsync({
+        nominaId: selectedNomina,
+        profesionalGuardiaId: paymentFormData.profesionalGuardiaId,
+        formaPago: paymentFormData.formaPago,
+        monto: paymentFormData.monto,
+        fecha: new Date(),
+        comprobanteUrl: paymentFormData.comprobanteUrl,
+        observacion: paymentFormData.observacion
+      });
+
+      toast({
+        title: "Pago creado",
+        description: "El registro de pago se ha creado exitosamente",
+      });
+
+      setShowCreateDialog(false);
+      setPaymentFormData({
+        profesionalGuardiaId: '',
+        formaPago: 'transfer_trabajador',
+        monto: 0
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo crear el registro de pago",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleUploadReceipt = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('El archivo no puede exceder 5MB');
-        return;
-      }
-      setPaymentForm(prev => ({ ...prev, comprobante: file }));
-    }
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'XAF',
+      minimumFractionDigits: 0
+    }).format(amount);
   };
 
   const getEstadoBadge = (estado: string) => {
-    const estadoInfo = ESTADOS_PAGO.find(e => e.value === estado);
-    if (!estadoInfo) return null;
+    const variants = {
+      pendiente: { variant: 'secondary' as const, icon: Clock, color: 'text-yellow-600' },
+      procesando: { variant: 'default' as const, icon: Upload, color: 'text-blue-600' },
+      pagado: { variant: 'default' as const, icon: CheckCircle, color: 'text-green-600' },
+      fallido: { variant: 'destructive' as const, icon: XCircle, color: 'text-red-600' }
+    };
 
-    const Icon = estadoInfo.icon;
+    const config = variants[estado as keyof typeof variants] || variants.pendiente;
+    const IconComponent = config.icon;
+
     return (
-      <Badge variant="outline" className={estadoInfo.color}>
-        <Icon className="w-3 h-3 mr-1" />
-        {estadoInfo.label}
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        <IconComponent className={`h-3 w-3 ${config.color}`} />
+        {estado.charAt(0).toUpperCase() + estado.slice(1)}
       </Badge>
     );
   };
 
-  const getFormaPagoLabel = (forma: FormaPago) => {
-    const formaInfo = FORMAS_PAGO.find(f => f.value === forma);
-    return formaInfo?.label || forma;
-  };
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-guinea-teal mx-auto"></div>
-          <p className="mt-2">Cargando información de pagos...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Pagos de Guardias</h2>
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <CreditCard className="h-6 w-6" />
+            Gestión de Pagos
+          </h2>
           <p className="text-gray-600">
-            Seguimiento y gestión de pagos por guardias médicas
+            Control y seguimiento de pagos de guardias médicas
           </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Nuevo Pago
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Registrar Nuevo Pago</DialogTitle>
+                <DialogDescription>
+                  Crear un nuevo registro de pago para un profesional
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nómina</Label>
+                  <Select value={selectedNomina} onValueChange={setSelectedNomina}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar nómina" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {nominas.map(nomina => (
+                        <SelectItem key={nomina.id} value={nomina.id}>
+                          {nomina.centro?.nombre} - {nomina.mes}/{nomina.anio}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Forma de Pago</Label>
+                  <Select 
+                    value={paymentFormData.formaPago} 
+                    onValueChange={(value) => setPaymentFormData(prev => ({ 
+                      ...prev, 
+                      formaPago: value as 'transfer_trabajador' | 'transfer_hospital' | 'otro' 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="transfer_trabajador">Transferencia al Trabajador</SelectItem>
+                      <SelectItem value="transfer_hospital">Transferencia vía Hospital</SelectItem>
+                      <SelectItem value="otro">Otro Método</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Monto</Label>
+                  <Input
+                    type="number"
+                    value={paymentFormData.monto}
+                    onChange={(e) => setPaymentFormData(prev => ({ 
+                      ...prev, 
+                      monto: parseFloat(e.target.value) || 0 
+                    }))}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>URL del Comprobante (opcional)</Label>
+                  <Input
+                    value={paymentFormData.comprobanteUrl || ''}
+                    onChange={(e) => setPaymentFormData(prev => ({ 
+                      ...prev, 
+                      comprobanteUrl: e.target.value 
+                    }))}
+                    placeholder="https://..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Observaciones (opcional)</Label>
+                  <Textarea
+                    value={paymentFormData.observacion || ''}
+                    onChange={(e) => setPaymentFormData(prev => ({ 
+                      ...prev, 
+                      observacion: e.target.value 
+                    }))}
+                    placeholder="Notas adicionales..."
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleCreatePayment} disabled={createPago.isPending}>
+                    {createPago.isPending ? 'Creando...' : 'Crear Pago'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Exportar
+          </Button>
+          <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            Importar
+          </Button>
         </div>
       </div>
 
-      {/* Period Selection */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div>
-              <Label>Hospital</Label>
-              <Select value={selectedHospital} disabled>
-                <SelectTrigger>
-                  <SelectValue placeholder="No seleccionado" />
-                </SelectTrigger>
-              </Select>
-            </div>
-            
-            <div>
-              <Label>Mes</Label>
-              <Select value={selectedMes.toString()} onValueChange={(value) => setSelectedMes(parseInt(value))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <SelectItem key={i + 1} value={(i + 1).toString()}>
-                      {format(new Date(2024, i), 'MMMM', { locale: es })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      {/* Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="space-y-2">
+          <Label>Hospital</Label>
+          <Select value={selectedHospital} onValueChange={setSelectedHospital}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos los hospitales" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos los hospitales</SelectItem>
+              {hospitales.map(hospital => (
+                <SelectItem key={hospital.id} value={hospital.id}>
+                  {hospital.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-            <div>
-              <Label>Año</Label>
-              <Input
-                type="number"
-                value={selectedAnio}
-                onChange={(e) => setSelectedAnio(parseInt(e.target.value))}
-                min="2024"
-                max="2030"
-              />
-            </div>
+        <div className="space-y-2">
+          <Label>Estado de Pago</Label>
+          <Select value={filterEstado} onValueChange={(value) => setFilterEstado(value as typeof filterEstado)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="pendiente">Pendientes</SelectItem>
+              <SelectItem value="procesando">En Proceso</SelectItem>
+              <SelectItem value="pagado">Pagados</SelectItem>
+              <SelectItem value="fallido">Fallidos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-guinea-teal" />
-              <span className="text-sm">
-                {filteredPayments.length} pagos
-              </span>
-            </div>
+        <div className="space-y-2">
+          <Label>Buscar</Label>
+          <div className="relative">
+            <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
+            <Input
+              placeholder="Buscar por profesional..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Summary Cards */}
+      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total a Pagar</p>
-                <p className="text-2xl font-bold text-guinea-teal">
-                  {statistics.totalMonto.toLocaleString('es-ES')} XAF
-                </p>
+                <p className="text-sm font-medium text-gray-600">Total Pagos</p>
+                <p className="text-2xl font-bold">{statistics.total}</p>
               </div>
-              <DollarSign className="w-8 h-8 text-guinea-teal" />
+              <CreditCard className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pagado</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {statistics.montoPagado.toLocaleString('es-ES')} XAF
-                </p>
+                <p className="text-sm font-medium text-gray-600">Monto Total</p>
+                <p className="text-2xl font-bold">{formatCurrency(statistics.totalMonto)}</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-600" />
+              <FileText className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pagados</p>
+                <p className="text-2xl font-bold text-green-600">{statistics.pagados}</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Pendientes</p>
-                <p className="text-2xl font-bold text-yellow-600">{statistics.pendientes}</p>
+                <p className="text-2xl font-bold text-orange-600">{statistics.pendientes}</p>
               </div>
-              <Clock className="w-8 h-8 text-yellow-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Progreso</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {statistics.progresoPago.toFixed(1)}%
-                </p>
-              </div>
-              <div className="w-full mt-2">
-                <Progress value={statistics.progresoPago} className="h-2" />
-              </div>
+              <Clock className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters and Search */}
+      {/* Progress Card */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Buscar por profesional o categoría..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        <CardHeader>
+          <CardTitle>Progreso de Pagos</CardTitle>
+          <CardDescription>
+            {selectedHospitalData ? `${selectedHospitalData.nombre}` : 'Todos los hospitales'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-sm">
+              <span>Progreso total</span>
+              <span>{statistics.progresoPago.toFixed(1)}%</span>
             </div>
-            <div className="flex gap-2">
-              <Select value={filterEstado} onValueChange={setFilterEstado}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filtrar por estado..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los estados</SelectItem>
-                  {ESTADOS_PAGO.map(estado => (
-                    <SelectItem key={estado.value} value={estado.value}>
-                      {estado.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${statistics.progresoPago}%` }}
+              />
+            </div>
+            <div className="grid grid-cols-4 gap-4 text-sm">
+              <div className="text-center">
+                <div className="font-medium text-orange-600">{statistics.pendientes}</div>
+                <div className="text-gray-500">Pendientes</div>
+              </div>
+              <div className="text-center">
+                <div className="font-medium text-blue-600">{statistics.procesando}</div>
+                <div className="text-gray-500">Procesando</div>
+              </div>
+              <div className="text-center">
+                <div className="font-medium text-green-600">{statistics.pagados}</div>
+                <div className="text-gray-500">Pagados</div>
+              </div>
+              <div className="text-center">
+                <div className="font-medium text-red-600">{statistics.fallidos}</div>
+                <div className="text-gray-500">Fallidos</div>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
-
-      {/* Payment Status Distribution */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {ESTADOS_PAGO.map(estado => {
-          const count = statistics[estado.value as keyof typeof statistics] as number;
-          const Icon = estado.icon;
-          return (
-            <Card key={estado.value}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full ${estado.color}`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{estado.label}</p>
-                    <p className="text-xl font-bold">{count}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
 
       {/* Payments Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Pagos</CardTitle>
+          <CardTitle>Registro de Pagos</CardTitle>
+          <CardDescription>
+            {filteredPayments.length} de {paymentRecords.length} pagos
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {filteredPayments.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Receipt className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p>No hay pagos para mostrar</p>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Profesional</TableHead>
+                  <TableHead>Categoría</TableHead>
+                  <TableHead>Monto</TableHead>
+                  <TableHead>Forma de Pago</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Período</TableHead>
+                  <TableHead>Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loadingPagos ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : filteredPayments.length === 0 ? (
                   <TableRow>
-                    <TableHead>Profesional</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead className="text-right">Monto</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Forma de Pago</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead className="text-center">Acciones</TableHead>
+                    <TableCell colSpan={8} className="text-center text-gray-500 py-8">
+                      {paymentRecords.length === 0 ? 'No hay registros de pagos' : 'No se encontraron pagos con los filtros aplicados'}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPayments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell className="font-medium">
-                        <div>
-                          <div>{payment.profesionalNombre}</div>
-                          {payment.observaciones && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {payment.observaciones}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
+                ) : (
+                  filteredPayments.map((pago) => (
+                    <TableRow key={pago.id}>
+                      <TableCell className="font-medium">{pago.profesionalNombre}</TableCell>
+                      <TableCell>{pago.categoria}</TableCell>
+                      <TableCell className="font-mono">{formatCurrency(pago.monto)}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{payment.categoria}</Badge>
+                        <Badge variant="outline">
+                          {pago.formaPago.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {payment.monto.toLocaleString('es-ES')} XAF
-                      </TableCell>
+                      <TableCell>{getEstadoBadge(pago.estado)}</TableCell>
                       <TableCell>
-                        {getEstadoBadge(payment.estado)}
+                        {pago.fecha ? pago.fecha.toLocaleDateString() : '-'}
                       </TableCell>
+                      <TableCell>{pago.mes}/{pago.anio}</TableCell>
                       <TableCell>
-                        {getFormaPagoLabel(payment.formaPago)}
-                      </TableCell>
-                      <TableCell>
-                        {payment.fecha 
-                          ? format(payment.fecha, 'dd/MM/yyyy', { locale: es })
-                          : '-'
-                        }
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex justify-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleProcessPayment(payment)}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            Ver
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant="ghost">
+                            <FileText className="h-4 w-4" />
                           </Button>
-                          {payment.estado !== 'pagado' && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleProcessPayment(payment)}
-                              className="bg-guinea-teal hover:bg-guinea-dark-teal"
-                            >
-                              <CreditCard className="w-4 h-4 mr-1" />
-                              Procesar
-                            </Button>
-                          )}
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Payment Processing Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Procesar Pago</DialogTitle>
-          </DialogHeader>
-
-          {selectedPayment && (
-            <div className="space-y-4">
-              <div className="p-3 bg-gray-50 rounded">
-                <h3 className="font-medium">{selectedPayment.profesionalNombre}</h3>
-                <p className="text-sm text-gray-600">
-                  {selectedPayment.categoria} • {selectedPayment.monto.toLocaleString('es-ES')} XAF
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Forma de Pago</Label>
-                <Select 
-                  value={paymentForm.formaPago} 
-                  onValueChange={(value) => setPaymentForm(prev => ({ ...prev, formaPago: value as FormaPago }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar forma de pago..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FORMAS_PAGO.map((forma) => {
-                      const Icon = forma.icon;
-                      return (
-                        <SelectItem key={forma.value} value={forma.value}>
-                          <div className="flex items-center gap-2">
-                            <Icon className="w-4 h-4" />
-                            {forma.label}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Fecha de Pago</Label>
-                <Input
-                  type="date"
-                  value={paymentForm.fecha}
-                  onChange={(e) => setPaymentForm(prev => ({ ...prev, fecha: e.target.value }))}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Comprobante de Pago</Label>
-                <Input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={handleUploadReceipt}
-                />
-                {paymentForm.comprobante && (
-                  <p className="text-xs text-green-600">
-                    Archivo seleccionado: {paymentForm.comprobante.name}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Observaciones</Label>
-                <Textarea
-                  value={paymentForm.observacion}
-                  onChange={(e) => setPaymentForm(prev => ({ ...prev, observacion: e.target.value }))}
-                  placeholder="Observaciones sobre el pago..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowPaymentDialog(false)}
-                  disabled={isUploading}
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  onClick={handleSavePayment}
-                  disabled={isUploading}
-                  className="bg-guinea-teal hover:bg-guinea-dark-teal"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  {isUploading ? 'Guardando...' : 'Guardar Pago'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

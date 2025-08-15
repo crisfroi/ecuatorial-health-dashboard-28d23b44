@@ -41,11 +41,24 @@ const BaremoEditor: React.FC = () => {
   const { toast } = useToast();
   const { data: baremos = [], isLoading } = useBaremos();
   const updateBaremo = useUpdateBaremo();
-  
+  const createBaremo = useCreateBaremo();
+
   const [editingBaremo, setEditingBaremo] = useState<AjusteBaremo | null>(null);
   const [filtroCategoria, setFiltroCategoria] = useState<CategoriaProfesional | 'all'>('all');
   const [filtroTipoGuardia, setFiltroTipoGuardia] = useState<TipoGuardia | 'all'>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  const [newBaremo, setNewBaremo] = useState({
+    fuente: 'protocol' as FuenteBaremo,
+    categoria: 'especialista' as CategoriaProfesional,
+    tipoGuardia: 'fisica' as TipoGuardia,
+    tipoDia: 'ordinario' as TipoDia,
+    valor: 0,
+    porcentajeCondicion: 0,
+    porcentajeLlamada: 0,
+    vigenteDesde: new Date().toISOString().split('T')[0],
+    vigenteHasta: ''
+  });
 
   // Group baremos by category for better organization
   const baremosPorCategoria = React.useMemo(() => {

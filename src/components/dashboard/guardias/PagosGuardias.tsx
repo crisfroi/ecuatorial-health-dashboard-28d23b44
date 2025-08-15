@@ -41,7 +41,7 @@ const PagosGuardias: React.FC = () => {
   const { data: hospitales = [] } = usePublicHospitals();
   const createPago = useCreatePago();
 
-  const selectedHospitalData = hospitales.find(h => h.id === selectedHospital);
+  const selectedHospitalData = selectedHospital !== 'all' ? hospitales.find(h => h.id === selectedHospital) : null;
 
   // Transform payments for display
   const paymentRecords = useMemo(() => {
@@ -246,7 +246,7 @@ const PagosGuardias: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="transfer_trabajador">Transferencia al Trabajador</SelectItem>
-                      <SelectItem value="transfer_hospital">Transferencia v��a Hospital</SelectItem>
+                      <SelectItem value="transfer_hospital">Transferencia vía Hospital</SelectItem>
                       <SelectItem value="otro">Otro Método</SelectItem>
                     </SelectContent>
                   </Select>

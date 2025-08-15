@@ -36,7 +36,7 @@ const PagosGuardias: React.FC = () => {
   });
 
   // Fetch data
-  const { data: nominas = [] } = useNominas(selectedHospital ? { centroId: selectedHospital } : {});
+  const { data: nominas = [] } = useNominas(selectedHospital !== 'all' ? { centroId: selectedHospital } : {});
   const { data: pagos = [], isLoading: loadingPagos } = usePagos(selectedNomina ? { nominaId: selectedNomina } : {});
   const { data: hospitales = [] } = usePublicHospitals();
   const createPago = useCreatePago();
@@ -246,7 +246,7 @@ const PagosGuardias: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="transfer_trabajador">Transferencia al Trabajador</SelectItem>
-                      <SelectItem value="transfer_hospital">Transferencia vía Hospital</SelectItem>
+                      <SelectItem value="transfer_hospital">Transferencia v��a Hospital</SelectItem>
                       <SelectItem value="otro">Otro Método</SelectItem>
                     </SelectContent>
                   </Select>

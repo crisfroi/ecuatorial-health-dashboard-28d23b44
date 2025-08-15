@@ -2,59 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Plus, Users, Clock, Hospital, AlertCircle } from 'lucide-react';
-import { useGuardiasStore } from '@/stores/useGuardiasStore';
-import { useGuardias } from '@/hooks/useGuardSystem';
-import { usePublicHospitals } from '@/hooks/useRealProfesionales';
+import { Calendar, Plus, Users, Clock, Hospital, AlertCircle, Building2 } from 'lucide-react';
+import { useHospitalGuardSystem } from '@/hooks/useHospitalGuardSystem';
 import CalendarioGuardias from './CalendarioGuardias';
+import FormularioGuardia from './FormularioGuardia';
 import { Guardia } from '@/types/guardias';
 import { toast } from 'sonner';
 
 const CuadrantesGuardias = () => {
-  const { 
-    selectedMes, 
-    selectedAnio, 
-    selectedHospital,
-    setSelectedHospital,
-    loadHospitalesPublicos,
-    hospitalesPublicos,
-    isConnectedToSupabase,
-    checkSupabaseConnection,
-    loading,
-    error
-  } = useGuardiasStore();
+  const {
+    userHospital,
+    userHospitalId,
+    isHospitalUser,
+    canManageGuards,
+    hospitalProfessionals,
+    guardProfessionals,
+    loadingProfessionals,
+    useHospitalGuards,
+    hospitalContext
+  } = useHospitalGuardSystem();
   
   const [vistaActual, setVistaActual] = useState<'calendario' | 'lista'>('calendario');
   const [showFormulario, setShowFormulario] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [editingGuard, setEditingGuard] = useState<Guardia | null>(null);
+  const [currentMonth] = useState(new Date().getMonth() + 1);
+  const [currentYear] = useState(new Date().getFullYear());
 
-  // Load public hospitals on component mount
-  useEffect(() => {
-    const initializeData = async () => {
-      await checkSupabaseConnection();
-      if (isConnectedToSupabase) {
-        await loadHospitalesPublicos();
-      }
-    };
-    
-    initializeData();
-  }, []);
-
-  // Fetch guards data
-  const { data: guardias = [], isLoading: loadingGuardias, error: guardiasError } = useGuardias({
-    centroId: selectedHospital,
-    mes: selectedMes,
-    anio: selectedAnio
+  // Fetch guards for current hospital
+  const { data: guardias = [], isLoading: loadingGuardias, error: guardiasError } = useHospitalGuards({
+    mes: currentMonth,
+    anio: currentYear
   });
-
-  // Show warning if database tables don't exist yet
-  React.useEffect(() => {
-    if (guardiasError) {
-      console.warn('Guardias error in CuadrantesGuardias:', guardiasError);
-    }
-  }, [guardiasError]);
 
   // Calculate statistics
   const estadisticas = React.useMemo(() => {
@@ -72,8 +51,8 @@ const CuadrantesGuardias = () => {
   }, [guardias]);
 
   const handleCreateGuard = (date?: Date) => {
-    if (!selectedHospital) {
-      toast.error('Debe seleccionar un hospital primero');
+    if (!canManageGuards) {
+      toast.error('No tiene permisos para gestionar guardias');
       return;
     }
     
@@ -83,6 +62,11 @@ const CuadrantesGuardias = () => {
   };
 
   const handleEditGuard = (guard: Guardia) => {
+    if (!canManageGuards) {
+      toast.error('No tiene permisos para editar guardias');
+      return;
+    }
+    
     setEditingGuard(guard);
     setSelectedDate(guard.fechaInicio);
     setShowFormulario(true);
@@ -94,20 +78,37 @@ const CuadrantesGuardias = () => {
     setSelectedDate(null);
   };
 
-  if (!isConnectedToSupabase) {
+  // Check access permissions
+  if (!isHospitalUser) {
     return (
       <div className="space-y-6">
         <Card>
           <CardContent className="p-8">
             <div className="text-center">
               <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Error de Conexión</h3>
+              <h3 className="text-lg font-semibold mb-2">Acceso Restringido</h3>
               <p className="text-gray-600 mb-4">
-                No se pudo conectar con la base de datos.
+                Solo los directivos de centros sanitarios pueden acceder a la gestión de guardias.
               </p>
-              <Button onClick={checkSupabaseConnection}>
-                Reintentar Conexión
-              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!userHospitalId || !userHospital) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-8">
+            <div className="text-center">
+              <Hospital className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Centro No Asignado</h3>
+              <p className="text-gray-600 mb-4">
+                Su cuenta no tiene asignado un centro sanitario. 
+                Contacte al administrador del sistema para completar la configuración.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -117,12 +118,19 @@ const CuadrantesGuardias = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Hospital Info */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Cuadrantes de Guardias</h2>
-          <p className="text-gray-600">
-            Gestión y programación de guardias médicas
+          <div className="flex items-center gap-2 mt-1">
+            <Building2 className="w-4 h-4 text-guinea-teal" />
+            <span className="text-gray-600">{hospitalContext.hospitalName}</span>
+            <Badge variant="outline" className="bg-guinea-light-teal/10">
+              {hospitalContext.hospitalCategory}
+            </Badge>
+          </div>
+          <p className="text-sm text-gray-500 mt-1">
+            {hospitalContext.districtName}
           </p>
         </div>
         
@@ -141,45 +149,61 @@ const CuadrantesGuardias = () => {
             <Users className="w-4 h-4 mr-2" />
             Vista Lista
           </Button>
-          <Button onClick={() => handleCreateGuard()}>
+          <Button 
+            onClick={() => handleCreateGuard()}
+            className="bg-guinea-teal hover:bg-guinea-dark-teal"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Nueva Guardia
           </Button>
         </div>
       </div>
 
-      {/* Hospital Selection */}
+      {/* Hospital Summary */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <Hospital className="w-5 h-5 text-guinea-teal" />
-            <div className="flex-1 max-w-md">
-              <Select
-                value={selectedHospital}
-                onValueChange={setSelectedHospital}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar hospital..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {hospitalesPublicos.map((hospital) => (
-                    <SelectItem key={hospital.id} value={hospital.id}>
-                      {hospital.nombre} - {hospital.distrito_sanitario}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="flex items-center gap-3">
+              <Users className="w-8 h-8 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium text-gray-600">Profesionales Activos</p>
+                <p className="text-xl font-bold text-blue-600">
+                  {loadingProfessionals ? '...' : hospitalProfessionals.length}
+                </p>
+              </div>
             </div>
-            {selectedHospital && (
-              <Badge variant="outline" className="bg-guinea-light-teal/10">
-                Hospital Seleccionado
-              </Badge>
-            )}
+            <div className="flex items-center gap-3">
+              <Hospital className="w-8 h-8 text-purple-600" />
+              <div>
+                <p className="text-sm font-medium text-gray-600">En Sistema Guardias</p>
+                <p className="text-xl font-bold text-purple-600">
+                  {guardProfessionals.length}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Calendar className="w-8 h-8 text-green-600" />
+              <div>
+                <p className="text-sm font-medium text-gray-600">Guardias Este Mes</p>
+                <p className="text-xl font-bold text-green-600">
+                  {loadingGuardias ? '...' : guardias.length}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Clock className="w-8 h-8 text-orange-600" />
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pendientes Validación</p>
+                <p className="text-xl font-bold text-orange-600">
+                  {loadingGuardias ? '...' : estadisticas.pendientesValidacion}
+                </p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Estadísticas rápidas */}
+      {/* Estadísticas detalladas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -227,7 +251,7 @@ const CuadrantesGuardias = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Profesionales</p>
+                <p className="text-sm font-medium text-gray-600">Profesionales Asignados</p>
                 <p className="text-2xl font-bold text-blue-600">
                   {loadingGuardias ? '...' : estadisticas.profesionales}
                 </p>
@@ -239,36 +263,35 @@ const CuadrantesGuardias = () => {
       </div>
 
       {/* Contenido principal */}
-      {selectedHospital ? (
-        vistaActual === 'calendario' ? (
-          <CalendarioGuardias
-            onCreateGuard={handleCreateGuard}
-            onEditGuard={handleEditGuard}
-          />
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Lista de Guardias</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center p-8 text-gray-500">
-                <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p>Vista de lista en desarrollo</p>
-                <p className="text-sm">Próximamente: Lista detallada de guardias</p>
-              </div>
-            </CardContent>
-          </Card>
-        )
+      {vistaActual === 'calendario' ? (
+        <CalendarioGuardias
+          onCreateGuard={handleCreateGuard}
+          onEditGuard={handleEditGuard}
+        />
       ) : (
         <Card>
-          <CardContent className="p-8">
-            <div className="text-center text-gray-500">
-              <Hospital className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium mb-2">Seleccione un Hospital</p>
-              <p>Para gestionar las guardias, primero debe seleccionar un hospital público.</p>
+          <CardHeader>
+            <CardTitle>Lista de Guardias</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center p-8 text-gray-500">
+              <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <p>Vista de lista en desarrollo</p>
+              <p className="text-sm">Próximamente: Lista detallada de guardias</p>
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Formulario de Guardia */}
+      {showFormulario && (
+        <FormularioGuardia
+          isOpen={showFormulario}
+          onClose={handleCloseFormulario}
+          selectedDate={selectedDate}
+          editingGuard={editingGuard}
+          hospitalId={userHospitalId}
+        />
       )}
     </div>
   );

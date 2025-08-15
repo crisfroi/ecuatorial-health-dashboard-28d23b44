@@ -16,6 +16,7 @@ import "@/utils/clearOfflineMode";
 import "@/utils/clearAuthState";
 // Suppress known Recharts warnings that don't affect functionality
 import "@/utils/suppressRechartsWarnings";
+import { analyzeNetworkError } from "@/utils/networkErrorHandler";
 
 const queryClient = new QueryClient({
   defaultOptions: {

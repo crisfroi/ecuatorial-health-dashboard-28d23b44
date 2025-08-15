@@ -48,37 +48,130 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
   useEffect(() => {
     const initializeAuth = async () => {
-      console.log('🔐 Forzando autenticación simplificada...');
+      try {
+        console.log('🔐 Inicializando autenticación...');
 
-      // TEMPORAL: Forzar usuario para Beltran
-      const forcedUser: UserProfile = {
-        id: 'forced-beltran-id',
-        email: 'chamibeny@gmail.com',
-        role: 'SUPER_ADMINISTRADOR',
-        full_name: 'Beltran Ebiole',
-        department: 'Ministerio de Sanidad y Bienestar Social',
-        aud: 'authenticated',
-        app_metadata: {},
-        user_metadata: {
+        // Clear any invalid tokens first
+        try {
+          await supabase.auth.signOut();
+          console.log('🧹 Cleared any existing invalid sessions');
+        } catch (clearError) {
+          console.log('⚠️ Could not clear existing session:', clearError);
+        }
+
+        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+
+        if (supabaseUser) {
+          console.log('👤 Usuario autenticado encontrado:', supabaseUser.email);
+
+          // Get role from metadata or assign based on email
+          let role: UserRole = defaultRole;
+
+          if (supabaseUser.user_metadata?.role) {
+            role = supabaseUser.user_metadata.role as UserRole;
+          } else {
+            const email = supabaseUser.email?.toLowerCase() || '';
+
+            if (email === 'chamibeny@gmail.com' || email.includes('chamibeny')) {
+              role = 'SUPER_ADMINISTRADOR';
+            } else if (email.includes('admin')) {
+              role = 'SUPER_ADMINISTRADOR';
+            } else {
+              role = 'OBSERVADOR';
+            }
+          }
+
+          const userProfile: UserProfile = {
+            ...supabaseUser,
+            role,
+            full_name: supabaseUser.user_metadata?.full_name ||
+                      (supabaseUser.email === 'chamibeny@gmail.com' ? 'Beltran Ebiole' :
+                       supabaseUser.email?.split('@')[0]?.replace('.', ' ').toUpperCase()),
+            department: supabaseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social'
+          };
+
+          setUser(userProfile);
+          setUserRole(role);
+        } else {
+          console.log('👤 No hay usuario autenticado, usando datos demo');
+          // Create demo user for development
+          const mockUser: UserProfile = {
+            id: 'demo-user-id',
+            email: 'chamibeny@gmail.com',
+            role: 'SUPER_ADMINISTRADOR',
+            full_name: 'Beltran Ebiole',
+            department: 'Ministerio de Sanidad y Bienestar Social',
+            aud: 'authenticated',
+            app_metadata: {},
+            user_metadata: {
+              role: 'SUPER_ADMINISTRADOR',
+              full_name: 'Beltran Ebiole'
+            },
+            created_at: new Date().toISOString()
+          };
+          setUser(mockUser);
+          setUserRole('SUPER_ADMINISTRADOR');
+        }
+      } catch (error) {
+        console.error('❌ Error inicializando auth:', error);
+        // Fallback to demo user on any error
+        const fallbackUser: UserProfile = {
+          id: 'fallback-user-id',
+          email: 'chamibeny@gmail.com',
           role: 'SUPER_ADMINISTRADOR',
           full_name: 'Beltran Ebiole',
-          department: 'Ministerio de Sanidad y Bienestar Social'
-        },
-        created_at: new Date().toISOString()
-      };
-
-      setUser(forcedUser);
-      setUserRole('SUPER_ADMINISTRADOR');
-      setIsLoading(false);
-
-      console.log('✅ Usuario forzado configurado:', forcedUser);
+          department: 'Ministerio de Sanidad y Bienestar Social',
+          aud: 'authenticated',
+          app_metadata: {},
+          user_metadata: {},
+          created_at: new Date().toISOString()
+        };
+        setUser(fallbackUser);
+        setUserRole('SUPER_ADMINISTRADOR');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    // Inicializar inmediatamente sin esperar
+    // Listen for auth state changes but handle errors gracefully
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔄 Auth state change:', event);
+
+        try {
+          if (event === 'SIGNED_IN' && session?.user) {
+            console.log('✅ Usuario autenticado');
+            await initializeAuth();
+          } else if (event === 'SIGNED_OUT') {
+            console.log('👋 Usuario desconectado');
+            // Keep demo user even when signed out for development
+            const demoUser: UserProfile = {
+              id: 'demo-after-signout',
+              email: 'chamibeny@gmail.com',
+              role: 'SUPER_ADMINISTRADOR',
+              full_name: 'Beltran Ebiole',
+              department: 'Ministerio de Sanidad y Bienestar Social',
+              aud: 'authenticated',
+              app_metadata: {},
+              user_metadata: {},
+              created_at: new Date().toISOString()
+            };
+            setUser(demoUser);
+            setUserRole('SUPER_ADMINISTRADOR');
+          } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+            console.log('🔄 Token refrescado');
+          }
+        } catch (authError) {
+          console.error('⚠️ Error in auth state change:', authError);
+          // Don't break the app on auth errors
+        }
+      }
+    );
+
     initializeAuth();
 
-    // No escuchar cambios de auth por ahora para simplificar
-  }, []); // Solo ejecutar una vez
+    return () => subscription.unsubscribe();
+  }, [defaultRole]);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);

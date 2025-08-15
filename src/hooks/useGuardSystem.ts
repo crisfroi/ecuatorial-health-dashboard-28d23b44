@@ -450,7 +450,7 @@ export const useConfiguracion = () => {
             notificacionesActivas: true
           };
         }
-        throw new Error(`Error fetching configuration: ${error.message || 'Unknown database error'}`);
+        throwFormattedGuardError(error, { component: 'useConfiguracion', action: 'fetching configuration' });
       }
 
       return {

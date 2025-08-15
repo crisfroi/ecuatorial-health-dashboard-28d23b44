@@ -86,11 +86,18 @@ const PagosGuardias: React.FC = () => {
     comprobante: null as File | null
   });
 
-  const { data: nominas = [], isLoading } = useNominas({
+  const { data: nominas = [], isLoading, error: nominasError } = useNominas({
     centroId: selectedHospital,
     mes: selectedMes,
     anio: selectedAnio
   });
+
+  // Show warning if database tables don't exist yet
+  React.useEffect(() => {
+    if (nominasError) {
+      console.warn('Nominas error in PagosGuardias:', nominasError);
+    }
+  }, [nominasError]);
 
   const { data: hospitales = [] } = usePublicHospitals();
   const selectedHospitalData = hospitales.find(h => h.id === selectedHospital);

@@ -70,7 +70,12 @@ export const useGuardias = (filters?: {
 
       if (error) {
         console.error('Error fetching guards:', error);
-        throw error;
+        // Handle case where tables don't exist yet
+        if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+          console.warn('Guard tables not yet created, returning empty data');
+          return [];
+        }
+        throw new Error(`Error fetching guards: ${error.message || 'Unknown database error'}`);
       }
 
       return (data || []).map(guard => ({
@@ -198,7 +203,12 @@ export const useValidaciones = (guardiaId?: string) => {
 
       if (error) {
         console.error('Error fetching validations:', error);
-        throw error;
+        // Handle case where tables don't exist yet
+        if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+          console.warn('Guard tables not yet created, returning empty data');
+          return [];
+        }
+        throw new Error(`Error fetching validations: ${error.message || 'Unknown database error'}`);
       }
 
       return (data || []).map(validation => ({
@@ -297,7 +307,12 @@ export const useNominas = (filters?: {
 
       if (error) {
         console.error('Error fetching payrolls:', error);
-        throw error;
+        // Handle case where tables don't exist yet
+        if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+          console.warn('Guard tables not yet created, returning empty data');
+          return [];
+        }
+        throw new Error(`Error fetching payrolls: ${error.message || 'Unknown database error'}`);
       }
 
       return (data || []).map(nomina => ({
@@ -359,7 +374,12 @@ export const useBaremos = () => {
 
       if (error) {
         console.error('Error fetching scale adjustments:', error);
-        throw error;
+        // Handle case where tables don't exist yet
+        if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+          console.warn('Guard tables not yet created, returning empty data');
+          return [];
+        }
+        throw new Error(`Error fetching scale adjustments: ${error.message || 'Unknown database error'}`);
       }
 
       return (data || []).map(baremo => ({

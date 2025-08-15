@@ -82,13 +82,23 @@ const NominaGuardias: React.FC = () => {
     anio: selectedAnio
   });
 
-  const { data: nominas = [], isLoading: loadingNominas } = useNominas({
+  const { data: nominas = [], isLoading: loadingNominas, error: nominasError } = useNominas({
     centroId: selectedHospital,
     mes: selectedMes,
     anio: selectedAnio
   });
 
-  const { data: baremos = [] } = useBaremos();
+  const { data: baremos = [], error: baremosError } = useBaremos();
+
+  // Show warning if database tables don't exist yet
+  React.useEffect(() => {
+    if (nominasError) {
+      console.warn('Nominas error:', nominasError);
+    }
+    if (baremosError) {
+      console.warn('Baremos error:', baremosError);
+    }
+  }, [nominasError, baremosError]);
   const { data: hospitales = [] } = usePublicHospitals();
   const calculateBaremoMutation = useCalculateBaremo();
 

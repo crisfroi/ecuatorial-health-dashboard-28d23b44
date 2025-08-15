@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  Guardia, 
-  Validacion, 
-  Nomina, 
-  Pago, 
+import { throwFormattedGuardError } from '@/utils/guardSystemErrorHandler';
+import {
+  Guardia,
+  Validacion,
+  Nomina,
+  Pago,
   AjusteBaremo,
   ConfiguracionSistema,
   TipoGuardia,
@@ -69,13 +70,12 @@ export const useGuardias = (filters?: {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching guards:', error);
         // Handle case where tables don't exist yet
         if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
           console.warn('Guard tables not yet created, returning empty data');
           return [];
         }
-        throw new Error(`Error fetching guards: ${error.message || 'Unknown database error'}`);
+        throwFormattedGuardError(error, { component: 'useGuardias', action: 'fetching guards' });
       }
 
       return (data || []).map(guard => ({
@@ -306,13 +306,12 @@ export const useNominas = (filters?: {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching payrolls:', error);
         // Handle case where tables don't exist yet
         if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
           console.warn('Guard tables not yet created, returning empty data');
           return [];
         }
-        throw new Error(`Error fetching payrolls: ${error.message || 'Unknown database error'}`);
+        throwFormattedGuardError(error, { component: 'useNominas', action: 'fetching payrolls' });
       }
 
       return (data || []).map(nomina => ({
@@ -373,13 +372,12 @@ export const useBaremos = () => {
         .order('categoria', { ascending: true });
 
       if (error) {
-        console.error('Error fetching scale adjustments:', error);
         // Handle case where tables don't exist yet
         if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
           console.warn('Guard tables not yet created, returning empty data');
           return [];
         }
-        throw new Error(`Error fetching scale adjustments: ${error.message || 'Unknown database error'}`);
+        throwFormattedGuardError(error, { component: 'useBaremos', action: 'fetching scale adjustments' });
       }
 
       return (data || []).map(baremo => ({

@@ -60,8 +60,12 @@ export const handleGuardSystemError = (
   if (
     error.message?.includes('network') ||
     error.message?.includes('fetch') ||
+    error.message?.includes('Failed to fetch') ||
     error.message?.includes('connection') ||
-    error.name === 'NetworkError'
+    error.message?.includes('ERR_NETWORK') ||
+    error.message?.includes('ERR_INTERNET_DISCONNECTED') ||
+    error.name === 'NetworkError' ||
+    error.name === 'TypeError' && error.message?.includes('fetch')
   ) {
     return {
       type: 'network_error',

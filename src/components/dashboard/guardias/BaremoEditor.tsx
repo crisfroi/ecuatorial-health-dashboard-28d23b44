@@ -174,17 +174,150 @@ const BaremoEditor: React.FC = () => {
                 Nuevo Baremo
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Crear Nuevo Baremo</DialogTitle>
                 <DialogDescription>
                   Define un nuevo ajuste de baremo para una categoría específica
                 </DialogDescription>
               </DialogHeader>
-              {/* TODO: Add create form */}
-              <div className="text-center text-gray-500 py-4">
-                <Calendar className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                <p>Formulario de creación en desarrollo</p>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Fuente</Label>
+                    <Select
+                      value={newBaremo.fuente}
+                      onValueChange={(value) => setNewBaremo(prev => ({ ...prev, fuente: value as FuenteBaremo }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="protocol">Protocolo</SelectItem>
+                        <SelectItem value="excel">Excel</SelectItem>
+                        <SelectItem value="manual">Manual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Categoría</Label>
+                    <Select
+                      value={newBaremo.categoria}
+                      onValueChange={(value) => setNewBaremo(prev => ({ ...prev, categoria: value as CategoriaProfesional }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(categoriaLabels).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Tipo de Guardia</Label>
+                    <Select
+                      value={newBaremo.tipoGuardia}
+                      onValueChange={(value) => setNewBaremo(prev => ({ ...prev, tipoGuardia: value as TipoGuardia }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(tipoGuardiaLabels).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Tipo de Día</Label>
+                    <Select
+                      value={newBaremo.tipoDia}
+                      onValueChange={(value) => setNewBaremo(prev => ({ ...prev, tipoDia: value as TipoDia }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(tipoDiaLabels).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Valor (XAF)</Label>
+                  <Input
+                    type="number"
+                    value={newBaremo.valor}
+                    onChange={(e) => setNewBaremo(prev => ({ ...prev, valor: parseFloat(e.target.value) || 0 }))}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>% Localizable Condición</Label>
+                    <Input
+                      type="number"
+                      value={newBaremo.porcentajeCondicion}
+                      onChange={(e) => setNewBaremo(prev => ({ ...prev, porcentajeCondicion: parseInt(e.target.value) || 0 }))}
+                      placeholder="0"
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>% Localizable Llamada</Label>
+                    <Input
+                      type="number"
+                      value={newBaremo.porcentajeLlamada}
+                      onChange={(e) => setNewBaremo(prev => ({ ...prev, porcentajeLlamada: parseInt(e.target.value) || 0 }))}
+                      placeholder="0"
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Vigente Desde</Label>
+                    <Input
+                      type="date"
+                      value={newBaremo.vigenteDesde}
+                      onChange={(e) => setNewBaremo(prev => ({ ...prev, vigenteDesde: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Vigente Hasta (opcional)</Label>
+                    <Input
+                      type="date"
+                      value={newBaremo.vigenteHasta}
+                      onChange={(e) => setNewBaremo(prev => ({ ...prev, vigenteHasta: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleCreateBaremo} disabled={createBaremo.isPending}>
+                    {createBaremo.isPending ? 'Creando...' : 'Crear Baremo'}
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>

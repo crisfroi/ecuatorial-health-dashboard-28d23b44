@@ -13,8 +13,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { guardiaSchema } from '@/schemas/guardiasSchemas';
 import { useCreateGuardia, useUpdateGuardia } from '@/hooks/useGuardSystem';
-import { useGuardProfessionals } from '@/hooks/useRealProfesionales';
-import { Guardia, TipoGuardia, GuardiaFormData } from '@/types/guardias';
+import { useHospitalGuardSystem } from '@/hooks/useHospitalGuardSystem';
+import ProfessionalSelector from './ProfessionalSelector';
+import { Guardia, TipoGuardia, GuardiaFormData, Profesional } from '@/types/guardias';
 import { format, addHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -35,11 +36,13 @@ const FormularioGuardia: React.FC<FormularioGuardiaProps> = ({
   hospitalId
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [showProfessionalSelector, setShowProfessionalSelector] = useState(false);
+  const [selectedProfessional, setSelectedProfessional] = useState<Profesional | null>(null);
+
   const createGuardiaMutation = useCreateGuardia();
   const updateGuardiaMutation = useUpdateGuardia();
-  
-  const { data: profesionales = [], isLoading: loadingProfesionales } = useGuardProfessionals(hospitalId);
+
+  const { hospitalProfessionals, loadingProfessionals } = useHospitalGuardSystem();
 
   const {
     control,
@@ -195,33 +198,50 @@ const FormularioGuardia: React.FC<FormularioGuardiaProps> = ({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Professional Selection */}
           <div className="space-y-2">
-            <Label htmlFor="profesionalId">Profesional *</Label>
+            <Label>Profesional *</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 justify-start h-10"
+                onClick={() => setShowProfessionalSelector(true)}
+                disabled={loadingProfessionals}
+              >
+                {selectedProfessional ? (
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-guinea-teal" />
+                    <div className="text-left">
+                      <div className="font-medium">{selectedProfessional.nombre}</div>
+                      <div className="text-xs text-gray-500">
+                        {selectedProfessional.unidad_servicio} • {selectedProfessional.categoria}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <User className="w-4 h-4 mr-2" />
+                    Seleccionar profesional...
+                  </>
+                )}
+              </Button>
+              {selectedProfessional && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedProfessional(null);
+                    setValue('profesionalId', '');
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
             <Controller
               name="profesionalId"
               control={control}
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={loadingProfesionales}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar profesional..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {profesionales.map((profesional) => (
-                      <SelectItem key={profesional.id} value={profesional.id}>
-                        <div className="flex flex-col">
-                          <span>{profesional.nombre}</span>
-                          <span className="text-xs text-gray-500">
-                            {profesional.unidad_servicio} • {profesional.categoria}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              render={() => null}
             />
             {errors.profesionalId && (
               <p className="text-sm text-red-600">{errors.profesionalId.message}</p>

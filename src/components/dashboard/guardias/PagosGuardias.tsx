@@ -24,7 +24,7 @@ interface PaymentFormData {
 
 const PagosGuardias: React.FC = () => {
   const { toast } = useToast();
-  const [selectedHospital, setSelectedHospital] = useState<string>('');
+  const [selectedHospital, setSelectedHospital] = useState<string>('all');
   const [filterEstado, setFilterEstado] = useState<'all' | 'pendiente' | 'procesando' | 'pagado' | 'fallido'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);

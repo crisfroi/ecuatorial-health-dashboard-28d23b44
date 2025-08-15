@@ -202,13 +202,12 @@ export const useValidaciones = (guardiaId?: string) => {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching validations:', error);
         // Handle case where tables don't exist yet
         if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
           console.warn('Guard tables not yet created, returning empty data');
           return [];
         }
-        throw new Error(`Error fetching validations: ${error.message || 'Unknown database error'}`);
+        throwFormattedGuardError(error, { component: 'useValidaciones', action: 'fetching validations' });
       }
 
       return (data || []).map(validation => ({

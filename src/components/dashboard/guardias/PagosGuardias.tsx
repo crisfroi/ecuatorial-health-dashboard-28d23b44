@@ -321,7 +321,7 @@ const PagosGuardias: React.FC = () => {
               <SelectValue placeholder="Todos los hospitales" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos los hospitales</SelectItem>
+              <SelectItem value="all">Todos los hospitales</SelectItem>
               {hospitales.map(hospital => (
                 <SelectItem key={hospital.id} value={hospital.id}>
                   {hospital.nombre}

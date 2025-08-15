@@ -306,6 +306,28 @@ const NominaGuardias: React.FC = () => {
 
   const totalCalculated = calculatedPayroll.reduce((sum, calc) => sum + calc.costos.total, 0);
 
+  // Show database setup message if needed
+  if (nominasError || baremosError) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-8">
+            <div className="text-center">
+              <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Sistema de Guardias en Configuración</h3>
+              <p className="text-gray-600 mb-4">
+                Las tablas del sistema de guardias aún no han sido creadas en la base de datos.
+              </p>
+              <p className="text-sm text-gray-500">
+                Contacte al administrador del sistema para completar la configuración.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}

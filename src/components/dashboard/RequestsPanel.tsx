@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertTriangle, CheckCircle, XCircle, Clock, Eye, FileText, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useProfesionales, useProfesionalesMutations } from '@/hooks/useProfesionales';
+import { useProfesionales } from '@/hooks/useProfesionales';
+import { useProfesionalesMutations } from '@/hooks/useProfesionalesMutations';
 
 interface RequestsPanelProps {
   userRole?: string;

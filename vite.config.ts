@@ -4,6 +4,8 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
+// Note: Recharts v2.12.7 has known deprecation warnings about defaultProps
+// These don't affect functionality and are suppressed in development
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",

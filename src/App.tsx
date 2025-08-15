@@ -14,6 +14,8 @@ import Auth from "./pages/Auth";
 // Clear any offline mode flags and auth state on app start
 import "@/utils/clearOfflineMode";
 import "@/utils/clearAuthState";
+// Suppress known Recharts warnings that don't affect functionality
+import "@/utils/suppressRechartsWarnings";
 
 const queryClient = new QueryClient({
   defaultOptions: {

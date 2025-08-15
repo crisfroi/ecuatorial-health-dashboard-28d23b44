@@ -40,7 +40,14 @@ const queryClient = new QueryClient({
           return false;
         }
 
-        // Reintentar hasta 3 veces para errores de red
+        // Analizar si es un error de red y si se puede reintentar
+        const networkInfo = analyzeNetworkError(error);
+        if (networkInfo.isNetworkError && networkInfo.canRetry && failureCount < 3) {
+          console.log('🌐 Network error detected, retrying:', error?.message);
+          return true;
+        }
+
+        // Reintentar hasta 3 veces para otros errores
         if (failureCount < 3) {
           return true;
         }

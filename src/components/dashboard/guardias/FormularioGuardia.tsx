@@ -110,10 +110,16 @@ const FormularioGuardia: React.FC<FormularioGuardiaProps> = ({
       let horasDefault = 12;
       if (watchedTipo === 'administrativa') horasDefault = 8;
       if (watchedTipo === 'localizable') horasDefault = 24;
-      
+
       setValue('fechaFin', addHours(fechaInicio, horasDefault));
     }
   }, [watchedTipo, setValue, watch]);
+
+  // Handle professional selection
+  const handleProfessionalSelect = (professional: Profesional) => {
+    setSelectedProfessional(professional);
+    setValue('profesionalId', professional.id);
+  };
 
   const onSubmit = async (data: GuardiaFormData) => {
     setIsSubmitting(true);
@@ -473,6 +479,17 @@ const FormularioGuardia: React.FC<FormularioGuardiaProps> = ({
           </div>
         </form>
       </DialogContent>
+
+      {/* Professional Selector */}
+      <ProfessionalSelector
+        isOpen={showProfessionalSelector}
+        onClose={() => setShowProfessionalSelector(false)}
+        onSelect={handleProfessionalSelect}
+        professionals={hospitalProfessionals}
+        selectedProfessionalId={selectedProfessional?.id}
+        title="Seleccionar Profesional para Guardia"
+        searchPlaceholder="Buscar profesional por nombre, área o especialidad..."
+      />
     </Dialog>
   );
 };

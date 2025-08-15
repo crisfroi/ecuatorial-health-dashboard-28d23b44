@@ -13,7 +13,8 @@ import {
   CategoriaProfesional,
   EstadoGuardia,
   EstadoValidacion,
-  EtapaValidacion
+  EtapaValidacion,
+  FuenteBaremo
 } from '@/types/guardias';
 
 // Guards/Shifts Management

@@ -442,7 +442,18 @@ export const useConfiguracion = () => {
 
       if (error) {
         console.error('Error fetching configuration:', error);
-        throw error;
+        // Handle case where tables don't exist yet
+        if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+          console.warn('Guard tables not yet created, returning default configuration');
+          return {
+            fuenteBaremo: 'protocol' as const,
+            limitesGuardias: { minimo: 4, maximo: 6 },
+            duracionMinima: 12,
+            duracionMaxima: 24,
+            notificacionesActivas: true
+          };
+        }
+        throw new Error(`Error fetching configuration: ${error.message || 'Unknown database error'}`);
       }
 
       return {

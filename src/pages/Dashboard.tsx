@@ -610,6 +610,9 @@ const Dashboard = () => {
         {/* Panel de diagnóstico temporal - OCULTO */}
         {/* <DiagnosticPanel /> */}
 
+        {/* Network status indicator */}
+        <NetworkStatusIndicator />
+
         {showStatsCards && (
           <div className="mb-6">
             <StatsCardsSimple

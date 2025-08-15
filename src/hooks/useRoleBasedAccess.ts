@@ -21,7 +21,9 @@ export const useRoleBasedAccess = () => {
       professionals: false,
       incidents: false,
       publicSearch: false,
-      centers: false
+      centers: false,
+      editGuardias: false, // Nuevo permiso para editar guardias
+      validateNominas: false // Nuevo permiso para validar nóminas
     };
 
     switch (userRole) {
@@ -39,6 +41,7 @@ export const useRoleBasedAccess = () => {
         access.professionals = true;
         access.incidents = true;
         access.centers = true;
+        access.validateNominas = true;
         break;
 
       case 'DIRECTIVO_CENTRO_SANITARIO':
@@ -47,6 +50,7 @@ export const useRoleBasedAccess = () => {
         access.nominas = true;
         access.professionals = true;
         access.incidents = true;
+        access.editGuardias = true; // Pueden editar guardias de su centro
         break;
 
       case 'REVISOR_SOLICITUDES':
@@ -150,6 +154,9 @@ export const useRoleBasedAccess = () => {
     ): T[] => {
       if (!userRole || !data) return data;
 
+      // Super administrador puede ver todo
+      if (userRole === 'SUPER_ADMINISTRADOR') return data;
+
       // Roles con restricción por centro
       const centerRestrictedRoles: UserRole[] = ['DIRECTIVO_CENTRO_SANITARIO', 'HOSPITAL'];
       
@@ -183,6 +190,24 @@ export const useRoleBasedAccess = () => {
     return false;
   };
 
+  // Verificar si puede editar guardias
+  const canEditGuardias = (guardiacentroId?: string): boolean => {
+    if (!userRole) return false;
+    
+    // Super administrador puede editar todas las guardias
+    if (userRole === 'SUPER_ADMINISTRADOR') return true;
+    
+    // Personal ministerial puede editar todas las guardias
+    if (userRole === 'PERSONALIDAD_MINISTERIAL') return true;
+    
+    // Directivos de centro solo pueden editar guardias de su centro
+    if (['DIRECTIVO_CENTRO_SANITARIO', 'HOSPITAL'].includes(userRole)) {
+      return guardiacentroId ? canAccessCenter(guardiacentroId) : false;
+    }
+    
+    return false;
+  };
+
   // Obtener contexto del centro asignado
   const centerContext = useMemo(() => {
     if (!user?.assigned_center_id) return null;
@@ -190,7 +215,7 @@ export const useRoleBasedAccess = () => {
     return {
       centerId: user.assigned_center_id,
       isRestricted: ['DIRECTIVO_CENTRO_SANITARIO', 'HOSPITAL'].includes(userRole || ''),
-      canManageGuards: ['DIRECTIVO_CENTRO_SANITARIO', 'HOSPITAL'].includes(userRole || ''),
+      canManageGuards: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO', 'HOSPITAL'].includes(userRole || ''),
       canValidatePayrolls: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL'].includes(userRole || '')
     };
   }, [user, userRole]);
@@ -202,11 +227,14 @@ export const useRoleBasedAccess = () => {
     allowedTabs,
     filterDataByCenter,
     canAccessCenter,
+    canEditGuardias,
     centerContext,
     hasPermission,
     isRestricted: ['DIRECTIVO_CENTRO_SANITARIO', 'HOSPITAL'].includes(userRole || ''),
     canManageUsers: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL'].includes(userRole || ''),
-    canValidateData: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'REVISOR_SOLICITUDES'].includes(userRole || '')
+    canValidateData: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'REVISOR_SOLICITUDES'].includes(userRole || ''),
+    isSuperAdmin: userRole === 'SUPER_ADMINISTRADOR',
+    isMinisterial: userRole === 'PERSONALIDAD_MINISTERIAL'
   };
 };
 

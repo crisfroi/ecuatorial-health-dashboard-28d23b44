@@ -31,6 +31,14 @@ const queryClient = new QueryClient({
           return false;
         }
 
+        // No reintentar si es un error de tabla inexistente
+        if (error?.message?.includes('relation') ||
+            error?.message?.includes('does not exist') ||
+            error?.code === 'PGRST116') {
+          console.log('🗄️ Database table missing, not retrying:', error?.message);
+          return false;
+        }
+
         // Reintentar hasta 3 veces para errores de red
         if (failureCount < 3) {
           return true;

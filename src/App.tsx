@@ -20,16 +20,20 @@ const queryClient = new QueryClient({
     queries: {
       // Configuración de reintentos
       retry: (failureCount, error: any) => {
-        // No reintentar si es un error de autenticación
-        if (error?.message?.includes('auth') || error?.message?.includes('unauthorized')) {
+        // No reintentar si es un error de autenticación o token
+        if (error?.message?.includes('auth') ||
+            error?.message?.includes('unauthorized') ||
+            error?.message?.includes('Invalid Refresh Token') ||
+            error?.message?.includes('Refresh Token Not Found')) {
+          console.log('🔐 Auth error detected, not retrying:', error?.message);
           return false;
         }
-        
+
         // Reintentar hasta 3 veces para errores de red
         if (failureCount < 3) {
           return true;
         }
-        
+
         return false;
       },
       
@@ -39,7 +43,7 @@ const queryClient = new QueryClient({
       // Tiempo de vida de los datos en caché
       staleTime: 5 * 60 * 1000, // 5 minutos
       
-      // Tiempo de vida de los datos en cach�� cuando no hay suscriptores
+      // Tiempo de vida de los datos en caché cuando no hay suscriptores
       gcTime: 10 * 60 * 1000, // 10 minutos
       
       // Configuración de refetch
@@ -48,13 +52,21 @@ const queryClient = new QueryClient({
       
       // Manejo de errores
       onError: (error: any) => {
-        console.error('Query error:', error);
-        
+        // Si es un error de autenticación, no logear como error crítico
+        if (error?.message?.includes('auth') ||
+            error?.message?.includes('Invalid Refresh Token') ||
+            error?.message?.includes('Refresh Token Not Found')) {
+          console.log('🔐 Auth error handled gracefully:', error?.message);
+          return;
+        }
+
         // Si es un error de red, no mostrar errores en consola
         if (error?.message?.includes('fetch') || error?.message?.includes('network')) {
           console.log('Network error detected, using fallback data');
           return;
         }
+
+        console.error('Query error:', error);
       }
     },
     

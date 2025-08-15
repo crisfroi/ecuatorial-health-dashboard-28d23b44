@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Edit, Save, Plus, Trash2, Download, Upload, AlertTriangle, Calendar, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useBaremos, useUpdateBaremo } from '@/hooks/useGuardSystem';
+import { useBaremos, useUpdateBaremo, useCreateBaremo } from '@/hooks/useGuardSystem';
 import { AjusteBaremo, CategoriaProfesional, TipoGuardia, TipoDia, FuenteBaremo } from '@/types/guardias';
 
 const categoriaLabels: Record<CategoriaProfesional, string> = {

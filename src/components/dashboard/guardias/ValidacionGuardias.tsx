@@ -91,12 +91,22 @@ const ValidacionGuardias: React.FC = () => {
   });
   const [filterEstado, setFilterEstado] = useState<EstadoValidacion | 'all'>('all');
 
-  const { data: guardias = [], isLoading } = useGuardias({
+  const { data: guardias = [], isLoading, error: guardiasError } = useGuardias({
     centroId: selectedHospital,
     validacionEstado: filterEstado === 'all' ? undefined : filterEstado
   });
 
-  const { data: validaciones = [] } = useValidaciones();
+  const { data: validaciones = [], error: validacionesError } = useValidaciones();
+
+  // Show warning if database tables don't exist yet
+  React.useEffect(() => {
+    if (guardiasError) {
+      console.warn('Guardias error in ValidacionGuardias:', guardiasError);
+    }
+    if (validacionesError) {
+      console.warn('Validaciones error in ValidacionGuardias:', validacionesError);
+    }
+  }, [guardiasError, validacionesError]);
   const createValidacionMutation = useCreateValidacion();
 
   const getValidationsByGuard = (guardiaId: string) => {

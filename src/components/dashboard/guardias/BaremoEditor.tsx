@@ -94,6 +94,48 @@ const BaremoEditor: React.FC = () => {
     }
   };
 
+  const handleCreateBaremo = async () => {
+    try {
+      await createBaremo.mutateAsync({
+        fuente: newBaremo.fuente,
+        categoria: newBaremo.categoria,
+        tipoGuardia: newBaremo.tipoGuardia,
+        tipoDia: newBaremo.tipoDia,
+        valor: newBaremo.valor,
+        porcentajeLocalizable: newBaremo.porcentajeCondicion > 0 || newBaremo.porcentajeLlamada > 0 ? {
+          condicion: newBaremo.porcentajeCondicion,
+          llamada: newBaremo.porcentajeLlamada
+        } : undefined,
+        vigenteDesde: new Date(newBaremo.vigenteDesde),
+        vigenteHasta: newBaremo.vigenteHasta ? new Date(newBaremo.vigenteHasta) : undefined
+      });
+
+      toast({
+        title: "Baremo creado",
+        description: "El nuevo baremo se ha creado exitosamente.",
+      });
+
+      setShowCreateDialog(false);
+      setNewBaremo({
+        fuente: 'protocol',
+        categoria: 'especialista',
+        tipoGuardia: 'fisica',
+        tipoDia: 'ordinario',
+        valor: 0,
+        porcentajeCondicion: 0,
+        porcentajeLlamada: 0,
+        vigenteDesde: new Date().toISOString().split('T')[0],
+        vigenteHasta: ''
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo crear el baremo. Intenta nuevamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',

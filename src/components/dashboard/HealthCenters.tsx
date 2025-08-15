@@ -28,6 +28,7 @@ import {
   Edit,
   Plus,
   Download,
+  AlertTriangle,
 } from "lucide-react";
 import {
   useBuscarCentros,
@@ -642,6 +643,20 @@ const HealthCenters = () => {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          {pendingCenters.length > 0 && (
+            <Button
+              variant={showPendingCenters ? "default" : "outline"}
+              onClick={() => setShowPendingCenters(!showPendingCenters)}
+              className={`flex items-center gap-2 ${
+                showPendingCenters
+                  ? "bg-yellow-600 text-white hover:bg-yellow-700"
+                  : "border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+              }`}
+            >
+              <AlertTriangle className="w-4 h-4" />
+              {showPendingCenters ? "Ocultar" : "Ver"} {pendingCenters.length} Centros Pendientes
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={exportCentersToExcel}
@@ -649,14 +664,6 @@ const HealthCenters = () => {
           >
             <Download className="w-4 h-4" />
             Exportar Excel
-          </Button>
-          <Button
-            variant={showPendingCenters ? "default" : "outline"}
-            onClick={() => setShowPendingCenters(!showPendingCenters)}
-            className="flex items-center gap-2"
-          >
-            <Eye className="w-4 h-4" />
-            Centros Pendientes ({pendingCenters.length})
           </Button>
 
           <div className="flex items-center border rounded-lg p-1">

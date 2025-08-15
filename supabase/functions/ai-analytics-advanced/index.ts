@@ -19,16 +19,16 @@ serve(async (req) => {
 
     const { query, filters } = await req.json()
 
-    // Función para obtener estadísticas avanzadas
+    // Función para obtener estadísticas avanzadas y completas
     const getAdvancedStats = async (query: string, filters: any = {}) => {
       let result: any = {}
 
       switch (query) {
         case 'demographics':
-          // Estadísticas demográficas
+          // Estadísticas demográficas completas
           const demographics = await supabaseClient
             .from('profesionales_sanitarios')
-            .select('genero, edad, nacionalidad, provincia, distrito')
+            .select('genero, edad, nacionalidad, provincia, distrito, fecha_nacimiento, estado_solicitud')
             .not('genero', 'is', null)
 
           const genderStats = demographics.data?.reduce((acc: any, prof: any) => {
@@ -62,15 +62,27 @@ serve(async (req) => {
                 acc[prof.provincia] = (acc[prof.provincia] || 0) + 1
               }
               return acc
+            }, {}),
+            distritos: demographics.data?.reduce((acc: any, prof: any) => {
+              if (prof.distrito) {
+                acc[prof.distrito] = (acc[prof.distrito] || 0) + 1
+              }
+              return acc
+            }, {}),
+            estados_solicitud: demographics.data?.reduce((acc: any, prof: any) => {
+              if (prof.estado_solicitud) {
+                acc[prof.estado_solicitud] = (acc[prof.estado_solicitud] || 0) + 1
+              }
+              return acc
             }, {})
           }
           break
 
         case 'professional_areas':
-          // Áreas profesionales
+          // Áreas profesionales expandidas
           const areas = await supabaseClient
             .from('profesionales_sanitarios')
-            .select('area_profesional, especialidad, categoria_titulacion')
+            .select('area_profesional, especialidad, categoria_titulacion, situacion_laboral, estado_solicitud')
             .not('area_profesional', 'is', null)
 
           result = {
@@ -89,51 +101,82 @@ serve(async (req) => {
                 acc[prof.categoria_titulacion] = (acc[prof.categoria_titulacion] || 0) + 1
               }
               return acc
+            }, {}),
+            situaciones_laborales: areas.data?.reduce((acc: any, prof: any) => {
+              if (prof.situacion_laboral) {
+                acc[prof.situacion_laboral] = (acc[prof.situacion_laboral] || 0) + 1
+              }
+              return acc
+            }, {}),
+            areas_por_estado: areas.data?.reduce((acc: any, prof: any) => {
+              const key = `${prof.area_profesional}_${prof.estado_solicitud}`
+              acc[key] = (acc[key] || 0) + 1
+              return acc
             }, {})
           }
           break
 
         case 'education':
-          // Formación y educación
+          // Formación y educación mejorada
           const education = await supabaseClient
             .from('profesionales_sanitarios')
-            .select('pais_formacion_1, pais_formacion_2, año_graduacion, institucion_1, institucion_2, tipo_formacion_1, tipo_formacion_2')
+            .select(`
+              pais_formacion_1, 
+              periodo_formacion,
+              institucion_1, 
+              titulacion_especifica_1,
+              categoria_titulacion,
+              area_profesional,
+              especialidad
+            `)
             .not('pais_formacion_1', 'is', null)
+
+          // Análisis de período de formación para extraer años
+          const yearAnalysis = education.data?.map(prof => {
+            if (prof.periodo_formacion) {
+              const match = prof.periodo_formacion.match(/(\d{4})-(\d{4})|(\d{4})/)
+              if (match) {
+                return {
+                  ...prof,
+                  año_inicio: match[1] || match[3],
+                  año_fin: match[2] || match[3]
+                }
+              }
+            }
+            return prof
+          })
 
           result = {
             paises_formacion: education.data?.reduce((acc: any, prof: any) => {
               if (prof.pais_formacion_1) {
                 acc[prof.pais_formacion_1] = (acc[prof.pais_formacion_1] || 0) + 1
               }
-              if (prof.pais_formacion_2) {
-                acc[prof.pais_formacion_2] = (acc[prof.pais_formacion_2] || 0) + 1
-              }
               return acc
             }, {}),
-            años_graduacion: education.data?.reduce((acc: any, prof: any) => {
-              if (prof.año_graduacion) {
-                const yearGroup = prof.año_graduacion < 2000 ? 'Antes de 2000' :
-                                prof.año_graduacion < 2010 ? '2000-2009' :
-                                prof.año_graduacion < 2020 ? '2010-2019' : '2020+'
-                acc[yearGroup] = (acc[yearGroup] || 0) + 1
-              }
-              return acc
-            }, {}),
-            instituciones: education.data?.reduce((acc: any, prof: any) => {
+            instituciones_principales: education.data?.reduce((acc: any, prof: any) => {
               if (prof.institucion_1) {
                 acc[prof.institucion_1] = (acc[prof.institucion_1] || 0) + 1
               }
-              if (prof.institucion_2) {
-                acc[prof.institucion_2] = (acc[prof.institucion_2] || 0) + 1
+              return acc
+            }, {}),
+            titulaciones_especificas: education.data?.reduce((acc: any, prof: any) => {
+              if (prof.titulacion_especifica_1) {
+                acc[prof.titulacion_especifica_1] = (acc[prof.titulacion_especifica_1] || 0) + 1
               }
               return acc
             }, {}),
-            tipos_formacion: education.data?.reduce((acc: any, prof: any) => {
-              if (prof.tipo_formacion_1) {
-                acc[prof.tipo_formacion_1] = (acc[prof.tipo_formacion_1] || 0) + 1
+            formacion_por_area: education.data?.reduce((acc: any, prof: any) => {
+              const key = `${prof.area_profesional}_${prof.pais_formacion_1}`
+              if (prof.area_profesional && prof.pais_formacion_1) {
+                acc[key] = (acc[key] || 0) + 1
               }
-              if (prof.tipo_formacion_2) {
-                acc[prof.tipo_formacion_2] = (acc[prof.tipo_formacion_2] || 0) + 1
+              return acc
+            }, {}),
+            años_graduacion_estimados: yearAnalysis?.reduce((acc: any, prof: any) => {
+              if (prof.año_fin) {
+                const decade = Math.floor(parseInt(prof.año_fin) / 10) * 10
+                const decadeLabel = `${decade}-${decade + 9}`
+                acc[decadeLabel] = (acc[decadeLabel] || 0) + 1
               }
               return acc
             }, {})
@@ -141,10 +184,14 @@ serve(async (req) => {
           break
 
         case 'work_centers':
-          // Centros de trabajo
+          // Centros de trabajo expandido
           const workCenters = await supabaseClient
             .from('profesionales_sanitarios')
-            .select('nombre_centro, categoria_centro, tipo_sector, distrito_sanitario, situacion_laboral, estado_trabajo')
+            .select('nombre_centro, categoria_centro, tipo_sector, distrito_sanitario, situacion_laboral, provincia, distrito')
+
+          const centersData = await supabaseClient
+            .from('centros_salud')
+            .select('*')
 
           result = {
             centros_trabajo: workCenters.data?.reduce((acc: any, prof: any) => {
@@ -171,9 +218,23 @@ serve(async (req) => {
               }
               return acc
             }, {}),
-            situaciones_laborales: workCenters.data?.reduce((acc: any, prof: any) => {
-              if (prof.situacion_laboral) {
-                acc[prof.situacion_laboral] = (acc[prof.situacion_laboral] || 0) + 1
+            distribucion_geografica: workCenters.data?.reduce((acc: any, prof: any) => {
+              const key = `${prof.provincia}_${prof.distrito}`
+              if (prof.provincia && prof.distrito) {
+                acc[key] = (acc[key] || 0) + 1
+              }
+              return acc
+            }, {}),
+            centros_registrados: centersData.data?.length || 0,
+            centros_por_categoria: centersData.data?.reduce((acc: any, center: any) => {
+              if (center.categoria) {
+                acc[center.categoria] = (acc[center.categoria] || 0) + 1
+              }
+              return acc
+            }, {}),
+            centros_por_estado: centersData.data?.reduce((acc: any, center: any) => {
+              if (center.estado) {
+                acc[center.estado] = (acc[center.estado] || 0) + 1
               }
               return acc
             }, {})
@@ -181,10 +242,22 @@ serve(async (req) => {
           break
 
         case 'application_status':
-          // Estados de solicitud
+          // Estados de solicitud mejorado
           const status = await supabaseClient
             .from('profesionales_sanitarios')
-            .select('estado_solicitud, fecha_solicitud, fecha_aprobacion, fecha_rechazo, motivo_rechazo, urgencia_solicitud')
+            .select(`
+              estado_solicitud, 
+              fecha_solicitud, 
+              fecha_aprobacion, 
+              fecha_rechazo, 
+              motivo_rechazo, 
+              urgencia_solicitud,
+              area_profesional,
+              provincia
+            `)
+
+          const currentYear = new Date().getFullYear()
+          const currentMonth = new Date().getMonth()
 
           result = {
             estados_solicitud: status.data?.reduce((acc: any, prof: any) => {
@@ -201,7 +274,16 @@ serve(async (req) => {
             }, {}),
             solicitudes_por_mes: status.data?.reduce((acc: any, prof: any) => {
               if (prof.fecha_solicitud) {
-                const month = new Date(prof.fecha_solicitud).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+                const date = new Date(prof.fecha_solicitud)
+                const month = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+                acc[month] = (acc[month] || 0) + 1
+              }
+              return acc
+            }, {}),
+            aprobaciones_por_mes: status.data?.reduce((acc: any, prof: any) => {
+              if (prof.fecha_aprobacion) {
+                const date = new Date(prof.fecha_aprobacion)
+                const month = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
                 acc[month] = (acc[month] || 0) + 1
               }
               return acc
@@ -211,12 +293,26 @@ serve(async (req) => {
                 acc[prof.motivo_rechazo] = (acc[prof.motivo_rechazo] || 0) + 1
               }
               return acc
-            }, {})
+            }, {}),
+            pendientes_por_area: status.data?.filter(p => p.estado_solicitud === 'Pendiente')
+              ?.reduce((acc: any, prof: any) => {
+                if (prof.area_profesional) {
+                  acc[prof.area_profesional] = (acc[prof.area_profesional] || 0) + 1
+                }
+                return acc
+              }, {}),
+            solicitudes_este_año: status.data?.filter(p => {
+              if (p.fecha_solicitud) {
+                const year = new Date(p.fecha_solicitud).getFullYear()
+                return year === currentYear
+              }
+              return false
+            }).length || 0
           }
           break
 
         case 'carnet_generation':
-          // Generación de carnets
+          // Generación de carnets expandida
           const carnets = await supabaseClient
             .from('carnets_generados')
             .select('*')
@@ -224,6 +320,30 @@ serve(async (req) => {
           const colaCarnets = await supabaseClient
             .from('cola_generacion_carnets')
             .select('*')
+
+          const profesionalesConCarnet = await supabaseClient
+            .from('profesionales_sanitarios')
+            .select('url_codigo_barras_expediente, fecha_validez_carnet, estado_solicitud')
+
+          // Análisis de vencimientos
+          const now = new Date()
+          const threeMonthsFromNow = new Date(now.getTime() + (90 * 24 * 60 * 60 * 1000))
+
+          const vencimientoAnalysis = profesionalesConCarnet.data?.reduce((acc: any, prof: any) => {
+            if (prof.fecha_validez_carnet) {
+              const vencimiento = new Date(prof.fecha_validez_carnet)
+              if (vencimiento < now) {
+                acc.vencidos++
+              } else if (vencimiento < threeMonthsFromNow) {
+                acc.proximos_vencer++
+              } else {
+                acc.vigentes++
+              }
+            } else {
+              acc.sin_fecha++
+            }
+            return acc
+          }, { vencidos: 0, proximos_vencer: 0, vigentes: 0, sin_fecha: 0 })
 
           result = {
             carnets_generados: carnets.data?.length || 0,
@@ -238,22 +358,48 @@ serve(async (req) => {
                 acc[date] = (acc[date] || 0) + 1
               }
               return acc
-            }, {})
+            }, {}),
+            profesionales_con_carnet: profesionalesConCarnet.data?.filter(p => p.url_codigo_barras_expediente).length || 0,
+            analisis_vencimientos: vencimientoAnalysis,
+            tasa_generacion_exitosa: colaCarnets.data?.length > 0 ? 
+              (colaCarnets.data.filter(c => c.estado === 'completado').length / colaCarnets.data.length * 100).toFixed(2) : 0
           }
           break
 
         case 'centers_analysis':
-          // Análisis de centros de salud
+          // Análisis de centros de salud completo
           const centers = await supabaseClient
             .from('centros_salud')
             .select('*')
 
           const professionalsByCenter = await supabaseClient
             .from('profesionales_sanitarios')
-            .select('centro_salud_id, area_profesional')
+            .select('centro_salud_id, area_profesional, nombre_centro, categoria_centro, distrito_sanitario')
+
+          // Análisis de cobertura sanitaria
+          const coverageAnalysis = {
+            centros_con_profesionales: 0,
+            centros_sin_profesionales: 0,
+            promedio_profesionales_por_centro: 0
+          }
+
+          const centerProfessionalCount = professionalsByCenter.data?.reduce((acc: any, prof: any) => {
+            if (prof.centro_salud_id) {
+              acc[prof.centro_salud_id] = (acc[prof.centro_salud_id] || 0) + 1
+            }
+            return acc
+          }, {})
+
+          const centrosConProfesionales = Object.keys(centerProfessionalCount || {}).length
+          const totalCentros = centers.data?.length || 0
+
+          coverageAnalysis.centros_con_profesionales = centrosConProfesionales
+          coverageAnalysis.centros_sin_profesionales = totalCentros - centrosConProfesionales
+          coverageAnalysis.promedio_profesionales_por_centro = centrosConProfesionales > 0 ? 
+            (Object.values(centerProfessionalCount || {}).reduce((a: any, b: any) => a + b, 0) / centrosConProfesionales).toFixed(2) : 0
 
           result = {
-            total_centros: centers.data?.length || 0,
+            total_centros: totalCentros,
             centros_por_categoria: centers.data?.reduce((acc: any, center: any) => {
               acc[center.categoria] = (acc[center.categoria] || 0) + 1
               return acc
@@ -268,20 +414,48 @@ serve(async (req) => {
               }
               return acc
             }, {}),
-            profesionales_por_centro: professionalsByCenter.data?.reduce((acc: any, prof: any) => {
-              if (prof.centro_salud_id) {
-                acc[prof.centro_salud_id] = (acc[prof.centro_salud_id] || 0) + 1
+            centros_por_estado: centers.data?.reduce((acc: any, center: any) => {
+              if (center.estado) {
+                acc[center.estado] = (acc[center.estado] || 0) + 1
               }
               return acc
-            }, {})
+            }, {}),
+            profesionales_por_centro: centerProfessionalCount,
+            cobertura_sanitaria: coverageAnalysis,
+            distribucion_por_sector: centers.data?.reduce((acc: any, center: any) => {
+              if (center.sector) {
+                acc[center.sector] = (acc[center.sector] || 0) + 1
+              }
+              return acc
+            }, {}),
+            centros_pendientes_validacion: centers.data?.filter(c => c.estado === 'pendiente_validacion').length || 0
           }
           break
 
         case 'temporal_analysis':
-          // Análisis temporal
+          // Análisis temporal completo
           const temporal = await supabaseClient
             .from('profesionales_sanitarios')
-            .select('created_at, fecha_solicitud, fecha_aprobacion, fecha_nacimiento, año_graduacion')
+            .select('created_at, fecha_solicitud, fecha_aprobacion, fecha_nacimiento, updated_at, estado_solicitud')
+
+          const now = new Date()
+          const currentYear = now.getFullYear()
+          const currentMonth = now.getMonth()
+
+          // Análisis de tendencias mensuales
+          const monthlyTrends = temporal.data?.reduce((acc: any, prof: any) => {
+            if (prof.created_at) {
+              const date = new Date(prof.created_at)
+              const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`
+              acc.registros[monthKey] = (acc.registros[monthKey] || 0) + 1
+            }
+            if (prof.fecha_aprobacion) {
+              const date = new Date(prof.fecha_aprobacion)
+              const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`
+              acc.aprobaciones[monthKey] = (acc.aprobaciones[monthKey] || 0) + 1
+            }
+            return acc
+          }, { registros: {}, aprobaciones: {} })
 
           result = {
             registros_por_mes: temporal.data?.reduce((acc: any, prof: any) => {
@@ -298,12 +472,87 @@ serve(async (req) => {
               }
               return acc
             }, {}),
-            generaciones_graduacion: temporal.data?.reduce((acc: any, prof: any) => {
-              if (prof.año_graduacion) {
-                acc[prof.año_graduacion] = (acc[prof.año_graduacion] || 0) + 1
+            tendencias_mensuales: monthlyTrends,
+            registros_este_año: temporal.data?.filter(p => {
+              if (p.created_at) {
+                return new Date(p.created_at).getFullYear() === currentYear
+              }
+              return false
+            }).length || 0,
+            registros_este_mes: temporal.data?.filter(p => {
+              if (p.created_at) {
+                const date = new Date(p.created_at)
+                return date.getFullYear() === currentYear && date.getMonth() === currentMonth
+              }
+              return false
+            }).length || 0,
+            tiempo_promedio_aprobacion: (() => {
+              const aprobados = temporal.data?.filter(p => p.fecha_aprobacion && p.fecha_solicitud)
+              if (!aprobados || aprobados.length === 0) return 0
+              
+              const tiempos = aprobados.map(p => {
+                const solicitud = new Date(p.fecha_solicitud)
+                const aprobacion = new Date(p.fecha_aprobacion)
+                return (aprobacion.getTime() - solicitud.getTime()) / (1000 * 60 * 60 * 24) // días
+              })
+              
+              return (tiempos.reduce((a, b) => a + b, 0) / tiempos.length).toFixed(1)
+            })()
+          }
+          break
+
+        case 'user_management':
+          // Análisis de gestión de usuarios
+          const userProfiles = await supabaseClient
+            .from('user_profiles')
+            .select('*')
+
+          result = {
+            total_usuarios: userProfiles.data?.length || 0,
+            usuarios_por_rol: userProfiles.data?.reduce((acc: any, user: any) => {
+              if (user.role) {
+                acc[user.role] = (acc[user.role] || 0) + 1
               }
               return acc
-            }, {})
+            }, {}),
+            usuarios_activos: userProfiles.data?.filter(u => u.is_active).length || 0,
+            usuarios_por_departamento: userProfiles.data?.reduce((acc: any, user: any) => {
+              if (user.department) {
+                acc[user.department] = (acc[user.department] || 0) + 1
+              }
+              return acc
+            }, {}),
+            usuarios_con_centro_asignado: userProfiles.data?.filter(u => u.assigned_center_id).length || 0
+          }
+          break
+
+        case 'system_performance':
+          // Análisis de rendimiento del sistema
+          const tables = [
+            'profesionales_sanitarios',
+            'centros_salud', 
+            'carnets_generados',
+            'cola_generacion_carnets',
+            'user_profiles'
+          ]
+
+          const tableCounts = await Promise.all(
+            tables.map(async (table) => {
+              const { count } = await supabaseClient
+                .from(table)
+                .select('*', { count: 'exact', head: true })
+              return { table, count }
+            })
+          )
+
+          result = {
+            total_registros: tableCounts.reduce((acc, { count }) => acc + (count || 0), 0),
+            registros_por_tabla: tableCounts.reduce((acc: any, { table, count }) => {
+              acc[table] = count || 0
+              return acc
+            }, {}),
+            timestamp: new Date().toISOString(),
+            salud_sistema: 'operativo'
           }
           break
 
@@ -317,10 +566,17 @@ serve(async (req) => {
             getAdvancedStats('application_status'),
             getAdvancedStats('carnet_generation'),
             getAdvancedStats('centers_analysis'),
-            getAdvancedStats('temporal_analysis')
+            getAdvancedStats('temporal_analysis'),
+            getAdvancedStats('user_management'),
+            getAdvancedStats('system_performance')
           ])
 
           result = {
+            resumen_ejecutivo: {
+              timestamp: new Date().toISOString(),
+              version_sistema: '1.0',
+              estado_general: 'operativo'
+            },
             demograficas: allStats[0],
             areas_profesionales: allStats[1],
             educacion: allStats[2],
@@ -328,12 +584,29 @@ serve(async (req) => {
             estados_solicitud: allStats[4],
             generacion_carnets: allStats[5],
             analisis_centros: allStats[6],
-            analisis_temporal: allStats[7]
+            analisis_temporal: allStats[7],
+            gestion_usuarios: allStats[8],
+            rendimiento_sistema: allStats[9]
           }
           break
 
         default:
-          result = { error: 'Consulta no reconocida' }
+          result = { 
+            error: 'Consulta no reconocida',
+            consultas_disponibles: [
+              'demographics',
+              'professional_areas', 
+              'education',
+              'work_centers',
+              'application_status',
+              'carnet_generation',
+              'centers_analysis',
+              'temporal_analysis',
+              'user_management',
+              'system_performance',
+              'comprehensive'
+            ]
+          }
       }
 
       return result
@@ -342,7 +615,12 @@ serve(async (req) => {
     const stats = await getAdvancedStats(query, filters)
 
     return new Response(
-      JSON.stringify({ success: true, data: stats }),
+      JSON.stringify({ 
+        success: true, 
+        data: stats,
+        timestamp: new Date().toISOString(),
+        query_executed: query 
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -350,12 +628,17 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    console.error('Error in ai-analytics-advanced:', error)
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
   }
-}) 
+})

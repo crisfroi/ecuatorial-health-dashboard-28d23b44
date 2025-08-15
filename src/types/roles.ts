@@ -4,12 +4,13 @@
  * Este archivo define todos los roles de usuario y sus permisos correspondientes
  */
 
-export type UserRole = 
+export type UserRole =
   | 'SUPER_ADMINISTRADOR'
   | 'REVISOR_SOLICITUDES'
   | 'PERSONALIDAD_MINISTERIAL'
   | 'OBSERVADOR'
-  | 'DIRECTIVO_CENTRO_SANITARIO';
+  | 'DIRECTIVO_CENTRO_SANITARIO'
+  | 'HOSPITAL';
 
 export interface Permission {
   id: string;
@@ -240,6 +241,45 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
         onlyAssignedCenter: true
       }
     }
+  },
+
+  HOSPITAL: {
+    id: 'HOSPITAL',
+    name: 'Gestión Hospitalaria',
+    description: 'Personal de gestión hospitalaria con acceso a profesionales y centros de su red',
+    permissions: [
+      'view_dashboard',
+      'view_professionals',
+      'view_requests',
+      'view_centers',
+      'view_incidents',
+      'view_renewals',
+      'edit_centers',
+      'assign_professionals_to_centers',
+      'create_incidents',
+      'resolve_incidents',
+      'manage_professional_incidents',
+      'export_data',
+      'generate_reports',
+      'ai_chat_basic',
+      'ai_chat_advanced'
+    ],
+    dashboardTabs: [
+      'overview',
+      'professionals',
+      'requests',
+      'health-centers',
+      'incidents',
+      'renewals',
+      'ai-chat'
+    ],
+    restrictions: {
+      dataFilters: {
+        // Puede ver datos de múltiples centros de su red hospitalaria
+        hospitalNetworkRestricted: true,
+        multiCenterAccess: true
+      }
+    }
   }
 };
 
@@ -296,6 +336,11 @@ export const ROLE_DASHBOARD_VIEWS: Record<UserRole, {
     defaultTab: 'health-centers',
     featuredCards: ['center_professionals', 'center_incidents', 'center_statistics', 'assigned_staff'],
     hiddenSections: ['other_centers', 'global_admin', 'ministerial_data']
+  },
+  HOSPITAL: {
+    defaultTab: 'overview',
+    featuredCards: ['hospital_professionals', 'hospital_incidents', 'hospital_statistics', 'pending_hospital_requests'],
+    hiddenSections: ['ministerial_data', 'global_admin', 'system_configuration']
   }
 };
 

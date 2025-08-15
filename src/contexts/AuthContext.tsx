@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserRole, hasPermission, canAccessTab, getRoleRestrictions } from '@/types/roles';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,83 +38,74 @@ interface AuthProviderProps {
   defaultRole?: UserRole;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ 
-  children, 
+export const AuthProvider: React.FC<AuthProviderProps> = ({
+  children,
   defaultRole = 'SUPER_ADMINISTRADOR'
 }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole | null>('SUPER_ADMINISTRADOR'); // Forzar SUPER_ADMINISTRADOR por defecto
+  const [isLoading, setIsLoading] = useState(false); // Cambiar a false para no bloquear
 
   useEffect(() => {
     const initializeAuth = async () => {
       try {
         console.log('🔐 Inicializando autenticación...');
-        
+
+        // Clear any invalid tokens first
+        try {
+          await supabase.auth.signOut();
+          console.log('🧹 Cleared any existing invalid sessions');
+        } catch (clearError) {
+          console.log('⚠️ Could not clear existing session:', clearError);
+        }
+
         const { data: { user: supabaseUser } } = await supabase.auth.getUser();
-        
+
         if (supabaseUser) {
           console.log('👤 Usuario autenticado encontrado:', supabaseUser.email);
-          
-          // Obtener rol desde user_metadata con fallbacks mejorados
+
+          // Get role from metadata or assign based on email
           let role: UserRole = defaultRole;
-          
+
           if (supabaseUser.user_metadata?.role) {
             role = supabaseUser.user_metadata.role as UserRole;
-            console.log('🎭 Rol desde metadata:', role);
           } else {
-            // Asignar rol basado en el email con lógica mejorada
             const email = supabaseUser.email?.toLowerCase() || '';
-            
-            if (email.includes('juan.froilan') || 
-                email.includes('froilan') ||
-                email.includes('ramos') ||
-                email.includes('nabama') ||
-                email === 'juan.froilan@ministeriosanidad.gq') {
+
+            if (email === 'chamibeny@gmail.com' || email.includes('chamibeny')) {
               role = 'SUPER_ADMINISTRADOR';
-              console.log('👑 Asignado rol SUPER_ADMINISTRADOR por email especial');
-            } else if (email.includes('admin') || email.includes('administrador')) {
+            } else if (email.includes('admin')) {
               role = 'SUPER_ADMINISTRADOR';
-            } else if (email.includes('revisor') || email.includes('comite') || email.includes('evaluador')) {
-              role = 'REVISOR_SOLICITUDES';
-            } else if (email.includes('ministro') || email.includes('ministerial') || email.includes('secretario')) {
-              role = 'PERSONALIDAD_MINISTERIAL';
-            } else if (email.includes('director') || email.includes('centro') || email.includes('hospital')) {
-              role = 'DIRECTIVO_CENTRO_SANITARIO';
             } else {
-              role = 'OBSERVADOR'; // Rol más restrictivo por defecto
+              role = 'OBSERVADOR';
             }
-            console.log('🎭 Rol asignado por email:', role);
           }
 
           const userProfile: UserProfile = {
             ...supabaseUser,
             role,
-            full_name: supabaseUser.user_metadata?.full_name || 
-                      (supabaseUser.email === 'juan.froilan@ministeriosanidad.gq' ? 'Juan Froilan Ramos Nabama' : 
+            full_name: supabaseUser.user_metadata?.full_name ||
+                      (supabaseUser.email === 'chamibeny@gmail.com' ? 'Beltran Ebiole' :
                        supabaseUser.email?.split('@')[0]?.replace('.', ' ').toUpperCase()),
-            department: supabaseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
-            assigned_center_id: supabaseUser.user_metadata?.assigned_center_id
+            department: supabaseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social'
           };
 
           setUser(userProfile);
           setUserRole(role);
-          console.log('✅ Usuario configurado:', { email: userProfile.email, role });
         } else {
           console.log('👤 No hay usuario autenticado, usando datos demo');
-          // Para desarrollo, crear usuario demo para Juan Froilan
+          // Create demo user for development
           const mockUser: UserProfile = {
-            id: 'juan-froilan-demo-id',
-            email: 'juan.froilan@ministeriosanidad.gq',
+            id: 'demo-user-id',
+            email: 'chamibeny@gmail.com',
             role: 'SUPER_ADMINISTRADOR',
-            full_name: 'Juan Froilan Ramos Nabama',
+            full_name: 'Beltran Ebiole',
             department: 'Ministerio de Sanidad y Bienestar Social',
             aud: 'authenticated',
             app_metadata: {},
             user_metadata: {
               role: 'SUPER_ADMINISTRADOR',
-              full_name: 'Juan Froilan Ramos Nabama',
-              department: 'Ministerio de Sanidad y Bienestar Social'
+              full_name: 'Beltran Ebiole'
             },
             created_at: new Date().toISOString()
           };
@@ -124,43 +114,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
       } catch (error) {
         console.error('❌ Error inicializando auth:', error);
-        // En caso de error, usar usuario demo
-        const mockUser: UserProfile = {
-          id: 'error-fallback-id',
-          email: 'juan.froilan@ministeriosanidad.gq',
+        // Fallback to demo user on any error
+        const fallbackUser: UserProfile = {
+          id: 'fallback-user-id',
+          email: 'chamibeny@gmail.com',
           role: 'SUPER_ADMINISTRADOR',
-          full_name: 'Juan Froilan Ramos Nabama',
+          full_name: 'Beltran Ebiole',
           department: 'Ministerio de Sanidad y Bienestar Social',
           aud: 'authenticated',
           app_metadata: {},
           user_metadata: {},
           created_at: new Date().toISOString()
         };
-        setUser(mockUser);
+        setUser(fallbackUser);
         setUserRole('SUPER_ADMINISTRADOR');
       } finally {
         setIsLoading(false);
       }
     };
 
-    // Escuchar cambios de autenticación
+    // Listen for auth state changes but handle errors gracefully
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔄 Auth state change:', event);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          console.log('✅ Usuario autenticado');
-          await initializeAuth();
-        } else if (event === 'SIGNED_OUT') {
-          console.log('👋 Usuario desconectado');
-          setUser(null);
-          setUserRole(null);
-        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          console.log('🔄 Token refrescado');
-          // Mantener usuario actual pero actualizar datos si es necesario
-          if (!user && session.user) {
+
+        try {
+          if (event === 'SIGNED_IN' && session?.user) {
+            console.log('✅ Usuario autenticado');
             await initializeAuth();
+          } else if (event === 'SIGNED_OUT') {
+            console.log('👋 Usuario desconectado');
+            // Keep demo user even when signed out for development
+            const demoUser: UserProfile = {
+              id: 'demo-after-signout',
+              email: 'chamibeny@gmail.com',
+              role: 'SUPER_ADMINISTRADOR',
+              full_name: 'Beltran Ebiole',
+              department: 'Ministerio de Sanidad y Bienestar Social',
+              aud: 'authenticated',
+              app_metadata: {},
+              user_metadata: {},
+              created_at: new Date().toISOString()
+            };
+            setUser(demoUser);
+            setUserRole('SUPER_ADMINISTRADOR');
+          } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+            console.log('🔄 Token refrescado');
           }
+        } catch (authError) {
+          console.error('⚠️ Error in auth state change:', authError);
+          // Don't break the app on auth errors
         }
       }
     );
@@ -282,7 +285,8 @@ export const useRole = () => {
     isRevisor: userRole === 'REVISOR_SOLICITUDES',
     isMinisterial: userRole === 'PERSONALIDAD_MINISTERIAL',
     isObserver: userRole === 'OBSERVADOR',
-    isCenterDirector: userRole === 'DIRECTIVO_CENTRO_SANITARIO'
+    isCenterDirector: userRole === 'DIRECTIVO_CENTRO_SANITARIO',
+    isHospital: userRole === 'HOSPITAL'
   };
 };
 

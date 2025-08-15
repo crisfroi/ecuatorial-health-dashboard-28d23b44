@@ -11,17 +11,24 @@ import {
   PersonStanding,
   RefreshCw,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
 import { useEstadisticasTest } from "@/hooks/useEstadisticasTest";
 import { useEstadisticasMock } from "@/hooks/useEstadisticasMock";
 import { useSupabaseConnectivity } from "@/hooks/useSupabaseConnectivity";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
+import { useEstadisticasSimples } from "@/hooks/useEstadisticasSimples";
+import { useEstadisticasDirectas } from "@/hooks/useEstadisticasDirectas";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface StatsCardsProps {
   onNavigateToProfessionals: (filters: any) => void;
 }
 
 const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
+  const queryClient = useQueryClient();
+  const { data: statsDirectas, isLoading: directasLoading, error: directasError } = useEstadisticasDirectas();
+  const { data: statsSimples, isLoading: simplesLoading, error: simplesError } = useEstadisticasSimples();
   const { data: stats, isLoading, error } = useEstadisticasAvanzadas();
   const {
     data: testStats,
@@ -40,49 +47,103 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     disableOfflineMode,
   } = useOfflineMode();
 
-  // Enhanced fallback logic based on error type
-  let effectiveStats = stats;
+  // Enhanced fallback logic - priorizar estadísticas directas
+  let effectiveStats = null;
   let fallbackReason = null;
+  let isLoadingStats = directasLoading && simplesLoading && isLoading && testLoading; // Solo loading si TODOS están cargando
 
-  // If main stats failed or are empty, use fallback data
-  if (!stats || (stats && stats.total === 0 && error)) {
-    console.log("Main stats failed or empty, analyzing for fallback...");
+  console.log("🔍 Evaluando estadísticas disponibles:", {
+    statsDirectas: statsDirectas?.total || 0,
+    statsSimples: statsSimples?.total || 0,
+    stats: stats?.total || 0,
+    testStats: testStats?.total || 0,
+    mockStats: mockStats?.total || 0
+  });
 
-    // Priority 1: Use test stats if available and not loading
-    if (testStats && !testLoading && !testError) {
-      console.log("Using test stats as primary fallback");
-      effectiveStats = testStats;
-      fallbackReason = "test";
-    }
-    // Priority 2: Use mock data if test stats are not available
-    else if (mockStats && !mockLoading) {
-      console.log("Using mock data as fallback");
-      effectiveStats = mockStats;
-      fallbackReason = "mock";
-    }
-    // Priority 3: Check error type for specific fallback decisions
-    else if (error) {
-      const errorMessage = error?.message || "";
-      const isFetchError =
-        errorMessage.includes("fetch") ||
-        errorMessage.includes("Failed to fetch") ||
-        errorMessage.includes("TypeError");
-
-      const isNetworkError =
-        errorMessage.includes("network") ||
-        errorMessage.includes("NetworkError") ||
-        errorMessage.includes("CORS");
-
-      // If it's a network/fetch error, use mock data
-      if (isFetchError || isNetworkError) {
-        console.log("Using mock data due to network/fetch error");
-        effectiveStats = mockStats;
-        fallbackReason = "network";
-      }
-    }
+  // PRIORIDAD 1: Estadísticas directas
+  if (statsDirectas !== undefined && statsDirectas !== null && !directasLoading) {
+    effectiveStats = {
+      total: statsDirectas.total,
+      aprobados: statsDirectas.aprobados,
+      pendientes: statsDirectas.pendientes,
+      recibidos: statsDirectas.recibidos,
+      revisando: statsDirectas.revisando,
+      rechazados: statsDirectas.rechazados,
+      vencimientosProximos: statsDirectas.proximosVencer,
+      carnetVencidos: statsDirectas.carnetVencidos,
+      generoMasculino: statsDirectas.hombres,
+      generoFemenino: statsDirectas.mujeres,
+      porGenero: {
+        masculino: statsDirectas.hombres,
+        femenino: statsDirectas.mujeres
+      },
+      centrosSalud: statsDirectas.centros,
+      proximosVencer: statsDirectas.proximosVencer
+    };
+    console.log("✅ Usando estadísticas directas:", effectiveStats);
+  }
+  // PRIORIDAD 2: Estadísticas simples si están disponibles
+  else if (statsSimples !== undefined && statsSimples !== null && !simplesLoading) {
+    effectiveStats = {
+      total: statsSimples.total,
+      aprobados: statsSimples.aprobados,
+      pendientes: statsSimples.pendientes,
+      recibidos: statsSimples.recibidos,
+      revisando: statsSimples.revisando,
+      rechazados: statsSimples.rechazados,
+      vencimientosProximos: statsSimples.proximosVencer,
+      carnetVencidos: statsSimples.carnetVencidos,
+      generoMasculino: statsSimples.hombres,
+      generoFemenino: statsSimples.mujeres,
+      porGenero: {
+        masculino: statsSimples.hombres,
+        femenino: statsSimples.mujeres
+      },
+      centrosSalud: statsSimples.centros,
+      proximosVencer: statsSimples.proximosVencer
+    };
+    console.log("✅ Usando estadísticas simples:", effectiveStats);
+  }
+  // Si las estadísticas simples fallan, usar las avanzadas
+  else if (stats !== undefined && stats !== null && !isLoading) {
+    effectiveStats = stats;
+    console.log("✅ Usando estadísticas avanzadas:", effectiveStats);
+  }
+  // Si ambas fallan, usar estadísticas de prueba
+  else if (testStats !== undefined && testStats !== null && !testLoading) {
+    effectiveStats = testStats;
+    fallbackReason = "test";
+    console.log("⚠️ Usando estadísticas de prueba");
+  }
+  // Último recurso: datos mock
+  else if (mockStats !== undefined && mockStats !== null && !mockLoading) {
+    effectiveStats = mockStats;
+    fallbackReason = "mock";
+    console.log("⚠️ Usando estadísticas mock");
+  }
+  // Si todo falla, mostrar datos básicos en lugar de loading infinito
+  else if (!simplesLoading || !isLoading || !testLoading) {
+    effectiveStats = {
+      total: 0,
+      aprobados: 0,
+      pendientes: 0,
+      recibidos: 0,
+      revisando: 0,
+      rechazados: 0,
+      generoMasculino: 0,
+      generoFemenino: 0,
+      porGenero: { masculino: 0, femenino: 0 },
+      centrosSalud: 0,
+      proximosVencer: 0,
+      carnetVencidos: 0,
+      vencimientosProximos: 0
+    };
+    fallbackReason = simplesError ? `Error: ${simplesError.message}` : "Cargando datos...";
+    console.warn("⚠️ Usando estadísticas por defecto:", { simplesError, error, testError });
   }
 
-  if (isLoading) {
+  // Solo mostrar loading si realmente estamos cargando y no hay datos alternativos
+  if (isLoadingStats && !effectiveStats) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -166,8 +227,28 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     );
   }
 
+  const handleRefreshStats = () => {
+    console.log('🔄 Refrescando estadísticas...');
+    queryClient.invalidateQueries({ queryKey: ["estadisticas-directas"] });
+    queryClient.invalidateQueries({ queryKey: ["estadisticas-simples"] });
+    queryClient.invalidateQueries({ queryKey: ["estadisticas"] });
+    queryClient.invalidateQueries({ queryKey: ["estadisticas-test"] });
+  };
+
   return (
     <div className="space-y-4">
+      {/* Botón de debug para refrescar */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefreshStats}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refrescar Estadísticas
+        </Button>
+      </div>
       {/* Offline mode indicator */}
       {(isOfflineMode || fallbackReason) && (
         <div

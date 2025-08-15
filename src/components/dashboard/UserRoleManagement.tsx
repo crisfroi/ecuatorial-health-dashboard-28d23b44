@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mail, Plus, Edit, Trash2, Users, Shield, Crown, Eye, Building2 } from "lucide-react";
+import { Mail, Plus, Edit, Trash2, Users, Shield, Crown, Eye, Building2, Hospital } from "lucide-react";
 import { UserProfile, UserInvitation } from "@/types/database";
 import { UserRole } from "@/types/roles";
 import { useUserManagement } from "@/hooks/useUserManagement";
@@ -63,8 +63,9 @@ const UserRoleManagement = () => {
 
   const roles: Array<{ value: UserRole; label: string }> = [
     { value: 'SUPER_ADMINISTRADOR', label: 'Super Administrador' },
-    { value: 'REVISOR_SOLICITUDES', label: 'Revisor de Solicitudes' },
+    { value: 'REVISOR_SOLICITUDES', label: 'Revisor de Solicitudes / Comité Evaluador' },
     { value: 'PERSONALIDAD_MINISTERIAL', label: 'Personalidad Ministerial' },
+    { value: 'HOSPITAL', label: 'Gestión Hospitalaria' },
     { value: 'DIRECTIVO_CENTRO_SANITARIO', label: 'Directivo Centro Sanitario' },
     { value: 'OBSERVADOR', label: 'Observador' },
   ];
@@ -86,6 +87,8 @@ const UserRoleManagement = () => {
         return <Shield className="w-4 h-4" />;
       case 'PERSONALIDAD_MINISTERIAL':
         return <Users className="w-4 h-4" />;
+      case 'HOSPITAL':
+        return <Hospital className="w-4 h-4" />;
       case 'DIRECTIVO_CENTRO_SANITARIO':
         return <Building2 className="w-4 h-4" />;
       case 'OBSERVADOR':
@@ -103,6 +106,8 @@ const UserRoleManagement = () => {
         return 'bg-blue-100 text-blue-800';
       case 'PERSONALIDAD_MINISTERIAL':
         return 'bg-purple-100 text-purple-800';
+      case 'HOSPITAL':
+        return 'bg-teal-100 text-teal-800';
       case 'DIRECTIVO_CENTRO_SANITARIO':
         return 'bg-green-100 text-green-800';
       case 'OBSERVADOR':
@@ -241,15 +246,17 @@ const UserRoleManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-              {newUser.role === 'DIRECTIVO_CENTRO_SANITARIO' && (
+              {(newUser.role === 'DIRECTIVO_CENTRO_SANITARIO' || newUser.role === 'HOSPITAL') && (
                 <div>
-                  <label className="text-sm font-medium">Centro Asignado</label>
-                  <Select 
-                    value={newUser.assigned_center_id} 
+                  <label className="text-sm font-medium">
+                    {newUser.role === 'HOSPITAL' ? 'Red Hospitalaria Asignada' : 'Centro Asignado'}
+                  </label>
+                  <Select
+                    value={newUser.assigned_center_id}
                     onValueChange={(value) => setNewUser({ ...newUser, assigned_center_id: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar centro" />
+                      <SelectValue placeholder={newUser.role === 'HOSPITAL' ? 'Seleccionar red hospitalaria' : 'Seleccionar centro'} />
                     </SelectTrigger>
                     <SelectContent>
                       {centrosSalud.map((centro) => (

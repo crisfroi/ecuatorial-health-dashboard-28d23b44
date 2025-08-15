@@ -90,22 +90,25 @@ const formSchema = z
         "Formato de foto no válido (solo JPG/PNG).",
       ),
 
-    // Campo 'documentos' renombrado a 'documentos_adicionales' y validaciones para File[]
+    // Campo 'documentos' renombrado a 'documentos_adicionales' y validaciones para File[] - OBLIGATORIO
     documentos_adicionales: z
       .any()
+      .refine(
+        (files: File[] | undefined) => files && files.length > 0,
+        "Debe cargar al menos un documento adicional (título, certificado, etc.)."
+      )
       .refine((files: File[] | undefined) => {
-        if (!files || files.length === 0) return true; // Es opcional
+        if (!files || files.length === 0) return false;
         return files.every((file: File) => file.size <= 5 * 1024 * 1024);
       }, `Cada documento debe ser menor de 5MB.`)
       .refine((files: File[] | undefined) => {
-        if (!files || files.length === 0) return true; // Es opcional
+        if (!files || files.length === 0) return false;
         return files.every((file: File) =>
           ["application/pdf", "image/jpeg", "image/jpg", "image/png"].includes(
             file.type,
           ),
         );
-      }, "Formato de documento no válido (solo PDF, JPG, PNG).")
-      .optional(),
+      }, "Formato de documento no válido (solo PDF, JPG, PNG)."),
 
     acepta_politicas: z
       .boolean()
@@ -130,6 +133,17 @@ const formSchema = z
           code: z.ZodIssueCode.custom,
           message: "Verifique su número de Pasaporte.",
           path: ["numero_pasaporte"],
+        });
+      }
+    }
+
+    // Validar especialidad si la categoría de titulación es ESPECIALIDAD
+    if (data.categoria_titulacion === "ESPECIALIDAD") {
+      if (!data.especialidad || data.especialidad.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "La especialidad es requerida cuando selecciona ESPECIALIDAD como categoría de titulación",
+          path: ["especialidad"],
         });
       }
     }
@@ -288,6 +302,20 @@ const ProfessionalRegistration = () => {
         title: "Requisito Faltante",
         description:
           "Por favor, suba su foto tipo carnet para enviar la solicitud.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!uploadedFiles || uploadedFiles.length === 0) {
+      setErrorEnvio(
+        "Debe cargar al menos un documento adicional (título, certificado, etc.).",
+      );
+      toast({
+        title: "Documentos Adicionales Requeridos",
+        description:
+          "Por favor, cargue al menos un documento adicional que respalde su formación profesional antes de enviar la solicitud.",
         variant: "destructive",
       });
       setIsSubmitting(false);

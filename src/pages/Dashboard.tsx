@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 import {
   DropdownMenu,
@@ -44,6 +45,7 @@ import {
 
 // Import components
 import StatsCards from "@/components/dashboard/StatsCards";
+import StatsCardsSimple from "@/components/dashboard/StatsCardsSimple";
 import DashboardCharts from "@/components/dashboard/DashboardCharts";
 import ProfessionalsTable from "@/components/dashboard/ProfessionalsTable";
 import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
@@ -61,6 +63,8 @@ import ErrorBoundary from "@/components/ui/error-boundary";
 import ConnectionDebugPanel from "@/components/dashboard/ConnectionDebugPanel";
 import { OfflineNotification } from "@/components/ui/offline-notification";
 import { DatabaseDiagnostic } from "@/components/dashboard/DatabaseDiagnostic";
+import { DiagnosticPanel } from "@/components/dashboard/DiagnosticPanel";
+import GuardiasDashboard from "@/components/dashboard/GuardiasDashboard";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -87,13 +91,45 @@ const Dashboard = () => {
   const [appliedFilters, setAppliedFilters] = useState<Filtros>({});
   const [showFilters, setShowFilters] = useState(false);
   const [dashboardFilters, setDashboardFilters] = useState<Filtros>({});
-  const [activeTab, setActiveTab] = useState("overview");
   const [showStatsCards, setShowStatsCards] = useState(true);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, userRole, logout: authLogout, canAccessTab } = useAuth();
 
-  const userRole = "administrador";
-  const userName = "Admin User";
+  // Establecer tab inicial basado en permisos del rol
+  const getDefaultTab = () => {
+    if (!userRole) return "overview";
+
+    switch (userRole) {
+      case 'REVISOR_SOLICITUDES':
+        return "requests";
+      case 'PERSONALIDAD_MINISTERIAL':
+        return "analytics";
+      case 'HOSPITAL':
+        return "overview";
+      case 'DIRECTIVO_CENTRO_SANITARIO':
+        return "health-centers";
+      case 'OBSERVADOR':
+        return "overview";
+      default:
+        return "overview";
+    }
+  };
+
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const userName = user?.full_name || user?.email?.split('@')[0] || "Usuario";
+  const userEmail = user?.email || "";
+
+  // Establecer tab inicial cuando userRole esté disponible
+  useEffect(() => {
+    if (userRole && activeTab === "overview") {
+      const defaultTab = getDefaultTab();
+      if (defaultTab !== "overview") {
+        setActiveTab(defaultTab);
+      }
+    }
+  }, [userRole]);
 
   const handleSelectProfessional = (professional: Profesional) => {
     console.log(
@@ -117,8 +153,16 @@ const Dashboard = () => {
     setShowFilters(false);
   };
 
-  const handleNavigateToProfessionals = (filter: Filtros) => {
+  const handleNavigateToProfessionals = (filter: Filtros & { navigate_to?: string }) => {
     console.log("Dashboard: Stats card clicked. Filtro recibido:", filter);
+
+    // Manejar navegación especial a otras pestañas
+    if (filter.navigate_to === "health-centers") {
+      setActiveTab("health-centers");
+      console.log('Dashboard: Navegando directamente a la pestaña "health-centers"');
+      return;
+    }
+
     let newAppliedFilters: Filtros = {};
 
     if (filter.vencimiento_proximo) {
@@ -234,21 +278,7 @@ const Dashboard = () => {
     try {
       console.log("Dashboard: Cerrando sesión...");
 
-      // Cerrar sesión en Supabase
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        console.error("Error al cerrar sesión:", error);
-        toast({
-          title: "Error al cerrar sesión",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Limpiar datos locales si es necesario
-      localStorage.removeItem('supabase.auth.token');
+      await authLogout();
 
       toast({
         title: "Sesión cerrada",
@@ -357,23 +387,72 @@ const Dashboard = () => {
 
   const hasActiveFilters = Object.keys(appliedFilters).length > 0;
 
-  const tabsConfig = [
-    { id: "overview", label: "General", icon: BarChart3 },
-    { id: "professionals", label: "Profesionales", icon: Users },
-    { id: "requests", label: "Solicitudes", icon: FileText },
-    { id: "renewals", label: "Renovaciones", icon: Calendar },
-    { id: "analytics", label: "Analíticas", icon: TrendingUp },
-    { id: "ai-chat", label: "IA Chat", icon: MessageSquare },
-    { id: "ministerial", label: "Ministerial", icon: Settings },
-    { id: "incidents", label: "Incidencias", icon: Activity },
-    { id: "health-centers", label: "Centros", icon: MapPin },
-    ...(userRole === "administrador"
-      ? [
-          { id: "users", label: "Usuarios", icon: Users },
-          { id: "diagnostic", label: "Diagnóstico DB", icon: AlertTriangle }
-        ]
-      : []),
+  // Filtrar tabs disponibles según los permisos del rol
+  const allTabs = [
+    { id: "overview", label: "General", icon: BarChart3, permission: "view_dashboard" },
+    { id: "professionals", label: "Profesionales", icon: Users, permission: "view_professionals" },
+    { id: "requests", label: "Solicitudes", icon: FileText, permission: "view_requests" },
+    { id: "renewals", label: "Renovaciones", icon: Calendar, permission: "view_renewals" },
+    { id: "analytics", label: "Analíticas", icon: TrendingUp, permission: "view_analytics" },
+    { id: "guardias", label: "Guardias", icon: Calendar, permission: "view_guardias" },
+    { id: "ai-chat", label: "IA Chat", icon: MessageSquare, permission: "view_ai_chat" },
+    { id: "ministerial", label: "Ministerial", icon: Settings, permission: "view_ministerial_panel" },
+    { id: "incidents", label: "Incidencias", icon: Activity, permission: "view_incidents" },
+    { id: "health-centers", label: "Centros", icon: MapPin, permission: "view_centers" },
+    { id: "admin", label: "Administración", icon: UserCog, permission: "view_admin_panel" },
   ];
+
+  // SIMPLIFICACIÓN: Forzar todas las pestañas para SUPER_ADMINISTRADOR
+  let availableTabs = allTabs; // Por defecto, mostrar todas
+
+  // Solo restringir si NO es SUPER_ADMINISTRADOR
+  if (userRole !== 'SUPER_ADMINISTRADOR') {
+    const filteredTabs = allTabs.filter(tab => {
+      // Si no hay userRole, mostrar tabs básicas
+      if (!userRole) {
+        return ['overview', 'professionals', 'analytics'].includes(tab.id);
+      }
+
+      // Lógica para otros roles
+      switch (userRole) {
+        case 'REVISOR_SOLICITUDES':
+          return !['ministerial', 'admin'].includes(tab.id);
+        case 'PERSONALIDAD_MINISTERIAL':
+          return ['overview', 'analytics', 'ministerial', 'professionals', 'health-centers', 'ai-chat'].includes(tab.id);
+        case 'HOSPITAL':
+          return ['overview', 'professionals', 'requests', 'health-centers', 'incidents', 'renewals', 'ai-chat'].includes(tab.id);
+        case 'DIRECTIVO_CENTRO_SANITARIO':
+          return ['overview', 'professionals', 'health-centers', 'incidents', 'ai-chat'].includes(tab.id);
+        case 'OBSERVADOR':
+          return ['overview', 'professionals', 'analytics', 'health-centers', 'ai-chat'].includes(tab.id);
+        default:
+          return ['overview', 'professionals'].includes(tab.id);
+      }
+    });
+
+    availableTabs = filteredTabs.length > 0 ? filteredTabs : allTabs.filter(tab => ['overview', 'professionals'].includes(tab.id));
+  }
+
+  console.log('🎭 ROLE DEBUG:', {
+    userRole,
+    email: user?.email,
+    fullName: user?.full_name,
+    isSuperAdmin: userRole === 'SUPER_ADMINISTRADOR',
+    allTabsCount: allTabs.length,
+    availableTabsCount: availableTabs.length,
+    availableTabIds: availableTabs.map(t => t.id),
+    forcedAllTabs: userRole === 'SUPER_ADMINISTRADOR'
+  });
+
+  const tabsConfig = availableTabs;
+
+  // Validar tab activo cuando cambie el rol (después de que availableTabs esté definido)
+  useEffect(() => {
+    const validTabs = availableTabs.map(tab => tab.id);
+    if (!validTabs.includes(activeTab)) {
+      setActiveTab(getDefaultTab());
+    }
+  }, [userRole, activeTab, availableTabs]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -385,7 +464,7 @@ const Dashboard = () => {
             onValueChange={setActiveTab}
             className="space-y-0"
           >
-            <TabsList className="grid w-full grid-cols-5 md:grid-cols-10">
+            <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(tabsConfig.length, 10)}, 1fr)` }}>
               {tabsConfig.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -485,7 +564,13 @@ const Dashboard = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56">
-                <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{userName}</p>
+                    <p className="text-xs text-muted-foreground">{userEmail}</p>
+                    <p className="text-xs text-blue-600">{userRole?.replace('_', ' ')}</p>
+                  </div>
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleUserSettings}>
                   <UserCog className="mr-2 h-4 w-4" />
@@ -521,9 +606,12 @@ const Dashboard = () => {
           </Card>
         )}
 
+        {/* Panel de diagnóstico temporal - OCULTO */}
+        {/* <DiagnosticPanel /> */}
+
         {showStatsCards && (
           <div className="mb-6">
-            <StatsCards
+            <StatsCardsSimple
               onNavigateToProfessionals={handleNavigateToProfessionals}
             />
           </div>
@@ -573,7 +661,7 @@ const Dashboard = () => {
             ) : (
               <ProfessionalsTable
                 onSelectProfessional={handleSelectProfessional}
-                userRole={userRole}
+                userRole={userRole || 'OBSERVADOR'}
                 appliedFilters={dashboardFilters}
                 onClearFilters={handleClearFilters}
               />
@@ -614,7 +702,7 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="ministerial" className="space-y-6">
-            {(userRole === "administrador" || userRole === "comite") && (
+            {(userRole === "SUPER_ADMINISTRADOR" || userRole === "PERSONALIDAD_MINISTERIAL") && (
               <MinisterialPanel />
             )}
           </TabsContent>
@@ -627,16 +715,12 @@ const Dashboard = () => {
             <HealthCenters />
           </TabsContent>
 
-          <TabsContent value="users" className="space-y-6">
-            {userRole === "administrador" && <AdminPanel />}
+          <TabsContent value="guardias" className="space-y-6">
+            <GuardiasDashboard />
           </TabsContent>
 
-          <TabsContent value="diagnostic" className="space-y-6">
-            {userRole === "administrador" && (
-              <div className="flex justify-center">
-                <DatabaseDiagnostic />
-              </div>
-            )}
+          <TabsContent value="admin" className="space-y-6">
+            {userRole === "SUPER_ADMINISTRADOR" && <AdminPanel />}
           </TabsContent>
         </Tabs>
       </div>

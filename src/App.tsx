@@ -11,22 +11,31 @@ import ProfessionalRegistration from "./pages/ProfessionalRegistration";
 import PublicSearch from "./pages/PublicSearch";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+// Clear any offline mode flags and auth state on app start
+import "@/utils/clearOfflineMode";
+import "@/utils/clearAuthState";
+// Suppress known Recharts warnings that don't affect functionality
+import "@/utils/suppressRechartsWarnings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // Configuración de reintentos
       retry: (failureCount, error: any) => {
-        // No reintentar si es un error de autenticación
-        if (error?.message?.includes('auth') || error?.message?.includes('unauthorized')) {
+        // No reintentar si es un error de autenticación o token
+        if (error?.message?.includes('auth') ||
+            error?.message?.includes('unauthorized') ||
+            error?.message?.includes('Invalid Refresh Token') ||
+            error?.message?.includes('Refresh Token Not Found')) {
+          console.log('🔐 Auth error detected, not retrying:', error?.message);
           return false;
         }
-        
+
         // Reintentar hasta 3 veces para errores de red
         if (failureCount < 3) {
           return true;
         }
-        
+
         return false;
       },
       
@@ -45,13 +54,21 @@ const queryClient = new QueryClient({
       
       // Manejo de errores
       onError: (error: any) => {
-        console.error('Query error:', error);
-        
+        // Si es un error de autenticación, no logear como error crítico
+        if (error?.message?.includes('auth') ||
+            error?.message?.includes('Invalid Refresh Token') ||
+            error?.message?.includes('Refresh Token Not Found')) {
+          console.log('🔐 Auth error handled gracefully:', error?.message);
+          return;
+        }
+
         // Si es un error de red, no mostrar errores en consola
         if (error?.message?.includes('fetch') || error?.message?.includes('network')) {
           console.log('Network error detected, using fallback data');
           return;
         }
+
+        console.error('Query error:', error);
       }
     },
     

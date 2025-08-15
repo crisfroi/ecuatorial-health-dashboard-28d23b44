@@ -78,9 +78,10 @@ const queryClient = new QueryClient({
           return;
         }
 
-        // Si es un error de red, no mostrar errores en consola
-        if (error?.message?.includes('fetch') || error?.message?.includes('network')) {
-          console.log('Network error detected, using fallback data');
+        // Si es un error de red, usar el analizador de errores de red
+        const networkInfo = analyzeNetworkError(error);
+        if (networkInfo.isNetworkError) {
+          console.log('🌐 Network error handled:', networkInfo.message);
           return;
         }
 

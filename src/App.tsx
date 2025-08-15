@@ -16,6 +16,7 @@ import "@/utils/clearOfflineMode";
 import "@/utils/clearAuthState";
 // Suppress known Recharts warnings that don't affect functionality
 import "@/utils/suppressRechartsWarnings";
+import { analyzeNetworkError } from "@/utils/networkErrorHandler";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,7 +32,22 @@ const queryClient = new QueryClient({
           return false;
         }
 
-        // Reintentar hasta 3 veces para errores de red
+        // No reintentar si es un error de tabla inexistente
+        if (error?.message?.includes('relation') ||
+            error?.message?.includes('does not exist') ||
+            error?.code === 'PGRST116') {
+          console.log('🗄️ Database table missing, not retrying:', error?.message);
+          return false;
+        }
+
+        // Analizar si es un error de red y si se puede reintentar
+        const networkInfo = analyzeNetworkError(error);
+        if (networkInfo.isNetworkError && networkInfo.canRetry && failureCount < 3) {
+          console.log('🌐 Network error detected, retrying:', error?.message);
+          return true;
+        }
+
+        // Reintentar hasta 3 veces para otros errores
         if (failureCount < 3) {
           return true;
         }
@@ -62,9 +78,10 @@ const queryClient = new QueryClient({
           return;
         }
 
-        // Si es un error de red, no mostrar errores en consola
-        if (error?.message?.includes('fetch') || error?.message?.includes('network')) {
-          console.log('Network error detected, using fallback data');
+        // Si es un error de red, usar el analizador de errores de red
+        const networkInfo = analyzeNetworkError(error);
+        if (networkInfo.isNetworkError) {
+          console.log('🌐 Network error handled:', networkInfo.message);
           return;
         }
 

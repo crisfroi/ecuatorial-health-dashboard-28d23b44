@@ -18,6 +18,7 @@ import {
   EtapaValidacion,
   FuenteBaremo
 } from '@/types/guardias';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GuardiasState {
   // Estado
@@ -31,13 +32,18 @@ interface GuardiasState {
   bitacora: Bitacora[];
   baremosConfig: AjusteBaremo[];
   configuracion: ConfiguracionSistema;
-  
+
   // UI State
   loading: boolean;
   error: string | null;
   selectedMes: number;
   selectedAnio: number;
   selectedHospital: string;
+
+  // Real data from Supabase
+  hospitalesPublicos: any[];
+  profesionalesReales: any[];
+  isConnectedToSupabase: boolean;
   
   // Actions - Profesionales
   addProfesional: (profesional: Omit<Profesional, 'id'>) => void;
@@ -77,6 +83,11 @@ interface GuardiasState {
   setSelectedMes: (mes: number) => void;
   setSelectedAnio: (anio: number) => void;
   setSelectedHospital: (hospitalId: string) => void;
+
+  // Actions - Real Data
+  loadHospitalesPublicos: () => Promise<void>;
+  loadProfesionalesReales: (centroId?: string) => Promise<void>;
+  checkSupabaseConnection: () => Promise<void>;
 }
 
 // Datos iniciales de baremos según protocolo
@@ -173,7 +184,12 @@ export const useGuardiasStore = create<GuardiasState>()(
       error: null,
       selectedMes: new Date().getMonth() + 1,
       selectedAnio: new Date().getFullYear(),
-      selectedHospital: 'hospital_1',
+      selectedHospital: '',
+
+      // Real data state
+      hospitalesPublicos: [],
+      profesionalesReales: [],
+      isConnectedToSupabase: false,
       
       // Actions - Profesionales
       addProfesional: (profesional) => {
@@ -420,7 +436,132 @@ export const useGuardiasStore = create<GuardiasState>()(
       setError: (error) => set({ error }),
       setSelectedMes: (mes) => set({ selectedMes: mes }),
       setSelectedAnio: (anio) => set({ selectedAnio: anio }),
-      setSelectedHospital: (hospitalId) => set({ selectedHospital: hospitalId })
+      setSelectedHospital: (hospitalId) => set({ selectedHospital: hospitalId }),
+
+      // Real Data Actions
+      loadHospitalesPublicos: async () => {
+        try {
+          set({ loading: true, error: null });
+
+          const { data, error } = await supabase
+            .from('centros_salud')
+            .select('*')
+            .eq('sector', 'Público')
+            .eq('categoria', 'Hospital')
+            .order('nombre', { ascending: true });
+
+          if (error) {
+            console.error('Error loading public hospitals:', error);
+            set({ error: error.message });
+            return;
+          }
+
+          set({
+            hospitalesPublicos: data || [],
+            isConnectedToSupabase: true,
+            loading: false
+          });
+
+          // Auto-select first hospital if none selected
+          const state = get();
+          if (!state.selectedHospital && data && data.length > 0) {
+            set({ selectedHospital: data[0].id });
+          }
+        } catch (error: any) {
+          console.error('Error connecting to Supabase:', error);
+          set({
+            error: 'Error de conexión con la base de datos',
+            loading: false,
+            isConnectedToSupabase: false
+          });
+        }
+      },
+
+      loadProfesionalesReales: async (centroId?: string) => {
+        try {
+          set({ loading: true, error: null });
+
+          let query = supabase
+            .from('profesionales_sanitarios')
+            .select(`
+              *,
+              centros_salud!fk_profesionales_centro_salud(*)
+            `)
+            .eq('estado_solicitud', 'aprobada')
+            .not('nombre_completo', 'is', null);
+
+          if (centroId) {
+            query = query.eq('centro_salud_id', centroId);
+          }
+
+          const { data, error } = await query;
+
+          if (error) {
+            console.error('Error loading professionals:', error);
+            set({ error: error.message });
+            return;
+          }
+
+          // Convert to guard system format
+          const profesionalesConvertidos = (data || []).map(prof => {
+            const mapCategoria = (categoria: string | null): CategoriaProfesional => {
+              if (!categoria) return 'auxiliar';
+              const cat = categoria.toLowerCase();
+              if (cat.includes('especialista') || cat.includes('medico especialista')) return 'especialista';
+              if (cat.includes('general') || cat.includes('licenciado') || cat.includes('medico general')) return 'general_licenciado';
+              if (cat.includes('tecnico') || cat.includes('diplomado') || cat.includes('enfermero')) return 'tecnico_diplomado';
+              if (cat.includes('auxiliar')) return 'auxiliar';
+              if (cat.includes('subalterno')) return 'subalterno';
+              if (cat.includes('odepac')) return 'odepac';
+              if (cat.includes('secretar') || cat.includes('asist')) return 'secre_asist_pacientes';
+              if (cat.includes('caja')) return 'caja';
+              return 'auxiliar';
+            };
+
+            return {
+              id: prof.id,
+              nombre: prof.nombre_completo,
+              categoria: mapCategoria(prof.area_profesional || prof.categoria_titulacion),
+              unidad_servicio: prof.area_profesional || prof.especialidad || 'General',
+              banco: undefined,
+              iban_cuenta: undefined,
+              activo: prof.estado_solicitud === 'aprobada',
+              telefono: prof.telefono || undefined,
+              email: prof.email || undefined,
+              centroSaludId: prof.centro_salud_id
+            };
+          });
+
+          set({
+            profesionalesReales: data || [],
+            profesionales: profesionalesConvertidos,
+            loading: false
+          });
+        } catch (error: any) {
+          console.error('Error loading professionals:', error);
+          set({ error: 'Error cargando profesionales', loading: false });
+        }
+      },
+
+      checkSupabaseConnection: async () => {
+        try {
+          const { data, error } = await supabase
+            .from('centros_salud')
+            .select('count')
+            .limit(1);
+
+          if (error) {
+            set({ isConnectedToSupabase: false, error: error.message });
+          } else {
+            set({ isConnectedToSupabase: true, error: null });
+          }
+        } catch (error: any) {
+          set({
+            isConnectedToSupabase: false,
+            error: 'No se pudo conectar con la base de datos'
+          });
+        }
+      }
     }),
     {
       name: 'guardias-storage',

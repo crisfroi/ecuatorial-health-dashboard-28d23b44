@@ -6,16 +6,28 @@ export const suppressRechartsWarnings = () => {
   const originalWarn = console.warn;
   const originalError = console.error;
 
+  // List of Recharts components that use defaultProps
+  const rechartsComponents = [
+    'XAxis', 'YAxis', 'CartesianGrid', 'Tooltip', 'ResponsiveContainer',
+    'BarChart', 'LineChart', 'PieChart', 'Pie', 'Bar', 'Line', 'Cell'
+  ];
+
   // Override console.warn to filter out Recharts defaultProps warnings
   console.warn = (...args: any[]) => {
     const message = args.join(' ');
-    
+
     // Filter out Recharts defaultProps warnings
     if (message.includes('Support for defaultProps will be removed from function components') &&
-        (message.includes('XAxis') || message.includes('YAxis'))) {
+        rechartsComponents.some(component => message.includes(component))) {
       return; // Don't log these warnings
     }
-    
+
+    // Also filter out React 18 specific warnings about defaultProps
+    if (message.includes('%s: Support for defaultProps will be removed') &&
+        rechartsComponents.some(component => message.includes(component))) {
+      return; // Don't log these warnings
+    }
+
     // Log all other warnings normally
     originalWarn.apply(console, args);
   };
@@ -23,18 +35,20 @@ export const suppressRechartsWarnings = () => {
   // Override console.error to filter out related errors if any
   console.error = (...args: any[]) => {
     const message = args.join(' ');
-    
+
     // Filter out any related Recharts errors
-    if (message.includes('defaultProps') && 
-        (message.includes('XAxis') || message.includes('YAxis'))) {
+    if (message.includes('defaultProps') &&
+        rechartsComponents.some(component => message.includes(component))) {
       return; // Don't log these errors
     }
-    
+
     // Log all other errors normally
     originalError.apply(console, args);
   };
 
-  console.log('🔇 Suppressed Recharts defaultProps warnings (functionality not affected)');
+  if (import.meta.env.DEV) {
+    console.log('🔇 Suppressed Recharts defaultProps warnings (functionality not affected)');
+  }
 };
 
 // Only suppress in development

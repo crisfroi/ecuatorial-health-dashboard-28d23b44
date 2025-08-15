@@ -65,6 +65,7 @@ import { OfflineNotification } from "@/components/ui/offline-notification";
 import { DatabaseDiagnostic } from "@/components/dashboard/DatabaseDiagnostic";
 import { DiagnosticPanel } from "@/components/dashboard/DiagnosticPanel";
 import GuardiasDashboard from "@/components/dashboard/GuardiasDashboard";
+import NetworkStatusIndicator from "@/components/ui/network-status-indicator";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -608,6 +609,9 @@ const Dashboard = () => {
 
         {/* Panel de diagnóstico temporal - OCULTO */}
         {/* <DiagnosticPanel /> */}
+
+        {/* Network status indicator */}
+        <NetworkStatusIndicator />
 
         {showStatsCards && (
           <div className="mb-6">

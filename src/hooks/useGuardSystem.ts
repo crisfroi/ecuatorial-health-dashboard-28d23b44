@@ -495,6 +495,157 @@ export const useUpdateConfiguracion = () => {
   });
 };
 
+// Payment Management
+export const usePagos = (filters?: {
+  nominaId?: string;
+  centroId?: string;
+  estado?: 'pendiente' | 'procesando' | 'pagado' | 'fallido';
+}) => {
+  return useQuery({
+    queryKey: ['pagos', filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('pagos_guardias')
+        .select(`
+          *,
+          nominas_guardias!pagos_guardias_nomina_id_fkey(
+            mes,
+            anio,
+            centro_salud_id,
+            centros_salud!nominas_guardias_centro_salud_id_fkey(nombre)
+          ),
+          profesionales_guardias!pagos_guardias_profesional_guardia_id_fkey(
+            *,
+            profesionales_sanitarios!profesionales_guardias_profesional_id_fkey(
+              nombre_completo,
+              area_profesional
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (filters?.nominaId) {
+        query = query.eq('nomina_id', filters.nominaId);
+      }
+      if (filters?.estado) {
+        query = query.eq('forma_pago', filters.estado); // Assuming estado maps to forma_pago
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        // Handle case where tables don't exist yet
+        if (error.code === 'PGRST116' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+          console.warn('Guard tables not yet created, returning empty data');
+          return [];
+        }
+        throwFormattedGuardError(error, { component: 'usePagos', action: 'fetching payments' });
+      }
+
+      return (data || []).map(pago => ({
+        id: pago.id,
+        nominaId: pago.nomina_id,
+        profesionalId: pago.profesional_guardia_id,
+        formaPago: pago.forma_pago,
+        fecha: pago.fecha ? new Date(pago.fecha) : undefined,
+        comprobanteUrl: pago.comprobante_url,
+        observacion: pago.observacion,
+        monto: Number(pago.monto),
+        profesional: pago.profesionales_guardias?.profesionales_sanitarios ? {
+          nombre: pago.profesionales_guardias.profesionales_sanitarios.nombre_completo,
+          area: pago.profesionales_guardias.profesionales_sanitarios.area_profesional,
+          categoria: pago.profesionales_guardias.categoria
+        } : undefined,
+        nomina: pago.nominas_guardias ? {
+          mes: pago.nominas_guardias.mes,
+          anio: pago.nominas_guardias.anio,
+          centro: pago.nominas_guardias.centros_salud?.nombre
+        } : undefined
+      })) as Pago[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useCreatePago = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (pagoData: {
+      nominaId: string;
+      profesionalGuardiaId: string;
+      formaPago: 'transfer_trabajador' | 'transfer_hospital' | 'otro';
+      monto: number;
+      fecha?: Date;
+      comprobanteUrl?: string;
+      observacion?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('pagos_guardias')
+        .insert({
+          nomina_id: pagoData.nominaId,
+          profesional_guardia_id: pagoData.profesionalGuardiaId,
+          forma_pago: pagoData.formaPago,
+          fecha: pagoData.fecha?.toISOString(),
+          comprobante_url: pagoData.comprobanteUrl,
+          observacion: pagoData.observacion,
+          monto: pagoData.monto
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pagos'] });
+    },
+  });
+};
+
+export const useCreateBaremo = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (baremoData: {
+      fuente: FuenteBaremo;
+      categoria: CategoriaProfesional;
+      tipoGuardia: TipoGuardia;
+      tipoDia: TipoDia;
+      valor: number;
+      porcentajeLocalizable?: {
+        condicion: number;
+        llamada: number;
+      };
+      vigenteDesde: Date;
+      vigenteHasta?: Date;
+    }) => {
+      const { data, error } = await supabase
+        .from('ajustes_baremo')
+        .insert({
+          fuente: baremoData.fuente,
+          categoria: baremoData.categoria,
+          tipo_guardia: baremoData.tipoGuardia,
+          tipo_dia: baremoData.tipoDia,
+          valor: baremoData.valor,
+          porcentaje_localizable_condicion: baremoData.porcentajeLocalizable?.condicion,
+          porcentaje_localizable_llamada: baremoData.porcentajeLocalizable?.llamada,
+          vigente_desde: baremoData.vigenteDesde.toISOString().split('T')[0],
+          vigente_hasta: baremoData.vigenteHasta?.toISOString().split('T')[0],
+          activo: true
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['baremos'] });
+    },
+  });
+};
+
 // Utility function to calculate scale
 export const useCalculateBaremo = () => {
   return useMutation({

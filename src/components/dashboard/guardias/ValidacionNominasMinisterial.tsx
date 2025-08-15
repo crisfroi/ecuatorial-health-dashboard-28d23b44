@@ -203,6 +203,26 @@ const ValidacionNominasMinisterial: React.FC = () => {
     );
   }
 
+  // Show database setup notice if needed
+  if (nominasError && (nominasError.message?.includes('relation') || nominasError.message?.includes('does not exist'))) {
+    return (
+      <Card>
+        <CardContent className="p-8">
+          <div className="text-center">
+            <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Sistema de Guardias en Configuración</h3>
+            <p className="text-gray-600 mb-4">
+              Las tablas del sistema de guardias aún no han sido creadas en la base de datos.
+            </p>
+            <p className="text-sm text-gray-500">
+              Contacte al administrador del sistema para completar la configuración de las migraciones.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}

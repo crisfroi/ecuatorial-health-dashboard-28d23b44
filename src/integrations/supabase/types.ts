@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
+  // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -126,7 +126,6 @@ export type Database = {
           estado: string | null
           id: string
           nombre: string
-          profesionales_aprobados_count: number | null
           provincia: string
           sector: string
           telefono: string | null
@@ -143,7 +142,6 @@ export type Database = {
           estado?: string | null
           id?: string
           nombre: string
-          profesionales_aprobados_count?: number | null
           provincia: string
           sector: string
           telefono?: string | null
@@ -160,7 +158,6 @@ export type Database = {
           estado?: string | null
           id?: string
           nombre?: string
-          profesionales_aprobados_count?: number | null
           provincia?: string
           sector?: string
           telefono?: string | null
@@ -170,36 +167,44 @@ export type Database = {
       }
       cola_generacion_carnets: {
         Row: {
-          created_at: string
-          estado: string
+          created_at: string | null
+          estado: string | null
           id: string
           intentos: number | null
           mensaje_error: string | null
-          profesional_id: string
-          updated_at: string
+          profesional_id: string | null
+          updated_at: string | null
           url_carnet: string | null
         }
         Insert: {
-          created_at?: string
-          estado?: string
+          created_at?: string | null
+          estado?: string | null
           id?: string
           intentos?: number | null
           mensaje_error?: string | null
-          profesional_id: string
-          updated_at?: string
+          profesional_id?: string | null
+          updated_at?: string | null
           url_carnet?: string | null
         }
         Update: {
-          created_at?: string
-          estado?: string
+          created_at?: string | null
+          estado?: string | null
           id?: string
           intentos?: number | null
           mensaje_error?: string | null
-          profesional_id?: string
-          updated_at?: string
+          profesional_id?: string | null
+          updated_at?: string | null
           url_carnet?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cola_generacion_carnets_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       distrito_sanitario: {
         Row: {
@@ -221,99 +226,6 @@ export type Database = {
           nombre_provincia?: string | null
         }
         Relationships: []
-      }
-      guardias: {
-        Row: {
-          approved_at: string | null
-          approved_by: string | null
-          caso_atendido: string | null
-          centro_salud_id: string | null
-          created_at: string | null
-          created_by: string | null
-          estado: Database["public"]["Enums"]["estado_guardia"] | null
-          fecha_fin: string
-          fecha_inicio: string
-          hora_llamada: string | null
-          hora_llegada: string | null
-          horas: number | null
-          id: string
-          localizable_activada: boolean | null
-          observaciones: string | null
-          profesional_guardia_id: string | null
-          servicio_atendido: string | null
-          tipo: Database["public"]["Enums"]["tipo_guardia"]
-          tipo_dia: Database["public"]["Enums"]["tipo_dia"]
-          updated_at: string | null
-          validacion_estado:
-            | Database["public"]["Enums"]["estado_validacion"]
-            | null
-        }
-        Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          caso_atendido?: string | null
-          centro_salud_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          estado?: Database["public"]["Enums"]["estado_guardia"] | null
-          fecha_fin: string
-          fecha_inicio: string
-          hora_llamada?: string | null
-          hora_llegada?: string | null
-          horas?: number | null
-          id?: string
-          localizable_activada?: boolean | null
-          observaciones?: string | null
-          profesional_guardia_id?: string | null
-          servicio_atendido?: string | null
-          tipo: Database["public"]["Enums"]["tipo_guardia"]
-          tipo_dia: Database["public"]["Enums"]["tipo_dia"]
-          updated_at?: string | null
-          validacion_estado?:
-            | Database["public"]["Enums"]["estado_validacion"]
-            | null
-        }
-        Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          caso_atendido?: string | null
-          centro_salud_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          estado?: Database["public"]["Enums"]["estado_guardia"] | null
-          fecha_fin?: string
-          fecha_inicio?: string
-          hora_llamada?: string | null
-          hora_llegada?: string | null
-          horas?: number | null
-          id?: string
-          localizable_activada?: boolean | null
-          observaciones?: string | null
-          profesional_guardia_id?: string | null
-          servicio_atendido?: string | null
-          tipo?: Database["public"]["Enums"]["tipo_guardia"]
-          tipo_dia?: Database["public"]["Enums"]["tipo_dia"]
-          updated_at?: string | null
-          validacion_estado?:
-            | Database["public"]["Enums"]["estado_validacion"]
-            | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "guardias_centro_salud_id_fkey"
-            columns: ["centro_salud_id"]
-            isOneToOne: false
-            referencedRelation: "centros_salud"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "guardias_profesional_guardia_id_fkey"
-            columns: ["profesional_guardia_id"]
-            isOneToOne: false
-            referencedRelation: "profesionales_guardias"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       incidencias_hospitalarias: {
         Row: {
@@ -434,65 +346,6 @@ export type Database = {
         }
         Relationships: []
       }
-      nominas_guardias: {
-        Row: {
-          anio: number
-          approved_at: string | null
-          approved_by: string | null
-          centro_salud_id: string
-          created_at: string | null
-          created_by: string | null
-          estado: string | null
-          id: string
-          mes: number
-          observaciones: string | null
-          total_guardias: number | null
-          total_importe: number | null
-          total_profesionales: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          anio: number
-          approved_at?: string | null
-          approved_by?: string | null
-          centro_salud_id: string
-          created_at?: string | null
-          created_by?: string | null
-          estado?: string | null
-          id?: string
-          mes: number
-          observaciones?: string | null
-          total_guardias?: number | null
-          total_importe?: number | null
-          total_profesionales?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          anio?: number
-          approved_at?: string | null
-          approved_by?: string | null
-          centro_salud_id?: string
-          created_at?: string | null
-          created_by?: string | null
-          estado?: string | null
-          id?: string
-          mes?: number
-          observaciones?: string | null
-          total_guardias?: number | null
-          total_importe?: number | null
-          total_profesionales?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "nominas_guardias_centro_salud_id_fkey"
-            columns: ["centro_salud_id"]
-            isOneToOne: false
-            referencedRelation: "centros_salud"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profesional_centro_asignado: {
         Row: {
           categoria_centro: string | null
@@ -531,56 +384,6 @@ export type Database = {
           },
         ]
       }
-      profesionales_guardias: {
-        Row: {
-          activo: boolean | null
-          banco: string | null
-          categoria: Database["public"]["Enums"]["categoria_profesional_guardia"]
-          created_at: string | null
-          email_guardias: string | null
-          iban_cuenta: string | null
-          id: string
-          profesional_id: string | null
-          telefono_guardias: string | null
-          unidad_servicio: string
-          updated_at: string | null
-        }
-        Insert: {
-          activo?: boolean | null
-          banco?: string | null
-          categoria: Database["public"]["Enums"]["categoria_profesional_guardia"]
-          created_at?: string | null
-          email_guardias?: string | null
-          iban_cuenta?: string | null
-          id?: string
-          profesional_id?: string | null
-          telefono_guardias?: string | null
-          unidad_servicio: string
-          updated_at?: string | null
-        }
-        Update: {
-          activo?: boolean | null
-          banco?: string | null
-          categoria?: Database["public"]["Enums"]["categoria_profesional_guardia"]
-          created_at?: string | null
-          email_guardias?: string | null
-          iban_cuenta?: string | null
-          id?: string
-          profesional_id?: string | null
-          telefono_guardias?: string | null
-          unidad_servicio?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profesionales_guardias_profesional_id_fkey"
-            columns: ["profesional_id"]
-            isOneToOne: false
-            referencedRelation: "profesionales_sanitarios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profesionales_sanitarios: {
         Row: {
           año_graduacion: number | null
@@ -599,7 +402,6 @@ export type Database = {
           created_time: string | null
           distrito: string | null
           distrito_sanitario: string | null
-          distrito_sanitario_id: string | null
           documentos_adicionales: string[] | null
           documentos_cargados: Json | null
           domicilio: string | null
@@ -685,7 +487,6 @@ export type Database = {
           created_time?: string | null
           distrito?: string | null
           distrito_sanitario?: string | null
-          distrito_sanitario_id?: string | null
           documentos_adicionales?: string[] | null
           documentos_cargados?: Json | null
           domicilio?: string | null
@@ -771,7 +572,6 @@ export type Database = {
           created_time?: string | null
           distrito?: string | null
           distrito_sanitario?: string | null
-          distrito_sanitario_id?: string | null
           documentos_adicionales?: string[] | null
           documentos_cargados?: Json | null
           domicilio?: string | null
@@ -857,33 +657,6 @@ export type Database = {
           },
         ]
       }
-      role_permissions: {
-        Row: {
-          center_restricted: boolean | null
-          created_at: string | null
-          id: string
-          permission: string
-          resource: string | null
-          role: string
-        }
-        Insert: {
-          center_restricted?: boolean | null
-          created_at?: string | null
-          id?: string
-          permission: string
-          resource?: string | null
-          role: string
-        }
-        Update: {
-          center_restricted?: boolean | null
-          created_at?: string | null
-          id?: string
-          permission?: string
-          resource?: string | null
-          role?: string
-        }
-        Relationships: []
-      }
       sms_notifications_log: {
         Row: {
           created_at: string | null
@@ -928,97 +701,6 @@ export type Database = {
           },
         ]
       }
-      user_profiles: {
-        Row: {
-          assigned_center_id: string | null
-          created_at: string | null
-          created_by: string | null
-          department: string | null
-          email: string
-          full_name: string | null
-          id: string
-          is_active: boolean | null
-          role: string
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_center_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          department?: string | null
-          email: string
-          full_name?: string | null
-          id: string
-          is_active?: boolean | null
-          role?: string
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_center_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          department?: string | null
-          email?: string
-          full_name?: string | null
-          id?: string
-          is_active?: boolean | null
-          role?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_profiles_assigned_center_id_fkey"
-            columns: ["assigned_center_id"]
-            isOneToOne: false
-            referencedRelation: "centros_salud"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      validaciones_guardias: {
-        Row: {
-          comentario: string | null
-          created_at: string | null
-          etapa: Database["public"]["Enums"]["etapa_validacion"]
-          fecha: string | null
-          firma: string | null
-          guardia_id: string | null
-          id: string
-          resultado: string | null
-          usuario_id: string | null
-        }
-        Insert: {
-          comentario?: string | null
-          created_at?: string | null
-          etapa: Database["public"]["Enums"]["etapa_validacion"]
-          fecha?: string | null
-          firma?: string | null
-          guardia_id?: string | null
-          id?: string
-          resultado?: string | null
-          usuario_id?: string | null
-        }
-        Update: {
-          comentario?: string | null
-          created_at?: string | null
-          etapa?: Database["public"]["Enums"]["etapa_validacion"]
-          fecha?: string | null
-          firma?: string | null
-          guardia_id?: string | null
-          id?: string
-          resultado?: string | null
-          usuario_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "validaciones_guardias_guardia_id_fkey"
-            columns: ["guardia_id"]
-            isOneToOne: false
-            referencedRelation: "guardias"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
@@ -1030,18 +712,18 @@ export type Database = {
       }
       buscar_centros_por_criterios: {
         Args: {
+          p_nombre_parcial?: string
           p_categoria?: string
           p_distrito_sanitario?: string
-          p_nombre_parcial?: string
         }
         Returns: {
-          categoria: string
-          distrito: string
-          distrito_sanitario: string
           id: string
           nombre: string
-          provincia: string
+          categoria: string
+          distrito_sanitario: string
           sector: string
+          provincia: string
+          distrito: string
           total_profesionales: number
         }[]
       }
@@ -1049,43 +731,28 @@ export type Database = {
         Args: { birth_date: string }
         Returns: number
       }
-      can_access_resource: {
-        Args: {
-          required_permission: string
-          resource_name: string
-          target_center_id?: string
-          user_id: string
-        }
-        Returns: boolean
-      }
       generar_codigo_expediente_unico: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      generar_url_carnet_profesional: {
+        Args: { p_professional_id: string }
+        Returns: string
+      }
       generar_url_codigo_barras_expediente: {
         Args: {
-          categoria_titulacion_param?: string
           codigo_expediente_param: string
+          categoria_titulacion_param?: string
         }
         Returns: string
       }
       get_notification_count: {
         Args: { p_profesional_id: string }
         Returns: {
-          notificaciones_10_dias: number
-          notificaciones_30_dias: number
           total_notificaciones: number
+          notificaciones_30_dias: number
+          notificaciones_10_dias: number
           ultima_notificacion: string
-        }[]
-      }
-      get_user_permissions: {
-        Args: { user_id: string }
-        Returns: {
-          assigned_center_id: string
-          center_restricted: boolean
-          permission: string
-          resource: string
-          role: string
         }[]
       }
       marcar_carnet_generado: {
@@ -1102,17 +769,17 @@ export type Database = {
       }
       obtener_profesionales_por_centro: {
         Args: {
-          p_area_profesional?: string
           p_centro_id: string
+          p_area_profesional?: string
           p_estado_solicitud?: string
         }
         Returns: {
-          area_profesional: string
-          estado_solicitud: string
-          fecha_alta: string
           id: string
           nombre_completo: string
+          area_profesional: string
+          estado_solicitud: string
           telefono: string
+          fecha_alta: string
         }[]
       }
       trigger_renewal_notifications: {
@@ -1121,39 +788,7 @@ export type Database = {
       }
     }
     Enums: {
-      categoria_profesional_guardia:
-        | "especialista"
-        | "general_licenciado"
-        | "tecnico_diplomado"
-        | "auxiliar"
-        | "subalterno"
-        | "odepac"
-        | "secre_asist_pacientes"
-        | "caja"
-      estado_guardia: "borrador" | "planificada" | "realizada" | "no_presentado"
-      estado_validacion: "pendiente" | "validada" | "rechazada"
-      etapa_validacion:
-        | "dir_medica"
-        | "dir_admin"
-        | "dir_enfermeria"
-        | "jefe_rrhh"
-        | "admin_hospital"
-        | "dir_gerente"
-        | "dg_coordinacion"
-      forma_pago: "transfer_trabajador" | "transfer_hospital" | "otro"
-      fuente_baremo: "protocol" | "excel" | "manual"
-      rol_usuario_guardias:
-        | "admin"
-        | "validador"
-        | "visualizador"
-        | "rrhh"
-        | "dir_medica"
-        | "dir_admin"
-        | "dir_enfermeria"
-        | "dir_gerente"
-        | "dg"
-      tipo_dia: "ordinario" | "fin_semana" | "festivo"
-      tipo_guardia: "fisica" | "localizable" | "administrativa"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1280,43 +915,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      categoria_profesional_guardia: [
-        "especialista",
-        "general_licenciado",
-        "tecnico_diplomado",
-        "auxiliar",
-        "subalterno",
-        "odepac",
-        "secre_asist_pacientes",
-        "caja",
-      ],
-      estado_guardia: ["borrador", "planificada", "realizada", "no_presentado"],
-      estado_validacion: ["pendiente", "validada", "rechazada"],
-      etapa_validacion: [
-        "dir_medica",
-        "dir_admin",
-        "dir_enfermeria",
-        "jefe_rrhh",
-        "admin_hospital",
-        "dir_gerente",
-        "dg_coordinacion",
-      ],
-      forma_pago: ["transfer_trabajador", "transfer_hospital", "otro"],
-      fuente_baremo: ["protocol", "excel", "manual"],
-      rol_usuario_guardias: [
-        "admin",
-        "validador",
-        "visualizador",
-        "rrhh",
-        "dir_medica",
-        "dir_admin",
-        "dir_enfermeria",
-        "dir_gerente",
-        "dg",
-      ],
-      tipo_dia: ["ordinario", "fin_semana", "festivo"],
-      tipo_guardia: ["fisica", "localizable", "administrativa"],
-    },
+    Enums: {},
   },
 } as const

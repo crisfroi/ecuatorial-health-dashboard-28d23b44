@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -33,9 +34,6 @@ const categorias_titulacion = [
 ];
 
 export const EducationStep = ({ form }: EducationStepProps) => {
-  const categoriaTitulacion = form.watch('categoria_titulacion');
-  const shouldShowEspecialidad = categoriaTitulacion === 'ESPECIALIDAD';
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <FormField
@@ -63,21 +61,19 @@ export const EducationStep = ({ form }: EducationStepProps) => {
         )}
       />
 
-      {shouldShowEspecialidad && (
-        <FormField
-          control={form.control}
-          name="especialidad"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Especialidad *</FormLabel>
-              <FormControl>
-                <Input placeholder="Ingrese su especialidad" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
+      <FormField
+        control={form.control}
+        name="especialidad"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Especialidad</FormLabel>
+            <FormControl>
+              <Input placeholder="Ingrese su especialidad" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       <FormField
         control={form.control}

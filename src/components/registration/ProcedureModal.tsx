@@ -17,31 +17,16 @@ const ProcedureModal = ({ isOpen, onClose }: ProcedureModalProps) => {
     onClose();
   };
 
-  // Descarga el archivo PDF de guía estático con manejo de errores
-  const handleDownloadGuide = async () => {
-    try {
-      const downloadUrl = "https://wdieynendfjbkbhfovrx.supabase.co/storage/v1/object/public/documentos-descargas/procedimientos/Procedimiento%20Solicitud.pdf";
-
-      // Verificar si el archivo existe
-      const response = await fetch(downloadUrl, { method: 'HEAD' });
-
-      if (!response.ok) {
-        throw new Error('El archivo no está disponible en este momento');
-      }
-
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.setAttribute('download', 'Procedimiento_Solicitud_Carnet_Profesional.pdf');
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      alert('Se ha iniciado la descarga de la guía del procedimiento.');
-    } catch (error) {
-      console.error('Error al descargar el archivo:', error);
-      alert('Error al descargar el archivo. Por favor, inténtelo de nuevo más tarde o contacte con soporte.');
-    }
+  // Descarga el archivo PDF de guía estático (si lo necesitas además del PDF dinámico)
+  const handleDownloadGuide = () => {
+    const downloadUrl = "https://wdieynendfjbkbhfovrx.supabase.co/storage/v1/object/public/documentos-descargas/procedimientos/Procedimiento%20Solicitud.pdf";
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', 'Procedimiento Solicitud.pdf');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    alert('Se ha iniciado la descarga de la guía del procedimiento.');
   };
 
   return (

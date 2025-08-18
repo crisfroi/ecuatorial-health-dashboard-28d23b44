@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,73 +36,37 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mail, Plus, Edit, Trash2, Users, Shield, Crown, Eye, Building2, Hospital } from "lucide-react";
+import { Mail, Plus, Edit, Trash2, Users, Shield, Crown, Eye, Building2 } from "lucide-react";
+import { UserProfile, UserInvitation } from "@/types/database";
 import { UserRole } from "@/types/roles";
+import { useUserManagement } from "@/hooks/useUserManagement";
+import { useTestInvite } from "@/hooks/useTestInvite";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCentrosSalud } from "@/hooks/useCentrosSalud";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-
-interface UserProfile {
-  id: string;
-  email: string;
-  full_name?: string;
-  role: UserRole;
-  assigned_center_id?: string;
-  department?: string;
-  is_active: boolean;
-  created_at: string;
-  center_name?: string;
-}
 
 const UserRoleManagement = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = useState<Partial<UserInvitation>>({
     email: '',
-    role: 'OBSERVADOR' as UserRole,
+    role: 'OBSERVADOR',
     full_name: '',
-    department: 'Ministerio de Sanidad y Bienestar Social',
-    assigned_center_id: ''
+    department: 'Ministerio de Sanidad y Bienestar Social'
   });
 
-  const { user: currentUser, refreshProfile } = useAuth();
+  const { inviteUser, getUserProfiles, updateUserRole, deleteUser, isLoading } = useUserManagement();
+  const { testInvite, isLoading: isTestLoading } = useTestInvite();
+  const { user: currentUser } = useAuth();
   const { data: centrosSalud = [] } = useCentrosSalud();
 
-  const roles: Array<{ value: UserRole; label: string; description: string }> = [
-    { 
-      value: 'SUPER_ADMINISTRADOR', 
-      label: 'Super Administrador',
-      description: 'Acceso completo al sistema'
-    },
-    { 
-      value: 'PERSONALIDAD_MINISTERIAL', 
-      label: 'Personalidad Ministerial',
-      description: 'Panel ministerial, validación de nóminas'
-    },
-    { 
-      value: 'DIRECTIVO_CENTRO_SANITARIO', 
-      label: 'Directivo Centro Sanitario',
-      description: 'Gestión de guardias de su centro asignado'
-    },
-    { 
-      value: 'HOSPITAL', 
-      label: 'Gestión Hospitalaria',
-      description: 'Gestión de red hospitalaria asignada'
-    },
-    { 
-      value: 'REVISOR_SOLICITUDES', 
-      label: 'Revisor de Solicitudes',
-      description: 'Revisión y validación de solicitudes'
-    },
-    { 
-      value: 'OBSERVADOR', 
-      label: 'Observador',
-      description: 'Solo lectura de datos públicos'
-    },
+  const roles: Array<{ value: UserRole; label: string }> = [
+    { value: 'SUPER_ADMINISTRADOR', label: 'Super Administrador' },
+    { value: 'REVISOR_SOLICITUDES', label: 'Revisor de Solicitudes' },
+    { value: 'PERSONALIDAD_MINISTERIAL', label: 'Personalidad Ministerial' },
+    { value: 'DIRECTIVO_CENTRO_SANITARIO', label: 'Directivo Centro Sanitario' },
+    { value: 'OBSERVADOR', label: 'Observador' },
   ];
 
   useEffect(() => {
@@ -111,46 +74,20 @@ const UserRoleManagement = () => {
   }, []);
 
   const loadUsers = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select(`
-          *,
-          centros_salud:assigned_center_id (
-            nombre
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const usersWithCenterName = data.map(user => ({
-        ...user,
-        center_name: user.centros_salud?.nombre
-      }));
-
-      setUsers(usersWithCenterName as UserProfile[]);
-    } catch (error) {
-      console.error('Error loading users:', error);
-      toast.error('Error al cargar usuarios');
-    } finally {
-      setIsLoading(false);
-    }
+    const userProfiles = await getUserProfiles();
+    setUsers(userProfiles);
   };
 
   const getRoleIcon = (role: UserRole) => {
     switch (role) {
       case 'SUPER_ADMINISTRADOR':
         return <Crown className="w-4 h-4" />;
+      case 'REVISOR_SOLICITUDES':
+        return <Shield className="w-4 h-4" />;
       case 'PERSONALIDAD_MINISTERIAL':
         return <Users className="w-4 h-4" />;
       case 'DIRECTIVO_CENTRO_SANITARIO':
         return <Building2 className="w-4 h-4" />;
-      case 'HOSPITAL':
-        return <Hospital className="w-4 h-4" />;
-      case 'REVISOR_SOLICITUDES':
-        return <Shield className="w-4 h-4" />;
       case 'OBSERVADOR':
         return <Eye className="w-4 h-4" />;
       default:
@@ -162,14 +99,12 @@ const UserRoleManagement = () => {
     switch (role) {
       case 'SUPER_ADMINISTRADOR':
         return 'bg-red-100 text-red-800';
+      case 'REVISOR_SOLICITUDES':
+        return 'bg-blue-100 text-blue-800';
       case 'PERSONALIDAD_MINISTERIAL':
         return 'bg-purple-100 text-purple-800';
       case 'DIRECTIVO_CENTRO_SANITARIO':
         return 'bg-green-100 text-green-800';
-      case 'HOSPITAL':
-        return 'bg-teal-100 text-teal-800';
-      case 'REVISOR_SOLICITUDES':
-        return 'bg-blue-100 text-blue-800';
       case 'OBSERVADOR':
         return 'bg-gray-100 text-gray-800';
       default:
@@ -177,106 +112,66 @@ const UserRoleManagement = () => {
     }
   };
 
-  const handleCreateUser = async () => {
+  const handleInviteUser = async () => {
+    console.log('🚀 Iniciando handleInviteUser con datos:', newUser);
+
     if (!newUser.email || !newUser.role) {
-      toast.error('Email y rol son requeridos');
+      console.warn('⚠️ Datos incompletos:', { email: newUser.email, role: newUser.role });
       return;
     }
 
-    setIsLoading(true);
-    try {
-      // Create the user profile directly in the database
-      // In a real app, you would use Supabase Auth admin functions
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert({
-          id: crypto.randomUUID(), // Temporary ID for demo
-          email: newUser.email,
-          full_name: newUser.full_name,
-          role: newUser.role,
-          department: newUser.department,
-          assigned_center_id: newUser.assigned_center_id || null,
-          created_by: currentUser?.id
-        });
+    const invitation: UserInvitation = {
+      email: newUser.email,
+      role: newUser.role,
+      full_name: newUser.full_name,
+      department: newUser.department || 'Ministerio de Sanidad y Bienestar Social',
+      assigned_center_id: newUser.assigned_center_id,
+      invited_by: currentUser?.id || 'system'
+    };
 
-      if (profileError) throw profileError;
+    console.log('📧 Enviando invitación:', invitation);
+    const result = await inviteUser(invitation);
+    console.log('📬 Resultado de invitación:', result);
 
-      toast.success('Usuario creado exitosamente');
-      
+    if (result.success) {
+      console.log('✅ Invitación exitosa, limpiando formulario');
       setNewUser({
         email: '',
         role: 'OBSERVADOR',
         full_name: '',
-        department: 'Ministerio de Sanidad y Bienestar Social',
-        assigned_center_id: ''
+        department: 'Ministerio de Sanidad y Bienestar Social'
       });
       setIsAddDialogOpen(false);
-      loadUsers();
-    } catch (error: any) {
-      console.error('Error creating user:', error);
-      toast.error('Error al crear usuario: ' + error.message);
-    } finally {
-      setIsLoading(false);
+      loadUsers(); // Recargar la lista de usuarios
+    } else {
+      console.error('❌ Error en invitación:', result.error);
     }
   };
 
   const handleUpdateUser = async () => {
     if (!editingUser) return;
 
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({
-          full_name: editingUser.full_name,
-          role: editingUser.role,
-          department: editingUser.department,
-          assigned_center_id: editingUser.assigned_center_id || null,
-          is_active: editingUser.is_active
-        })
-        .eq('id', editingUser.id);
+    const updates = {
+      role: editingUser.role,
+      full_name: editingUser.full_name,
+      department: editingUser.department
+    };
 
-      if (error) throw error;
+    const result = await updateUserRole(editingUser.id, updates);
 
-      toast.success('Usuario actualizado exitosamente');
+    if (result.success) {
       setIsEditDialogOpen(false);
       setEditingUser(null);
-      loadUsers();
-      
-      // Refresh current user profile if editing themselves
-      if (editingUser.id === currentUser?.id) {
-        await refreshProfile();
-      }
-    } catch (error: any) {
-      console.error('Error updating user:', error);
-      toast.error('Error al actualizar usuario: ' + error.message);
-    } finally {
-      setIsLoading(false);
+      loadUsers(); // Recargar la lista de usuarios
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({ is_active: false })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      toast.success('Usuario desactivado exitosamente');
-      loadUsers();
-    } catch (error: any) {
-      console.error('Error deactivating user:', error);
-      toast.error('Error al desactivar usuario: ' + error.message);
-    } finally {
-      setIsLoading(false);
+    const result = await deleteUser(userId);
+    
+    if (result.success) {
+      loadUsers(); // Recargar la lista de usuarios
     }
-  };
-
-  const requiresCenter = (role: UserRole) => {
-    return ['DIRECTIVO_CENTRO_SANITARIO', 'HOSPITAL'].includes(role);
   };
 
   return (
@@ -285,100 +180,38 @@ const UserRoleManagement = () => {
         <div>
           <h2 className="text-2xl font-bold">Gestión de Usuarios y Roles</h2>
           <p className="text-gray-600">
-            Administrar usuarios del sistema con control de acceso multinivel
+            Administrar usuarios del sistema y sus permisos
           </p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
-              Nuevo Usuario
+              Invitar Usuario
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent>
             <DialogHeader>
-              <DialogTitle>Crear Nuevo Usuario</DialogTitle>
+              <DialogTitle>Invitar Nuevo Usuario</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Email *</label>
-                  <Input
-                    type="email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    placeholder="usuario@ministerio.gq"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Nombre Completo</label>
-                  <Input
-                    value={newUser.full_name}
-                    onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
-                    placeholder="Nombre completo del usuario"
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="text-sm font-medium">Rol del Sistema *</label>
-                <Select 
-                  value={newUser.role} 
-                  onValueChange={(value) => setNewUser({ ...newUser, role: value as UserRole, assigned_center_id: '' })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2">
-                            {getRoleIcon(role.value)}
-                            <span className="font-medium">{role.label}</span>
-                          </div>
-                          <span className="text-xs text-gray-500">{role.description}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium">Email *</label>
+                <Input
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  placeholder="usuario@cualquierdominio.com"
+                />
               </div>
-
-              {requiresCenter(newUser.role) && (
-                <div>
-                  <label className="text-sm font-medium">
-                    {newUser.role === 'HOSPITAL' ? 'Red Hospitalaria Asignada *' : 'Centro Sanitario Asignado *'}
-                  </label>
-                  <Select
-                    value={newUser.assigned_center_id}
-                    onValueChange={(value) => setNewUser({ ...newUser, assigned_center_id: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar centro..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {centrosSalud
-                        .filter(centro => 
-                          newUser.role === 'HOSPITAL' 
-                            ? centro.categoria?.includes('Hospital') 
-                            : true
-                        )
-                        .map((centro) => (
-                        <SelectItem key={centro.id} value={centro.id}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{centro.nombre}</span>
-                            <span className="text-xs text-gray-500">
-                              {centro.categoria} - {centro.distrito_sanitario}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
+              <div>
+                <label className="text-sm font-medium">Nombre Completo</label>
+                <Input
+                  value={newUser.full_name}
+                  onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
+                  placeholder="Nombre completo del usuario"
+                />
+              </div>
               <div>
                 <label className="text-sm font-medium">Departamento</label>
                 <Input
@@ -387,7 +220,47 @@ const UserRoleManagement = () => {
                   placeholder="Departamento o área de trabajo"
                 />
               </div>
-
+              <div>
+                <label className="text-sm font-medium">Rol *</label>
+                <Select 
+                  value={newUser.role} 
+                  onValueChange={(value) => setNewUser({ ...newUser, role: value as UserRole })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        <div className="flex items-center gap-2">
+                          {getRoleIcon(role.value)}
+                          {role.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {newUser.role === 'DIRECTIVO_CENTRO_SANITARIO' && (
+                <div>
+                  <label className="text-sm font-medium">Centro Asignado</label>
+                  <Select 
+                    value={newUser.assigned_center_id} 
+                    onValueChange={(value) => setNewUser({ ...newUser, assigned_center_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar centro" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {centrosSalud.map((centro) => (
+                        <SelectItem key={centro.id} value={centro.id}>
+                          {centro.nombre} - {centro.categoria}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="flex justify-end space-x-2">
                 <Button
                   variant="outline"
@@ -396,12 +269,18 @@ const UserRoleManagement = () => {
                   Cancelar
                 </Button>
                 <Button
-                  onClick={handleCreateUser}
-                  disabled={isLoading || !newUser.email?.trim() || !newUser.role || 
-                           (requiresCenter(newUser.role) && !newUser.assigned_center_id)}
+                  variant="secondary"
+                  onClick={() => testInvite(newUser.email || 'test@test.com', newUser.role || 'OBSERVADOR')}
+                  disabled={isTestLoading || !newUser.email?.trim()}
+                >
+                  🧪 {isTestLoading ? 'Probando...' : 'Test'}
+                </Button>
+                <Button
+                  onClick={handleInviteUser}
+                  disabled={isLoading || !newUser.email?.trim() || !newUser.role}
                 >
                   <Mail className="w-4 h-4 mr-2" />
-                  {isLoading ? 'Creando...' : 'Crear Usuario'}
+                  {isLoading ? 'Enviando...' : 'Enviar Invitación'}
                 </Button>
               </div>
             </div>
@@ -410,7 +289,7 @@ const UserRoleManagement = () => {
       </div>
 
       {/* Estadísticas de roles */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {roles.map((role) => {
           const count = users.filter(user => user.role === role.value && user.is_active).length;
           return (
@@ -434,7 +313,7 @@ const UserRoleManagement = () => {
       {/* Tabla de usuarios */}
       <Card>
         <CardHeader>
-          <CardTitle>Usuarios del Sistema ({users.filter(u => u.is_active).length} activos)</CardTitle>
+          <CardTitle>Usuarios del Sistema ({users.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -442,9 +321,9 @@ const UserRoleManagement = () => {
               <TableRow>
                 <TableHead>Usuario</TableHead>
                 <TableHead>Rol</TableHead>
-                <TableHead>Centro Asignado</TableHead>
                 <TableHead>Departamento</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead>Fecha Registro</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -466,22 +345,17 @@ const UserRoleManagement = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {user.center_name ? (
-                      <div className="text-sm">
-                        <div className="font-medium">{user.center_name}</div>
-                        <div className="text-gray-500 text-xs">Centro asignado</div>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">No asignado</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
                     <div className="text-sm">{user.department}</div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={user.is_active ? "default" : "secondary"}>
                       {user.is_active ? "Activo" : "Inactivo"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {new Date(user.created_at).toLocaleDateString('es-ES')}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
@@ -504,9 +378,9 @@ const UserRoleManagement = () => {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>¿Desactivar usuario?</AlertDialogTitle>
+                              <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                El usuario será desactivado pero no eliminado del sistema.
+                                Esta acción no se puede deshacer. El usuario será eliminado permanentemente del sistema.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -515,7 +389,7 @@ const UserRoleManagement = () => {
                                 onClick={() => handleDeleteUser(user.id)}
                                 className="bg-red-600 hover:bg-red-700"
                               >
-                                Desactivar
+                                Eliminar
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -529,7 +403,7 @@ const UserRoleManagement = () => {
           </Table>
           {users.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              {isLoading ? 'Cargando usuarios...' : 'No hay usuarios registrados en el sistema'}
+              No hay usuarios registrados en el sistema
             </div>
           )}
         </CardContent>
@@ -537,35 +411,35 @@ const UserRoleManagement = () => {
 
       {/* Dialog para editar usuario */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Usuario</DialogTitle>
           </DialogHeader>
           {editingUser && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Email</label>
-                  <Input value={editingUser.email} disabled />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Nombre Completo</label>
-                  <Input
-                    value={editingUser.full_name || ''}
-                    onChange={(e) => setEditingUser({...editingUser, full_name: e.target.value})}
-                  />
-                </div>
+              <div>
+                <label className="text-sm font-medium">Email</label>
+                <Input value={editingUser.email} disabled />
               </div>
-
+              <div>
+                <label className="text-sm font-medium">Nombre Completo</label>
+                <Input
+                  value={editingUser.full_name || ''}
+                  onChange={(e) => setEditingUser({...editingUser, full_name: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Departamento</label>
+                <Input
+                  value={editingUser.department || ''}
+                  onChange={(e) => setEditingUser({...editingUser, department: e.target.value})}
+                />
+              </div>
               <div>
                 <label className="text-sm font-medium">Rol</label>
                 <Select 
                   value={editingUser.role} 
-                  onValueChange={(value) => setEditingUser({
-                    ...editingUser, 
-                    role: value as UserRole,
-                    assigned_center_id: requiresCenter(value as UserRole) ? editingUser.assigned_center_id : undefined
-                  })}
+                  onValueChange={(value) => setEditingUser({...editingUser, role: value as UserRole})}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -582,46 +456,6 @@ const UserRoleManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-
-              {requiresCenter(editingUser.role) && (
-                <div>
-                  <label className="text-sm font-medium">Centro Asignado</label>
-                  <Select
-                    value={editingUser.assigned_center_id || ''}
-                    onValueChange={(value) => setEditingUser({...editingUser, assigned_center_id: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar centro..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {centrosSalud.map((centro) => (
-                        <SelectItem key={centro.id} value={centro.id}>
-                          {centro.nombre} - {centro.categoria}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div>
-                <label className="text-sm font-medium">Departamento</label>
-                <Input
-                  value={editingUser.department || ''}
-                  onChange={(e) => setEditingUser({...editingUser, department: e.target.value})}
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={editingUser.is_active}
-                  onChange={(e) => setEditingUser({...editingUser, is_active: e.target.checked})}
-                  className="rounded"
-                />
-                <label className="text-sm">Usuario activo</label>
-              </div>
-
               <div className="flex justify-end space-x-2">
                 <Button
                   variant="outline"

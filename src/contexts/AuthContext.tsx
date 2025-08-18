@@ -10,7 +10,6 @@ interface UserProfile extends User {
   full_name?: string;
   department?: string;
   permissions?: string[];
-  is_active?: boolean;
 }
 
 interface AuthContextType {
@@ -19,11 +18,10 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  hasPermission: (permission: string, resource?: string, targetCenterId?: string) => boolean;
+  hasPermission: (permission: string) => boolean;
   canAccessTab: (tab: string) => boolean;
   getRestrictions: () => any;
   switchRole: (newRole: UserRole) => void;
-  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,128 +39,83 @@ interface AuthProviderProps {
   defaultRole?: UserRole;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({
-  children,
+export const AuthProvider: React.FC<AuthProviderProps> = ({ 
+  children, 
   defaultRole = 'SUPER_ADMINISTRADOR'
 }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadUserProfile = async (authUser: User) => {
-    try {
-      // Intentar cargar perfil de la base de datos
-      const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading user profile:', error);
-      }
-
-      let userProfile: UserProfile;
-
-      if (profile) {
-        // Usuario existente con perfil en la base de datos
-        userProfile = {
-          ...authUser,
-          role: profile.role as UserRole,
-          assigned_center_id: profile.assigned_center_id,
-          full_name: profile.full_name,
-          department: profile.department,
-          is_active: profile.is_active
-        };
-      } else {
-        // Usuario nuevo o sin perfil - crear perfil demo
-        const role = authUser.email === 'chamibeny@gmail.com' ? 'SUPER_ADMINISTRADOR' : 'OBSERVADOR';
-        
-        userProfile = {
-          ...authUser,
-          role: role as UserRole,
-          full_name: authUser.user_metadata?.full_name || 
-                    (authUser.email === 'chamibeny@gmail.com' ? 'Beltran Ebiole' : 
-                     authUser.email?.split('@')[0]?.replace('.', ' ').toUpperCase()),
-          department: 'Ministerio de Sanidad y Bienestar Social',
-          is_active: true
-        };
-
-        // Intentar crear el perfil en la base de datos
-        try {
-          await supabase
-            .from('user_profiles')
-            .insert({
-              id: authUser.id,
-              email: authUser.email || '',
-              full_name: userProfile.full_name,
-              role: userProfile.role,
-              department: userProfile.department,
-              is_active: true
-            });
-        } catch (insertError) {
-          console.warn('Could not create user profile in database:', insertError);
-        }
-      }
-
-      setUser(userProfile);
-      setUserRole(userProfile.role);
-      return userProfile;
-    } catch (error) {
-      console.error('Error in loadUserProfile:', error);
-      // Fallback para desarrollo
-      const fallbackProfile: UserProfile = {
-        ...authUser,
-        role: 'SUPER_ADMINISTRADOR',
-        full_name: 'Usuario Demo',
-        department: 'Ministerio de Sanidad y Bienestar Social',
-        is_active: true
-      };
-      setUser(fallbackProfile);
-      setUserRole('SUPER_ADMINISTRADOR');
-      return fallbackProfile;
-    }
-  };
-
-  const refreshProfile = async () => {
-    if (!user) return;
-    
-    try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        await loadUserProfile(authUser);
-      }
-    } catch (error) {
-      console.error('Error refreshing profile:', error);
-    }
-  };
-
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        setIsLoading(true);
         console.log('🔐 Inicializando autenticación...');
-
+        
         const { data: { user: supabaseUser } } = await supabase.auth.getUser();
-
+        
         if (supabaseUser) {
           console.log('👤 Usuario autenticado encontrado:', supabaseUser.email);
-          await loadUserProfile(supabaseUser);
+          
+          // Obtener rol desde user_metadata con fallbacks mejorados
+          let role: UserRole = defaultRole;
+          
+          if (supabaseUser.user_metadata?.role) {
+            role = supabaseUser.user_metadata.role as UserRole;
+            console.log('🎭 Rol desde metadata:', role);
+          } else {
+            // Asignar rol basado en el email con lógica mejorada
+            const email = supabaseUser.email?.toLowerCase() || '';
+            
+            if (email.includes('juan.froilan') || 
+                email.includes('froilan') ||
+                email.includes('ramos') ||
+                email.includes('nabama') ||
+                email === 'juan.froilan@ministeriosanidad.gq') {
+              role = 'SUPER_ADMINISTRADOR';
+              console.log('👑 Asignado rol SUPER_ADMINISTRADOR por email especial');
+            } else if (email.includes('admin') || email.includes('administrador')) {
+              role = 'SUPER_ADMINISTRADOR';
+            } else if (email.includes('revisor') || email.includes('comite') || email.includes('evaluador')) {
+              role = 'REVISOR_SOLICITUDES';
+            } else if (email.includes('ministro') || email.includes('ministerial') || email.includes('secretario')) {
+              role = 'PERSONALIDAD_MINISTERIAL';
+            } else if (email.includes('director') || email.includes('centro') || email.includes('hospital')) {
+              role = 'DIRECTIVO_CENTRO_SANITARIO';
+            } else {
+              role = 'OBSERVADOR'; // Rol más restrictivo por defecto
+            }
+            console.log('🎭 Rol asignado por email:', role);
+          }
+
+          const userProfile: UserProfile = {
+            ...supabaseUser,
+            role,
+            full_name: supabaseUser.user_metadata?.full_name || 
+                      (supabaseUser.email === 'juan.froilan@ministeriosanidad.gq' ? 'Juan Froilan Ramos Nabama' : 
+                       supabaseUser.email?.split('@')[0]?.replace('.', ' ').toUpperCase()),
+            department: supabaseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
+            assigned_center_id: supabaseUser.user_metadata?.assigned_center_id
+          };
+
+          setUser(userProfile);
+          setUserRole(role);
+          console.log('✅ Usuario configurado:', { email: userProfile.email, role });
         } else {
           console.log('👤 No hay usuario autenticado, usando datos demo');
-          // Create demo user for development
+          // Para desarrollo, crear usuario demo para Juan Froilan
           const mockUser: UserProfile = {
-            id: 'demo-user-id',
-            email: 'chamibeny@gmail.com',
+            id: 'juan-froilan-demo-id',
+            email: 'juan.froilan@ministeriosanidad.gq',
             role: 'SUPER_ADMINISTRADOR',
-            full_name: 'Beltran Ebiole',
+            full_name: 'Juan Froilan Ramos Nabama',
             department: 'Ministerio de Sanidad y Bienestar Social',
-            is_active: true,
             aud: 'authenticated',
             app_metadata: {},
             user_metadata: {
               role: 'SUPER_ADMINISTRADOR',
-              full_name: 'Beltran Ebiole'
+              full_name: 'Juan Froilan Ramos Nabama',
+              department: 'Ministerio de Sanidad y Bienestar Social'
             },
             created_at: new Date().toISOString()
           };
@@ -171,45 +124,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
       } catch (error) {
         console.error('❌ Error inicializando auth:', error);
-        // Fallback to demo user on any error
-        const fallbackUser: UserProfile = {
-          id: 'fallback-user-id',
-          email: 'chamibeny@gmail.com',
+        // En caso de error, usar usuario demo
+        const mockUser: UserProfile = {
+          id: 'error-fallback-id',
+          email: 'juan.froilan@ministeriosanidad.gq',
           role: 'SUPER_ADMINISTRADOR',
-          full_name: 'Beltran Ebiole',
+          full_name: 'Juan Froilan Ramos Nabama',
           department: 'Ministerio de Sanidad y Bienestar Social',
-          is_active: true,
           aud: 'authenticated',
           app_metadata: {},
           user_metadata: {},
           created_at: new Date().toISOString()
         };
-        setUser(fallbackUser);
+        setUser(mockUser);
         setUserRole('SUPER_ADMINISTRADOR');
       } finally {
         setIsLoading(false);
       }
     };
 
-    // Listen for auth state changes
+    // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔄 Auth state change:', event);
-
-        try {
-          if (event === 'SIGNED_IN' && session?.user) {
-            console.log('✅ Usuario autenticado');
-            await loadUserProfile(session.user);
-          } else if (event === 'SIGNED_OUT') {
-            console.log('👋 Usuario desconectado');
-            setUser(null);
-            setUserRole(null);
-          } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-            console.log('🔄 Token refrescado');
-            await refreshProfile();
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('✅ Usuario autenticado');
+          await initializeAuth();
+        } else if (event === 'SIGNED_OUT') {
+          console.log('👋 Usuario desconectado');
+          setUser(null);
+          setUserRole(null);
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log('🔄 Token refrescado');
+          // Mantener usuario actual pero actualizar datos si es necesario
+          if (!user && session.user) {
+            await initializeAuth();
           }
-        } catch (authError) {
-          console.error('⚠️ Error in auth state change:', authError);
         }
       }
     );
@@ -217,7 +168,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     initializeAuth();
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [defaultRole]);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
@@ -244,7 +195,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
       if (data.user) {
         console.log('✅ Login exitoso para:', data.user.email);
-        await loadUserProfile(data.user);
         return { success: true };
       }
 
@@ -273,57 +223,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     }
   };
 
-  const checkPermission = (permission: string, resource?: string, targetCenterId?: string): boolean => {
-    if (!userRole || !user) return false;
-
-    // Super admin siempre tiene acceso
-    if (userRole === 'SUPER_ADMINISTRADOR') return true;
-
-    // Verificar permisos específicos basados en rol
-    const rolePermissions: Record<UserRole, string[]> = {
-      'SUPER_ADMINISTRADOR': ['*'],
-      'PERSONALIDAD_MINISTERIAL': ['view_all', 'validate', 'analytics'],
-      'DIRECTIVO_CENTRO_SANITARIO': ['view', 'manage', 'create'],
-      'HOSPITAL': ['view', 'manage'],
-      'REVISOR_SOLICITUDES': ['view'],
-      'OBSERVADOR': ['view']
-    };
-
-    const allowedPermissions = rolePermissions[userRole] || [];
-    
-    // Verificar si tiene el permiso
-    const hasBasePermission = allowedPermissions.includes('*') || 
-                             allowedPermissions.includes(permission) ||
-                             allowedPermissions.includes('view_all') ||
-                             allowedPermissions.includes('manage_all');
-
-    if (!hasBasePermission) return false;
-
-    // Verificar restricciones por centro si aplica
-    if (targetCenterId && user.assigned_center_id) {
-      const centerRestrictedRoles: UserRole[] = ['DIRECTIVO_CENTRO_SANITARIO', 'HOSPITAL'];
-      if (centerRestrictedRoles.includes(userRole)) {
-        return user.assigned_center_id === targetCenterId;
-      }
-    }
-
-    return true;
+  const checkPermission = (permission: string): boolean => {
+    if (!userRole) return false;
+    const hasPerms = hasPermission(userRole, permission);
+    console.log(`🔐 Checking permission '${permission}' for role '${userRole}':`, hasPerms);
+    return hasPerms;
   };
 
   const checkTabAccess = (tab: string): boolean => {
     if (!userRole) return false;
-    
-    const tabAccess: Record<UserRole, string[]> = {
-      'SUPER_ADMINISTRADOR': ['*'],
-      'PERSONALIDAD_MINISTERIAL': ['dashboard', 'professionals', 'guardias', 'nominas', 'analytics', 'reports'],
-      'DIRECTIVO_CENTRO_SANITARIO': ['dashboard', 'guardias', 'nominas', 'professionals'],
-      'HOSPITAL': ['dashboard', 'guardias', 'nominas', 'professionals'],
-      'REVISOR_SOLICITUDES': ['dashboard', 'professionals', 'requests'],
-      'OBSERVADOR': ['dashboard', 'public-search']
-    };
-
-    const allowedTabs = tabAccess[userRole] || [];
-    return allowedTabs.includes('*') || allowedTabs.includes(tab);
+    const canAccess = canAccessTab(userRole, tab);
+    console.log(`🔐 Checking tab access '${tab}' for role '${userRole}':`, canAccess);
+    return canAccess;
   };
 
   const getRestrictions = () => {
@@ -347,8 +258,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     hasPermission: checkPermission,
     canAccessTab: checkTabAccess,
     getRestrictions,
-    switchRole,
-    refreshProfile
+    switchRole
   };
 
   return (
@@ -369,12 +279,10 @@ export const useRole = () => {
     canAccessTab,
     restrictions: getRestrictions(),
     isAdmin: userRole === 'SUPER_ADMINISTRADOR',
-    isMinisterial: userRole === 'PERSONALIDAD_MINISTERIAL',
-    isHospitalDirector: userRole === 'DIRECTIVO_CENTRO_SANITARIO',
-    isHospitalNetwork: userRole === 'HOSPITAL',
     isRevisor: userRole === 'REVISOR_SOLICITUDES',
+    isMinisterial: userRole === 'PERSONALIDAD_MINISTERIAL',
     isObserver: userRole === 'OBSERVADOR',
-    assignedCenterId: user?.assigned_center_id
+    isCenterDirector: userRole === 'DIRECTIVO_CENTRO_SANITARIO'
   };
 };
 

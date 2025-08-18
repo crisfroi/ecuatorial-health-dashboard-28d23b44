@@ -1,3 +1,4 @@
+
 import { useFormContext } from 'react-hook-form';
 import React from 'react';
 import { Button } from '@/components/ui/button';
@@ -108,7 +109,7 @@ export const DocumentsStep = ({
 
       {/* Documentos adicionales */}
       <div className="space-y-4">
-        <h4 className="font-medium text-lg">Documentos adicionales *</h4>
+        <h4 className="font-medium text-lg">Documentos adicionales</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
             <Upload className="mx-auto h-12 w-12 text-gray-400" />
@@ -159,11 +160,11 @@ export const DocumentsStep = ({
         </div>
       </div>
 
-      {/* ALERTA: Documentos obligatorios */}
+      {/* ALERTA: Foto carnet obligatoria */}
       <Alert className="bg-red-100 border-red-300 text-red-800">
         <AlertCircle className="h-4 w-4 mt-1" />
         <AlertDescription>
-          La foto tipo carnet Y al menos un documento adicional son obligatorios. Debe cargar títulos académicos, certificados y otros documentos relevantes que respalden su formación profesional.
+          La foto tipo carnet es obligatoria. Puede cargar títulos académicos, certificados y otros documentos relevantes como documentos adicionales.
         </AlertDescription>
       </Alert>
 

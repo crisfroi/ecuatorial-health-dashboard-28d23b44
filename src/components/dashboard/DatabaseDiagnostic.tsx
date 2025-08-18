@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { QuickConnectivityTest } from './QuickConnectivityTest';
 
@@ -15,8 +14,8 @@ export const DatabaseDiagnostic = () => {
     {
       name: 'Configuración Supabase',
       test: async () => {
-        const url = SUPABASE_URL;
-        const key = SUPABASE_PUBLISHABLE_KEY;
+        const url = supabase.supabaseUrl;
+        const key = supabase.supabaseKey;
         return {
           success: !!(url && key),
           details: { url: url?.substring(0, 30) + '...', hasKey: !!key }
@@ -26,7 +25,7 @@ export const DatabaseDiagnostic = () => {
     {
       name: 'URL y Configuración',
       test: async () => {
-        const url = SUPABASE_URL;
+        const url = supabase.supabaseUrl;
         const isValidUrl = url && url.includes('supabase.co');
         return {
           success: isValidUrl,

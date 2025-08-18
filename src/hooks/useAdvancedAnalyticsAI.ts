@@ -119,30 +119,6 @@ export const ANALYTICS_CATEGORIES: AnalyticsCategory[] = [
     ]
   },
   {
-    id: 'user_management',
-    name: 'Gestión de Usuarios',
-    description: 'Estadísticas de usuarios y roles del sistema',
-    queries: ['user_management'],
-    examples: [
-      '¿Cuántos usuarios hay por rol?',
-      '¿Cuántos usuarios están activos?',
-      '¿Qué departamentos tienen más usuarios?',
-      '¿Cuántos usuarios tienen centros asignados?'
-    ]
-  },
-  {
-    id: 'system_performance',
-    name: 'Rendimiento del Sistema',
-    description: 'Métricas de rendimiento y salud del sistema',
-    queries: ['system_performance'],
-    examples: [
-      '¿Cuántos registros hay en total?',
-      '¿Cuál es el estado de salud del sistema?',
-      '¿Cómo están distribuidos los registros por tabla?',
-      'Dame un reporte de rendimiento del sistema'
-    ]
-  },
-  {
     id: 'comprehensive',
     name: 'Análisis Comprehensivo',
     description: 'Todas las estadísticas disponibles',
@@ -150,8 +126,7 @@ export const ANALYTICS_CATEGORIES: AnalyticsCategory[] = [
     examples: [
       'Dame un resumen completo de todas las estadísticas',
       '¿Cuál es el panorama general del sistema?',
-      'Necesito un análisis completo de todos los datos',
-      'Análisis integral del sistema de salud'
+      'Necesito un análisis completo de todos los datos'
     ]
   }
 ];
@@ -252,119 +227,56 @@ export function useAdvancedAnalyticsAI() {
 
   const parseNaturalLanguage = useCallback((userInput: string): AdvancedStatsQuery | null => {
     const input = userInput.toLowerCase();
-
-    // Análisis de frases completas más específicas primero
-    const specificPhrases: Record<string, string> = {
-      'que es este sistema': 'comprehensive',
-      'como funciona': 'comprehensive',
-      'que datos tienes': 'comprehensive',
-      'que puedes hacer': 'comprehensive',
-      'ayuda': 'comprehensive',
-      'help': 'comprehensive',
-
-      // Demografía específica
-      'cuantos profesionales': 'demographics',
-      'cuantas mujeres': 'demographics',
-      'cuantos hombres': 'demographics',
-      'por genero': 'demographics',
-      'por nacionalidad': 'demographics',
-      'por provincia': 'demographics',
-      'distribución por edad': 'demographics',
-
-      // Centros de trabajo específicos
-      'cuantos centros': 'work_centers',
-      'que centros': 'work_centers',
-      'por distrito sanitario': 'work_centers',
-      'centros pendientes': 'centers_analysis',
-      'validar centros': 'centers_analysis',
-
-      // Estados de solicitud específicos
-      'solicitudes pendientes': 'application_status',
-      'solicitudes aprobadas': 'application_status',
-      'solicitudes rechazadas': 'application_status',
-      'estado de solicitudes': 'application_status',
-
-      // Carnets específicos
-      'generar carnets': 'carnet_generation',
-      'carnets generados': 'carnet_generation',
-      'carnets vencidos': 'carnet_generation',
-      'proximos a vencer': 'carnet_generation',
-
-      // Areas profesionales específicas
-      'areas profesionales': 'professional_areas',
-      'especialidades medicas': 'professional_areas',
-      'que especialidades': 'professional_areas',
-
-      // Educación específica
-      'formacion academica': 'education',
-      'donde estudiaron': 'education',
-      'universidades': 'education',
-      'años de graduacion': 'education',
-
-      // Sistema y rendimiento
-      'estado del sistema': 'system_performance',
-      'como esta el sistema': 'system_performance',
-      'problemas del sistema': 'system_performance',
-      'errores': 'system_performance',
-
-      // Análisis temporal
-      'tendencias': 'temporal_analysis',
-      'evolucion': 'temporal_analysis',
-      'historico': 'temporal_analysis',
-      'por meses': 'temporal_analysis',
-      'por años': 'temporal_analysis'
-    };
-
-    // Verificar frases específicas primero
-    for (const [phrase, query] of Object.entries(specificPhrases)) {
-      if (input.includes(phrase)) {
-        return {
-          query,
-          description: userInput
-        };
-      }
-    }
-
-    // Mapeo de palabras clave menos ambiguo
+    
+    // Mapeo de palabras clave a consultas
     const keywordMappings: Record<string, string> = {
-      // Solo si no se detecto en las frases específicas
+      'demografía': 'demographics',
+      'demografico': 'demographics',
       'genero': 'demographics',
       'edad': 'demographics',
-      'demografico': 'demographics',
-
+      'nacionalidad': 'demographics',
+      'provincia': 'demographics',
+      
+      'area': 'professional_areas',
       'especialidad': 'professional_areas',
-      'categoria de titulacion': 'professional_areas',
-
-      'universidad': 'education',
-      'graduacion': 'education',
+      'profesional': 'professional_areas',
+      'categoria': 'professional_areas',
+      
+      'formacion': 'education',
       'educacion': 'education',
-
-      'distrito sanitario': 'work_centers',
-
+      'graduacion': 'education',
+      'institucion': 'education',
+      'universidad': 'education',
+      'pais': 'education',
+      
+      'centro': 'work_centers',
+      'trabajo': 'work_centers',
+      'distrito': 'work_centers',
+      'sector': 'work_centers',
+      'situacion': 'work_centers',
+      
+      'solicitud': 'application_status',
+      'estado': 'application_status',
       'aprobacion': 'application_status',
       'rechazo': 'application_status',
-
-      'vencimiento': 'carnet_generation',
-      'vigente': 'carnet_generation',
-
+      'urgencia': 'application_status',
+      
+      'carnet': 'carnet_generation',
+      'generacion': 'carnet_generation',
+      'cola': 'carnet_generation',
+      
+      'temporal': 'temporal_analysis',
+      'tiempo': 'temporal_analysis',
+      'evolucion': 'temporal_analysis',
       'tendencia': 'temporal_analysis',
-      'historico': 'temporal_analysis',
-
-      'usuarios': 'user_management',
-      'roles': 'user_management',
-
-      'rendimiento': 'system_performance',
-      'performance': 'system_performance',
-
-      // Palabras que sugieren análisis completo
-      'resumen': 'comprehensive',
-      'general': 'comprehensive',
-      'panorama': 'comprehensive',
-      'dashboard': 'comprehensive',
-      'estadisticas generales': 'comprehensive'
+      
+      'completo': 'comprehensive',
+      'comprehensive': 'comprehensive',
+      'todo': 'comprehensive',
+      'resumen': 'comprehensive'
     };
 
-    // Buscar la consulta más apropiada (solo si no se encontró frase específica)
+    // Buscar la consulta más apropiada
     for (const [keyword, query] of Object.entries(keywordMappings)) {
       if (input.includes(keyword)) {
         return {
@@ -374,23 +286,7 @@ export function useAdvancedAnalyticsAI() {
       }
     }
 
-    // Manejo de preguntas simples por cantidad
-    if (input.includes('cuantos') || input.includes('cuantas')) {
-      if (input.includes('centro') || input.includes('establecimiento')) {
-        return { query: 'work_centers', description: userInput };
-      }
-      if (input.includes('solicitud')) {
-        return { query: 'application_status', description: userInput };
-      }
-      if (input.includes('carnet')) {
-        return { query: 'carnet_generation', description: userInput };
-      }
-      // Por defecto, preguntas de cantidad van a demografía
-      return { query: 'demographics', description: userInput };
-    }
-
     // Si no se encuentra una coincidencia específica, devolver análisis comprehensivo
-    console.log('No se encontró categoría específica para:', userInput);
     return {
       query: 'comprehensive',
       description: userInput
@@ -409,4 +305,4 @@ export function useAdvancedAnalyticsAI() {
     parseNaturalLanguage,
     categories: ANALYTICS_CATEGORIES
   };
-}
+} 

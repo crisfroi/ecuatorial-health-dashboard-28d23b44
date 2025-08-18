@@ -94,10 +94,27 @@ export const useRoleBasedData = () => {
         case 'DIRECTIVO_CENTRO_SANITARIO':
           // Solo su centro asignado
           if (restrictions.dataFilters?.centerRestricted && user?.assigned_center_id) {
-            return data.filter(center => 
-              center.id === user.assigned_center_id ||
-              center.nombre === user.assigned_center_id
-            );
+            console.log('🏥 Filtro CENTROS DIRECTIVO aplicado:', {
+              userId: user.id,
+              assignedCenter: user.assigned_center_id,
+              totalCenters: data.length
+            });
+
+            const filteredCenters = data.filter(center => {
+              const matchesById = center.id === user.assigned_center_id;
+              const matchesByName = center.nombre &&
+                typeof user.assigned_center_id === 'string' &&
+                center.nombre.toLowerCase().includes(user.assigned_center_id.toLowerCase());
+
+              return matchesById || matchesByName;
+            });
+
+            console.log('🔍 Centros filtrados:', {
+              filteredCount: filteredCenters.length,
+              centers: filteredCenters.map(c => ({ id: c.id, nombre: c.nombre }))
+            });
+
+            return filteredCenters;
           }
           return data;
 

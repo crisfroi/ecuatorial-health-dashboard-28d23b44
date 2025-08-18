@@ -56,6 +56,7 @@ const HealthCenters = () => {
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
   const { crearCentroMutation, actualizarCentroMutation } = useCentrosSalud();
   const { validateCenterMutation, getPendingCenters } = useCenterSync();
+  const { filterCentersData } = useRoleBasedData();
   const { toast } = useToast();
 
   const {

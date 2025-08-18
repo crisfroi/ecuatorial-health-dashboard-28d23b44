@@ -124,6 +124,10 @@ const IncidentManagement = () => {
     }
   ]);
 
+  // Aplicar filtros de rol (restricciones por centro para directivos)
+  const roleFilteredIncidencias = filterIncidentsData(incidencias);
+  const roleFilteredIncidenciasProfesionales = filterIncidentsData(incidenciasProfesionales);
+
   const [newIncident, setNewIncident] = useState({
     titulo: '',
     descripcion: '',

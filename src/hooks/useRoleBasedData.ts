@@ -47,10 +47,35 @@ export const useRoleBasedData = () => {
         case 'DIRECTIVO_CENTRO_SANITARIO':
           // Solo profesionales de su centro asignado
           if (restrictions.dataFilters?.centerRestricted && user?.assigned_center_id) {
-            return data.filter(professional => 
-              professional.centro_salud_id === user.assigned_center_id ||
-              professional.nombre_centro === user.assigned_center_id // Si se usa nombre en lugar de ID
-            );
+            console.log('🏥 Filtro DIRECTIVO_CENTRO_SANITARIO aplicado:', {
+              userId: user.id,
+              assignedCenter: user.assigned_center_id,
+              totalRecords: data.length
+            });
+
+            const filteredData = data.filter(professional => {
+              // Filtro por ID de centro (más confiable)
+              const matchesById = professional.centro_salud_id === user.assigned_center_id;
+
+              // Filtro por nombre de centro (fallback para datos legacy)
+              const matchesByName = professional.nombre_centro &&
+                typeof user.assigned_center_id === 'string' &&
+                professional.nombre_centro.toLowerCase().includes(user.assigned_center_id.toLowerCase());
+
+              return matchesById || matchesByName;
+            });
+
+            console.log('🔍 Resultado filtro directivo:', {
+              filteredRecords: filteredData.length,
+              centerMatches: filteredData.map(p => ({
+                id: p.id,
+                nombre: p.nombre_completo,
+                centro: p.nombre_centro,
+                centro_id: p.centro_salud_id
+              }))
+            });
+
+            return filteredData;
           }
           return data;
 

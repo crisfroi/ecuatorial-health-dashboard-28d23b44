@@ -144,9 +144,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         // En caso de error, usar usuario demo
         const mockUser: UserProfile = {
           id: 'error-fallback-id',
-          email: 'juan.froilan@ministeriosanidad.gq',
+          email: 'chamibeny@gmail.com',
           role: 'SUPER_ADMINISTRADOR',
-          full_name: 'Juan Froilan Ramos Nabama',
+          full_name: 'Administrador Principal',
           department: 'Ministerio de Sanidad y Bienestar Social',
           aud: 'authenticated',
           app_metadata: {},

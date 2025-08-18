@@ -24,6 +24,7 @@ import { useProfesionalesMutations } from "@/hooks/useProfesionalesMutations";
 import { useRoleBasedData } from "@/hooks/useRoleBasedData";
 import { useToast } from "@/hooks/use-toast";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { DataRestrictionIndicator } from "@/components/ui/data-restriction-indicator";
 
 interface DashboardFilters {
   area_profesional?: string;
@@ -141,7 +142,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
       document.body.removeChild(link);
 
       toast({
-        title: "Exportaci��n exitosa",
+        title: "Exportación exitosa",
         description: `Se ha descargado la lista de ${filteredProfesionales.length} profesionales.`,
       });
     } catch (error) {

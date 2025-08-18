@@ -138,6 +138,9 @@ const HealthCenters = () => {
       : "bg-blue-100 text-blue-800";
   };
 
+  // Aplicar filtros de rol (restricciones por centro para directivos)
+  const roleFilteredCentros = filterCentersData(centros);
+
   // Excel export functionality
   const exportCentersToExcel = () => {
     try {

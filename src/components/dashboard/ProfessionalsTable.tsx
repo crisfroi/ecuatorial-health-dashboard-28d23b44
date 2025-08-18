@@ -649,6 +649,14 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
         </CardHeader>
 
         <CardContent>
+          {/* Indicador de restricciones de datos */}
+          <DataRestrictionIndicator
+            dataType="profesionales"
+            originalCount={profesionales.length}
+            filteredCount={roleFilteredProfesionales.length}
+            className="mb-4"
+          />
+
           <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>

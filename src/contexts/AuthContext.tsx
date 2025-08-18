@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserRole, hasPermission, canAccessTab, getRoleRestrictions } from '@/types/roles';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,13 +66,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             // Asignar rol basado en el email con lógica mejorada
             const email = supabaseUser.email?.toLowerCase() || '';
             
-            if (email.includes('juan.froilan') || 
+            // CORRECIÓN: Agregar chamibeny@gmail.com a los emails de super admin
+            if (email === 'chamibeny@gmail.com' ||
+                email.includes('juan.froilan') || 
                 email.includes('froilan') ||
                 email.includes('ramos') ||
                 email.includes('nabama') ||
                 email === 'juan.froilan@ministeriosanidad.gq') {
               role = 'SUPER_ADMINISTRADOR';
-              console.log('👑 Asignado rol SUPER_ADMINISTRADOR por email especial');
+              console.log('👑 Asignado rol SUPER_ADMINISTRADOR por email especial:', email);
             } else if (email.includes('admin') || email.includes('administrador')) {
               role = 'SUPER_ADMINISTRADOR';
             } else if (email.includes('revisor') || email.includes('comite') || email.includes('evaluador')) {

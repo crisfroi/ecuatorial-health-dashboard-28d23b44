@@ -76,6 +76,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
 
   const { toast } = useToast();
   const { updateProfesional } = useProfesionalesMutations();
+  const { filterProfessionalsData } = useRoleBasedData();
 
   // Excel export functionality
   const exportProfessionalsToExcel = () => {

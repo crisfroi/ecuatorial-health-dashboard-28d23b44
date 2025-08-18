@@ -20,10 +20,15 @@ export const DataRestrictionIndicator: React.FC<DataRestrictionIndicatorProps> =
 }) => {
   const { user, userRole } = useAuth();
   const { getAssignedCenterInfo, isRestricted } = useRoleBasedData();
-  
+
+  // No mostrar si no hay userRole (aún cargando)
+  if (!userRole) {
+    return null;
+  }
+
   const centerInfo = getAssignedCenterInfo();
   const isDataFiltered = originalCount > 0 && filteredCount < originalCount;
-  
+
   // No mostrar si no hay restricciones
   if (!isRestricted && !isDataFiltered) {
     return null;

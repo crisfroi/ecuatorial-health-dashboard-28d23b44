@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const IncidentManagement = () => {
   const { toast } = useToast();
+  const { filterIncidentsData } = useRoleBasedData();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);

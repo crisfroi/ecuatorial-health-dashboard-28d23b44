@@ -87,6 +87,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             console.log('🎭 Rol asignado por email:', role);
           }
 
+          // Validar que el rol sea válido
+          if (!(role in ROLE_DEFINITIONS)) {
+            console.warn('⚠️ Rol inválido detectado:', role, '- usando OBSERVADOR como fallback');
+            role = 'OBSERVADOR';
+          }
+
           const userProfile: UserProfile = {
             ...supabaseUser,
             role,

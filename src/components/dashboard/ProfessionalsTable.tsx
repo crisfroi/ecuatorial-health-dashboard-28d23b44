@@ -141,7 +141,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
       document.body.removeChild(link);
 
       toast({
-        title: "Exportación exitosa",
+        title: "Exportaci��n exitosa",
         description: `Se ha descargado la lista de ${filteredProfesionales.length} profesionales.`,
       });
     } catch (error) {
@@ -244,7 +244,11 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     refetch,
   } = useProfesionales(combinedQueryFilters);
 
-  const filteredProfesionales = profesionales.filter(
+  // Aplicar primero filtros de rol (restricciones por centro para directivos)
+  const roleFilteredProfesionales = filterProfessionalsData(profesionales);
+
+  // Luego aplicar filtros de búsqueda
+  const filteredProfesionales = roleFilteredProfesionales.filter(
     (prof) =>
       prof.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       prof.area_profesional?.toLowerCase().includes(searchTerm.toLowerCase()) ||

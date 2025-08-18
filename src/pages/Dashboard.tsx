@@ -633,7 +633,7 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="diagnostic" className="space-y-6">
-            {userRole === "administrador" && (
+            {hasPermission("system_configuration") && (
               <div className="flex justify-center">
                 <DatabaseDiagnostic />
               </div>

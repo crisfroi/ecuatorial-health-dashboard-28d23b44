@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertTriangle, Plus, Edit, Eye, Clock, CheckCircle, XCircle, User, Building2 } from 'lucide-react';
+import { useRoleBasedData } from '@/hooks/useRoleBasedData';
 import { useToast } from '@/hooks/use-toast';
 
 const IncidentManagement = () => {

@@ -244,9 +244,13 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
 };
 
 // Funciones de utilidad para verificar permisos
-export const hasPermission = (userRole: UserRole, permission: string): boolean => {
+export const hasPermission = (userRole: UserRole | null, permission: string): boolean => {
+  if (!userRole || !ROLE_DEFINITIONS[userRole]) {
+    console.warn('hasPermission: Invalid or null userRole:', userRole);
+    return false;
+  }
   const role = ROLE_DEFINITIONS[userRole];
-  return role.permissions.includes(permission);
+  return role?.permissions?.includes(permission) || false;
 };
 
 export const canAccessTab = (userRole: UserRole | null, tab: string): boolean => {

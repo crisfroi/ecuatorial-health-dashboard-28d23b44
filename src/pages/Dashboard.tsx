@@ -361,13 +361,15 @@ const Dashboard = () => {
 
   const hasActiveFilters = Object.keys(appliedFilters).length > 0;
 
-  // Early return if still loading authentication
-  if (isLoading) {
+  // Early return if still loading authentication or role system not ready
+  if (isLoading || !userRole) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-          <p className="mt-4 text-gray-600">Cargando dashboard...</p>
+          <p className="mt-4 text-gray-600">
+            {isLoading ? 'Cargando dashboard...' : 'Configurando permisos...'}
+          </p>
         </div>
       </div>
     );

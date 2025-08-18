@@ -125,6 +125,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           };
           setUser(mockUser);
           setUserRole('SUPER_ADMINISTRADOR');
+          console.log('✅ Mock user configurado:', {
+            email: mockUser.email,
+            role: 'SUPER_ADMINISTRADOR',
+            isValidRole: 'SUPER_ADMINISTRADOR' in ROLE_DEFINITIONS
+          });
         }
       } catch (error) {
         console.error('❌ Error inicializando auth:', error);

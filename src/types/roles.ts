@@ -262,9 +262,13 @@ export const canAccessTab = (userRole: UserRole | null, tab: string): boolean =>
   return role?.dashboardTabs?.includes(tab) || false;
 };
 
-export const getUserPermissions = (userRole: UserRole): Permission[] => {
+export const getUserPermissions = (userRole: UserRole | null): Permission[] => {
+  if (!userRole || !ROLE_DEFINITIONS[userRole]) {
+    console.warn('getUserPermissions: Invalid or null userRole:', userRole);
+    return [];
+  }
   const role = ROLE_DEFINITIONS[userRole];
-  return PERMISSIONS.filter(p => role.permissions.includes(p.id));
+  return PERMISSIONS.filter(p => role?.permissions?.includes(p.id));
 };
 
 export const getRoleRestrictions = (userRole: UserRole | null) => {

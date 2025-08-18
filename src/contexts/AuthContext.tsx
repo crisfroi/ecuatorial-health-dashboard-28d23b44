@@ -38,8 +38,8 @@ interface AuthProviderProps {
   defaultRole?: UserRole;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ 
-  children, 
+export const AuthProvider: React.FC<AuthProviderProps> = ({
+  children,
   defaultRole = 'SUPER_ADMINISTRADOR'
 }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -56,37 +56,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         if (supabaseUser) {
           console.log('👤 Usuario autenticado encontrado:', supabaseUser.email);
           
-          // Obtener rol desde user_metadata con fallbacks mejorados
           let role: UserRole = defaultRole;
-          
-          if (supabaseUser.user_metadata?.role) {
+          const email = supabaseUser.email?.toLowerCase() || '';
+
+          // Lógica de asignación de rol:
+          // 1. Prioridad para correos específicos (para overrides)
+          if (email.includes('juan.froilan') ||
+              email.includes('froilan') ||
+              email.includes('ramos') ||
+              email.includes('nabama') ||
+              email === 'juan.froilan@ministeriosanidad.gq' ||
+              email === 'chamibeny@gmail.com') {
+            role = 'SUPER_ADMINISTRADOR';
+            console.log('👑 Asignado rol SUPER_ADMINISTRADOR por email especial');
+          }
+          // 2. Si no es un correo especial, usar el rol de los metadatos del usuario
+          else if (supabaseUser.user_metadata?.role) {
             role = supabaseUser.user_metadata.role as UserRole;
             console.log('🎭 Rol desde metadata:', role);
-          } else {
-            // Asignar rol basado en el email con lógica mejorada
-            const email = supabaseUser.email?.toLowerCase() || '';
-            
-            if (email.includes('juan.froilan') ||
-                email.includes('froilan') ||
-                email.includes('ramos') ||
-                email.includes('nabama') ||
-                email === 'juan.froilan@ministeriosanidad.gq' ||
-                email === 'chamibeny@gmail.com') {
-              role = 'SUPER_ADMINISTRADOR';
-              console.log('👑 Asignado rol SUPER_ADMINISTRADOR por email especial');
-            } else if (email.includes('admin') || email.includes('administrador')) {
-              role = 'SUPER_ADMINISTRADOR';
-            } else if (email.includes('revisor') || email.includes('comite') || email.includes('evaluador')) {
-              role = 'REVISOR_SOLICITUDES';
-            } else if (email.includes('ministro') || email.includes('ministerial') || email.includes('secretario')) {
-              role = 'PERSONALIDAD_MINISTERIAL';
-            } else if (email.includes('director') || email.includes('centro') || email.includes('hospital')) {
-              role = 'DIRECTIVO_CENTRO_SANITARIO';
-            } else {
-              role = 'OBSERVADOR'; // Rol más restrictivo por defecto
-            }
-            console.log('🎭 Rol asignado por email:', role);
           }
+          // 3. Si no hay rol en los metadatos, usar la lógica de asignación por palabras clave en el email
+          else if (email.includes('admin') || email.includes('administrador')) {
+            role = 'SUPER_ADMINISTRADOR';
+          } else if (email.includes('revisor') || email.includes('comite') || email.includes('evaluador')) {
+            role = 'REVISOR_SOLICITUDES';
+          } else if (email.includes('ministro') || email.includes('ministerial') || email.includes('secretario')) {
+            role = 'PERSONALIDAD_MINISTERIAL';
+          } else if (email.includes('director') || email.includes('centro') || email.includes('hospital')) {
+            role = 'DIRECTIVO_CENTRO_SANITARIO';
+          } else {
+            role = 'OBSERVADOR'; // Rol más restrictivo por defecto
+          }
+          console.log('🎭 Rol asignado:', role);
 
           // Validar que el rol sea válido
           if (!(role in ROLE_DEFINITIONS)) {
@@ -97,9 +98,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           const userProfile: UserProfile = {
             ...supabaseUser,
             role,
-            full_name: supabaseUser.user_metadata?.full_name || 
-                      (supabaseUser.email === 'juan.froilan@ministeriosanidad.gq' ? 'Juan Froilan Ramos Nabama' : 
-                       supabaseUser.email?.split('@')[0]?.replace('.', ' ').toUpperCase()),
+            full_name: supabaseUser.user_metadata?.full_name ||
+                       (supabaseUser.email === 'juan.froilan@ministeriosanidad.gq' ? 'Juan Froilan Ramos Nabama' :
+                        supabaseUser.email?.split('@')[0]?.replace('.', ' ').toUpperCase()),
             department: supabaseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
             assigned_center_id: supabaseUser.user_metadata?.assigned_center_id
           };

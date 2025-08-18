@@ -403,7 +403,7 @@ export const useGuardiasStore = create<GuardiasStore>()(
             const fechaInicio = new Date(filtros.anio, filtros.mes - 1, 1);
             const fechaFin = new Date(filtros.anio, filtros.mes, 0);
             query = query.gte('fecha_inicio', fechaInicio.toISOString())
-                        .lte('fecha_inicio', fechaFin.toISOString());
+                         .lte('fecha_inicio', fechaFin.toISOString());
           }
           
           const { data, error } = await query;

@@ -164,6 +164,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         });
       } finally {
         setIsLoading(false);
+        console.log('🔐 Autenticación inicializada. Estado final:', {
+          userLoaded: !!user,
+          roleLoaded: !!userRole,
+          loading: false
+        });
       }
     };
 

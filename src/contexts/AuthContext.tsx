@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserRole, hasPermission, canAccessTab, getRoleRestrictions } from '@/types/roles';
 import { supabase } from '@/integrations/supabase/client';
@@ -100,7 +99,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
           setUser(userProfile);
           setUserRole(role);
-          console.log('✅ Usuario configurado:', { email: userProfile.email, role });
+          console.log('✅ Usuario configurado:', {
+            email: userProfile.email,
+            role,
+            roleType: typeof role,
+            isValidRole: role in ROLE_DEFINITIONS
+          });
         } else {
           console.log('👤 No hay usuario autenticado, usando datos demo');
           // Para desarrollo, crear usuario demo para Juan Froilan

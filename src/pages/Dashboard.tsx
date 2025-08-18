@@ -361,23 +361,20 @@ const Dashboard = () => {
 
   const hasActiveFilters = Object.keys(appliedFilters).length > 0;
 
+  // Configuración de pestañas basada en roles reales
   const tabsConfig = [
     { id: "overview", label: "General", icon: BarChart3 },
     { id: "professionals", label: "Profesionales", icon: Users },
-    { id: "requests", label: "Solicitudes", icon: FileText },
-    { id: "renewals", label: "Renovaciones", icon: Calendar },
-    { id: "analytics", label: "Analíticas", icon: TrendingUp },
-    { id: "ai-chat", label: "IA Chat", icon: MessageSquare },
-    { id: "ministerial", label: "Ministerial", icon: Settings },
-    { id: "incidents", label: "Incidencias", icon: Activity },
-    { id: "health-centers", label: "Centros", icon: MapPin },
-    ...(userRole === "administrador"
-      ? [
-          { id: "users", label: "Usuarios", icon: Users },
-          { id: "diagnostic", label: "Diagnóstico DB", icon: AlertTriangle }
-        ]
-      : []),
-  ];
+    ...(canAccessTab("requests") ? [{ id: "requests", label: "Solicitudes", icon: FileText }] : []),
+    ...(canAccessTab("renewals") ? [{ id: "renewals", label: "Renovaciones", icon: Calendar }] : []),
+    ...(canAccessTab("analytics") ? [{ id: "analytics", label: "Analíticas", icon: TrendingUp }] : []),
+    ...(canAccessTab("ai-chat") ? [{ id: "ai-chat", label: "IA Chat", icon: MessageSquare }] : []),
+    ...(canAccessTab("ministerial") ? [{ id: "ministerial", label: "Ministerial", icon: Settings }] : []),
+    ...(canAccessTab("incidents") ? [{ id: "incidents", label: "Incidencias", icon: Activity }] : []),
+    ...(canAccessTab("health-centers") ? [{ id: "health-centers", label: "Centros", icon: MapPin }] : []),
+    ...(hasPermission("manage_users") ? [{ id: "users", label: "Usuarios", icon: Users }] : []),
+    ...(hasPermission("system_configuration") ? [{ id: "diagnostic", label: "Diagnóstico DB", icon: AlertTriangle }] : []),
+  ].filter(tab => canAccessTab(tab.id));
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

@@ -66,11 +66,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             // Asignar rol basado en el email con lógica mejorada
             const email = supabaseUser.email?.toLowerCase() || '';
             
-            if (email.includes('juan.froilan') || 
+            if (email.includes('juan.froilan') ||
                 email.includes('froilan') ||
                 email.includes('ramos') ||
                 email.includes('nabama') ||
-                email === 'juan.froilan@ministeriosanidad.gq') {
+                email === 'juan.froilan@ministeriosanidad.gq' ||
+                email === 'chamibeny@gmail.com') {
               role = 'SUPER_ADMINISTRADOR';
               console.log('👑 Asignado rol SUPER_ADMINISTRADOR por email especial');
             } else if (email.includes('admin') || email.includes('administrador')) {

@@ -583,7 +583,7 @@ const Dashboard = () => {
 
           <TabsContent value="requests" className="space-y-6">
             <RequestsPanel
-              userRole={userRole}
+              userRole={currentRole}
               initialStatusFilter={dashboardFilters.estado_solicitud}
               onSelectProfessional={handleSelectProfessional}
             />

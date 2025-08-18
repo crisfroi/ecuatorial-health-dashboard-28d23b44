@@ -50,6 +50,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     const initializeAuth = async () => {
       try {
         console.log('🔐 Inicializando autenticación...');
+        console.log('🔐 Estado inicial:', { userRole, isLoading });
         
         const { data: { user: supabaseUser } } = await supabase.auth.getUser();
         

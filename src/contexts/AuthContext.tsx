@@ -50,7 +50,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     const initializeAuth = async () => {
       try {
         console.log('🔐 Inicializando autenticación...');
-        console.log('🔐 Estado inicial:', { userRole, isLoading });
         
         const { data: { user: supabaseUser } } = await supabase.auth.getUser();
         
@@ -67,15 +66,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             // Asignar rol basado en el email con lógica mejorada
             const email = supabaseUser.email?.toLowerCase() || '';
             
-            if (email.includes('juan.froilan') ||
+            if (email.includes('juan.froilan') || 
                 email.includes('froilan') ||
                 email.includes('ramos') ||
                 email.includes('nabama') ||
-                email === 'juan.froilan@ministeriosanidad.gq' ||
-                email === 'chamibeny@gmail.com' ||
-                email.includes('chamibeny')) {
+                email === 'juan.froilan@ministeriosanidad.gq') {
               role = 'SUPER_ADMINISTRADOR';
-              console.log('👑 Asignado rol SUPER_ADMINISTRADOR por email especial:', email);
+              console.log('👑 Asignado rol SUPER_ADMINISTRADOR por email especial');
             } else if (email.includes('admin') || email.includes('administrador')) {
               role = 'SUPER_ADMINISTRADOR';
             } else if (email.includes('revisor') || email.includes('comite') || email.includes('evaluador')) {
@@ -90,7 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             console.log('🎭 Rol asignado por email:', role);
           }
 
-          // Validar que el rol sea v��lido
+          // Validar que el rol sea válido
           if (!(role in ROLE_DEFINITIONS)) {
             console.warn('⚠️ Rol inválido detectado:', role, '- usando OBSERVADOR como fallback');
             role = 'OBSERVADOR';
@@ -99,9 +96,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           const userProfile: UserProfile = {
             ...supabaseUser,
             role,
-            full_name: supabaseUser.user_metadata?.full_name ||
-                      (supabaseUser.email === 'juan.froilan@ministeriosanidad.gq' ? 'Juan Froilan Ramos Nabama' :
-                       supabaseUser.email === 'chamibeny@gmail.com' ? 'Administrador Principal' :
+            full_name: supabaseUser.user_metadata?.full_name || 
+                      (supabaseUser.email === 'juan.froilan@ministeriosanidad.gq' ? 'Juan Froilan Ramos Nabama' : 
                        supabaseUser.email?.split('@')[0]?.replace('.', ' ').toUpperCase()),
             department: supabaseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
             assigned_center_id: supabaseUser.user_metadata?.assigned_center_id
@@ -117,12 +113,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           });
         } else {
           console.log('👤 No hay usuario autenticado, usando datos demo');
-          // Para desarrollo, crear usuario demo para chamibeny
+          // Para desarrollo, crear usuario demo para Juan Froilan
           const mockUser: UserProfile = {
-            id: 'chamibeny-demo-id',
-            email: 'chamibeny@gmail.com',
+            id: 'juan-froilan-demo-id',
+            email: 'juan.froilan@ministeriosanidad.gq',
             role: 'SUPER_ADMINISTRADOR',
-            full_name: 'Administrador Principal',
+            full_name: 'Juan Froilan Ramos Nabama',
             department: 'Ministerio de Sanidad y Bienestar Social',
             aud: 'authenticated',
             app_metadata: {},
@@ -146,9 +142,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         // En caso de error, usar usuario demo
         const mockUser: UserProfile = {
           id: 'error-fallback-id',
-          email: 'chamibeny@gmail.com',
+          email: 'juan.froilan@ministeriosanidad.gq',
           role: 'SUPER_ADMINISTRADOR',
-          full_name: 'Administrador Principal',
+          full_name: 'Juan Froilan Ramos Nabama',
           department: 'Ministerio de Sanidad y Bienestar Social',
           aud: 'authenticated',
           app_metadata: {},
@@ -164,11 +160,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         });
       } finally {
         setIsLoading(false);
-        console.log('🔐 Autenticación inicializada. Estado final:', {
-          userLoaded: !!user,
-          roleLoaded: !!userRole,
-          loading: false
-        });
       }
     };
 

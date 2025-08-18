@@ -280,6 +280,61 @@ export const useRoleBasedData = () => {
     };
   }, [userRole]);
 
+  // Función para obtener información del centro asignado
+  const getAssignedCenterInfo = useMemo(() => {
+    return () => {
+      if (!user?.assigned_center_id || userRole !== 'DIRECTIVO_CENTRO_SANITARIO') {
+        return null;
+      }
+
+      return {
+        centerId: user.assigned_center_id,
+        isRestricted: restrictions.dataFilters?.centerRestricted || false,
+        userRole: userRole
+      };
+    };
+  }, [user, userRole, restrictions]);
+
+  // Función para validar acceso a datos específicos
+  const hasAccessToCenter = useMemo(() => {
+    return (centerId: string) => {
+      if (!userRole) return false;
+
+      // Super admin y revisor tienen acceso completo
+      if (['SUPER_ADMINISTRADOR', 'REVISOR_SOLICITUDES'].includes(userRole)) {
+        return true;
+      }
+
+      // Directivo solo tiene acceso a su centro
+      if (userRole === 'DIRECTIVO_CENTRO_SANITARIO') {
+        return user?.assigned_center_id === centerId;
+      }
+
+      // Otros roles según sus restricciones
+      return !restrictions.dataFilters?.centerRestricted;
+    };
+  }, [userRole, user, restrictions]);
+
+  // Función para obtener estadísticas de filtrado
+  const getFilterStats = useMemo(() => {
+    return (originalData: any[], filteredData: any[], dataType: string) => {
+      const stats = {
+        originalCount: originalData.length,
+        filteredCount: filteredData.length,
+        reductionPercentage: originalData.length > 0
+          ? Math.round(((originalData.length - filteredData.length) / originalData.length) * 100)
+          : 0,
+        dataType,
+        isFiltered: filteredData.length < originalData.length,
+        userRole,
+        centerRestricted: restrictions.dataFilters?.centerRestricted || false
+      };
+
+      console.log(`📊 Estadísticas de filtro ${dataType}:`, stats);
+      return stats;
+    };
+  }, [userRole, restrictions]);
+
   return {
     userRole,
     restrictions,
@@ -289,6 +344,9 @@ export const useRoleBasedData = () => {
     canExportData,
     getAllowedMetrics,
     canAccessSensitiveData,
+    getAssignedCenterInfo,
+    hasAccessToCenter,
+    getFilterStats,
     isRestricted: Object.keys(restrictions).length > 0
   };
 };

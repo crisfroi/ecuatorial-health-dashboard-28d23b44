@@ -89,7 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             console.log('🎭 Rol asignado por email:', role);
           }
 
-          // Validar que el rol sea válido
+          // Validar que el rol sea v��lido
           if (!(role in ROLE_DEFINITIONS)) {
             console.warn('⚠️ Rol inválido detectado:', role, '- usando OBSERVADOR como fallback');
             role = 'OBSERVADOR';
@@ -115,12 +115,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           });
         } else {
           console.log('👤 No hay usuario autenticado, usando datos demo');
-          // Para desarrollo, crear usuario demo para Juan Froilan
+          // Para desarrollo, crear usuario demo para chamibeny
           const mockUser: UserProfile = {
-            id: 'juan-froilan-demo-id',
-            email: 'juan.froilan@ministeriosanidad.gq',
+            id: 'chamibeny-demo-id',
+            email: 'chamibeny@gmail.com',
             role: 'SUPER_ADMINISTRADOR',
-            full_name: 'Juan Froilan Ramos Nabama',
+            full_name: 'Administrador Principal',
             department: 'Ministerio de Sanidad y Bienestar Social',
             aud: 'authenticated',
             app_metadata: {},

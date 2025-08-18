@@ -35,6 +35,7 @@ import {
   useProfesionalesPorCentro,
 } from "@/hooks/useCentrosSalud";
 import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
+import { useRoleBasedData } from "@/hooks/useRoleBasedData";
 import { useToast } from "@/hooks/use-toast";
 import { useCenterSync } from "@/hooks/useCenterSync";
 import { useQuery } from "@tanstack/react-query";

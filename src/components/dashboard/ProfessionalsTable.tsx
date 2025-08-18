@@ -248,6 +248,9 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   // Aplicar primero filtros de rol (restricciones por centro para directivos)
   const roleFilteredProfesionales = filterProfessionalsData(profesionales);
 
+  // Obtener estadísticas de filtrado
+  const filterStats = getFilterStats(profesionales, roleFilteredProfesionales, 'profesionales');
+
   // Luego aplicar filtros de búsqueda
   const filteredProfesionales = roleFilteredProfesionales.filter(
     (prof) =>

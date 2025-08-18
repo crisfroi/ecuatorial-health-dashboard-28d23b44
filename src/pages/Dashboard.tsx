@@ -629,7 +629,7 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
-            {userRole === "administrador" && <AdminPanel />}
+            {hasPermission("manage_users") && <AdminPanel />}
           </TabsContent>
 
           <TabsContent value="diagnostic" className="space-y-6">

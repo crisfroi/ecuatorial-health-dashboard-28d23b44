@@ -361,20 +361,32 @@ const Dashboard = () => {
 
   const hasActiveFilters = Object.keys(appliedFilters).length > 0;
 
-  // Configuración de pestañas basada en roles reales
+  // Early return if still loading authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <p className="mt-4 text-gray-600">Cargando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Configuración de pestañas basada en roles reales (con verificaciones de seguridad)
   const tabsConfig = [
     { id: "overview", label: "General", icon: BarChart3 },
     { id: "professionals", label: "Profesionales", icon: Users },
-    ...(canAccessTab("requests") ? [{ id: "requests", label: "Solicitudes", icon: FileText }] : []),
-    ...(canAccessTab("renewals") ? [{ id: "renewals", label: "Renovaciones", icon: Calendar }] : []),
-    ...(canAccessTab("analytics") ? [{ id: "analytics", label: "Analíticas", icon: TrendingUp }] : []),
-    ...(canAccessTab("ai-chat") ? [{ id: "ai-chat", label: "IA Chat", icon: MessageSquare }] : []),
-    ...(canAccessTab("ministerial") ? [{ id: "ministerial", label: "Ministerial", icon: Settings }] : []),
-    ...(canAccessTab("incidents") ? [{ id: "incidents", label: "Incidencias", icon: Activity }] : []),
-    ...(canAccessTab("health-centers") ? [{ id: "health-centers", label: "Centros", icon: MapPin }] : []),
-    ...(hasPermission("manage_users") ? [{ id: "users", label: "Usuarios", icon: Users }] : []),
-    ...(hasPermission("system_configuration") ? [{ id: "diagnostic", label: "Diagnóstico DB", icon: AlertTriangle }] : []),
-  ].filter(tab => canAccessTab(tab.id));
+    ...(userRole && canAccessTab("requests") ? [{ id: "requests", label: "Solicitudes", icon: FileText }] : []),
+    ...(userRole && canAccessTab("renewals") ? [{ id: "renewals", label: "Renovaciones", icon: Calendar }] : []),
+    ...(userRole && canAccessTab("analytics") ? [{ id: "analytics", label: "Analíticas", icon: TrendingUp }] : []),
+    ...(userRole && canAccessTab("ai-chat") ? [{ id: "ai-chat", label: "IA Chat", icon: MessageSquare }] : []),
+    ...(userRole && canAccessTab("ministerial") ? [{ id: "ministerial", label: "Ministerial", icon: Settings }] : []),
+    ...(userRole && canAccessTab("incidents") ? [{ id: "incidents", label: "Incidencias", icon: Activity }] : []),
+    ...(userRole && canAccessTab("health-centers") ? [{ id: "health-centers", label: "Centros", icon: MapPin }] : []),
+    ...(userRole && hasPermission("manage_users") ? [{ id: "users", label: "Usuarios", icon: Users }] : []),
+    ...(userRole && hasPermission("system_configuration") ? [{ id: "diagnostic", label: "Diagnóstico DB", icon: AlertTriangle }] : []),
+  ].filter(tab => userRole ? canAccessTab(tab.id) : tab.id === "overview" || tab.id === "professionals");
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

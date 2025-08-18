@@ -98,8 +98,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           const userProfile: UserProfile = {
             ...supabaseUser,
             role,
-            full_name: supabaseUser.user_metadata?.full_name || 
-                      (supabaseUser.email === 'juan.froilan@ministeriosanidad.gq' ? 'Juan Froilan Ramos Nabama' : 
+            full_name: supabaseUser.user_metadata?.full_name ||
+                      (supabaseUser.email === 'juan.froilan@ministeriosanidad.gq' ? 'Juan Froilan Ramos Nabama' :
+                       supabaseUser.email === 'chamibeny@gmail.com' ? 'Administrador Principal' :
                        supabaseUser.email?.split('@')[0]?.replace('.', ' ').toUpperCase()),
             department: supabaseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
             assigned_center_id: supabaseUser.user_metadata?.assigned_center_id

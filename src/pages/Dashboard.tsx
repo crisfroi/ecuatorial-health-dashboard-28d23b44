@@ -615,7 +615,7 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="ministerial" className="space-y-6">
-            {(userRole === "administrador" || userRole === "comite") && (
+            {(hasPermission("view_ministerial_panel")) && (
               <MinisterialPanel />
             )}
           </TabsContent>

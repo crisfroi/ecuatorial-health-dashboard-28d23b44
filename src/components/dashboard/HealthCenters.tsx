@@ -195,7 +195,7 @@ const HealthCenters = () => {
 
       toast({
         title: "Exportación exitosa",
-        description: `Se ha descargado la lista de ${centros.length} centros de salud.`,
+        description: `Se ha descargado la lista de ${roleFilteredCentros.length} centros de salud.`,
       });
     } catch (error) {
       console.error("Error exporting to Excel:", error);

@@ -147,6 +147,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         };
         setUser(mockUser);
         setUserRole('SUPER_ADMINISTRADOR');
+        console.log('✅ Error fallback user configurado:', {
+          email: mockUser.email,
+          role: 'SUPER_ADMINISTRADOR',
+          isValidRole: 'SUPER_ADMINISTRADOR' in ROLE_DEFINITIONS
+        });
       } finally {
         setIsLoading(false);
       }

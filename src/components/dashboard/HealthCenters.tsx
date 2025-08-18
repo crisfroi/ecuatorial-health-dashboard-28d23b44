@@ -1130,7 +1130,7 @@ const HealthCenters = () => {
                   </CardContent>
                 </Card>
               ))
-            : centros.map((centro) => (
+            : roleFilteredCentros.map((centro) => (
                 <Card
                   key={centro.id}
                   className="hover:shadow-lg transition-shadow cursor-pointer"
@@ -1245,7 +1245,7 @@ const HealthCenters = () => {
                           </td>
                         </tr>
                       ))
-                    : centros.map((centro) => (
+                    : roleFilteredCentros.map((centro) => (
                         <tr
                           key={centro.id}
                           className="border-b hover:bg-gray-50"

@@ -160,7 +160,7 @@ const HealthCenters = () => {
           "Total Profesionales",
         ],
         // Data rows
-        ...centros.map((centro) => [
+        ...roleFilteredCentros.map((centro) => [
           centro.id || "",
           centro.nombre || "",
           centro.categoria || "",

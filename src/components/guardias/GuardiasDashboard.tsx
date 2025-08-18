@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from './components/ui/card';
+import { Button } from './components/ui/button';
+import { Badge } from './components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
+import { Input } from './components/ui/input';
+import { Label } from './components/ui/label';
 import { 
   Calendar, 
   Clock, 
@@ -20,306 +21,314 @@ import {
   Download,
   Building2
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useGuardiasStore } from '@/stores/useGuardiasStore';
+import { useGuardiasStore, Nomina, Guardia, ProfesionalGuardia, CategoriaGuardia, TipoGuardia, TipoDia } from './stores/useGuardiasStore';
 import { toast } from 'sonner';
 
-// Importar componentes de las pestañas
-import { RegistroGuardias } from './tabs/RegistroGuardias';
-import { CuadrantesGuardias } from './tabs/CuadrantesGuardias';
-import { ValidacionGuardias } from './tabs/ValidacionGuardias';
-import { NominaGuardias } from './tabs/NominaGuardias';
-import { PagosGuardias } from './tabs/PagosGuardias';
-import { ReportesGuardias } from './tabs/ReportesGuardias';
-import { AuditoriaGuardias } from './tabs/AuditoriaGuardias';
-import { AjustesGuardias } from './tabs/AjustesGuardias';
-
-interface GuardiasDashboardProps {
-  className?: string;
-}
-
-export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ className = '' }) => {
-  const { user, userRole, hasPermission } = useAuth();
-  const {
-    filtros,
-    setFiltros,
-    fetchProfesionales,
-    fetchGuardias,
-    fetchNominas,
-    fetchBaremos,
-    isLoading,
-    error,
-    configuracion
-  } = useGuardiasStore();
-
-  const [activeTab, setActiveTab] = useState('registro');
-  const [selectedMes, setSelectedMes] = useState(new Date().getMonth() + 1);
-  const [selectedAnio, setSelectedAnio] = useState(new Date().getFullYear());
-  const [selectedCentro, setSelectedCentro] = useState<string>(user?.assigned_center_id || 'all');
-
-  // Cargar datos iniciales
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        // Aplicar filtros basados en el rol del usuario
-        const filtrosIniciales = {
-          mes: selectedMes,
-          anio: selectedAnio,
-          ...(userRole === 'DIRECTIVO_CENTRO_SANITARIO' && user?.assigned_center_id 
-            ? { centro_salud_id: user.assigned_center_id }
-            : selectedCentro !== 'all' ? { centro_salud_id: selectedCentro } : {})
-        };
-
-        setFiltros(filtrosIniciales);
-
-        await Promise.all([
-          fetchProfesionales(filtrosIniciales.centro_salud_id),
-          fetchGuardias(filtrosIniciales),
-          fetchNominas(filtrosIniciales.centro_salud_id),
-          fetchBaremos()
-        ]);
-      } catch (error) {
-        console.error('Error cargando datos iniciales:', error);
-        toast.error('Error al cargar los datos del sistema de guardias');
-      }
-    };
-
-    loadInitialData();
-  }, [selectedMes, selectedAnio, selectedCentro, user?.assigned_center_id, userRole]);
-
-  // Configuración de pestañas según permisos
-  const availableTabs = [
-    {
-      id: 'registro',
-      label: 'Registro',
-      icon: Plus,
-      component: RegistroGuardias,
-      permission: 'create_guardias',
-      description: 'Registrar nuevas guardias médicas'
-    },
-    {
-      id: 'cuadrantes',
-      label: 'Cuadrantes',
-      icon: Calendar,
-      component: CuadrantesGuardias,
-      permission: 'view_cuadrantes',
-      description: 'Vista de calendario y planificación'
-    },
-    {
-      id: 'validacion',
-      label: 'Validación',
-      icon: Shield,
-      component: ValidacionGuardias,
-      permission: 'validate_guardias',
-      description: 'Aprobar y validar guardias'
-    },
-    {
-      id: 'nomina',
-      label: 'Nómina',
-      icon: FileText,
-      component: NominaGuardias,
-      permission: 'generate_nominas',
-      description: 'Generar y gestionar nóminas'
-    },
-    {
-      id: 'pagos',
-      label: 'Pagos',
-      icon: CreditCard,
-      component: PagosGuardias,
-      permission: 'manage_payments',
-      description: 'Gestionar pagos de guardias'
-    },
-    {
-      id: 'reportes',
-      label: 'Reportes',
-      icon: BarChart3,
-      component: ReportesGuardias,
-      permission: 'view_reports',
-      description: 'Estadísticas y reportes'
-    },
-    {
-      id: 'auditoria',
-      label: 'Auditoría',
-      icon: Search,
-      component: AuditoriaGuardias,
-      permission: 'view_audit',
-      description: 'Logs y auditoría del sistema'
-    },
-    {
-      id: 'ajustes',
-      label: 'Ajustes',
-      icon: Settings,
-      component: AjustesGuardias,
-      permission: 'manage_settings',
-      description: 'Configuración del sistema'
-    }
-  ].filter(tab => {
-    // Para super administrador, mostrar todas las pestañas
-    if (userRole === 'SUPER_ADMINISTRADOR') return true;
-    
-    // Para directivos de centro, permitir registro, cuadrantes, y reportes
-    if (userRole === 'DIRECTIVO_CENTRO_SANITARIO') {
-      return ['registro', 'cuadrantes', 'reportes'].includes(tab.id);
-    }
-    
-    // Para otros roles, verificar permisos específicos
-    return hasPermission(tab.permission);
+// Componente para la pestaña de Registro de Guardias
+const RegistroGuardias = () => {
+  const { profesionales, addGuardia, isSaving, validarHorarios } = useGuardiasStore();
+  const [formData, setFormData] = useState({
+    profesional_id: '',
+    fecha_inicio: '',
+    fecha_fin: '',
+    tipo: 'fisica' as TipoGuardia,
+    tipo_dia: 'ordinario' as TipoDia,
   });
 
-  const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFiltersChange = () => {
-    const nuevos_filtros = {
-      mes: selectedMes,
-      anio: selectedAnio,
-      ...(selectedCentro !== 'all' ? { centro_salud_id: selectedCentro } : {})
+  const handleSelectChange = (name: string) => (value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const fechaInicio = new Date(formData.fecha_inicio);
+    const fechaFin = new Date(formData.fecha_fin);
+
+    if (fechaInicio >= fechaFin) {
+      toast.error('La fecha de fin debe ser posterior a la fecha de inicio.');
+      return;
+    }
+
+    if (!validarHorarios(fechaInicio, fechaFin)) {
+      toast.error('La duración de la guardia no cumple con las horas mínimas o máximas configuradas.');
+      return;
+    }
+
+    const horas = (fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60);
+
+    const nuevaGuardia = {
+      ...formData,
+      fecha_inicio: fechaInicio.toISOString(),
+      fecha_fin: fechaFin.toISOString(),
+      horas,
+      estado: 'borrador' as const,
+      validaciones: [],
     };
     
-    setFiltros(nuevos_filtros);
-    fetchGuardias(nuevos_filtros);
-    fetchNominas(nuevos_filtros.centro_salud_id);
+    await addGuardia(nuevaGuardia as Omit<Guardia, 'id' | 'validaciones' | 'estado'>);
+    toast.success('Guardia registrada con éxito.');
+    setFormData({
+      profesional_id: '',
+      fecha_inicio: '',
+      fecha_fin: '',
+      tipo: 'fisica',
+      tipo_dia: 'ordinario',
+    });
   };
 
-  // Generar años disponibles
-  const currentYear = new Date().getFullYear();
-  const availableYears = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
-
-  // Meses del año
-  const months = [
-    { value: 1, label: 'Enero' },
-    { value: 2, label: 'Febrero' },
-    { value: 3, label: 'Marzo' },
-    { value: 4, label: 'Abril' },
-    { value: 5, label: 'Mayo' },
-    { value: 6, label: 'Junio' },
-    { value: 7, label: 'Julio' },
-    { value: 8, label: 'Agosto' },
-    { value: 9, label: 'Septiembre' },
-    { value: 10, label: 'Octubre' },
-    { value: 11, label: 'Noviembre' },
-    { value: 12, label: 'Diciembre' },
-  ];
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Card className="p-6 border-red-200 bg-red-50">
-          <div className="text-center">
-            <div className="text-red-600 mb-2">Error en el Sistema de Guardias</div>
-            <div className="text-sm text-red-500">{error}</div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-3"
-              onClick={() => window.location.reload()}
-            >
-              Recargar
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className={`space-y-6 ${className}`}>
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Clock className="w-8 h-8 text-blue-600" />
-            Gestión de Guardias Médicas
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Sistema integral de gestión de guardias hospitalarias
-          </p>
-        </div>
-
-        {/* Filtros de fecha y centro */}
-        <div className="flex items-center gap-3">
-          <Select value={selectedMes.toString()} onValueChange={(value) => setSelectedMes(parseInt(value))}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Mes" />
-            </SelectTrigger>
-            <SelectContent>
-              {months.map(month => (
-                <SelectItem key={month.value} value={month.value.toString()}>
-                  {month.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedAnio.toString()} onValueChange={(value) => setSelectedAnio(parseInt(value))}>
-            <SelectTrigger className="w-24">
-              <SelectValue placeholder="Año" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableYears.map(year => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Selector de centro (solo para super admin y roles ministeriales) */}
-          {userRole !== 'DIRECTIVO_CENTRO_SANITARIO' && (
-            <Select value={selectedCentro} onValueChange={setSelectedCentro}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Centro de Salud" />
+    <Card>
+      <CardHeader>
+        <CardTitle>Registrar Nueva Guardia</CardTitle>
+        <CardDescription>Completa los detalles para añadir una nueva guardia al sistema.</CardDescription>
+      </CardHeader>
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="profesional">Profesional</Label>
+            <Select 
+              value={formData.profesional_id} 
+              onValueChange={handleSelectChange('profesional_id')}
+              disabled={isSaving}
+            >
+              <SelectTrigger id="profesional">
+                <SelectValue placeholder="Seleccionar Profesional" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos los centros</SelectItem>
-                {/* TODO: Cargar centros dinámicamente */}
-                <SelectItem value="centro-1">Hospital Regional Malabo</SelectItem>
-                <SelectItem value="centro-2">Centro de Salud Bata</SelectItem>
-                <SelectItem value="centro-3">Hospital La Paz</SelectItem>
+                {profesionales.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.nombre_completo}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-          )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="fecha_inicio">Fecha y Hora de Inicio</Label>
+              <Input 
+                id="fecha_inicio" 
+                name="fecha_inicio" 
+                type="datetime-local" 
+                value={formData.fecha_inicio} 
+                onChange={handleInputChange} 
+                required 
+                disabled={isSaving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fecha_fin">Fecha y Hora de Fin</Label>
+              <Input 
+                id="fecha_fin" 
+                name="fecha_fin" 
+                type="datetime-local" 
+                value={formData.fecha_fin} 
+                onChange={handleInputChange} 
+                required 
+                disabled={isSaving}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="tipo">Tipo de Guardia</Label>
+              <Select 
+                value={formData.tipo} 
+                onValueChange={handleSelectChange('tipo')}
+                disabled={isSaving}
+              >
+                <SelectTrigger id="tipo">
+                  <SelectValue placeholder="Seleccionar Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fisica">Física</SelectItem>
+                  <SelectItem value="localizable">Localizable</SelectItem>
+                  <SelectItem value="administrativa">Administrativa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tipo_dia">Tipo de Día</Label>
+              <Select 
+                value={formData.tipo_dia} 
+                onValueChange={handleSelectChange('tipo_dia')}
+                disabled={isSaving}
+              >
+                <SelectTrigger id="tipo_dia">
+                  <SelectValue placeholder="Seleccionar Día" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ordinario">Ordinario</SelectItem>
+                  <SelectItem value="fin_semana">Fin de Semana</SelectItem>
+                  <SelectItem value="festivo">Festivo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button type="submit" disabled={isSaving}>
+            {isSaving ? 'Guardando...' : 'Registrar Guardia'}
+          </Button>
+        </CardFooter>
+      </form>
+    </Card>
+  );
+};
 
-          <Button onClick={handleFiltersChange} size="sm" variant="outline">
-            <Filter className="w-4 h-4 mr-2" />
-            Aplicar
+const CuadrantesGuardias = () => <div>Componente de Cuadrantes de Guardias (simulado)</div>;
+const ValidacionGuardias = () => <div>Componente de Validación de Guardias (simulado)</div>;
+const NominaGuardias = () => {
+  const { nominas, fetchNominas, exportarNominaPDF, exportarNominaExcel } = useGuardiasStore();
+  const [selectedNomina, setSelectedNomina] = useState<string>('');
+
+  useEffect(() => {
+    fetchNominas({ mes: 8, anio: 2025 }); // Ejemplo: Cargar nóminas de un mes específico
+  }, [fetchNominas]);
+
+  const handleExportPDF = () => {
+    if (selectedNomina) {
+      exportarNominaPDF(selectedNomina);
+    } else {
+      toast.error('Selecciona una nómina para exportar.');
+    }
+  };
+
+  const handleExportExcel = () => {
+    if (selectedNomina) {
+      exportarNominaExcel(selectedNomina);
+    } else {
+      toast.error('Selecciona una nómina para exportar.');
+    }
+  };
+  
+  return (
+    <Card className="flex flex-col space-y-4">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CreditCard className="w-5 h-5" />
+          Nómina de Guardias
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-4">
+          <Select onValueChange={setSelectedNomina} value={selectedNomina}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Seleccionar Nómina" />
+            </SelectTrigger>
+            <SelectContent>
+              {nominas.map(nomina => (
+                <SelectItem key={nomina.id} value={nomina.id}>
+                  Nómina {nomina.mes}/{nomina.anio} - {nomina.profesional_id}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={handleExportPDF}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar PDF
+          </Button>
+          <Button onClick={handleExportExcel}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar Excel
+          </Button>
+        </div>
+        
+        {selectedNomina && (
+          <NominaDetails nomina={nominas.find(n => n.id === selectedNomina)} />
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+const PagosGuardias = () => <div>Componente de Pagos de Guardias (simulado)</div>;
+const ReportesGuardias = () => <div>Componente de Reportes de Guardias (simulado)</div>;
+const AuditoriaGuardias = () => <div>Componente de Auditoría de Guardias (simulado)</div>;
+const AjustesGuardias = () => <div>Componente de Ajustes de Guardias (simulado)</div>;
+
+const NominaDetails = ({ nomina }: { nomina: Nomina | undefined }) => {
+  if (!nomina) return null;
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Detalles de Nómina</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p><strong>Total Importe:</strong> €{nomina.total_importe.toFixed(2)}</p>
+        <p><strong>Total Horas Físicas:</strong> {nomina.total_horas_fisicas}</p>
+        <p><strong>Total Horas Localizables:</strong> {nomina.total_horas_localizables}</p>
+        <p><strong>Total Horas Administrativas:</strong> {nomina.total_horas_administrativas}</p>
+        <h4 className="font-semibold mt-4">Guardias Incluidas:</h4>
+        <ul className="list-disc list-inside">
+          {nomina.guardias.map(guardia => (
+            <li key={guardia.id}>
+              {new Date(guardia.fecha_inicio).toLocaleDateString()} - {guardia.horas}h ({guardia.tipo})
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Define las pestañas disponibles para la navegación
+const availableTabs = [
+  { id: 'registro', label: 'Registro', icon: Plus, component: RegistroGuardias, description: 'Registro de nuevas guardias' },
+  { id: 'cuadrantes', label: 'Cuadrantes', icon: Calendar, component: CuadrantesGuardias, description: 'Visualización de cuadrantes de guardias' },
+  { id: 'validacion', label: 'Validación', icon: Shield, component: ValidacionGuardias, description: 'Validación de guardias para nómina' },
+  { id: 'nomina', label: 'Nómina', icon: CreditCard, component: NominaGuardias, description: 'Generación y gestión de nóminas' },
+  { id: 'pagos', label: 'Pagos', icon: FileText, component: PagosGuardias, description: 'Control de pagos de guardias' },
+  { id: 'reportes', label: 'Reportes', icon: BarChart3, component: ReportesGuardias, description: 'Generación de informes' },
+  { id: 'auditoria', label: 'Auditoría', icon: Users, component: AuditoriaGuardias, description: 'Historial de cambios y auditoría' },
+  { id: 'ajustes', label: 'Ajustes', icon: Settings, component: AjustesGuardias, description: 'Configuración del sistema' },
+];
+
+export const GuardiasDashboard = () => {
+  const [activeTab, setActiveTab] = useState('registro'); // Iniciar en la pestaña de registro para que se vea el formulario.
+  const { isLoading, error, fetchGuardias, fetchNominas, fetchProfesionales, fetchBaremos } = useGuardiasStore();
+
+  // Cargar todos los datos al iniciar
+  useEffect(() => {
+    fetchProfesionales();
+    fetchBaremos();
+    fetchGuardias();
+    fetchNominas();
+  }, [fetchProfesionales, fetchBaremos, fetchGuardias, fetchNominas]);
+
+  // Mostrar errores en toast
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Building2 className="w-8 h-8 text-blue-600" />
+          <h1 className="text-2xl font-bold tracking-tight">Gestión de Guardias</h1>
+          <Badge variant="secondary">v1.0</Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <Input placeholder="Buscar..." className="w-40 sm:w-64" />
+          <Button variant="outline">
+            <Filter className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
-      {/* Indicadores de restricción por rol */}
-      {userRole === 'DIRECTIVO_CENTRO_SANITARIO' && user?.assigned_center_id && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-blue-800 text-sm">
-              <Building2 className="w-4 h-4" />
-              <span>Vista restringida: Solo se muestran guardias de su centro asignado</span>
-              <Badge variant="outline" className="text-blue-700 border-blue-300">
-                Centro ID: {user.assigned_center_id}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Información de configuración */}
-      <Card className="border-amber-200 bg-amber-50">
-        <CardContent className="pt-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-amber-800 text-sm">
-              <Settings className="w-4 h-4" />
-              <span>Fuente de baremos: <strong>{configuracion.fuenteBaremo === 'protocol' ? 'Protocolo Institucional' : 'Hoja Excel'}</strong></span>
-            </div>
-            <div className="flex items-center gap-4 text-xs text-amber-700">
-              <span>Freq. mensual: {configuracion.frecuenciaMinima}-{configuracion.frecuenciaMaxima} días</span>
-              <span>Duración: {configuracion.horasMinimas}-{configuracion.horasMaximas}h</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Pestañas principales */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
           {availableTabs.map((tab) => {
@@ -365,5 +374,3 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ className 
     </div>
   );
 };
-
-export default GuardiasDashboard;

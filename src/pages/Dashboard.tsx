@@ -93,8 +93,11 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const userRole = "administrador";
-  const userName = "Admin User";
+  // Usar sistema de autenticación real
+  const { user, userRole, isLoading, canAccessTab, hasPermission } = useAuth();
+  const { currentRole, isAdmin, isRevisor, isMinisterial, isObserver, isCenterDirector } = useRole();
+
+  const userName = user?.full_name || user?.email?.split('@')[0] || "Usuario";
 
   const handleSelectProfessional = (professional: Profesional) => {
     console.log(

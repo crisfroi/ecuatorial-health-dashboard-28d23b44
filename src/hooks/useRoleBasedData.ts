@@ -134,10 +134,37 @@ export const useRoleBasedData = () => {
         case 'DIRECTIVO_CENTRO_SANITARIO':
           // Solo incidencias de su centro
           if (restrictions.dataFilters?.centerRestricted && user?.assigned_center_id) {
-            return data.filter(incident => 
-              incident.centroAfectado === user.assigned_center_id ||
-              incident.centroTrabajo === user.assigned_center_id
-            );
+            console.log('🚨 Filtro INCIDENCIAS DIRECTIVO aplicado:', {
+              userId: user.id,
+              assignedCenter: user.assigned_center_id,
+              totalIncidents: data.length
+            });
+
+            const filteredIncidents = data.filter(incident => {
+              const matchesAffected = incident.centroAfectado === user.assigned_center_id ||
+                (incident.centroAfectado &&
+                 typeof user.assigned_center_id === 'string' &&
+                 incident.centroAfectado.toLowerCase().includes(user.assigned_center_id.toLowerCase()));
+
+              const matchesWork = incident.centroTrabajo === user.assigned_center_id ||
+                (incident.centroTrabajo &&
+                 typeof user.assigned_center_id === 'string' &&
+                 incident.centroTrabajo.toLowerCase().includes(user.assigned_center_id.toLowerCase()));
+
+              return matchesAffected || matchesWork;
+            });
+
+            console.log('🔍 Incidencias filtradas:', {
+              filteredCount: filteredIncidents.length,
+              incidents: filteredIncidents.map(i => ({
+                id: i.id,
+                titulo: i.titulo,
+                centroAfectado: i.centroAfectado,
+                centroTrabajo: i.centroTrabajo
+              }))
+            });
+
+            return filteredIncidents;
           }
           return data;
 

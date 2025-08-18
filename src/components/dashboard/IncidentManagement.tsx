@@ -522,14 +522,14 @@ const IncidentManagement = () => {
 
         {/* CONTENIDO DE INCIDENCIAS HOSPITALARIAS */}
         <TabsContent value="hospitalaria" className="space-y-6">
-          {renderStatsCards(incidencias, 'Hospitalarias')}
-          {renderIncidentTable(incidencias, 'hospitalaria')}
+          {renderStatsCards(roleFilteredIncidencias, 'Hospitalarias')}
+          {renderIncidentTable(roleFilteredIncidencias, 'hospitalaria')}
         </TabsContent>
 
         {/* CONTENIDO DE INCIDENCIAS DE PROFESIONALES */}
         <TabsContent value="profesional" className="space-y-6">
-          {renderStatsCards(incidenciasProfesionales, 'de Profesionales')}
-          {renderIncidentTable(incidenciasProfesionales, 'profesional')}
+          {renderStatsCards(roleFilteredIncidenciasProfesionales, 'de Profesionales')}
+          {renderIncidentTable(roleFilteredIncidenciasProfesionales, 'profesional')}
         </TabsContent>
       </Tabs>
 

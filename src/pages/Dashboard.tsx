@@ -574,7 +574,7 @@ const Dashboard = () => {
             ) : (
               <ProfessionalsTable
                 onSelectProfessional={handleSelectProfessional}
-                userRole={userRole}
+                userRole={currentRole}
                 appliedFilters={dashboardFilters}
                 onClearFilters={handleClearFilters}
               />

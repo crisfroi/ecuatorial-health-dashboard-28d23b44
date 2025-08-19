@@ -24,29 +24,16 @@ const Auth = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          navigate('/dashboard');
-        }
-      }
-    );
-
-    // THEN check for existing session
+    // Solo verificar sesión existente al cargar el componente
+    // El AuthContext ya maneja el listener de cambios de estado
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
         navigate('/dashboard');
       }
     });
-
-    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {

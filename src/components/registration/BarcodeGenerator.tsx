@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 
 interface BarcodeGeneratorProps {
@@ -14,9 +13,10 @@ export const BarcodeGenerator = ({ code, width = 200, height = 50, className = "
   useEffect(() => {
     if (!code || !canvasRef.current) return;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    try {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
     // Configurar el canvas con DPI alto para mejor calidad
     const dpr = window.devicePixelRatio || 1;
@@ -69,7 +69,19 @@ export const BarcodeGenerator = ({ code, width = 200, height = 50, className = "
     ctx.font = `${Math.min(12, height / 4)}px monospace`;
     ctx.textAlign = 'center';
     ctx.fillText(code, width / 2, height - 5);
-
+    } catch (error) {
+      // Suppress ResizeObserver-related errors from canvas operations
+      if (
+        error instanceof Error &&
+        (
+          error.message.includes('ResizeObserver loop completed with undelivered notifications') ||
+          error.message.includes('ResizeObserver loop limit exceeded')
+        )
+      ) {
+        return;
+      }
+      console.error('Error generating barcode:', error);
+    }
   }, [code, width, height]);
 
   if (!code) return null;

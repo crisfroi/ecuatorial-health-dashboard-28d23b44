@@ -307,68 +307,110 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       fetchGuardias: async (mes, ano, centroId) => {
         set({ loading: true, error: null });
         try {
-          // Por ahora, datos mock para pruebas
-          const mockGuardias: Guardia[] = [
-            {
-              id: '1',
-              profesional_id: 'prof1',
-              centro_id: 'centro1',
-              fecha: `${ano}-${mes.toString().padStart(2, '0')}-01`,
-              turno: 'MAÑANA',
-              tipo_guardia: 'ORDINARIA',
-              horas_inicio: '08:00',
-              horas_fin: '14:00',
-              profesional: {
-                id: 'prof1',
-                nombre_completo: 'Dr. Juan Pérez',
-                especialidad: 'Medicina General'
-              },
-              centro: {
-                id: 'centro1',
-                nombre: 'Hospital Regional'
-              }
-            }
-          ];
-          set({ guardias: mockGuardias, loading: false });
-        } catch (error) {
+          let query = supabase
+            .from('guardias')
+            .select(`
+              *,
+              profesional_guardia_id (
+                profesional_id (
+                  id,
+                  nombre_completo,
+                  area_profesional
+                )
+              ),
+              centro_salud_id (
+                id,
+                nombre
+              )
+            `)
+            .order('fecha_inicio', { ascending: false });
+
+          // Filtrar por mes y año
+          const startDate = new Date(ano, mes - 1, 1);
+          const endDate = new Date(ano, mes, 0);
+          query = query
+            .gte('fecha_inicio', startDate.toISOString())
+            .lte('fecha_inicio', endDate.toISOString());
+
+          // Filtrar por centro si se especifica
+          if (centroId) {
+            query = query.eq('centro_salud_id', centroId);
+          }
+
+          const { data, error } = await query;
+
+          if (error) {
+            console.error('Error fetching guardias:', error);
+            throw error;
+          }
+
+          console.log('Guardias fetched:', data?.length || 0);
+          set({ guardias: data || [], loading: false });
+        } catch (error: any) {
           console.error('Error fetching guardias:', error);
-          set({ error: 'Error al cargar guardias', loading: false });
+          set({ error: 'Error al cargar guardias: ' + error.message, loading: false });
         }
       },
 
       createGuardia: async (data) => {
         set({ loading: true });
         try {
-          // Mock implementation
-          console.log('Creating guardia:', data);
+          const { error } = await supabase
+            .from('guardias')
+            .insert(data);
+
+          if (error) throw error;
+
+          // Refrescar datos
+          const currentDate = new Date();
+          await get().fetchGuardias(currentDate.getMonth() + 1, currentDate.getFullYear());
+          
           set({ loading: false });
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error creating guardia:', error);
-          set({ error: 'Error al crear guardia', loading: false });
+          set({ error: 'Error al crear guardia: ' + error.message, loading: false });
         }
       },
 
       updateGuardia: async (id, data) => {
         set({ loading: true });
         try {
-          // Mock implementation
-          console.log('Updating guardia:', id, data);
+          const { error } = await supabase
+            .from('guardias')
+            .update(data)
+            .eq('id', id);
+
+          if (error) throw error;
+
+          // Refrescar datos
+          const currentDate = new Date();
+          await get().fetchGuardias(currentDate.getMonth() + 1, currentDate.getFullYear());
+          
           set({ loading: false });
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error updating guardia:', error);
-          set({ error: 'Error al actualizar guardia', loading: false });
+          set({ error: 'Error al actualizar guardia: ' + error.message, loading: false });
         }
       },
 
       deleteGuardia: async (id) => {
         set({ loading: true });
         try {
-          // Mock implementation
-          console.log('Deleting guardia:', id);
+          const { error } = await supabase
+            .from('guardias')
+            .delete()
+            .eq('id', id);
+
+          if (error) throw error;
+
+          // Refrescar datos
+          const currentDate = new Date();
+          await get().fetchGuardias(currentDate.getMonth() + 1, currentDate.getFullYear());
+          
           set({ loading: false });
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error deleting guardia:', error);
-          set({ error: 'Error al eliminar guardia', loading: false });
+          set({ error: 'Error al eliminar guardia: ' + error.message, loading: false });
         }
       },
 
@@ -376,26 +418,43 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       fetchProfesionales: async (centroId) => {
         set({ loading: true });
         try {
-          const mockProfesionales: Profesional[] = [
-            {
-              id: 'prof1',
-              nombre_completo: 'Dr. Juan Pérez',
-              especialidad: 'Medicina General',
-              centro_id: 'centro1',
-              activo: true
-            },
-            {
-              id: 'prof2',
-              nombre_completo: 'Dra. María González',
-              especialidad: 'Cardiología',
-              centro_id: 'centro1',
-              activo: true
-            }
-          ];
-          set({ profesionales: mockProfesionales, loading: false });
-        } catch (error) {
+          let query = supabase
+            .from('profesionales_sanitarios')
+            .select(`
+              id,
+              nombre_completo,
+              area_profesional,
+              especialidad,
+              centro_salud_id,
+              estado_solicitud
+            `)
+            .eq('estado_solicitud', 'Aprobado')
+            .order('nombre_completo');
+
+          if (centroId) {
+            query = query.eq('centro_salud_id', centroId);
+          }
+
+          const { data, error } = await query;
+
+          if (error) {
+            console.error('Error fetching profesionales:', error);
+            throw error;
+          }
+
+          const profesionales: Profesional[] = (data || []).map(prof => ({
+            id: prof.id,
+            nombre_completo: prof.nombre_completo,
+            especialidad: prof.area_profesional || prof.especialidad || 'No especificado',
+            centro_id: prof.centro_salud_id || undefined,
+            activo: prof.estado_solicitud === 'Aprobado'
+          }));
+
+          console.log('Profesionales fetched:', profesionales.length);
+          set({ profesionales, loading: false });
+        } catch (error: any) {
           console.error('Error fetching profesionales:', error);
-          set({ error: 'Error al cargar profesionales', loading: false });
+          set({ error: 'Error al cargar profesionales: ' + error.message, loading: false });
         }
       },
 
@@ -403,34 +462,46 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       fetchCentros: async () => {
         set({ loading: true });
         try {
-          const mockCentros: Centro[] = [
-            {
-              id: 'centro1',
-              nombre: 'Hospital Regional de Malabo',
-              tipo_centro: 'Hospital',
-              provincia: 'Bioko Norte'
-            },
-            {
-              id: 'centro2',
-              nombre: 'Centro de Salud de Bata',
-              tipo_centro: 'Centro de Salud',
-              provincia: 'Litoral'
-            }
-          ];
-          set({ centros: mockCentros, loading: false });
-        } catch (error) {
+          const { data, error } = await supabase
+            .from('centros_salud')
+            .select(`
+              id,
+              nombre,
+              categoria,
+              provincia,
+              estado
+            `)
+            .eq('estado', 'Activo')
+            .order('nombre');
+
+          if (error) {
+            console.error('Error fetching centros:', error);
+            throw error;
+          }
+
+          const centros: Centro[] = (data || []).map(centro => ({
+            id: centro.id,
+            nombre: centro.nombre,
+            tipo_centro: centro.categoria || 'Centro de Salud',
+            provincia: centro.provincia || 'No especificada'
+          }));
+
+          console.log('Centros fetched:', centros.length);
+          set({ centros, loading: false });
+        } catch (error: any) {
           console.error('Error fetching centros:', error);
-          set({ error: 'Error al cargar centros', loading: false });
+          set({ error: 'Error al cargar centros: ' + error.message, loading: false });
         }
       },
 
-      // Implementaciones mock para todas las demás operaciones
+      // Implementaciones placeholder para las demás operaciones (se pueden implementar gradualmente)
       fetchCuadrantes: async (mes, ano, centroId) => {
         set({ loading: true });
         try {
+          // TODO: Implementar cuando se diseñe la tabla de cuadrantes
           set({ cuadrantes: [], loading: false });
-        } catch (error) {
-          set({ error: 'Error al cargar cuadrantes', loading: false });
+        } catch (error: any) {
+          set({ error: 'Error al cargar cuadrantes: ' + error.message, loading: false });
         }
       },
 
@@ -449,56 +520,154 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       fetchValidaciones: async (mes, ano, centroId) => {
         set({ loading: true });
         try {
-          set({ validaciones: [], loading: false });
-        } catch (error) {
-          set({ error: 'Error al cargar validaciones', loading: false });
+          let query = supabase
+            .from('validaciones_guardias')
+            .select('*')
+            .order('fecha', { ascending: false });
+
+          // Filtrar por centro si se especifica
+          if (centroId) {
+            // Filtrar por guardias del centro específico
+            const { data: guardiasData } = await supabase
+              .from('guardias')
+              .select('id')
+              .eq('centro_salud_id', centroId);
+            
+            if (guardiasData && guardiasData.length > 0) {
+              const guardiaIds = guardiasData.map(g => g.id);
+              query = query.in('guardia_id', guardiaIds);
+            } else {
+              // No hay guardias para este centro
+              set({ validaciones: [], loading: false });
+              return;
+            }
+          }
+
+          const { data, error } = await query;
+
+          if (error) throw error;
+
+          set({ validaciones: data || [], loading: false });
+        } catch (error: any) {
+          set({ error: 'Error al cargar validaciones: ' + error.message, loading: false });
         }
       },
 
       createValidacion: async (data) => {
-        console.log('Create validacion:', data);
+        try {
+          const { error } = await supabase
+            .from('validaciones_guardias')
+            .insert(data);
+
+          if (error) throw error;
+        } catch (error: any) {
+          console.error('Error creating validacion:', error);
+          throw error;
+        }
       },
 
       updateValidacion: async (id, data) => {
-        console.log('Update validacion:', id, data);
+        try {
+          const { error } = await supabase
+            .from('validaciones_guardias')
+            .update(data)
+            .eq('id', id);
+
+          if (error) throw error;
+        } catch (error: any) {
+          console.error('Error updating validacion:', error);
+          throw error;
+        }
       },
 
       aprobarValidacion: async (id, comentarios) => {
-        console.log('Aprobar validacion:', id, comentarios);
+        await get().updateValidacion(id, { 
+          resultado: 'aprobada',
+          comentario: comentarios,
+          fecha: new Date().toISOString()
+        });
       },
 
       rechazarValidacion: async (id, comentarios) => {
-        console.log('Rechazar validacion:', id, comentarios);
+        await get().updateValidacion(id, { 
+          resultado: 'rechazada',
+          comentario: comentarios,
+          fecha: new Date().toISOString()
+        });
       },
 
       fetchNominas: async (mes, ano, centroId) => {
         set({ loading: true });
         try {
-          set({ nominas: [], loading: false });
-        } catch (error) {
-          set({ error: 'Error al cargar nóminas', loading: false });
+          let query = supabase
+            .from('nominas_guardias')
+            .select('*')
+            .eq('mes', mes)
+            .eq('anio', ano)
+            .order('created_at', { ascending: false });
+
+          if (centroId) {
+            query = query.eq('centro_salud_id', centroId);
+          }
+
+          const { data, error } = await query;
+
+          if (error) throw error;
+
+          set({ nominas: data || [], loading: false });
+        } catch (error: any) {
+          set({ error: 'Error al cargar nóminas: ' + error.message, loading: false });
         }
       },
 
       fetchNominasLineas: async (nominaId) => {
         set({ loading: true });
         try {
-          set({ nominasLineas: [], loading: false });
-        } catch (error) {
-          set({ error: 'Error al cargar líneas de nómina', loading: false });
+          const { data, error } = await supabase
+            .from('nominas_guardias_lineas')
+            .select(`
+              *,
+              profesional_guardia_id (
+                profesional_id (
+                  id,
+                  nombre_completo
+                )
+              )
+            `)
+            .eq('nomina_id', nominaId);
+
+          if (error) throw error;
+
+          set({ nominasLineas: data || [], loading: false });
+        } catch (error: any) {
+          set({ error: 'Error al cargar líneas de nómina: ' + error.message, loading: false });
         }
       },
 
       generateNomina: async (data) => {
-        console.log('Generate nomina:', data);
+        try {
+          const { error } = await supabase
+            .from('nominas_guardias')
+            .insert(data);
+
+          if (error) throw error;
+        } catch (error: any) {
+          console.error('Error generating nomina:', error);
+          throw error;
+        }
       },
 
       aprobarNomina: async (id) => {
-        console.log('Aprobar nomina:', id);
+        await get().updateValidacion(id, { 
+          estado: 'aprobada',
+          approved_at: new Date().toISOString()
+        });
       },
 
       rechazarNomina: async (id) => {
-        console.log('Rechazar nomina:', id);
+        await get().updateValidacion(id, { 
+          estado: 'rechazada'
+        });
       },
 
       exportNomina: async (id, formato) => {
@@ -513,30 +682,97 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       fetchPagos: async (mes, ano, centroId) => {
         set({ loading: true });
         try {
-          set({ pagos: [], loading: false });
-        } catch (error) {
-          set({ error: 'Error al cargar pagos', loading: false });
+          // Los pagos están relacionados con nóminas, así que primero obtenemos las nóminas
+          let nominasQuery = supabase
+            .from('nominas_guardias')
+            .select('id')
+            .eq('mes', mes)
+            .eq('anio', ano);
+
+          if (centroId) {
+            nominasQuery = nominasQuery.eq('centro_salud_id', centroId);
+          }
+
+          const { data: nominasData, error: nominasError } = await nominasQuery;
+
+          if (nominasError) throw nominasError;
+
+          if (!nominasData || nominasData.length === 0) {
+            set({ pagos: [], loading: false });
+            return;
+          }
+
+          const nominaIds = nominasData.map(n => n.id);
+
+          const { data, error } = await supabase
+            .from('pagos_guardias')
+            .select(`
+              *,
+              profesional_guardia_id (
+                profesional_id (
+                  id,
+                  nombre_completo
+                )
+              )
+            `)
+            .in('nomina_id', nominaIds)
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+
+          set({ pagos: data || [], loading: false });
+        } catch (error: any) {
+          set({ error: 'Error al cargar pagos: ' + error.message, loading: false });
         }
       },
 
       createPago: async (data) => {
-        console.log('Create pago:', data);
+        try {
+          const { error } = await supabase
+            .from('pagos_guardias')
+            .insert(data);
+
+          if (error) throw error;
+        } catch (error: any) {
+          console.error('Error creating pago:', error);
+          throw error;
+        }
       },
 
       updatePago: async (id, data) => {
-        console.log('Update pago:', id, data);
+        try {
+          const { error } = await supabase
+            .from('pagos_guardias')
+            .update(data)
+            .eq('id', id);
+
+          if (error) throw error;
+        } catch (error: any) {
+          console.error('Error updating pago:', error);
+          throw error;
+        }
       },
 
       aprobarPago: async (id) => {
-        console.log('Aprobar pago:', id);
+        await get().updatePago(id, { estado: 'realizado' });
       },
 
       rechazarPago: async (id) => {
-        console.log('Rechazar pago:', id);
+        await get().updatePago(id, { estado: 'pendiente' });
       },
 
       procesarPagoMasivo: async (pagoIds) => {
-        console.log('Procesar pago masivo:', pagoIds);
+        try {
+          const { error } = await supabase
+            .from('pagos_guardias')
+            .update({ estado: 'realizado' })
+            .in('id', pagoIds);
+
+          if (error) throw error;
+        } catch (error: any) {
+          console.error('Error processing batch payments:', error);
+          throw error;
+        }
       },
 
       exportPagos: async (mes, ano, centroId) => {
@@ -546,85 +782,295 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       fetchBaremos: async () => {
         set({ loading: true });
         try {
-          const mockBaremos: Baremo[] = [
-            {
-              id: 'baremo1',
-              concepto: 'Guardia Médico General',
-              tarifa_base: 50.0,
-              multiplicador_nocturno: 1.5,
-              multiplicador_festivo: 2.0,
-              activo: true,
-              fuente: 'PROTOCOLO',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }
-          ];
-          set({ baremos: mockBaremos, loading: false });
-        } catch (error) {
-          set({ error: 'Error al cargar baremos', loading: false });
+          const { data, error } = await supabase
+            .from('ajustes_baremos')
+            .select('*')
+            .eq('activo', true)
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+
+          // Convertir los datos al formato esperado de Baremo
+          const baremos: Baremo[] = (data || []).map(item => ({
+            id: item.id,
+            concepto: `${item.categoria} - ${item.tipo_guardia} - ${item.tipo_dia}`,
+            tarifa_base: Number(item.valor),
+            multiplicador_nocturno: 1.5, // Valores por defecto
+            multiplicador_festivo: 2.0,
+            activo: item.activo,
+            fuente: item.fuente?.toUpperCase() === 'PROTOCOL' ? 'PROTOCOLO' : 'EXCEL',
+            observaciones: item.observaciones,
+            created_at: item.created_at,
+            updated_at: item.updated_at
+          }));
+
+          set({ baremos, loading: false });
+        } catch (error: any) {
+          set({ error: 'Error al cargar baremos: ' + error.message, loading: false });
         }
       },
 
       createBaremo: async (data) => {
-        console.log('Create baremo:', data);
+        try {
+          // Convertir Baremo a AjusteBaremo para insertar
+          const ajusteData = {
+            fuente: 'manual',
+            categoria: 'general_licenciado', // Valor por defecto
+            tipo_guardia: 'fisica',
+            tipo_dia: 'ordinario', 
+            valor: data.tarifa_base || 0,
+            observaciones: data.observaciones,
+            activo: data.activo !== false
+          };
+
+          const { error } = await supabase
+            .from('ajustes_baremos')
+            .insert(ajusteData);
+
+          if (error) throw error;
+
+          await get().fetchBaremos();
+        } catch (error: any) {
+          console.error('Error creating baremo:', error);
+          throw error;
+        }
       },
 
       updateBaremo: async (id, data) => {
-        console.log('Update baremo:', id, data);
+        try {
+          const ajusteData = {
+            valor: data.tarifa_base,
+            observaciones: data.observaciones,
+            activo: data.activo
+          };
+
+          const { error } = await supabase
+            .from('ajustes_baremos')
+            .update(ajusteData)
+            .eq('id', id);
+
+          if (error) throw error;
+
+          await get().fetchBaremos();
+        } catch (error: any) {
+          console.error('Error updating baremo:', error);
+          throw error;
+        }
       },
 
       deleteBaremo: async (id) => {
-        console.log('Delete baremo:', id);
+        try {
+          const { error } = await supabase
+            .from('ajustes_baremos')
+            .update({ activo: false })
+            .eq('id', id);
+
+          if (error) throw error;
+
+          await get().fetchBaremos();
+        } catch (error: any) {
+          console.error('Error deleting baremo:', error);
+          throw error;
+        }
       },
 
       fetchDiasFestivos: async () => {
         set({ loading: true });
         try {
-          set({ diasFestivos: [], loading: false });
-        } catch (error) {
-          set({ error: 'Error al cargar días festivos', loading: false });
+          const { data, error } = await supabase
+            .from('dias_festivos')
+            .select('*')
+            .eq('activo', true)
+            .order('fecha');
+
+          if (error) throw error;
+
+          // Convertir al formato esperado
+          const diasFestivos: DiaFestivo[] = (data || []).map(item => ({
+            id: item.id,
+            nombre: item.nombre,
+            fecha: item.fecha,
+            tipo: 'NACIONAL', // Valor por defecto
+            recurrente: false, // Valor por defecto
+            activo: item.activo,
+            observaciones: item.descripcion
+          }));
+
+          set({ diasFestivos, loading: false });
+        } catch (error: any) {
+          set({ error: 'Error al cargar días festivos: ' + error.message, loading: false });
         }
       },
 
       createDiaFestivo: async (data) => {
-        console.log('Create dia festivo:', data);
+        try {
+          const festiveData = {
+            nombre: data.nombre,
+            fecha: data.fecha,
+            descripcion: data.observaciones,
+            activo: data.activo !== false
+          };
+
+          const { error } = await supabase
+            .from('dias_festivos')
+            .insert(festiveData);
+
+          if (error) throw error;
+
+          await get().fetchDiasFestivos();
+        } catch (error: any) {
+          console.error('Error creating dia festivo:', error);
+          throw error;
+        }
       },
 
       updateDiaFestivo: async (id, data) => {
-        console.log('Update dia festivo:', id, data);
+        try {
+          const festiveData = {
+            nombre: data.nombre,
+            fecha: data.fecha,
+            descripcion: data.observaciones,
+            activo: data.activo
+          };
+
+          const { error } = await supabase
+            .from('dias_festivos')
+            .update(festiveData)
+            .eq('id', id);
+
+          if (error) throw error;
+
+          await get().fetchDiasFestivos();
+        } catch (error: any) {
+          console.error('Error updating dia festivo:', error);
+          throw error;
+        }
       },
 
       deleteDiaFestivo: async (id) => {
-        console.log('Delete dia festivo:', id);
+        try {
+          const { error } = await supabase
+            .from('dias_festivos')
+            .delete()
+            .eq('id', id);
+
+          if (error) throw error;
+
+          await get().fetchDiasFestivos();
+        } catch (error: any) {
+          console.error('Error deleting dia festivo:', error);
+          throw error;
+        }
       },
 
       fetchAjustesBaremos: async (centroId) => {
         set({ loading: true });
         try {
-          set({ ajustesBaremos: [], loading: false });
-        } catch (error) {
-          set({ error: 'Error al cargar ajustes de baremos', loading: false });
+          let query = supabase
+            .from('ajustes_baremos')
+            .select('*')
+            .eq('activo', true);
+
+          if (centroId) {
+            // Nota: La tabla ajustes_baremos no tiene centro_id en el esquema actual
+            // Se mantiene para compatibilidad futura
+          }
+
+          const { data, error } = await query;
+
+          if (error) throw error;
+
+          set({ ajustesBaremos: data || [], loading: false });
+        } catch (error: any) {
+          set({ error: 'Error al cargar ajustes de baremos: ' + error.message, loading: false });
         }
       },
 
       createAjusteBaremo: async (data) => {
-        console.log('Create ajuste baremo:', data);
+        try {
+          const { error } = await supabase
+            .from('ajustes_baremos')
+            .insert(data);
+
+          if (error) throw error;
+
+          await get().fetchAjustesBaremos();
+        } catch (error: any) {
+          console.error('Error creating ajuste baremo:', error);
+          throw error;
+        }
       },
 
       updateAjusteBaremo: async (id, data) => {
-        console.log('Update ajuste baremo:', id, data);
+        try {
+          const { error } = await supabase
+            .from('ajustes_baremos')
+            .update(data)
+            .eq('id', id);
+
+          if (error) throw error;
+
+          await get().fetchAjustesBaremos();
+        } catch (error: any) {
+          console.error('Error updating ajuste baremo:', error);
+          throw error;
+        }
       },
 
       deleteAjusteBaremo: async (id) => {
-        console.log('Delete ajuste baremo:', id);
+        try {
+          const { error } = await supabase
+            .from('ajustes_baremos')
+            .update({ activo: false })
+            .eq('id', id);
+
+          if (error) throw error;
+
+          await get().fetchAjustesBaremos();
+        } catch (error: any) {
+          console.error('Error deleting ajuste baremo:', error);
+          throw error;
+        }
       },
 
       fetchBitacora: async (params) => {
         set({ loading: true });
         try {
-          set({ bitacora: [], loading: false });
-        } catch (error) {
-          set({ error: 'Error al cargar bitácora', loading: false });
+          let query = supabase
+            .from('bitacora_guardias')
+            .select('*')
+            .order('fecha', { ascending: false });
+
+          // Aplicar filtros de fecha si están presentes
+          if (params.fecha_inicio) {
+            query = query.gte('fecha', params.fecha_inicio);
+          }
+          if (params.fecha_fin) {
+            query = query.lte('fecha', params.fecha_fin);
+          }
+
+          const { data, error } = await query;
+
+          if (error) throw error;
+
+          // Convertir al formato esperado
+          const bitacora: BitacoraEntry[] = (data || []).map(item => ({
+            id: item.id,
+            accion: item.accion,
+            entidad_tipo: item.ref_tipo,
+            entidad_id: item.ref_id,
+            usuario_email: 'Sistema', // TODO: obtener del usuario real
+            descripcion: item.accion,
+            datos_anteriores: item.detalle?.datos_anteriores,
+            datos_nuevos: item.detalle?.datos_nuevos,
+            fecha_hora: item.fecha,
+            ip_address: item.ip_address,
+            user_agent: item.user_agent
+          }));
+
+          set({ bitacora, loading: false });
+        } catch (error: any) {
+          set({ error: 'Error al cargar bitácora: ' + error.message, loading: false });
         }
       },
 

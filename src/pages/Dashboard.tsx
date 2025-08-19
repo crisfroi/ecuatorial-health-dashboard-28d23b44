@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth, useRole } from "@/contexts/AuthContext";
 import {
   Card,
   CardContent,
@@ -61,6 +62,8 @@ import ErrorBoundary from "@/components/ui/error-boundary";
 import ConnectionDebugPanel from "@/components/dashboard/ConnectionDebugPanel";
 import { OfflineNotification } from "@/components/ui/offline-notification";
 import { DatabaseDiagnostic } from "@/components/dashboard/DatabaseDiagnostic";
+import { GuardiasDashboard } from "@/components/guardias/GuardiasDashboard";
+import { GuardiasStatsWidget } from "@/components/guardias/GuardiasStatsWidget";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -92,8 +95,11 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const userRole = "administrador";
-  const userName = "Admin User";
+  // Usar sistema de autenticación real
+  const { user, userRole, isLoading, canAccessTab, hasPermission } = useAuth();
+  const { currentRole, isAdmin, isRevisor, isMinisterial, isObserver, isCenterDirector } = useRole();
+
+  const userName = user?.full_name || user?.email?.split('@')[0] || "Usuario";
 
   const handleSelectProfessional = (professional: Profesional) => {
     console.log(
@@ -357,23 +363,35 @@ const Dashboard = () => {
 
   const hasActiveFilters = Object.keys(appliedFilters).length > 0;
 
+  // Early return if still loading authentication or role system not ready
+  if (isLoading || !userRole) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <p className="mt-4 text-gray-600">
+            {isLoading ? 'Cargando dashboard...' : 'Configurando permisos...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Configuración de pestañas basada en roles reales (con verificaciones de seguridad)
   const tabsConfig = [
     { id: "overview", label: "General", icon: BarChart3 },
     { id: "professionals", label: "Profesionales", icon: Users },
-    { id: "requests", label: "Solicitudes", icon: FileText },
-    { id: "renewals", label: "Renovaciones", icon: Calendar },
-    { id: "analytics", label: "Analíticas", icon: TrendingUp },
-    { id: "ai-chat", label: "IA Chat", icon: MessageSquare },
-    { id: "ministerial", label: "Ministerial", icon: Settings },
-    { id: "incidents", label: "Incidencias", icon: Activity },
-    { id: "health-centers", label: "Centros", icon: MapPin },
-    ...(userRole === "administrador"
-      ? [
-          { id: "users", label: "Usuarios", icon: Users },
-          { id: "diagnostic", label: "Diagnóstico DB", icon: AlertTriangle }
-        ]
-      : []),
-  ];
+    ...(userRole && canAccessTab("requests") ? [{ id: "requests", label: "Solicitudes", icon: FileText }] : []),
+    ...(userRole && canAccessTab("renewals") ? [{ id: "renewals", label: "Renovaciones", icon: Calendar }] : []),
+    ...(userRole && canAccessTab("guardias") ? [{ id: "guardias", label: "Guardias", icon: Clock }] : []),
+    ...(userRole && canAccessTab("analytics") ? [{ id: "analytics", label: "Analíticas", icon: TrendingUp }] : []),
+    ...(userRole && canAccessTab("ai-chat") ? [{ id: "ai-chat", label: "IA Chat", icon: MessageSquare }] : []),
+    ...(userRole && canAccessTab("ministerial") ? [{ id: "ministerial", label: "Ministerial", icon: Settings }] : []),
+    ...(userRole && canAccessTab("incidents") ? [{ id: "incidents", label: "Incidencias", icon: Activity }] : []),
+    ...(userRole && canAccessTab("health-centers") ? [{ id: "health-centers", label: "Centros", icon: MapPin }] : []),
+    ...(userRole && hasPermission("manage_users") ? [{ id: "users", label: "Usuarios", icon: Users }] : []),
+    ...(userRole && hasPermission("system_configuration") ? [{ id: "diagnostic", label: "Diagnóstico DB", icon: AlertTriangle }] : []),
+  ].filter(tab => userRole ? canAccessTab(tab.id) : tab.id === "overview" || tab.id === "professionals");
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -544,7 +562,18 @@ const Dashboard = () => {
                 onNavigateToProfessionals={() => setActiveTab("professionals")}
               />
             </ErrorBoundary>
-            <DashboardCharts onChartClick={handleChartClick} />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <DashboardCharts onChartClick={handleChartClick} />
+              </div>
+              <div>
+                <GuardiasStatsWidget
+                  userRole={userRole}
+                  onNavigateToGuardias={() => setActiveTab("guardias")}
+                />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="professionals" className="space-y-6">
@@ -573,7 +602,7 @@ const Dashboard = () => {
             ) : (
               <ProfessionalsTable
                 onSelectProfessional={handleSelectProfessional}
-                userRole={userRole}
+                userRole={currentRole}
                 appliedFilters={dashboardFilters}
                 onClearFilters={handleClearFilters}
               />
@@ -582,7 +611,7 @@ const Dashboard = () => {
 
           <TabsContent value="requests" className="space-y-6">
             <RequestsPanel
-              userRole={userRole}
+              userRole={currentRole}
               initialStatusFilter={dashboardFilters.estado_solicitud}
               onSelectProfessional={handleSelectProfessional}
             />
@@ -594,6 +623,10 @@ const Dashboard = () => {
               onSelectProfessional={handleSelectProfessional}
               onSendSmsNotification={sendSmsNotification}
             />
+          </TabsContent>
+
+          <TabsContent value="guardias" className="space-y-6">
+            <GuardiasDashboard userRole={userRole} />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
@@ -614,7 +647,7 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="ministerial" className="space-y-6">
-            {(userRole === "administrador" || userRole === "comite") && (
+            {(hasPermission("view_ministerial_panel")) && (
               <MinisterialPanel />
             )}
           </TabsContent>
@@ -628,11 +661,11 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
-            {userRole === "administrador" && <AdminPanel />}
+            {hasPermission("manage_users") && <AdminPanel />}
           </TabsContent>
 
           <TabsContent value="diagnostic" className="space-y-6">
-            {userRole === "administrador" && (
+            {hasPermission("system_configuration") && (
               <div className="flex justify-center">
                 <DatabaseDiagnostic />
               </div>

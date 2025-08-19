@@ -81,7 +81,17 @@ export const PERMISSIONS: Permission[] = [
   // PERMISOS DE AI CHAT
   { id: 'ai_chat_basic', name: 'AI Chat Básico', description: 'Consultas básicas al AI Chat', category: 'AI Chat' },
   { id: 'ai_chat_advanced', name: 'AI Chat Avanzado', description: 'Consultas avanzadas con todas las métricas', category: 'AI Chat' },
-  { id: 'ai_chat_analytics', name: 'AI Chat Analíticas', description: 'Acceso a análisis predictivos', category: 'AI Chat' }
+  { id: 'ai_chat_analytics', name: 'AI Chat Analíticas', description: 'Acceso a análisis predictivos', category: 'AI Chat' },
+
+  // PERMISOS DE GESTIÓN DE GUARDIAS MÉDICAS
+  { id: 'view_guardias', name: 'Ver Guardias', description: 'Acceso al sistema de gestión de guardias', category: 'Guardias Médicas' },
+  { id: 'manage_guardias', name: 'Gestionar Guardias', description: 'Registrar y editar guardias médicas', category: 'Guardias Médicas' },
+  { id: 'approve_guardias', name: 'Aprobar Guardias', description: 'Validar y aprobar guardias registradas', category: 'Guardias Médicas' },
+  { id: 'generate_nominas', name: 'Generar Nóminas', description: 'Calcular y generar nóminas de guardias', category: 'Guardias Médicas' },
+  { id: 'manage_payments', name: 'Gestionar Pagos', description: 'Procesar pagos de guardias médicas', category: 'Guardias Médicas' },
+  { id: 'view_guardias_reports', name: 'Ver Reportes Guardias', description: 'Acceso a reportes de guardias médicas', category: 'Guardias Médicas' },
+  { id: 'audit_guardias', name: 'Auditar Guardias', description: 'Acceso a auditoría del sistema de guardias', category: 'Guardias Médicas' },
+  { id: 'configure_guardias', name: 'Configurar Guardias', description: 'Configurar baremos y parámetros del sistema', category: 'Guardias Médicas' }
 ];
 
 // Definición de roles con permisos específicos
@@ -93,12 +103,13 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
     permissions: PERMISSIONS.map(p => p.id), // TODOS los permisos
     dashboardTabs: [
       'overview',
-      'professionals', 
+      'professionals',
       'requests',
+      'renewals',
+      'guardias',
       'analytics',
       'health-centers',
       'incidents',
-      'renewals',
       'ai-chat',
       'admin',
       'ministerial'
@@ -128,16 +139,20 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'export_data',
       'generate_reports',
       'ai_chat_basic',
-      'ai_chat_advanced'
+      'ai_chat_advanced',
+      'view_guardias',
+      'approve_guardias',
+      'view_guardias_reports'
     ],
     dashboardTabs: [
       'overview',
       'professionals',
       'requests',
+      'renewals',
+      'guardias',
       'analytics',
       'health-centers',
       'incidents',
-      'renewals',
       'ai-chat'
     ]
   },
@@ -161,12 +176,19 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'export_data',
       'access_audit_logs',
       'ai_chat_advanced',
-      'ai_chat_analytics'
+      'ai_chat_analytics',
+      'view_guardias',
+      'approve_guardias',
+      'generate_nominas',
+      'manage_payments',
+      'view_guardias_reports',
+      'audit_guardias'
     ],
     dashboardTabs: [
       'overview',
       'analytics',
       'ministerial',
+      'guardias',
       'professionals',
       'health-centers',
       'ai-chat'
@@ -224,11 +246,15 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'create_incidents',
       'resolve_incidents',
       'export_data',
-      'ai_chat_basic'
+      'ai_chat_basic',
+      'view_guardias',
+      'manage_guardias',
+      'view_guardias_reports'
     ],
     dashboardTabs: [
       'overview',
       'professionals',
+      'guardias',
       'health-centers',
       'incidents',
       'ai-chat'
@@ -244,19 +270,31 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
 };
 
 // Funciones de utilidad para verificar permisos
-export const hasPermission = (userRole: UserRole, permission: string): boolean => {
+export const hasPermission = (userRole: UserRole | null, permission: string): boolean => {
+  if (!userRole || !ROLE_DEFINITIONS[userRole]) {
+    console.warn('hasPermission: Invalid or null userRole:', userRole);
+    return false;
+  }
   const role = ROLE_DEFINITIONS[userRole];
-  return role.permissions.includes(permission);
+  return role?.permissions?.includes(permission) || false;
 };
 
-export const canAccessTab = (userRole: UserRole, tab: string): boolean => {
+export const canAccessTab = (userRole: UserRole | null, tab: string): boolean => {
+  if (!userRole || !ROLE_DEFINITIONS[userRole]) {
+    console.warn('canAccessTab: Invalid or null userRole:', userRole);
+    return false;
+  }
   const role = ROLE_DEFINITIONS[userRole];
-  return role.dashboardTabs.includes(tab);
+  return role?.dashboardTabs?.includes(tab) || false;
 };
 
-export const getUserPermissions = (userRole: UserRole): Permission[] => {
+export const getUserPermissions = (userRole: UserRole | null): Permission[] => {
+  if (!userRole || !ROLE_DEFINITIONS[userRole]) {
+    console.warn('getUserPermissions: Invalid or null userRole:', userRole);
+    return [];
+  }
   const role = ROLE_DEFINITIONS[userRole];
-  return PERMISSIONS.filter(p => role.permissions.includes(p.id));
+  return PERMISSIONS.filter(p => role?.permissions?.includes(p.id));
 };
 
 export const getRoleRestrictions = (userRole: UserRole | null) => {

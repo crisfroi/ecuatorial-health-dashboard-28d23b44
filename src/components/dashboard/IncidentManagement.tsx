@@ -9,10 +9,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertTriangle, Plus, Edit, Eye, Clock, CheckCircle, XCircle, User, Building2 } from 'lucide-react';
+import { useRoleBasedData } from '@/hooks/useRoleBasedData';
 import { useToast } from '@/hooks/use-toast';
 
 const IncidentManagement = () => {
   const { toast } = useToast();
+  const { filterIncidentsData } = useRoleBasedData();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -121,6 +123,10 @@ const IncidentManagement = () => {
       provincia: 'Litoral'
     }
   ]);
+
+  // Aplicar filtros de rol (restricciones por centro para directivos)
+  const roleFilteredIncidencias = filterIncidentsData(incidencias);
+  const roleFilteredIncidenciasProfesionales = filterIncidentsData(incidenciasProfesionales);
 
   const [newIncident, setNewIncident] = useState({
     titulo: '',
@@ -516,14 +522,14 @@ const IncidentManagement = () => {
 
         {/* CONTENIDO DE INCIDENCIAS HOSPITALARIAS */}
         <TabsContent value="hospitalaria" className="space-y-6">
-          {renderStatsCards(incidencias, 'Hospitalarias')}
-          {renderIncidentTable(incidencias, 'hospitalaria')}
+          {renderStatsCards(roleFilteredIncidencias, 'Hospitalarias')}
+          {renderIncidentTable(roleFilteredIncidencias, 'hospitalaria')}
         </TabsContent>
 
         {/* CONTENIDO DE INCIDENCIAS DE PROFESIONALES */}
         <TabsContent value="profesional" className="space-y-6">
-          {renderStatsCards(incidenciasProfesionales, 'de Profesionales')}
-          {renderIncidentTable(incidenciasProfesionales, 'profesional')}
+          {renderStatsCards(roleFilteredIncidenciasProfesionales, 'de Profesionales')}
+          {renderIncidentTable(roleFilteredIncidenciasProfesionales, 'profesional')}
         </TabsContent>
       </Tabs>
 

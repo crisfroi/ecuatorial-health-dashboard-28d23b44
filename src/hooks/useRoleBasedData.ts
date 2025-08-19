@@ -47,10 +47,35 @@ export const useRoleBasedData = () => {
         case 'DIRECTIVO_CENTRO_SANITARIO':
           // Solo profesionales de su centro asignado
           if (restrictions.dataFilters?.centerRestricted && user?.assigned_center_id) {
-            return data.filter(professional => 
-              professional.centro_salud_id === user.assigned_center_id ||
-              professional.nombre_centro === user.assigned_center_id // Si se usa nombre en lugar de ID
-            );
+            console.log('🏥 Filtro DIRECTIVO_CENTRO_SANITARIO aplicado:', {
+              userId: user.id,
+              assignedCenter: user.assigned_center_id,
+              totalRecords: data.length
+            });
+
+            const filteredData = data.filter(professional => {
+              // Filtro por ID de centro (más confiable)
+              const matchesById = professional.centro_salud_id === user.assigned_center_id;
+
+              // Filtro por nombre de centro (fallback para datos legacy)
+              const matchesByName = professional.nombre_centro &&
+                typeof user.assigned_center_id === 'string' &&
+                professional.nombre_centro.toLowerCase().includes(user.assigned_center_id.toLowerCase());
+
+              return matchesById || matchesByName;
+            });
+
+            console.log('🔍 Resultado filtro directivo:', {
+              filteredRecords: filteredData.length,
+              centerMatches: filteredData.map(p => ({
+                id: p.id,
+                nombre: p.nombre_completo,
+                centro: p.nombre_centro,
+                centro_id: p.centro_salud_id
+              }))
+            });
+
+            return filteredData;
           }
           return data;
 
@@ -69,10 +94,27 @@ export const useRoleBasedData = () => {
         case 'DIRECTIVO_CENTRO_SANITARIO':
           // Solo su centro asignado
           if (restrictions.dataFilters?.centerRestricted && user?.assigned_center_id) {
-            return data.filter(center => 
-              center.id === user.assigned_center_id ||
-              center.nombre === user.assigned_center_id
-            );
+            console.log('🏥 Filtro CENTROS DIRECTIVO aplicado:', {
+              userId: user.id,
+              assignedCenter: user.assigned_center_id,
+              totalCenters: data.length
+            });
+
+            const filteredCenters = data.filter(center => {
+              const matchesById = center.id === user.assigned_center_id;
+              const matchesByName = center.nombre &&
+                typeof user.assigned_center_id === 'string' &&
+                center.nombre.toLowerCase().includes(user.assigned_center_id.toLowerCase());
+
+              return matchesById || matchesByName;
+            });
+
+            console.log('🔍 Centros filtrados:', {
+              filteredCount: filteredCenters.length,
+              centers: filteredCenters.map(c => ({ id: c.id, nombre: c.nombre }))
+            });
+
+            return filteredCenters;
           }
           return data;
 
@@ -92,10 +134,37 @@ export const useRoleBasedData = () => {
         case 'DIRECTIVO_CENTRO_SANITARIO':
           // Solo incidencias de su centro
           if (restrictions.dataFilters?.centerRestricted && user?.assigned_center_id) {
-            return data.filter(incident => 
-              incident.centroAfectado === user.assigned_center_id ||
-              incident.centroTrabajo === user.assigned_center_id
-            );
+            console.log('🚨 Filtro INCIDENCIAS DIRECTIVO aplicado:', {
+              userId: user.id,
+              assignedCenter: user.assigned_center_id,
+              totalIncidents: data.length
+            });
+
+            const filteredIncidents = data.filter(incident => {
+              const matchesAffected = incident.centroAfectado === user.assigned_center_id ||
+                (incident.centroAfectado &&
+                 typeof user.assigned_center_id === 'string' &&
+                 incident.centroAfectado.toLowerCase().includes(user.assigned_center_id.toLowerCase()));
+
+              const matchesWork = incident.centroTrabajo === user.assigned_center_id ||
+                (incident.centroTrabajo &&
+                 typeof user.assigned_center_id === 'string' &&
+                 incident.centroTrabajo.toLowerCase().includes(user.assigned_center_id.toLowerCase()));
+
+              return matchesAffected || matchesWork;
+            });
+
+            console.log('🔍 Incidencias filtradas:', {
+              filteredCount: filteredIncidents.length,
+              incidents: filteredIncidents.map(i => ({
+                id: i.id,
+                titulo: i.titulo,
+                centroAfectado: i.centroAfectado,
+                centroTrabajo: i.centroTrabajo
+              }))
+            });
+
+            return filteredIncidents;
           }
           return data;
 
@@ -211,6 +280,61 @@ export const useRoleBasedData = () => {
     };
   }, [userRole]);
 
+  // Función para obtener información del centro asignado
+  const getAssignedCenterInfo = useMemo(() => {
+    return () => {
+      if (!user?.assigned_center_id || userRole !== 'DIRECTIVO_CENTRO_SANITARIO') {
+        return null;
+      }
+
+      return {
+        centerId: user.assigned_center_id,
+        isRestricted: restrictions.dataFilters?.centerRestricted || false,
+        userRole: userRole
+      };
+    };
+  }, [user, userRole, restrictions]);
+
+  // Función para validar acceso a datos específicos
+  const hasAccessToCenter = useMemo(() => {
+    return (centerId: string) => {
+      if (!userRole) return false;
+
+      // Super admin y revisor tienen acceso completo
+      if (['SUPER_ADMINISTRADOR', 'REVISOR_SOLICITUDES'].includes(userRole)) {
+        return true;
+      }
+
+      // Directivo solo tiene acceso a su centro
+      if (userRole === 'DIRECTIVO_CENTRO_SANITARIO') {
+        return user?.assigned_center_id === centerId;
+      }
+
+      // Otros roles según sus restricciones
+      return !restrictions.dataFilters?.centerRestricted;
+    };
+  }, [userRole, user, restrictions]);
+
+  // Función para obtener estadísticas de filtrado
+  const getFilterStats = useMemo(() => {
+    return (originalData: any[], filteredData: any[], dataType: string) => {
+      const stats = {
+        originalCount: originalData.length,
+        filteredCount: filteredData.length,
+        reductionPercentage: originalData.length > 0
+          ? Math.round(((originalData.length - filteredData.length) / originalData.length) * 100)
+          : 0,
+        dataType,
+        isFiltered: filteredData.length < originalData.length,
+        userRole,
+        centerRestricted: restrictions.dataFilters?.centerRestricted || false
+      };
+
+      console.log(`📊 Estadísticas de filtro ${dataType}:`, stats);
+      return stats;
+    };
+  }, [userRole, restrictions]);
+
   return {
     userRole,
     restrictions,
@@ -220,6 +344,9 @@ export const useRoleBasedData = () => {
     canExportData,
     getAllowedMetrics,
     canAccessSensitiveData,
+    getAssignedCenterInfo,
+    hasAccessToCenter,
+    getFilterStats,
     isRestricted: Object.keys(restrictions).length > 0
   };
 };

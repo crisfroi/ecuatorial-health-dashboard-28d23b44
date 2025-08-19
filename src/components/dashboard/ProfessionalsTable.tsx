@@ -21,8 +21,10 @@ import {
 import { Search, Filter, X, Eye, Edit, Download, Save } from "lucide-react";
 import { useProfesionales, type Profesional } from "@/hooks/useProfesionales";
 import { useProfesionalesMutations } from "@/hooks/useProfesionalesMutations";
+import { useRoleBasedData } from "@/hooks/useRoleBasedData";
 import { useToast } from "@/hooks/use-toast";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { DataRestrictionIndicator } from "@/components/ui/data-restriction-indicator";
 
 interface DashboardFilters {
   area_profesional?: string;
@@ -75,6 +77,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
 
   const { toast } = useToast();
   const { updateProfesional } = useProfesionalesMutations();
+  const { filterProfessionalsData, getFilterStats } = useRoleBasedData();
 
   // Excel export functionality
   const exportProfessionalsToExcel = () => {
@@ -242,7 +245,14 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     refetch,
   } = useProfesionales(combinedQueryFilters);
 
-  const filteredProfesionales = profesionales.filter(
+  // Aplicar primero filtros de rol (restricciones por centro para directivos)
+  const roleFilteredProfesionales = filterProfessionalsData(profesionales);
+
+  // Obtener estadísticas de filtrado
+  const filterStats = getFilterStats(profesionales, roleFilteredProfesionales, 'profesionales');
+
+  // Luego aplicar filtros de búsqueda
+  const filteredProfesionales = roleFilteredProfesionales.filter(
     (prof) =>
       prof.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       prof.area_profesional?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -639,6 +649,14 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
         </CardHeader>
 
         <CardContent>
+          {/* Indicador de restricciones de datos */}
+          <DataRestrictionIndicator
+            dataType="profesionales"
+            originalCount={profesionales.length}
+            filteredCount={roleFilteredProfesionales.length}
+            className="mb-4"
+          />
+
           <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>

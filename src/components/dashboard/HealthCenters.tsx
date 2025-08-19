@@ -35,6 +35,7 @@ import {
   useProfesionalesPorCentro,
 } from "@/hooks/useCentrosSalud";
 import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
+import { useRoleBasedData } from "@/hooks/useRoleBasedData";
 import { useToast } from "@/hooks/use-toast";
 import { useCenterSync } from "@/hooks/useCenterSync";
 import { useQuery } from "@tanstack/react-query";
@@ -55,6 +56,7 @@ const HealthCenters = () => {
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
   const { crearCentroMutation, actualizarCentroMutation } = useCentrosSalud();
   const { validateCenterMutation, getPendingCenters } = useCenterSync();
+  const { filterCentersData } = useRoleBasedData();
   const { toast } = useToast();
 
   const {
@@ -136,6 +138,9 @@ const HealthCenters = () => {
       : "bg-blue-100 text-blue-800";
   };
 
+  // Aplicar filtros de rol (restricciones por centro para directivos)
+  const roleFilteredCentros = filterCentersData(centros);
+
   // Excel export functionality
   const exportCentersToExcel = () => {
     try {
@@ -155,7 +160,7 @@ const HealthCenters = () => {
           "Total Profesionales",
         ],
         // Data rows
-        ...centros.map((centro) => [
+        ...roleFilteredCentros.map((centro) => [
           centro.id || "",
           centro.nombre || "",
           centro.categoria || "",
@@ -190,7 +195,7 @@ const HealthCenters = () => {
 
       toast({
         title: "Exportación exitosa",
-        description: `Se ha descargado la lista de ${centros.length} centros de salud.`,
+        description: `Se ha descargado la lista de ${roleFilteredCentros.length} centros de salud.`,
       });
     } catch (error) {
       console.error("Error exporting to Excel:", error);
@@ -1125,7 +1130,7 @@ const HealthCenters = () => {
                   </CardContent>
                 </Card>
               ))
-            : centros.map((centro) => (
+            : roleFilteredCentros.map((centro) => (
                 <Card
                   key={centro.id}
                   className="hover:shadow-lg transition-shadow cursor-pointer"
@@ -1240,7 +1245,7 @@ const HealthCenters = () => {
                           </td>
                         </tr>
                       ))
-                    : centros.map((centro) => (
+                    : roleFilteredCentros.map((centro) => (
                         <tr
                           key={centro.id}
                           className="border-b hover:bg-gray-50"

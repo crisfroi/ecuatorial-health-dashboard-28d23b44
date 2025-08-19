@@ -28,8 +28,8 @@ import {
   Coins,
   History,
 } from 'lucide-react';
-import { useGuardiasStore, Nomina, Guardia, ProfesionalGuardia, CategoriaGuardia, TipoGuardia, TipoDia, EtapaValidacion, EventoAuditoria } from './stores/useGuardiasStore';
-import { toast } from 'sonner';
+import { useGuardiasStore } from '@/stores/useGuardiasStore';
+import { useToast } from '@/hooks/use-toast';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // Helper function to get days in a month

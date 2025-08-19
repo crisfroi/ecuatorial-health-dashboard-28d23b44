@@ -349,6 +349,14 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
           </Card>
         </div>
       )}
+
+      {/* Tour de bienvenida */}
+      <GuardiasOnboardingTour
+        userRole={userRole}
+        isFirstTime={showOnboarding}
+        onComplete={() => setShowOnboarding(false)}
+        onNavigateToTab={setActiveTab}
+      />
     </div>
   );
 };

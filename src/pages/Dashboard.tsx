@@ -613,6 +613,10 @@ const Dashboard = () => {
             />
           </TabsContent>
 
+          <TabsContent value="guardias" className="space-y-6">
+            <GuardiasDashboard userRole={userRole} />
+          </TabsContent>
+
           <TabsContent value="analytics" className="space-y-6">
             <AdvancedAnalyticsDashboard
               onNavigateToTab={handleNavigateFromAnalytics}

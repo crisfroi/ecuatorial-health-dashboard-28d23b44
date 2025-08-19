@@ -443,8 +443,8 @@ const Dashboard = () => {
     ...(userRole && canAccessTab("ministerial") ? [{ id: "ministerial", label: "Ministerial", icon: Settings }] : []),
     ...(userRole && canAccessTab("incidents") ? [{ id: "incidents", label: "Incidencias", icon: Activity }] : []),
     ...(userRole && canAccessTab("health-centers") ? [{ id: "health-centers", label: "Centros", icon: MapPin }] : []),
-    ...(userRole && hasPermission("manage_users") ? [{ id: "users", label: "Usuarios", icon: Users }] : []),
-    ...(userRole && hasPermission("system_configuration") ? [{ id: "diagnostic", label: "Diagnóstico DB", icon: AlertTriangle }] : []),
+    ...(userRole && hasPermission("manage_users") ? [{ id: "users", label: "Usuarios", icon: UserCog }] : []),
+    ...(userRole && hasPermission("system_configuration") ? [{ id: "admin", label: "Admin", icon: Settings }] : []),
   ].filter(tab => userRole ? canAccessTab(tab.id) : tab.id === "overview" || tab.id === "professionals");
 
   return (
@@ -718,12 +718,8 @@ const Dashboard = () => {
             {hasPermission("manage_users") && <AdminPanel />}
           </TabsContent>
 
-          <TabsContent value="diagnostic" className="space-y-6">
-            {hasPermission("system_configuration") && (
-              <div className="flex justify-center">
-                <DatabaseDiagnostic />
-              </div>
-            )}
+          <TabsContent value="admin" className="space-y-6">
+            {hasPermission("system_configuration") && <AdminPanel />}
           </TabsContent>
         </Tabs>
       </div>

@@ -6,17 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
 import { Shield, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const { user, login: authLogin, isLoading } = useAuth();
+
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,60 +22,41 @@ const Auth = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          navigate('/dashboard');
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        navigate('/dashboard');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    // Si ya hay un usuario autenticado, redirigir al dashboard
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🔑 Auth.tsx: Starting login process');
     setLoading(true);
     setError('');
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      console.log('🔑 Auth.tsx: Calling authLogin...');
+      const result = await authLogin(email, password);
+      console.log('🔑 Auth.tsx: authLogin result:', result);
 
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          setError('Credenciales inválidas. Verifica tu email y contraseña.');
-        } else if (error.message.includes('Email not confirmed')) {
-          setError('Por favor, confirma tu email antes de iniciar sesión.');
-        } else {
-          setError(error.message);
-        }
+      if (!result.success) {
+        console.log('❌ Auth.tsx: Login failed:', result.error);
+        setError(result.error || 'Error al iniciar sesión');
         return;
       }
 
+      console.log('✅ Auth.tsx: Login successful, showing toast');
       toast({
         title: "¡Bienvenido!",
         description: "Has iniciado sesión correctamente.",
       });
+
+      // La navegación la maneja el useEffect cuando user cambia
     } catch (err: any) {
+      console.error('❌ Auth.tsx: Unexpected error:', err);
       setError('Error inesperado al iniciar sesión');
     } finally {
+      console.log('🔄 Auth.tsx: Setting local loading(false)');
       setLoading(false);
     }
   };
@@ -214,12 +193,12 @@ const Auth = () => {
                       />
                     </div>
                   </div>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full bg-guinea-teal hover:bg-guinea-dark-teal"
-                    disabled={loading}
+                    disabled={loading || isLoading}
                   >
-                    {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                    {(loading || isLoading) ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                   </Button>
                 </form>
               </TabsContent>

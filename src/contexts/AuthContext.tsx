@@ -50,6 +50,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     let mounted = true;
 
     const initializeAuth = async () => {
+      if (!mounted) return;
+
       try {
         console.log('🔐 Inicializando autenticación...');
 
@@ -83,26 +85,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             department: 'Ministerio de Sanidad y Bienestar Social'
           };
 
-          if (mounted) {
-            setUser(userProfile);
-            setUserRole(role);
-            console.log('✅ Usuario configurado:', { email, role, fullName });
-          }
+          setUser(userProfile);
+          setUserRole(role);
+          console.log('✅ Usuario configurado:', { email, role, fullName });
         } else {
           console.log('❌ No hay usuario autenticado');
-          if (mounted) {
-            setUser(null);
-            setUserRole(null);
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error inicializando auth:', error);
-        if (mounted) {
           setUser(null);
           setUserRole(null);
         }
+      } catch (error) {
+        console.error('❌ Error inicializando auth:', error);
+        setUser(null);
+        setUserRole(null);
       } finally {
         if (mounted) {
+          console.log('🔄 Setting isLoading(false) after initialization');
           setIsLoading(false);
         }
       }
@@ -112,31 +109,58 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔄 Auth state change:', event);
-        
+
         if (event === 'SIGNED_IN' && session?.user) {
-          console.log('✅ Usuario autenticado');
-          await initializeAuth();
+          console.log('✅ Usuario autenticado en state change');
+          // No llamar initializeAuth() aquí para evitar loops
+          // Solo procesar el usuario directamente
+          if (mounted) {
+            const email = session.user.email?.toLowerCase() || '';
+            let role: UserRole = 'SUPER_ADMINISTRADOR';
+            let fullName = 'Beltran Ebiole';
+
+            if (email === 'chamibeny@gmail.com') {
+              role = 'SUPER_ADMINISTRADOR';
+              fullName = 'Beltran Ebiole';
+            } else if (email === 'juan.froilan@ministeriosanidad.gq') {
+              role = 'SUPER_ADMINISTRADOR';
+              fullName = 'Juan Froilan Ramos Nabama';
+            } else {
+              role = 'OBSERVADOR';
+              fullName = session.user.email?.split('@')[0] || 'Usuario';
+            }
+
+            const userProfile: UserProfile = {
+              ...session.user,
+              role,
+              full_name: fullName,
+              department: 'Ministerio de Sanidad y Bienestar Social'
+            };
+
+            setUser(userProfile);
+            setUserRole(role);
+            setIsLoading(false);
+            console.log('✅ Usuario configurado desde state change');
+          }
         } else if (event === 'SIGNED_OUT') {
           console.log('👋 Usuario desconectado');
-          setUser(null);
-          setUserRole(null);
-        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          console.log('🔄 Token refrescado');
-          // Mantener usuario actual pero actualizar datos si es necesario
-          if (!user && session.user) {
-            await initializeAuth();
+          if (mounted) {
+            setUser(null);
+            setUserRole(null);
+            setIsLoading(false);
           }
         }
       }
     );
 
+    // Solo inicializar una vez al cargar
     initializeAuth();
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [defaultRole]);
+  }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
@@ -163,14 +187,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
       if (data.user) {
         console.log('✅ Login exitoso para:', data.user.email);
+        console.log('🔄 Setting isLoading(false) after successful login');
         return { success: true };
       }
 
+      console.log('❌ No user data received');
       return { success: false, error: 'No se pudo obtener información del usuario' };
     } catch (error: any) {
       console.error('❌ Error de conexión en login:', error);
       return { success: false, error: 'Error de conexión. Intente nuevamente.' };
     } finally {
+      console.log('🔄 AuthContext: Setting isLoading(false) in finally block');
       setIsLoading(false);
     }
   };

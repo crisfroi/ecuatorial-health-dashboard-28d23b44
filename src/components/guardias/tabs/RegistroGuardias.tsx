@@ -104,7 +104,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
   const handleEdit = (guardia: any) => {
     setEditingGuardia(guardia);
     setFormData({
-      profesional_id: guardia.profesional_id,
+      profesional_ids: [guardia.profesional_id],
       centro_id: guardia.centro_id,
       fecha: guardia.fecha,
       turno: guardia.turno,

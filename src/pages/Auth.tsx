@@ -34,19 +34,10 @@ const Auth = () => {
     setError('');
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const result = await authLogin(email, password);
 
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          setError('Credenciales inválidas. Verifica tu email y contraseña.');
-        } else if (error.message.includes('Email not confirmed')) {
-          setError('Por favor, confirma tu email antes de iniciar sesión.');
-        } else {
-          setError(error.message);
-        }
+      if (!result.success) {
+        setError(result.error || 'Error al iniciar sesión');
         return;
       }
 
@@ -54,6 +45,8 @@ const Auth = () => {
         title: "¡Bienvenido!",
         description: "Has iniciado sesión correctamente.",
       });
+
+      // La navegación la maneja el useEffect cuando user cambia
     } catch (err: any) {
       setError('Error inesperado al iniciar sesión');
     } finally {

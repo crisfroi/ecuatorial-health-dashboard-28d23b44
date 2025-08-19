@@ -2,851 +2,661 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '@/integrations/supabase/client';
 
-// Tipos principales
-export type CategoriaGuardia = 'especialista' | 'general_licenciado' | 'tecnico_diplomado' | 'auxiliar' | 'subalterno' | 'odepac' | 'secre_asist_pacientes' | 'caja';
-export type TipoGuardia = 'fisica' | 'localizable' | 'administrativa';
-export type TipoDia = 'ordinario' | 'fin_semana' | 'festivo';
-export type EstadoGuardia = 'borrador' | 'planificada' | 'realizada' | 'no_presentado';
-export type EstadoValidacion = 'pendiente' | 'validada' | 'rechazada';
-export type EtapaValidacion = 'dir_medica' | 'dir_admin' | 'dir_enfermeria' | 'jefe_rrhh' | 'admin_hospital' | 'dir_gerente' | 'dg_coordinacion';
-
-export interface ProfesionalGuardia {
-  id: string;
-  profesional_id: string;
-  categoria: CategoriaGuardia;
-  unidad_servicio: string;
-  banco?: string;
-  iban_cuenta?: string;
-  activo: boolean;
-  telefono_guardias?: string;
-  email_guardias?: string;
-  // Datos del profesional desde profesionales_sanitarios
-  nombre_completo?: string;
-  area_profesional?: string;
-  centro_salud_id?: string;
-  nombre_centro?: string;
-}
-
+// Tipos básicos
 export interface Guardia {
   id: string;
-  profesional_guardia_id: string;
-  centro_salud_id: string;
-  tipo: TipoGuardia;
-  fecha_inicio: string;
-  fecha_fin: string;
-  horas: number;
-  tipo_dia: TipoDia;
-  estado: EstadoGuardia;
-  validacion_estado: EstadoValidacion;
-  observaciones?: string;
-  localizable_activada?: boolean;
-  hora_llamada?: string;
-  hora_llegada?: string;
-  servicio_atendido?: string;
-  caso_atendido?: string;
-  created_by?: string;
-  approved_by?: string;
-  approved_at?: string;
-  // Datos relacionados
-  profesional?: ProfesionalGuardia;
-  nombre_centro?: string;
-}
-
-export interface ValidacionGuardia {
-  id: string;
-  guardia_id: string;
-  etapa: EtapaValidacion;
-  usuario_id: string;
+  profesional_id: string;
+  centro_id: string;
   fecha: string;
-  resultado: 'aprobada' | 'rechazada';
-  comentario?: string;
-  firma?: string;
+  turno: 'MAÑANA' | 'TARDE' | 'NOCHE';
+  tipo_guardia: 'ORDINARIA' | 'FESTIVA' | 'NOCTURNA';
+  horas_inicio: string;
+  horas_fin: string;
+  observaciones?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Datos relacionados
+  profesional?: {
+    id: string;
+    nombre_completo: string;
+    especialidad: string;
+  };
+  centro?: {
+    id: string;
+    nombre: string;
+  };
 }
 
-export interface NominaGuardia {
+export interface Profesional {
   id: string;
-  centro_salud_id: string;
+  nombre_completo: string;
+  especialidad: string;
+  centro_id?: string;
+  activo: boolean;
+}
+
+export interface Centro {
+  id: string;
+  nombre: string;
+  tipo_centro: string;
+  provincia: string;
+}
+
+export interface Cuadrante {
+  id: string;
   mes: number;
-  anio: number;
-  estado: 'borrador' | 'enviada' | 'aprobada' | 'rechazada' | 'pagada';
-  total_importe: number;
-  total_guardias: number;
-  total_profesionales: number;
+  ano: number;
+  centro_id?: string;
+  tipo_cuadrante: 'MENSUAL' | 'SEMANAL';
+  estado: 'BORRADOR' | 'GENERADO' | 'APROBADO';
+  fecha_generacion: string;
+  fecha_aprobacion?: string;
+  auto_asignar: boolean;
+  considerar_preferencias: boolean;
+}
+
+export interface Validacion {
+  id: string;
+  numero_validacion: string;
+  mes: number;
+  ano: number;
+  centro_id?: string;
+  estado: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO';
+  prioridad: 'ALTA' | 'MEDIA' | 'BAJA';
+  fecha_solicitud: string;
+  fecha_validacion?: string;
+  descripcion: string;
   observaciones?: string;
-  created_by?: string;
-  approved_by?: string;
-  approved_at?: string;
-  nombre_centro?: string;
-  lineas?: NominaLinea[];
+  solicitante?: {
+    id: string;
+    nombre_completo: string;
+  };
+  centro?: {
+    id: string;
+    nombre: string;
+  };
+}
+
+export interface Nomina {
+  id: string;
+  mes: number;
+  ano: number;
+  centro_id?: string;
+  estado: 'BORRADOR' | 'GENERADA' | 'REVISADA' | 'APROBADA' | 'RECHAZADA';
+  total: number;
+  total_lineas: number;
+  fecha_generacion: string;
+  fecha_aprobacion?: string;
 }
 
 export interface NominaLinea {
   id: string;
   nomina_id: string;
-  profesional_guardia_id: string;
-  categoria: CategoriaGuardia;
-  guardias_ordinarias: number;
-  guardias_fines_semana: number;
-  guardias_festivos: number;
-  localizables_programadas: number;
-  localizables_llamadas: number;
-  coste_unitario_ordinario: number;
-  coste_unitario_fin_semana: number;
-  coste_unitario_festivo: number;
-  coste_localizable_programada: number;
-  coste_localizable_llamada: number;
+  profesional_id: string;
+  cantidad_guardias: number;
+  total_horas: number;
+  total_base: number;
+  total_complementos: number;
   total_linea: number;
-  // Datos del profesional
-  profesional?: ProfesionalGuardia;
+  profesional?: {
+    id: string;
+    nombre_completo: string;
+  };
 }
 
-export interface PagoGuardia {
+export interface Pago {
   id: string;
   nomina_id: string;
-  profesional_guardia_id: string;
-  forma_pago: 'transfer_trabajador' | 'transfer_hospital' | 'efectivo' | 'cheque';
-  fecha_pago: string;
-  importe: number;
-  comprobante_url?: string;
+  profesional_id: string;
+  monto: number;
+  metodo_pago: 'TRANSFERENCIA' | 'CHEQUE' | 'EFECTIVO';
+  estado: 'PENDIENTE' | 'APROBADO' | 'PROCESADO' | 'RECHAZADO';
+  referencia_pago?: string;
   observaciones?: string;
-  estado: 'pendiente' | 'realizado' | 'confirmado';
-  created_by?: string;
-  // Datos relacionados
-  profesional?: ProfesionalGuardia;
-  nomina?: NominaGuardia;
+  fecha_creacion: string;
+  fecha_aprobacion?: string;
+  fecha_procesamiento?: string;
+  profesional?: {
+    id: string;
+    nombre_completo: string;
+  };
 }
 
-export interface AjusteBaremo {
+export interface Baremo {
   id: string;
-  fuente: 'protocol' | 'excel' | 'manual';
-  categoria: CategoriaGuardia;
-  tipo_guardia: TipoGuardia;
-  tipo_dia: TipoDia;
-  valor: number;
-  porcentaje_localizable: number;
-  porcentaje_llamada: number;
-  vigente_desde: string;
-  vigente_hasta?: string;
+  concepto: string;
+  tarifa_base: number;
+  multiplicador_nocturno: number;
+  multiplicador_festivo: number;
   activo: boolean;
+  fuente: 'PROTOCOLO' | 'EXCEL';
   observaciones?: string;
-}
-
-export interface BitacoraGuardia {
-  id: string;
-  ref_tipo: 'guardia' | 'nomina' | 'pago' | 'validacion' | 'profesional';
-  ref_id: string;
-  usuario_id: string;
-  accion: string;
-  detalle: any;
-  fecha: string;
-  ip_address?: string;
-  user_agent?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface DiaFestivo {
   id: string;
-  fecha: string;
   nombre: string;
-  descripcion?: string;
+  fecha: string;
+  tipo: 'NACIONAL' | 'REGIONAL' | 'LOCAL';
+  recurrente: boolean;
   activo: boolean;
+  observaciones?: string;
 }
 
-// Filtros y configuración
-export interface FiltrosGuardias {
-  mes?: number;
-  anio?: number;
-  centro_salud_id?: string;
-  categoria?: CategoriaGuardia;
-  tipo?: TipoGuardia;
-  estado?: EstadoGuardia;
-  validacion_estado?: EstadoValidacion;
-  profesional_id?: string;
+export interface AjusteBaremo {
+  id: string;
+  baremo_id: string;
+  centro_id?: string;
+  tipo_ajuste: 'PORCENTAJE' | 'MONTO_FIJO';
+  valor_ajuste: number;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  motivo: string;
+  activo: boolean;
+  observaciones?: string;
+  baremo?: Baremo;
+  centro?: Centro;
 }
 
-export interface ConfiguracionGuardias {
-  fuenteBaremo: 'protocol' | 'excel';
-  frecuenciaMinima: number;
-  frecuenciaMaxima: number;
-  horasMinimas: number;
-  horasMaximas: number;
+export interface BitacoraEntry {
+  id: string;
+  accion: string;
+  entidad_tipo: string;
+  entidad_id?: string;
+  usuario_email: string;
+  descripcion: string;
+  datos_anteriores?: any;
+  datos_nuevos?: any;
+  fecha_hora: string;
+  ip_address?: string;
+  user_agent?: string;
 }
 
-// Store principal
-interface GuardiasStore {
+interface GuardiasStoreState {
   // Estado
-  profesionales: ProfesionalGuardia[];
-  guardias: Guardia[];
-  validaciones: ValidacionGuardia[];
-  nominas: NominaGuardia[];
-  pagos: PagoGuardia[];
-  baremos: AjusteBaremo[];
-  bitacora: BitacoraGuardia[];
-  diasFestivos: DiaFestivo[];
-  
-  // Configuración
-  configuracion: ConfiguracionGuardias;
-  filtros: FiltrosGuardias;
-  
-  // Estados de carga
-  isLoading: boolean;
+  loading: boolean;
   error: string | null;
-  
-  // Selecciones actuales
-  selectedGuardia: Guardia | null;
-  selectedNomina: NominaGuardia | null;
-  selectedProfesional: ProfesionalGuardia | null;
-  
-  // Acciones - Profesionales
-  fetchProfesionales: (centroId?: string) => Promise<void>;
-  createProfesionalGuardia: (data: Partial<ProfesionalGuardia>) => Promise<ProfesionalGuardia>;
-  updateProfesionalGuardia: (id: string, data: Partial<ProfesionalGuardia>) => Promise<void>;
-  deleteProfesionalGuardia: (id: string) => Promise<void>;
-  
-  // Acciones - Guardias
-  fetchGuardias: (filtros?: FiltrosGuardias) => Promise<void>;
-  createGuardia: (data: Partial<Guardia>) => Promise<Guardia>;
+
+  // Datos
+  guardias: Guardia[];
+  profesionales: Profesional[];
+  centros: Centro[];
+  cuadrantes: Cuadrante[];
+  validaciones: Validacion[];
+  nominas: Nomina[];
+  nominasLineas: NominaLinea[];
+  pagos: Pago[];
+  baremos: Baremo[];
+  diasFestivos: DiaFestivo[];
+  ajustesBaremos: AjusteBaremo[];
+  bitacora: BitacoraEntry[];
+
+  // Acciones básicas
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+
+  // Operaciones CRUD - Guardias
+  fetchGuardias: (mes: number, ano: number, centroId?: string | null) => Promise<void>;
+  createGuardia: (data: Partial<Guardia>) => Promise<void>;
   updateGuardia: (id: string, data: Partial<Guardia>) => Promise<void>;
   deleteGuardia: (id: string) => Promise<void>;
-  
-  // Acciones - Validaciones
-  validarGuardia: (guardiaId: string, etapa: EtapaValidacion, resultado: 'aprobada' | 'rechazada', comentario?: string) => Promise<void>;
-  fetchValidaciones: (guardiaId: string) => Promise<void>;
-  
-  // Acciones - Nóminas
-  fetchNominas: (centroId?: string) => Promise<void>;
-  generarNomina: (centroId: string, mes: number, anio: number) => Promise<NominaGuardia>;
-  aprobarNomina: (nominaId: string) => Promise<void>;
-  rechazarNomina: (nominaId: string, motivo: string) => Promise<void>;
-  
-  // Acciones - Pagos
-  fetchPagos: (nominaId?: string) => Promise<void>;
-  registrarPago: (data: Partial<PagoGuardia>) => Promise<PagoGuardia>;
-  confirmarPago: (pagoId: string) => Promise<void>;
-  
-  // Acciones - Baremos
+
+  // Operaciones CRUD - Profesionales
+  fetchProfesionales: (centroId?: string | null) => Promise<void>;
+
+  // Operaciones CRUD - Centros
+  fetchCentros: () => Promise<void>;
+
+  // Operaciones CRUD - Cuadrantes
+  fetchCuadrantes: (mes: number, ano: number, centroId?: string | null) => Promise<void>;
+  generateCuadrante: (data: Partial<Cuadrante>) => Promise<void>;
+  updateCuadrante: (id: string, data: Partial<Cuadrante>) => Promise<void>;
+  exportCuadrante: (id: string, formato: 'PDF' | 'EXCEL') => Promise<void>;
+
+  // Operaciones CRUD - Validaciones
+  fetchValidaciones: (mes: number, ano: number, centroId?: string | null) => Promise<void>;
+  createValidacion: (data: Partial<Validacion>) => Promise<void>;
+  updateValidacion: (id: string, data: Partial<Validacion>) => Promise<void>;
+  aprobarValidacion: (id: string, comentarios?: string) => Promise<void>;
+  rechazarValidacion: (id: string, comentarios: string) => Promise<void>;
+
+  // Operaciones CRUD - Nóminas
+  fetchNominas: (mes: number, ano: number, centroId?: string | null) => Promise<void>;
+  fetchNominasLineas: (nominaId: string) => Promise<void>;
+  generateNomina: (data: { mes: number; ano: number; centro_id?: string | null }) => Promise<void>;
+  aprobarNomina: (id: string) => Promise<void>;
+  rechazarNomina: (id: string) => Promise<void>;
+  exportNomina: (id: string, formato: 'PDF' | 'EXCEL') => Promise<void>;
+  calcularMontoGuardia: (guardiaId: string) => Promise<number>;
+
+  // Operaciones CRUD - Pagos
+  fetchPagos: (mes: number, ano: number, centroId?: string | null) => Promise<void>;
+  createPago: (data: Partial<Pago>) => Promise<void>;
+  updatePago: (id: string, data: Partial<Pago>) => Promise<void>;
+  aprobarPago: (id: string) => Promise<void>;
+  rechazarPago: (id: string) => Promise<void>;
+  procesarPagoMasivo: (pagoIds: string[]) => Promise<void>;
+  exportPagos: (mes: number, ano: number, centroId?: string | null) => Promise<void>;
+
+  // Operaciones CRUD - Baremos
   fetchBaremos: () => Promise<void>;
-  updateBaremo: (id: string, data: Partial<AjusteBaremo>) => Promise<void>;
-  cambiarFuenteBaremo: (fuente: 'protocol' | 'excel') => Promise<void>;
-  
-  // Acciones - Configuración
-  updateConfiguracion: (config: Partial<ConfiguracionGuardias>) => void;
-  setFiltros: (filtros: Partial<FiltrosGuardias>) => void;
-  
-  // Acciones - UI
-  setSelectedGuardia: (guardia: Guardia | null) => void;
-  setSelectedNomina: (nomina: NominaGuardia | null) => void;
-  setSelectedProfesional: (profesional: ProfesionalGuardia | null) => void;
-  setError: (error: string | null) => void;
-  setLoading: (loading: boolean) => void;
-  
-  // Utilidades
-  calcularTipoDia: (fechaInicio: Date, fechaFin: Date) => TipoDia;
-  calcularBaremo: (guardia: Guardia, profesional: ProfesionalGuardia) => number;
-  validarHorarios: (fechaInicio: Date, fechaFin: Date) => boolean;
-  exportarNominaPDF: (nominaId: string) => Promise<void>;
-  exportarNominaExcel: (nominaId: string) => Promise<void>;
+  createBaremo: (data: Partial<Baremo>) => Promise<void>;
+  updateBaremo: (id: string, data: Partial<Baremo>) => Promise<void>;
+  deleteBaremo: (id: string) => Promise<void>;
+
+  // Operaciones CRUD - Días Festivos
+  fetchDiasFestivos: () => Promise<void>;
+  createDiaFestivo: (data: Partial<DiaFestivo>) => Promise<void>;
+  updateDiaFestivo: (id: string, data: Partial<DiaFestivo>) => Promise<void>;
+  deleteDiaFestivo: (id: string) => Promise<void>;
+
+  // Operaciones CRUD - Ajustes Baremos
+  fetchAjustesBaremos: (centroId?: string | null) => Promise<void>;
+  createAjusteBaremo: (data: Partial<AjusteBaremo>) => Promise<void>;
+  updateAjusteBaremo: (id: string, data: Partial<AjusteBaremo>) => Promise<void>;
+  deleteAjusteBaremo: (id: string) => Promise<void>;
+
+  // Operaciones CRUD - Bitácora
+  fetchBitacora: (params: {
+    mes: number;
+    ano: number;
+    centro_id?: string | null;
+    fecha_inicio?: string;
+    fecha_fin?: string;
+  }) => Promise<void>;
+  exportAuditLog: (params: any) => Promise<void>;
+
+  // Reportes
+  generateReport: (tipo: string, params: any) => Promise<void>;
+  exportReport: (tipo: string, params: any) => Promise<void>;
+
+  // Configuración
+  exportConfiguration: () => Promise<void>;
+  importConfiguration: (file: File) => Promise<void>;
+  resetConfiguration: () => Promise<void>;
 }
 
-export const useGuardiasStore = create<GuardiasStore>()(
+export const useGuardiasStore = create<GuardiasStoreState>()(
   persist(
     (set, get) => ({
       // Estado inicial
-      profesionales: [],
+      loading: false,
+      error: null,
+
+      // Datos iniciales
       guardias: [],
+      profesionales: [],
+      centros: [],
+      cuadrantes: [],
       validaciones: [],
       nominas: [],
+      nominasLineas: [],
       pagos: [],
       baremos: [],
-      bitacora: [],
       diasFestivos: [],
-      
-      configuracion: {
-        fuenteBaremo: 'protocol',
-        frecuenciaMinima: 4,
-        frecuenciaMaxima: 6,
-        horasMinimas: 12,
-        horasMaximas: 24,
-      },
-      
-      filtros: {},
-      isLoading: false,
-      error: null,
-      selectedGuardia: null,
-      selectedNomina: null,
-      selectedProfesional: null,
-      
-      // Implementación de acciones
-      fetchProfesionales: async (centroId?: string) => {
-        set({ isLoading: true, error: null });
-        try {
-          let query = supabase
-            .from('profesionales_guardias')
-            .select(`
-              *,
-              profesionales_sanitarios!profesional_id (
-                nombre_completo,
-                area_profesional,
-                centro_salud_id,
-                nombre_centro
-              )
-            `)
-            .eq('activo', true);
-            
-          if (centroId) {
-            query = query.eq('profesionales_sanitarios.centro_salud_id', centroId);
-          }
-          
-          const { data, error } = await query;
-          
-          if (error) throw error;
-          
-          const profesionales = data?.map(p => ({
-            ...p,
-            nombre_completo: p.profesionales_sanitarios?.nombre_completo,
-            area_profesional: p.profesionales_sanitarios?.area_profesional,
-            centro_salud_id: p.profesionales_sanitarios?.centro_salud_id,
-            nombre_centro: p.profesionales_sanitarios?.nombre_centro,
-          })) || [];
-          
-          set({ profesionales, isLoading: false });
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-        }
-      },
-      
-      createProfesionalGuardia: async (data) => {
-        set({ isLoading: true, error: null });
-        try {
-          const { data: newProfesional, error } = await supabase
-            .from('profesionales_guardias')
-            .insert([data])
-            .select()
-            .single();
-            
-          if (error) throw error;
-          
-          set(state => ({
-            profesionales: [...state.profesionales, newProfesional],
-            isLoading: false
-          }));
-          
-          return newProfesional;
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-          throw error;
-        }
-      },
-      
-      updateProfesionalGuardia: async (id, data) => {
-        set({ isLoading: true, error: null });
-        try {
-          const { error } = await supabase
-            .from('profesionales_guardias')
-            .update(data)
-            .eq('id', id);
-            
-          if (error) throw error;
-          
-          set(state => ({
-            profesionales: state.profesionales.map(p => 
-              p.id === id ? { ...p, ...data } : p
-            ),
-            isLoading: false
-          }));
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-        }
-      },
-      
-      deleteProfesionalGuardia: async (id) => {
-        set({ isLoading: true, error: null });
-        try {
-          const { error } = await supabase
-            .from('profesionales_guardias')
-            .update({ activo: false })
-            .eq('id', id);
-            
-          if (error) throw error;
-          
-          set(state => ({
-            profesionales: state.profesionales.filter(p => p.id !== id),
-            isLoading: false
-          }));
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-        }
-      },
-      
-      fetchGuardias: async (filtros = {}) => {
-        set({ isLoading: true, error: null });
-        try {
-          let query = supabase
-            .from('guardias')
-            .select(`
-              *,
-              profesionales_guardias!profesional_guardia_id (*),
-              centros_salud!centro_salud_id (nombre)
-            `)
-            .order('fecha_inicio', { ascending: false });
-            
-          // Aplicar filtros
-          if (filtros.centro_salud_id) {
-            query = query.eq('centro_salud_id', filtros.centro_salud_id);
-          }
-          if (filtros.tipo) {
-            query = query.eq('tipo', filtros.tipo);
-          }
-          if (filtros.estado) {
-            query = query.eq('estado', filtros.estado);
-          }
-          if (filtros.mes && filtros.anio) {
-            const fechaInicio = new Date(filtros.anio, filtros.mes - 1, 1);
-            const fechaFin = new Date(filtros.anio, filtros.mes, 0);
-            query = query.gte('fecha_inicio', fechaInicio.toISOString())
-                         .lte('fecha_inicio', fechaFin.toISOString());
-          }
-          
-          const { data, error } = await query;
-          
-          if (error) throw error;
-          
-          const guardias = data?.map(g => ({
-            ...g,
-            profesional: g.profesionales_guardias,
-            nombre_centro: g.centros_salud?.nombre,
-          })) || [];
-          
-          set({ guardias, isLoading: false });
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-        }
-      },
-      
-      createGuardia: async (data) => {
-        set({ isLoading: true, error: null });
-        try {
-          // Calcular horas automáticamente
-          if (data.fecha_inicio && data.fecha_fin) {
-            const inicio = new Date(data.fecha_inicio);
-            const fin = new Date(data.fecha_fin);
-            const horas = (fin.getTime() - inicio.getTime()) / (1000 * 60 * 60);
-            data.horas = horas;
-            
-            // Calcular tipo de día
-            data.tipo_dia = get().calcularTipoDia(inicio, fin);
-          }
-          
-          const { data: newGuardia, error } = await supabase
-            .from('guardias')
-            .insert([data])
-            .select()
-            .single();
-            
-          if (error) throw error;
-          
-          set(state => ({
-            guardias: [newGuardia, ...state.guardias],
-            isLoading: false
-          }));
-          
-          return newGuardia;
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-          throw error;
-        }
-      },
-      
-      updateGuardia: async (id, data) => {
-        set({ isLoading: true, error: null });
-        try {
-          const { error } = await supabase
-            .from('guardias')
-            .update(data)
-            .eq('id', id);
-            
-          if (error) throw error;
-          
-          set(state => ({
-            guardias: state.guardias.map(g => 
-              g.id === id ? { ...g, ...data } : g
-            ),
-            isLoading: false
-          }));
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-        }
-      },
-      
-      deleteGuardia: async (id) => {
-        set({ isLoading: true, error: null });
-        try {
-          const { error } = await supabase
-            .from('guardias')
-            .delete()
-            .eq('id', id);
-            
-          if (error) throw error;
-          
-          set(state => ({
-            guardias: state.guardias.filter(g => g.id !== id),
-            isLoading: false
-          }));
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-        }
-      },
-      
-      validarGuardia: async (guardiaId, etapa, resultado, comentario) => {
-        set({ isLoading: true, error: null });
-        try {
-          // Crear validación
-          const { error: validacionError } = await supabase
-            .from('validaciones_guardias')
-            .insert([{
-              guardia_id: guardiaId,
-              etapa,
-              resultado,
-              comentario,
-              usuario_id: (await supabase.auth.getUser()).data.user?.id
-            }]);
-            
-          if (validacionError) throw validacionError;
-          
-          // Actualizar estado de la guardia
-          const nuevoEstado = resultado === 'aprobada' ? 'validada' : 'rechazada';
-          const { error: guardiaError } = await supabase
-            .from('guardias')
-            .update({ validacion_estado: nuevoEstado })
-            .eq('id', guardiaId);
-            
-          if (guardiaError) throw guardiaError;
-          
-          // Refrescar datos
-          await get().fetchGuardias(get().filtros);
-          set({ isLoading: false });
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-        }
-      },
-      
-      fetchValidaciones: async (guardiaId) => {
-        try {
-          const { data, error } = await supabase
-            .from('validaciones_guardias')
-            .select('*')
-            .eq('guardia_id', guardiaId)
-            .order('fecha', { ascending: true });
-            
-          if (error) throw error;
-          
-          set({ validaciones: data || [] });
-        } catch (error: any) {
-          set({ error: error.message });
-        }
-      },
-      
-      fetchNominas: async (centroId) => {
-        set({ isLoading: true, error: null });
-        try {
-          let query = supabase
-            .from('nominas_guardias')
-            .select(`
-              *,
-              centros_salud!centro_salud_id (nombre)
-            `)
-            .order('anio', { ascending: false })
-            .order('mes', { ascending: false });
-            
-          if (centroId) {
-            query = query.eq('centro_salud_id', centroId);
-          }
-          
-          const { data, error } = await query;
-          
-          if (error) throw error;
-          
-          const nominas = data?.map(n => ({
-            ...n,
-            nombre_centro: n.centros_salud?.nombre,
-          })) || [];
-          
-          set({ nominas, isLoading: false });
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-        }
-      },
-      
-      generarNomina: async (centroId, mes, anio) => {
-        set({ isLoading: true, error: null });
-        try {
-          // TODO: Implementar lógica de generación de nómina
-          // Por ahora, crear nómina básica
-          const { data: newNomina, error } = await supabase
-            .from('nominas_guardias')
-            .insert([{
-              centro_salud_id: centroId,
-              mes,
-              anio,
-              estado: 'borrador',
-              created_by: (await supabase.auth.getUser()).data.user?.id
-            }])
-            .select()
-            .single();
-            
-          if (error) throw error;
-          
-          set(state => ({
-            nominas: [newNomina, ...state.nominas],
-            isLoading: false
-          }));
-          
-          return newNomina;
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-          throw error;
-        }
-      },
-      
-      aprobarNomina: async (nominaId) => {
-        set({ isLoading: true, error: null });
-        try {
-          const { error } = await supabase
-            .from('nominas_guardias')
-            .update({ 
-              estado: 'aprobada',
-              approved_by: (await supabase.auth.getUser()).data.user?.id,
-              approved_at: new Date().toISOString()
-            })
-            .eq('id', nominaId);
-            
-          if (error) throw error;
-          
-          await get().fetchNominas();
-          set({ isLoading: false });
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-        }
-      },
-      
-      rechazarNomina: async (nominaId, motivo) => {
-        set({ isLoading: true, error: null });
-        try {
-          const { error } = await supabase
-            .from('nominas_guardias')
-            .update({ 
-              estado: 'rechazada',
-              observaciones: motivo
-            })
-            .eq('id', nominaId);
-            
-          if (error) throw error;
-          
-          await get().fetchNominas();
-          set({ isLoading: false });
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-        }
-      },
-      
-      fetchPagos: async (nominaId) => {
-        set({ isLoading: true, error: null });
-        try {
-          let query = supabase
-            .from('pagos_guardias')
-            .select(`
-              *,
-              profesionales_guardias!profesional_guardia_id (*),
-              nominas_guardias!nomina_id (*)
-            `)
-            .order('fecha_pago', { ascending: false });
-            
-          if (nominaId) {
-            query = query.eq('nomina_id', nominaId);
-          }
-          
-          const { data, error } = await query;
-          
-          if (error) throw error;
-          
-          const pagos = data?.map(p => ({
-            ...p,
-            profesional: p.profesionales_guardias,
-            nomina: p.nominas_guardias,
-          })) || [];
-          
-          set({ pagos, isLoading: false });
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-        }
-      },
-      
-      registrarPago: async (data) => {
-        set({ isLoading: true, error: null });
-        try {
-          const { data: newPago, error } = await supabase
-            .from('pagos_guardias')
-            .insert([{
-              ...data,
-              created_by: (await supabase.auth.getUser()).data.user?.id
-            }])
-            .select()
-            .single();
-            
-          if (error) throw error;
-          
-          set(state => ({
-            pagos: [newPago, ...state.pagos],
-            isLoading: false
-          }));
-          
-          return newPago;
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-          throw error;
-        }
-      },
-      
-      confirmarPago: async (pagoId) => {
-        set({ isLoading: true, error: null });
-        try {
-          const { error } = await supabase
-            .from('pagos_guardias')
-            .update({ estado: 'confirmado' })
-            .eq('id', pagoId);
-            
-          if (error) throw error;
-          
-          await get().fetchPagos();
-          set({ isLoading: false });
-        } catch (error: any) {
-          set({ error: error.message, isLoading: false });
-        }
-      },
-      
-      fetchBaremos: async () => {
-        try {
-          const { data, error } = await supabase
-            .from('ajustes_baremos')
-            .select('*')
-            .eq('activo', true)
-            .order('categoria', { ascending: true })
-            .order('tipo_guardia', { ascending: true });
-            
-          if (error) throw error;
-          
-          set({ baremos: data || [] });
-        } catch (error: any) {
-          set({ error: error.message });
-        }
-      },
-      
-      updateBaremo: async (id, data) => {
-        try {
-          const { error } = await supabase
-            .from('ajustes_baremos')
-            .update(data)
-            .eq('id', id);
-            
-          if (error) throw error;
-          
-          await get().fetchBaremos();
-        } catch (error: any) {
-          set({ error: error.message });
-        }
-      },
-      
-      cambiarFuenteBaremo: async (fuente) => {
-        set(state => ({
-          configuracion: { ...state.configuracion, fuenteBaremo: fuente }
-        }));
-        await get().fetchBaremos();
-      },
-      
-      updateConfiguracion: (config) => {
-        set(state => ({
-          configuracion: { ...state.configuracion, ...config }
-        }));
-      },
-      
-      setFiltros: (filtros) => {
-        set(state => ({
-          filtros: { ...state.filtros, ...filtros }
-        }));
-      },
-      
-      setSelectedGuardia: (guardia) => set({ selectedGuardia: guardia }),
-      setSelectedNomina: (nomina) => set({ selectedNomina: nomina }),
-      setSelectedProfesional: (profesional) => set({ selectedProfesional: profesional }),
+      ajustesBaremos: [],
+      bitacora: [],
+
+      // Acciones básicas
+      setLoading: (loading) => set({ loading }),
       setError: (error) => set({ error }),
-      setLoading: (isLoading) => set({ isLoading }),
-      
-      // Utilidades
-      calcularTipoDia: (fechaInicio, fechaFin) => {
-        const diaSemana = fechaInicio.getDay(); // 0=domingo, 6=sábado
-        
-        // Verificar si es día festivo (simplificado)
-        const { diasFestivos } = get();
-        const fechaStr = fechaInicio.toISOString().split('T')[0];
-        const esFestivo = diasFestivos.some(f => f.fecha === fechaStr && f.activo);
-        
-        if (esFestivo) return 'festivo';
-        if (diaSemana === 0 || diaSemana === 6) return 'fin_semana';
-        return 'ordinario';
-      },
-      
-      calcularBaremo: (guardia, profesional) => {
-        const { baremos, configuracion } = get();
-        
-        // Buscar baremo aplicable
-        const baremo = baremos.find(b => 
-          b.categoria === profesional.categoria &&
-          b.tipo_guardia === guardia.tipo &&
-          b.tipo_dia === guardia.tipo_dia &&
-          b.fuente === configuracion.fuenteBaremo &&
-          b.activo
-        );
-        
-        if (!baremo) return 0;
-        
-        if (guardia.tipo === 'localizable') {
-          let total = 0;
-          // 10% por estar localizable
-          total += baremo.valor * (baremo.porcentaje_localizable / 100);
-          // 20% adicional si fue llamada asistida
-          if (guardia.localizable_activada) {
-            total += baremo.valor * (baremo.porcentaje_llamada / 100);
-          }
-          return total;
+
+      // Operaciones CRUD - Guardias
+      fetchGuardias: async (mes, ano, centroId) => {
+        set({ loading: true, error: null });
+        try {
+          // Por ahora, datos mock para pruebas
+          const mockGuardias: Guardia[] = [
+            {
+              id: '1',
+              profesional_id: 'prof1',
+              centro_id: 'centro1',
+              fecha: `${ano}-${mes.toString().padStart(2, '0')}-01`,
+              turno: 'MAÑANA',
+              tipo_guardia: 'ORDINARIA',
+              horas_inicio: '08:00',
+              horas_fin: '14:00',
+              profesional: {
+                id: 'prof1',
+                nombre_completo: 'Dr. Juan Pérez',
+                especialidad: 'Medicina General'
+              },
+              centro: {
+                id: 'centro1',
+                nombre: 'Hospital Regional'
+              }
+            }
+          ];
+          set({ guardias: mockGuardias, loading: false });
+        } catch (error) {
+          console.error('Error fetching guardias:', error);
+          set({ error: 'Error al cargar guardias', loading: false });
         }
-        
-        return baremo.valor;
       },
-      
-      validarHorarios: (fechaInicio, fechaFin) => {
-        const { configuracion } = get();
-        const horas = (fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60);
-        return horas >= configuracion.horasMinimas && horas <= configuracion.horasMaximas;
+
+      createGuardia: async (data) => {
+        set({ loading: true });
+        try {
+          // Mock implementation
+          console.log('Creating guardia:', data);
+          set({ loading: false });
+        } catch (error) {
+          console.error('Error creating guardia:', error);
+          set({ error: 'Error al crear guardia', loading: false });
+        }
       },
-      
-      exportarNominaPDF: async (nominaId) => {
-        // TODO: Implementar exportación PDF
-        console.log('Exportar nómina PDF:', nominaId);
+
+      updateGuardia: async (id, data) => {
+        set({ loading: true });
+        try {
+          // Mock implementation
+          console.log('Updating guardia:', id, data);
+          set({ loading: false });
+        } catch (error) {
+          console.error('Error updating guardia:', error);
+          set({ error: 'Error al actualizar guardia', loading: false });
+        }
       },
-      
-      exportarNominaExcel: async (nominaId) => {
-        // TODO: Implementar exportación Excel
-        console.log('Exportar nómina Excel:', nominaId);
+
+      deleteGuardia: async (id) => {
+        set({ loading: true });
+        try {
+          // Mock implementation
+          console.log('Deleting guardia:', id);
+          set({ loading: false });
+        } catch (error) {
+          console.error('Error deleting guardia:', error);
+          set({ error: 'Error al eliminar guardia', loading: false });
+        }
+      },
+
+      // Operaciones CRUD - Profesionales
+      fetchProfesionales: async (centroId) => {
+        set({ loading: true });
+        try {
+          const mockProfesionales: Profesional[] = [
+            {
+              id: 'prof1',
+              nombre_completo: 'Dr. Juan Pérez',
+              especialidad: 'Medicina General',
+              centro_id: 'centro1',
+              activo: true
+            },
+            {
+              id: 'prof2',
+              nombre_completo: 'Dra. María González',
+              especialidad: 'Cardiología',
+              centro_id: 'centro1',
+              activo: true
+            }
+          ];
+          set({ profesionales: mockProfesionales, loading: false });
+        } catch (error) {
+          console.error('Error fetching profesionales:', error);
+          set({ error: 'Error al cargar profesionales', loading: false });
+        }
+      },
+
+      // Operaciones CRUD - Centros
+      fetchCentros: async () => {
+        set({ loading: true });
+        try {
+          const mockCentros: Centro[] = [
+            {
+              id: 'centro1',
+              nombre: 'Hospital Regional de Malabo',
+              tipo_centro: 'Hospital',
+              provincia: 'Bioko Norte'
+            },
+            {
+              id: 'centro2',
+              nombre: 'Centro de Salud de Bata',
+              tipo_centro: 'Centro de Salud',
+              provincia: 'Litoral'
+            }
+          ];
+          set({ centros: mockCentros, loading: false });
+        } catch (error) {
+          console.error('Error fetching centros:', error);
+          set({ error: 'Error al cargar centros', loading: false });
+        }
+      },
+
+      // Implementaciones mock para todas las demás operaciones
+      fetchCuadrantes: async (mes, ano, centroId) => {
+        set({ loading: true });
+        try {
+          set({ cuadrantes: [], loading: false });
+        } catch (error) {
+          set({ error: 'Error al cargar cuadrantes', loading: false });
+        }
+      },
+
+      generateCuadrante: async (data) => {
+        console.log('Generate cuadrante:', data);
+      },
+
+      updateCuadrante: async (id, data) => {
+        console.log('Update cuadrante:', id, data);
+      },
+
+      exportCuadrante: async (id, formato) => {
+        console.log('Export cuadrante:', id, formato);
+      },
+
+      fetchValidaciones: async (mes, ano, centroId) => {
+        set({ loading: true });
+        try {
+          set({ validaciones: [], loading: false });
+        } catch (error) {
+          set({ error: 'Error al cargar validaciones', loading: false });
+        }
+      },
+
+      createValidacion: async (data) => {
+        console.log('Create validacion:', data);
+      },
+
+      updateValidacion: async (id, data) => {
+        console.log('Update validacion:', id, data);
+      },
+
+      aprobarValidacion: async (id, comentarios) => {
+        console.log('Aprobar validacion:', id, comentarios);
+      },
+
+      rechazarValidacion: async (id, comentarios) => {
+        console.log('Rechazar validacion:', id, comentarios);
+      },
+
+      fetchNominas: async (mes, ano, centroId) => {
+        set({ loading: true });
+        try {
+          set({ nominas: [], loading: false });
+        } catch (error) {
+          set({ error: 'Error al cargar nóminas', loading: false });
+        }
+      },
+
+      fetchNominasLineas: async (nominaId) => {
+        set({ loading: true });
+        try {
+          set({ nominasLineas: [], loading: false });
+        } catch (error) {
+          set({ error: 'Error al cargar líneas de nómina', loading: false });
+        }
+      },
+
+      generateNomina: async (data) => {
+        console.log('Generate nomina:', data);
+      },
+
+      aprobarNomina: async (id) => {
+        console.log('Aprobar nomina:', id);
+      },
+
+      rechazarNomina: async (id) => {
+        console.log('Rechazar nomina:', id);
+      },
+
+      exportNomina: async (id, formato) => {
+        console.log('Export nomina:', id, formato);
+      },
+
+      calcularMontoGuardia: async (guardiaId) => {
+        console.log('Calcular monto guardia:', guardiaId);
+        return 0;
+      },
+
+      fetchPagos: async (mes, ano, centroId) => {
+        set({ loading: true });
+        try {
+          set({ pagos: [], loading: false });
+        } catch (error) {
+          set({ error: 'Error al cargar pagos', loading: false });
+        }
+      },
+
+      createPago: async (data) => {
+        console.log('Create pago:', data);
+      },
+
+      updatePago: async (id, data) => {
+        console.log('Update pago:', id, data);
+      },
+
+      aprobarPago: async (id) => {
+        console.log('Aprobar pago:', id);
+      },
+
+      rechazarPago: async (id) => {
+        console.log('Rechazar pago:', id);
+      },
+
+      procesarPagoMasivo: async (pagoIds) => {
+        console.log('Procesar pago masivo:', pagoIds);
+      },
+
+      exportPagos: async (mes, ano, centroId) => {
+        console.log('Export pagos:', mes, ano, centroId);
+      },
+
+      fetchBaremos: async () => {
+        set({ loading: true });
+        try {
+          const mockBaremos: Baremo[] = [
+            {
+              id: 'baremo1',
+              concepto: 'Guardia Médico General',
+              tarifa_base: 50.0,
+              multiplicador_nocturno: 1.5,
+              multiplicador_festivo: 2.0,
+              activo: true,
+              fuente: 'PROTOCOLO',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ];
+          set({ baremos: mockBaremos, loading: false });
+        } catch (error) {
+          set({ error: 'Error al cargar baremos', loading: false });
+        }
+      },
+
+      createBaremo: async (data) => {
+        console.log('Create baremo:', data);
+      },
+
+      updateBaremo: async (id, data) => {
+        console.log('Update baremo:', id, data);
+      },
+
+      deleteBaremo: async (id) => {
+        console.log('Delete baremo:', id);
+      },
+
+      fetchDiasFestivos: async () => {
+        set({ loading: true });
+        try {
+          set({ diasFestivos: [], loading: false });
+        } catch (error) {
+          set({ error: 'Error al cargar días festivos', loading: false });
+        }
+      },
+
+      createDiaFestivo: async (data) => {
+        console.log('Create dia festivo:', data);
+      },
+
+      updateDiaFestivo: async (id, data) => {
+        console.log('Update dia festivo:', id, data);
+      },
+
+      deleteDiaFestivo: async (id) => {
+        console.log('Delete dia festivo:', id);
+      },
+
+      fetchAjustesBaremos: async (centroId) => {
+        set({ loading: true });
+        try {
+          set({ ajustesBaremos: [], loading: false });
+        } catch (error) {
+          set({ error: 'Error al cargar ajustes de baremos', loading: false });
+        }
+      },
+
+      createAjusteBaremo: async (data) => {
+        console.log('Create ajuste baremo:', data);
+      },
+
+      updateAjusteBaremo: async (id, data) => {
+        console.log('Update ajuste baremo:', id, data);
+      },
+
+      deleteAjusteBaremo: async (id) => {
+        console.log('Delete ajuste baremo:', id);
+      },
+
+      fetchBitacora: async (params) => {
+        set({ loading: true });
+        try {
+          set({ bitacora: [], loading: false });
+        } catch (error) {
+          set({ error: 'Error al cargar bitácora', loading: false });
+        }
+      },
+
+      exportAuditLog: async (params) => {
+        console.log('Export audit log:', params);
+      },
+
+      generateReport: async (tipo, params) => {
+        console.log('Generate report:', tipo, params);
+      },
+
+      exportReport: async (tipo, params) => {
+        console.log('Export report:', tipo, params);
+      },
+
+      exportConfiguration: async () => {
+        console.log('Export configuration');
+      },
+
+      importConfiguration: async (file) => {
+        console.log('Import configuration:', file);
+      },
+
+      resetConfiguration: async () => {
+        console.log('Reset configuration');
       },
     }),
     {
       name: 'guardias-store',
-      // Solo persistir configuración y filtros
       partialize: (state) => ({
-        configuracion: state.configuracion,
-        filtros: state.filtros,
+        // Solo persistir datos que no sean sensibles
       }),
     }
   )
 );
-
-export default useGuardiasStore;

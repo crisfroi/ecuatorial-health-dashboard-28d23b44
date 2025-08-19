@@ -81,7 +81,17 @@ export const PERMISSIONS: Permission[] = [
   // PERMISOS DE AI CHAT
   { id: 'ai_chat_basic', name: 'AI Chat Básico', description: 'Consultas básicas al AI Chat', category: 'AI Chat' },
   { id: 'ai_chat_advanced', name: 'AI Chat Avanzado', description: 'Consultas avanzadas con todas las métricas', category: 'AI Chat' },
-  { id: 'ai_chat_analytics', name: 'AI Chat Analíticas', description: 'Acceso a análisis predictivos', category: 'AI Chat' }
+  { id: 'ai_chat_analytics', name: 'AI Chat Analíticas', description: 'Acceso a análisis predictivos', category: 'AI Chat' },
+
+  // PERMISOS DE GESTIÓN DE GUARDIAS MÉDICAS
+  { id: 'view_guardias', name: 'Ver Guardias', description: 'Acceso al sistema de gestión de guardias', category: 'Guardias Médicas' },
+  { id: 'manage_guardias', name: 'Gestionar Guardias', description: 'Registrar y editar guardias médicas', category: 'Guardias Médicas' },
+  { id: 'approve_guardias', name: 'Aprobar Guardias', description: 'Validar y aprobar guardias registradas', category: 'Guardias Médicas' },
+  { id: 'generate_nominas', name: 'Generar Nóminas', description: 'Calcular y generar nóminas de guardias', category: 'Guardias Médicas' },
+  { id: 'manage_payments', name: 'Gestionar Pagos', description: 'Procesar pagos de guardias médicas', category: 'Guardias Médicas' },
+  { id: 'view_guardias_reports', name: 'Ver Reportes Guardias', description: 'Acceso a reportes de guardias médicas', category: 'Guardias Médicas' },
+  { id: 'audit_guardias', name: 'Auditar Guardias', description: 'Acceso a auditoría del sistema de guardias', category: 'Guardias Médicas' },
+  { id: 'configure_guardias', name: 'Configurar Guardias', description: 'Configurar baremos y parámetros del sistema', category: 'Guardias Médicas' }
 ];
 
 // Definición de roles con permisos específicos

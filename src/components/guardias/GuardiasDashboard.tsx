@@ -54,6 +54,7 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedCenter, setSelectedCenter] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('registro');
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     fetchCentros();

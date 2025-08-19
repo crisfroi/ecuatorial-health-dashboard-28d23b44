@@ -1,9 +1,9 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { suppressResizeObserverErrors } from './utils/resizeObserverSuppress'
+import { initializeErrorSuppression } from './utils/errorSuppression'
 
-// Suppress ResizeObserver loop errors globally
-suppressResizeObserverErrors();
+// Initialize enhanced error suppression for ResizeObserver and related issues
+initializeErrorSuppression();
 
 createRoot(document.getElementById("root")!).render(<App />);

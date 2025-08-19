@@ -179,8 +179,10 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({
   useEffect(() => {
     if (!geoData || !svgRef.current) return;
 
-    const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove(); // Clear previous content
+    // Wrap D3 operations to catch ResizeObserver errors
+    try {
+      const svg = d3.select(svgRef.current);
+      svg.selectAll("*").remove(); // Clear previous content
 
     const width = 800;
     const height = 600;
@@ -331,6 +333,19 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({
       .style("font-weight", "bold")
       .style("fill", "#1f2937")
       .text(getMetricLabel(selectedMetric));
+    } catch (error) {
+      // Suppress ResizeObserver-related errors from D3
+      if (
+        error instanceof Error &&
+        (
+          error.message.includes('ResizeObserver loop completed with undelivered notifications') ||
+          error.message.includes('ResizeObserver loop limit exceeded')
+        )
+      ) {
+        return;
+      }
+      console.error("Error rendering D3 map:", error);
+    }
   }, [geoData, selectedMetric, provinceData]);
 
   const getMetricValue = (province: ProvinceData, metric: string): number => {

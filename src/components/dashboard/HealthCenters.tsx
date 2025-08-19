@@ -872,8 +872,9 @@ const HealthCenters = () => {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setEditingCenter(centro);
-                            setShowEditDialog(true);
+                            handleValidateCenter(centro.id, {
+                              estado: "Activo",
+                            });
                           }}
                           className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                           disabled={validateCenterMutation.isPending}

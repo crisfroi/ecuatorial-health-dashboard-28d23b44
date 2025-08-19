@@ -147,6 +147,12 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
             </div>
             
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              {/* Sistema de notificaciones */}
+              <GuardiasNotificationSystem
+                userRole={userRole}
+                onNavigateToTab={setActiveTab}
+              />
+
               {/* Control de período */}
               <div className="flex items-center space-x-2">
                 <Button

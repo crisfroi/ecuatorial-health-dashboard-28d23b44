@@ -37,7 +37,15 @@ interface GuardiasDashboardProps {
 
 export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }) => {
   const { toast } = useToast();
-  const { centros, loading, fetchCentros } = useGuardiasStore();
+  const {
+    centros,
+    guardias,
+    validaciones,
+    nominas,
+    pagos,
+    loading,
+    fetchCentros
+  } = useGuardiasStore();
   
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());

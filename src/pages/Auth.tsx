@@ -282,43 +282,13 @@ const Auth = () => {
               </TabsContent>
             </Tabs>
 
-            <div className="mt-6 space-y-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">
-                  ¿Necesitas ayuda? Contacta al administrador del sistema
-                </p>
-              </div>
-
-              {/* Quick login buttons for testing */}
-              <div className="border-t pt-4">
-                <p className="text-xs text-gray-500 text-center mb-2">Acceso Rápido (Desarrollo)</p>
-                <div className="space-y-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="w-full text-xs"
-                    onClick={() => {
-                      setEmail('chamibeny@gmail.com');
-                      setPassword('123456');
-                    }}
-                  >
-                    Login: chamibeny@gmail.com
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="w-full text-xs"
-                    onClick={() => {
-                      setEmail('juan.froilan@ministeriosanidad.gq');
-                      setPassword('123456');
-                    }}
-                  >
-                    Login: juan.froilan@ministeriosanidad.gq
-                  </Button>
-                </div>
-              </div>
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                ¿Necesitas ayuda? Contacta al administrador del sistema
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Si tienes problemas con el acceso, usa la contraseña temporal: <strong>123456</strong>
+              </p>
             </div>
           </CardContent>
         </Card>

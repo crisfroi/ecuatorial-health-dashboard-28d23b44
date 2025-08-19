@@ -58,7 +58,14 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
 
   useEffect(() => {
     fetchCentros();
-  }, []);
+
+    // Verificar si es la primera vez que el usuario accede al sistema de guardias
+    const hasVisitedBefore = localStorage.getItem(`guardias-visited-${userRole}`);
+    if (!hasVisitedBefore) {
+      setShowOnboarding(true);
+      localStorage.setItem(`guardias-visited-${userRole}`, 'true');
+    }
+  }, [userRole]);
 
   // Configuración de pestañas basada en roles
   const getVisibleTabs = () => {

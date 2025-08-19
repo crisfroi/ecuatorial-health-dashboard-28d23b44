@@ -76,10 +76,7 @@ export const GuardiasStatsWidget: React.FC<GuardiasStatsWidgetProps> = ({
   const validacionesPendientes = validaciones.filter(v => v.estado === 'PENDIENTE').length;
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(amount);
+    return `${amount.toLocaleString()} XAF`;
   };
 
   if (loading) {

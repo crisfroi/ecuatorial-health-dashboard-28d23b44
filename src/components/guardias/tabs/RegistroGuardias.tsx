@@ -44,7 +44,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGuardia, setEditingGuardia] = useState<any>(null);
   const [formData, setFormData] = useState({
-    profesional_id: '',
+    profesional_ids: [] as string[],
     centro_id: selectedCenter || '',
     fecha: '',
     turno: 'MAÑANA' as 'MAÑANA' | 'TARDE' | 'NOCHE',
@@ -69,22 +69,25 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       if (editingGuardia) {
-        await updateGuardia(editingGuardia.id, formData);
+        await updateGuardia(editingGuardia.id, {...formData, profesional_id: formData.profesional_ids[0]});
         toast({
           title: "Guardia actualizada",
           description: "La guardia ha sido actualizada correctamente.",
         });
       } else {
-        await createGuardia(formData);
+        // Crear múltiples guardias para cada profesional seleccionado
+        for (const profesional_id of formData.profesional_ids) {
+          await createGuardia({...formData, profesional_id});
+        }
         toast({
-          title: "Guardia registrada",
-          description: "La nueva guardia ha sido registrada correctamente.",
+          title: "Guardias registradas",
+          description: `Se han registrado ${formData.profesional_ids.length} guardias correctamente.`,
         });
       }
-      
+
       setIsDialogOpen(false);
       setEditingGuardia(null);
       resetForm();
@@ -101,7 +104,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
   const handleEdit = (guardia: any) => {
     setEditingGuardia(guardia);
     setFormData({
-      profesional_id: guardia.profesional_id,
+      profesional_ids: [guardia.profesional_id],
       centro_id: guardia.centro_id,
       fecha: guardia.fecha,
       turno: guardia.turno,
@@ -134,7 +137,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
 
   const resetForm = () => {
     setFormData({
-      profesional_id: '',
+      profesional_ids: [],
       centro_id: selectedCenter || '',
       fecha: '',
       turno: 'MAÑANA',

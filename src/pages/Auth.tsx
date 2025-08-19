@@ -286,6 +286,9 @@ const Auth = () => {
               <p className="text-sm text-gray-600">
                 ¿Necesitas ayuda? Contacta al administrador del sistema
               </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Si tienes problemas con el acceso, usa la contraseña temporal: <strong>123456</strong>
+              </p>
             </div>
           </CardContent>
         </Card>

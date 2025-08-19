@@ -30,6 +30,7 @@ import {
   AlertTriangle,
   ChevronUp,
   ChevronDown,
+  Clock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -363,15 +364,68 @@ const Dashboard = () => {
 
   const hasActiveFilters = Object.keys(appliedFilters).length > 0;
 
-  // Early return if still loading authentication or role system not ready
-  if (isLoading || !userRole) {
+  // Early return if still loading authentication
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-          <p className="mt-4 text-gray-600">
-            {isLoading ? 'Cargando dashboard...' : 'Configurando permisos...'}
-          </p>
+          <p className="mt-4 text-gray-600">Cargando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If no user is authenticated, redirect to login
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Acceso Requerido
+            </h1>
+            <p className="text-gray-600">
+              Necesitas iniciar sesión para acceder al dashboard.
+            </p>
+          </div>
+          <Button
+            onClick={() => navigate('/')}
+            className="w-full"
+          >
+            Ir al Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // If no role is assigned, show error
+  if (!userRole) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="mb-6">
+            <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Sin Permisos Asignados
+            </h1>
+            <p className="text-gray-600">
+              Tu cuenta no tiene un rol asignado. Contacta al administrador del sistema.
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              Usuario: {user.email}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              className="w-full"
+            >
+              Cerrar Sesión
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -389,8 +443,8 @@ const Dashboard = () => {
     ...(userRole && canAccessTab("ministerial") ? [{ id: "ministerial", label: "Ministerial", icon: Settings }] : []),
     ...(userRole && canAccessTab("incidents") ? [{ id: "incidents", label: "Incidencias", icon: Activity }] : []),
     ...(userRole && canAccessTab("health-centers") ? [{ id: "health-centers", label: "Centros", icon: MapPin }] : []),
-    ...(userRole && hasPermission("manage_users") ? [{ id: "users", label: "Usuarios", icon: Users }] : []),
-    ...(userRole && hasPermission("system_configuration") ? [{ id: "diagnostic", label: "Diagnóstico DB", icon: AlertTriangle }] : []),
+    ...(userRole && hasPermission("manage_users") ? [{ id: "users", label: "Usuarios", icon: UserCog }] : []),
+    ...(userRole && hasPermission("system_configuration") ? [{ id: "admin", label: "Admin", icon: Settings }] : []),
   ].filter(tab => userRole ? canAccessTab(tab.id) : tab.id === "overview" || tab.id === "professionals");
 
   return (
@@ -664,12 +718,8 @@ const Dashboard = () => {
             {hasPermission("manage_users") && <AdminPanel />}
           </TabsContent>
 
-          <TabsContent value="diagnostic" className="space-y-6">
-            {hasPermission("system_configuration") && (
-              <div className="flex justify-center">
-                <DatabaseDiagnostic />
-              </div>
-            )}
+          <TabsContent value="admin" className="space-y-6">
+            {hasPermission("system_configuration") && <AdminPanel />}
           </TabsContent>
         </Tabs>
       </div>

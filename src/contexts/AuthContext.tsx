@@ -136,7 +136,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [defaultRole]);
+  }, []); // Removed defaultRole dependency to prevent infinite loops
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);

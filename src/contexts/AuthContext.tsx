@@ -51,27 +51,66 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       try {
         console.log('🔐 Inicializando autenticación...');
 
-        // Primero verificar si hay una sesión activa
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
 
-        if (session?.user) {
-          console.log('👤 Sesión activa encontrada para:', session.user.email);
-          await setupUserFromAuth(session.user);
-        } else {
-          console.log('🔍 No hay sesión activa, verificando usuario almacenado...');
+        if (supabaseUser) {
+          console.log('👤 Usuario autenticado encontrado:', supabaseUser.email);
 
-          // Intentar obtener usuario actual
-          const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+          let role: UserRole = defaultRole;
+          let fullName = supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0];
+          const email = supabaseUser.email?.toLowerCase() || '';
 
-          if (supabaseUser) {
-            console.log('👤 Usuario encontrado en auth:', supabaseUser.email);
-            await setupUserFromAuth(supabaseUser);
-          } else {
-            console.log('❌ No se encontró usuario autenticado');
-            // Redirigir al login en lugar de usar usuario demo
-            setUser(null);
-            setUserRole(null);
+          // Verificar en user_profiles primero
+          try {
+            const { data: userProfile } = await supabase
+              .from('user_profiles')
+              .select('role, full_name, department, assigned_center_id, is_active')
+              .eq('email', email)
+              .single();
+
+            if (userProfile && userProfile.is_active) {
+              role = userProfile.role as UserRole;
+              fullName = userProfile.full_name || fullName;
+              console.log('👤 Configuración desde user_profiles:', { email, role, fullName });
+            } else {
+              // Fallback para emails administrativos conocidos
+              if (email === 'chamibeny@gmail.com' ||
+                  email === 'juan.froilan@ministeriosanidad.gq' ||
+                  email.includes('admin')) {
+                role = 'SUPER_ADMINISTRADOR';
+                console.log('👑 Rol administrativo asignado por email');
+              }
+            }
+          } catch (profileError) {
+            console.log('⚠️ Error al buscar en user_profiles, usando fallback');
+            // Para usuarios conocidos, asignar rol admin
+            if (email === 'chamibeny@gmail.com' ||
+                email === 'juan.froilan@ministeriosanidad.gq') {
+              role = 'SUPER_ADMINISTRADOR';
+              fullName = email === 'chamibeny@gmail.com' ? 'Beltran Ebiole' : 'Juan Froilan Ramos Nabama';
+            }
           }
+
+          const userProfile: UserProfile = {
+            ...supabaseUser,
+            role,
+            full_name: fullName,
+            department: 'Ministerio de Sanidad y Bienestar Social'
+          };
+
+          setUser(userProfile);
+          setUserRole(role);
+
+          console.log('✅ Usuario configurado:', {
+            email: userProfile.email,
+            role,
+            full_name: fullName,
+            isValidRole: role in ROLE_DEFINITIONS
+          });
+        } else {
+          console.log('❌ No hay usuario autenticado');
+          setUser(null);
+          setUserRole(null);
         }
       } catch (error) {
         console.error('❌ Error inicializando auth:', error);
@@ -79,99 +118,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         setUserRole(null);
       } finally {
         setIsLoading(false);
-      }
-    };
-
-    const setupUserFromAuth = async (supabaseUser: any) => {
-      try {
-        let role: UserRole = defaultRole;
-        const email = supabaseUser.email?.toLowerCase() || '';
-
-        // 1. Intentar obtener el rol desde user_profiles
-        const { data: userProfile } = await supabase
-          .from('user_profiles')
-          .select('role, full_name, department, assigned_center_id, is_active')
-          .eq('email', email)
-          .single();
-
-        if (userProfile && userProfile.is_active) {
-          role = userProfile.role as UserRole;
-          console.log('👤 Rol obtenido desde user_profiles:', role);
-
-          const userProfileComplete: UserProfile = {
-            ...supabaseUser,
-            role,
-            full_name: userProfile.full_name || supabaseUser.user_metadata?.full_name,
-            department: userProfile.department || 'Ministerio de Sanidad y Bienestar Social',
-            assigned_center_id: userProfile.assigned_center_id
-          };
-
-          setUser(userProfileComplete);
-          setUserRole(role);
-
-          console.log('✅ Usuario configurado desde BD:', {
-            email: userProfileComplete.email,
-            role,
-            full_name: userProfileComplete.full_name,
-            isValidRole: role in ROLE_DEFINITIONS
-          });
-          return;
-        }
-
-        // 2. Si no está en user_profiles, usar lógica de asignación por email
-        console.log('⚠️ Usuario no encontrado en user_profiles, usando lógica de email');
-
-        if (email.includes('juan.froilan') ||
-            email.includes('froilan') ||
-            email.includes('ramos') ||
-            email.includes('nabama') ||
-            email === 'juan.froilan@ministeriosanidad.gq' ||
-            email === 'chamibeny@gmail.com') {
-          role = 'SUPER_ADMINISTRADOR';
-          console.log('👑 Asignado rol SUPER_ADMINISTRADOR por email especial');
-        } else if (supabaseUser.user_metadata?.role) {
-          role = supabaseUser.user_metadata.role as UserRole;
-          console.log('🎭 Rol desde metadata:', role);
-        } else if (email.includes('admin') || email.includes('administrador')) {
-          role = 'SUPER_ADMINISTRADOR';
-        } else if (email.includes('revisor') || email.includes('comite') || email.includes('evaluador')) {
-          role = 'REVISOR_SOLICITUDES';
-        } else if (email.includes('ministro') || email.includes('ministerial') || email.includes('secretario')) {
-          role = 'PERSONALIDAD_MINISTERIAL';
-        } else if (email.includes('director') || email.includes('centro') || email.includes('hospital')) {
-          role = 'DIRECTIVO_CENTRO_SANITARIO';
-        } else {
-          role = 'OBSERVADOR';
-        }
-
-        const userProfileComplete: UserProfile = {
-          ...supabaseUser,
-          role,
-          full_name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0],
-          department: supabaseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
-          assigned_center_id: supabaseUser.user_metadata?.assigned_center_id
-        };
-
-        setUser(userProfileComplete);
-        setUserRole(role);
-
-        console.log('✅ Usuario configurado desde email logic:', {
-          email: userProfileComplete.email,
-          role,
-          roleType: typeof role,
-          isValidRole: role in ROLE_DEFINITIONS
-        });
-      } catch (profileError) {
-        console.error('❌ Error obteniendo perfil de usuario:', profileError);
-        // Fallback a rol por defecto
-        const fallbackProfile: UserProfile = {
-          ...supabaseUser,
-          role: 'OBSERVADOR',
-          full_name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0],
-          department: 'Ministerio de Sanidad y Bienestar Social'
-        };
-        setUser(fallbackProfile);
-        setUserRole('OBSERVADOR');
       }
     };
 

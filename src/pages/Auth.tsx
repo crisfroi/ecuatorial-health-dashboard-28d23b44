@@ -116,11 +116,7 @@ const Auth = () => {
     }
   };
 
-  // If user is already logged in, redirect
-  if (user) {
-    navigate('/dashboard');
-    return null;
-  }
+  // Navigation is handled by useEffect above, no need to redirect during render
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-guinea-teal to-guinea-dark-teal flex items-center justify-center p-4">

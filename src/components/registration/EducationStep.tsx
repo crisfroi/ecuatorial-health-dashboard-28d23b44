@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UseFormReturn } from 'react-hook-form';
+import { usePaises } from '@/hooks/usePaises';
 
 interface EducationStepProps {
   form: UseFormReturn<any>;
@@ -34,6 +34,8 @@ const categorias_titulacion = [
 ];
 
 export const EducationStep = ({ form }: EducationStepProps) => {
+  const { data: paises = [], isLoading: isLoadingPaises } = usePaises();
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <FormField
@@ -148,9 +150,20 @@ export const EducationStep = ({ form }: EducationStepProps) => {
         render={({ field }) => (
           <FormItem className="md:col-span-2">
             <FormLabel>País de Formación *</FormLabel>
-            <FormControl>
-              <Input placeholder="País donde obtuvo la titulación" {...field} />
-            </FormControl>
+            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingPaises}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder={isLoadingPaises ? "Cargando países..." : "Seleccione el país donde obtuvo la titulación"} />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {paises.map((pais) => (
+                  <SelectItem key={pais} value={pais}>
+                    {pais}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <FormMessage />
           </FormItem>
         )}

@@ -29,6 +29,7 @@ import { PagosGuardias } from './tabs/PagosGuardias';
 import { ReportesGuardias } from './tabs/ReportesGuardias';
 import { AuditoriaGuardias } from './tabs/AuditoriaGuardias';
 import { AjustesGuardias } from './tabs/AjustesGuardias';
+import { GuardiasStatusIndicators } from './GuardiasStatusIndicators';
 
 interface GuardiasDashboardProps {
   userRole: string;

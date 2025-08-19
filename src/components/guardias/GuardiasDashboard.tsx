@@ -205,6 +205,21 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
         </CardHeader>
       </Card>
 
+      {/* Indicadores de estado */}
+      <GuardiasStatusIndicators
+        stats={{
+          totalGuardias: guardias.length,
+          guardiasAprobadas: guardias.filter(g => g.observaciones?.includes('aprobad')).length,
+          guardiasPendientes: guardias.filter(g => !g.observaciones?.includes('aprobad')).length,
+          profesionalesActivos: new Set(guardias.map(g => g.profesional_id)).size,
+          nominasPendientes: nominas.filter(n => n.estado === 'GENERADA').length,
+          pagosPendientes: pagos.filter(p => p.estado === 'PENDIENTE').length,
+          validacionesPendientes: validaciones.filter(v => v.estado === 'PENDIENTE').length,
+          totalNominas: nominas.reduce((sum, n) => sum + n.total, 0)
+        }}
+        userRole={userRole}
+      />
+
       {/* Pestañas principales */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-1">

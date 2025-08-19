@@ -186,12 +186,12 @@ const Auth = () => {
                       />
                     </div>
                   </div>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full bg-guinea-teal hover:bg-guinea-dark-teal"
-                    disabled={loading}
+                    disabled={loading || isLoading}
                   >
-                    {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                    {(loading || isLoading) ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                   </Button>
                 </form>
               </TabsContent>

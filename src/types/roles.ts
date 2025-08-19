@@ -139,16 +139,20 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'export_data',
       'generate_reports',
       'ai_chat_basic',
-      'ai_chat_advanced'
+      'ai_chat_advanced',
+      'view_guardias',
+      'approve_guardias',
+      'view_guardias_reports'
     ],
     dashboardTabs: [
       'overview',
       'professionals',
       'requests',
+      'renewals',
+      'guardias',
       'analytics',
       'health-centers',
       'incidents',
-      'renewals',
       'ai-chat'
     ]
   },

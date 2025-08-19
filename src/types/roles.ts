@@ -103,12 +103,13 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
     permissions: PERMISSIONS.map(p => p.id), // TODOS los permisos
     dashboardTabs: [
       'overview',
-      'professionals', 
+      'professionals',
       'requests',
+      'renewals',
+      'guardias',
       'analytics',
       'health-centers',
       'incidents',
-      'renewals',
       'ai-chat',
       'admin',
       'ministerial'

@@ -150,9 +150,20 @@ export const EducationStep = ({ form }: EducationStepProps) => {
         render={({ field }) => (
           <FormItem className="md:col-span-2">
             <FormLabel>País de Formación *</FormLabel>
-            <FormControl>
-              <Input placeholder="País donde obtuvo la titulación" {...field} />
-            </FormControl>
+            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingPaises}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder={isLoadingPaises ? "Cargando países..." : "Seleccione el país donde obtuvo la titulación"} />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {paises.map((pais) => (
+                  <SelectItem key={pais} value={pais}>
+                    {pais}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <FormMessage />
           </FormItem>
         )}

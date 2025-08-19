@@ -311,26 +311,24 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             .from('guardias')
             .select(`
               *,
-              profesional_guardia_id (
-                profesional_id (
-                  id,
-                  nombre_completo,
-                  area_profesional
-                )
+              profesional_id (
+                id,
+                nombre_completo,
+                area_profesional
               ),
               centro_salud_id (
                 id,
                 nombre
               )
             `)
-            .order('fecha_inicio', { ascending: false });
+            .order('fecha', { ascending: false });
 
           // Filtrar por mes y año
           const startDate = new Date(ano, mes - 1, 1);
           const endDate = new Date(ano, mes, 0);
           query = query
-            .gte('fecha_inicio', startDate.toISOString())
-            .lte('fecha_inicio', endDate.toISOString());
+            .gte('fecha', startDate.toISOString())
+            .lte('fecha', endDate.toISOString());
 
           // Filtrar por centro si se especifica
           if (centroId) {
@@ -344,8 +342,32 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             throw error;
           }
 
-          console.log('Guardias fetched:', data?.length || 0);
-          set({ guardias: data || [], loading: false });
+          // Normalizar al shape esperado por el UI
+          const normalized = (data || []).map((g: any) => ({
+            id: g.id,
+            profesional_id: g.profesional_id?.id ? g.profesional_id.id : g.profesional_id,
+            centro_id: g.centro_salud_id?.id ? g.centro_salud_id.id : g.centro_salud_id,
+            fecha: g.fecha,
+            turno: g.turno,
+            tipo_guardia: g.tipo_guardia,
+            horas_inicio: g.horas_inicio,
+            horas_fin: g.horas_fin,
+            observaciones: g.observaciones,
+            created_at: g.created_at,
+            updated_at: g.updated_at,
+            profesional: g.profesional_id && typeof g.profesional_id === 'object' ? {
+              id: g.profesional_id.id,
+              nombre_completo: g.profesional_id.nombre_completo,
+              especialidad: g.profesional_id.area_profesional
+            } : undefined,
+            centro: g.centro_salud_id && typeof g.centro_salud_id === 'object' ? {
+              id: g.centro_salud_id.id,
+              nombre: g.centro_salud_id.nombre
+            } : undefined,
+          }));
+
+          console.log('Guardias fetched:', normalized.length);
+          set({ guardias: normalized, loading: false });
         } catch (error: any) {
           console.error('Error fetching guardias:', error);
           set({ error: 'Error al cargar guardias: ' + error.message, loading: false });
@@ -355,9 +377,20 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       createGuardia: async (data) => {
         set({ loading: true });
         try {
+          const insertData: any = {
+            profesional_id: (data as any).profesional_id,
+            centro_salud_id: (data as any).centro_salud_id || (data as any).centro_id,
+            fecha: (data as any).fecha,
+            turno: (data as any).turno,
+            tipo_guardia: (data as any).tipo_guardia,
+            horas_inicio: (data as any).horas_inicio,
+            horas_fin: (data as any).horas_fin,
+            observaciones: (data as any).observaciones,
+          };
+
           const { error } = await supabase
             .from('guardias')
-            .insert(data);
+            .insert(insertData);
 
           if (error) throw error;
 
@@ -375,9 +408,20 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       updateGuardia: async (id, data) => {
         set({ loading: true });
         try {
+          const updateData: any = {
+            profesional_id: (data as any).profesional_id,
+            centro_salud_id: (data as any).centro_salud_id || (data as any).centro_id,
+            fecha: (data as any).fecha,
+            turno: (data as any).turno,
+            tipo_guardia: (data as any).tipo_guardia,
+            horas_inicio: (data as any).horas_inicio,
+            horas_fin: (data as any).horas_fin,
+            observaciones: (data as any).observaciones,
+          };
+
           const { error } = await supabase
             .from('guardias')
-            .update(data)
+            .update(updateData)
             .eq('id', id);
 
           if (error) throw error;

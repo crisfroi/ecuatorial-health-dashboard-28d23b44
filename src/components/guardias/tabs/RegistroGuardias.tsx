@@ -44,7 +44,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGuardia, setEditingGuardia] = useState<any>(null);
   const [formData, setFormData] = useState({
-    profesional_ids: [] as string[],
+    profesional_id: '',
     centro_id: selectedCenter || '',
     fecha: '',
     turno: 'MAÑANA' as 'MAÑANA' | 'TARDE' | 'NOCHE',
@@ -62,6 +62,13 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     }
   }, [selectedMonth, selectedYear, selectedCenter]);
 
+  // Refrescar profesionales cuando el usuario selecciona un centro en el formulario
+  useEffect(() => {
+    if (!selectedCenter && formData.centro_id) {
+      fetchProfesionales(formData.centro_id);
+    }
+  }, [formData.centro_id]);
+
   const filteredGuardias = guardias.filter(guardia =>
     guardia.profesional?.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     guardia.centro?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -71,20 +78,28 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     e.preventDefault();
 
     try {
+      const payload = {
+        profesional_id: formData.profesional_id,
+        centro_salud_id: formData.centro_id || selectedCenter || '',
+        fecha: formData.fecha,
+        turno: formData.turno,
+        tipo_guardia: formData.tipo_guardia,
+        horas_inicio: formData.horas_inicio,
+        horas_fin: formData.horas_fin,
+        observaciones: formData.observaciones,
+      };
+
       if (editingGuardia) {
-        await updateGuardia(editingGuardia.id, {...formData, profesional_id: formData.profesional_ids[0]});
+        await updateGuardia(editingGuardia.id, payload);
         toast({
           title: "Guardia actualizada",
           description: "La guardia ha sido actualizada correctamente.",
         });
       } else {
-        // Crear múltiples guardias para cada profesional seleccionado
-        for (const profesional_id of formData.profesional_ids) {
-          await createGuardia({...formData, profesional_id});
-        }
+        await createGuardia(payload);
         toast({
-          title: "Guardias registradas",
-          description: `Se han registrado ${formData.profesional_ids.length} guardias correctamente.`,
+          title: "Guardia registrada",
+          description: `Se ha registrado la guardia correctamente.`,
         });
       }
 
@@ -104,9 +119,9 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
   const handleEdit = (guardia: any) => {
     setEditingGuardia(guardia);
     setFormData({
-      profesional_ids: [guardia.profesional_id],
-      centro_id: guardia.centro_id,
-      fecha: guardia.fecha,
+      profesional_id: guardia.profesional_id,
+      centro_id: guardia.centro_salud_id || guardia.centro_id || '',
+      fecha: guardia.fecha || '',
       turno: guardia.turno,
       tipo_guardia: guardia.tipo_guardia,
       horas_inicio: guardia.horas_inicio,
@@ -137,7 +152,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
 
   const resetForm = () => {
     setFormData({
-      profesional_ids: [],
+      profesional_id: '',
       centro_id: selectedCenter || '',
       fecha: '',
       turno: 'MAÑANA',

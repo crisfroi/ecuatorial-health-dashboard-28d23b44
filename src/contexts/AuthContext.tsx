@@ -163,14 +163,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
       if (data.user) {
         console.log('✅ Login exitoso para:', data.user.email);
+        console.log('🔄 Setting isLoading(false) after successful login');
         return { success: true };
       }
 
+      console.log('❌ No user data received');
       return { success: false, error: 'No se pudo obtener información del usuario' };
     } catch (error: any) {
       console.error('❌ Error de conexión en login:', error);
       return { success: false, error: 'Error de conexión. Intente nuevamente.' };
     } finally {
+      console.log('🔄 AuthContext: Setting isLoading(false) in finally block');
       setIsLoading(false);
     }
   };

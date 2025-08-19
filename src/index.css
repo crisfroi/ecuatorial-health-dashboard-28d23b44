@@ -1,7 +1,44 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ResizeObserver and chart stability fixes */
+* {
+  /* Prevent subpixel rendering issues that can trigger ResizeObserver loops */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Stabilize recharts components */
+.recharts-wrapper {
+  /* Prevent unnecessary reflows during resize */
+  will-change: auto !important;
+  backface-visibility: hidden;
+  /* Ensure integer dimensions */
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.recharts-surface {
+  /* Stabilize SVG rendering */
+  shape-rendering: optimizeSpeed;
+  overflow: visible;
+}
+
+/* Canvas stabilization for barcode and other canvas elements */
+canvas {
+  /* Prevent subpixel positioning */
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* D3/SVG optimization */
+svg {
+  /* Optimize SVG rendering performance */
+  shape-rendering: optimizeSpeed;
+  overflow: visible;
+}
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
 

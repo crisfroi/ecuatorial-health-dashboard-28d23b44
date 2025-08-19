@@ -34,6 +34,8 @@ const categorias_titulacion = [
 ];
 
 export const EducationStep = ({ form }: EducationStepProps) => {
+  const { data: paises = [], isLoading: isLoadingPaises } = usePaises();
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <FormField

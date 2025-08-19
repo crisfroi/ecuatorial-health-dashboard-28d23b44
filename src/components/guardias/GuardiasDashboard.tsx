@@ -32,6 +32,7 @@ import { AjustesGuardias } from './tabs/AjustesGuardias';
 import { GuardiasStatusIndicators } from './GuardiasStatusIndicators';
 import { GuardiasNotificationSystem } from './GuardiasNotificationSystem';
 import { GuardiasHelpSystem } from './GuardiasHelpSystem';
+import { GuardiasOnboardingTour } from './GuardiasOnboardingTour';
 
 interface GuardiasDashboardProps {
   userRole: string;

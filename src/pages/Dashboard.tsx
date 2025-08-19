@@ -562,7 +562,18 @@ const Dashboard = () => {
                 onNavigateToProfessionals={() => setActiveTab("professionals")}
               />
             </ErrorBoundary>
-            <DashboardCharts onChartClick={handleChartClick} />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <DashboardCharts onChartClick={handleChartClick} />
+              </div>
+              <div>
+                <GuardiasStatsWidget
+                  userRole={userRole}
+                  onNavigateToGuardias={() => setActiveTab("guardias")}
+                />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="professionals" className="space-y-6">

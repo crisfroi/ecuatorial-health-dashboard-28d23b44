@@ -13,9 +13,8 @@ import { useAuth } from '@/contexts/AuthContext';
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const { user, login: authLogin, isLoading } = useAuth();
+
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,17 +22,11 @@ const Auth = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Solo verificar sesión existente al cargar el componente
-    // El AuthContext ya maneja el listener de cambios de estado
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        navigate('/dashboard');
-      }
-    });
-  }, [navigate]);
+    // Si ya hay un usuario autenticado, redirigir al dashboard
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

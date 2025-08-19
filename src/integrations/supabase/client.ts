@@ -5,6 +5,23 @@ import type { Database } from './types';
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://wdieynendfjbkbhfovrx.supabase.co";
 export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkaWV5bmVuZGZqYmtiaGZvdnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3ODI5MjEsImV4cCI6MjA2NjM1ODkyMX0.yFnLHavy8wzVjlg3sAI2mEG-XGDCV5FSr7OQsMefxL8";
 
+// Validate environment variables
+if (!SUPABASE_URL) {
+  console.error('❌ VITE_SUPABASE_URL is not defined');
+  throw new Error('Missing VITE_SUPABASE_URL environment variable');
+}
+
+if (!SUPABASE_PUBLISHABLE_KEY) {
+  console.error('❌ VITE_SUPABASE_ANON_KEY is not defined');
+  throw new Error('Missing VITE_SUPABASE_ANON_KEY environment variable');
+}
+
+console.log('✅ Supabase client initialized with:', {
+  url: SUPABASE_URL,
+  hasKey: SUPABASE_PUBLISHABLE_KEY ? 'Yes' : 'No',
+  keyLength: SUPABASE_PUBLISHABLE_KEY?.length || 0
+});
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 

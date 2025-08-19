@@ -47,48 +47,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     const initializeAuth = async () => {
       try {
         console.log('🔐 Inicializando autenticación...');
 
         const { data: { user: supabaseUser } } = await supabase.auth.getUser();
 
+        if (!mounted) return;
+
         if (supabaseUser) {
           console.log('👤 Usuario autenticado encontrado:', supabaseUser.email);
 
-          let role: UserRole = defaultRole;
-          let fullName = supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0];
+          let role: UserRole = 'SUPER_ADMINISTRADOR';
+          let fullName = 'Beltran Ebiole';
           const email = supabaseUser.email?.toLowerCase() || '';
 
-          // Verificar en user_profiles primero
-          try {
-            const { data: userProfile } = await supabase
-              .from('user_profiles')
-              .select('role, full_name, department, assigned_center_id, is_active')
-              .eq('email', email)
-              .single();
-
-            if (userProfile && userProfile.is_active) {
-              role = userProfile.role as UserRole;
-              fullName = userProfile.full_name || fullName;
-              console.log('👤 Configuración desde user_profiles:', { email, role, fullName });
-            } else {
-              // Fallback para emails administrativos conocidos
-              if (email === 'chamibeny@gmail.com' ||
-                  email === 'juan.froilan@ministeriosanidad.gq' ||
-                  email.includes('admin')) {
-                role = 'SUPER_ADMINISTRADOR';
-                console.log('👑 Rol administrativo asignado por email');
-              }
-            }
-          } catch (profileError) {
-            console.log('⚠️ Error al buscar en user_profiles, usando fallback');
-            // Para usuarios conocidos, asignar rol admin
-            if (email === 'chamibeny@gmail.com' ||
-                email === 'juan.froilan@ministeriosanidad.gq') {
-              role = 'SUPER_ADMINISTRADOR';
-              fullName = email === 'chamibeny@gmail.com' ? 'Beltran Ebiole' : 'Juan Froilan Ramos Nabama';
-            }
+          // Asignación directa para usuarios conocidos
+          if (email === 'chamibeny@gmail.com') {
+            role = 'SUPER_ADMINISTRADOR';
+            fullName = 'Beltran Ebiole';
+          } else if (email === 'juan.froilan@ministeriosanidad.gq') {
+            role = 'SUPER_ADMINISTRADOR';
+            fullName = 'Juan Froilan Ramos Nabama';
+          } else {
+            role = 'OBSERVADOR';
+            fullName = supabaseUser.email?.split('@')[0] || 'Usuario';
           }
 
           const userProfile: UserProfile = {
@@ -98,26 +83,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             department: 'Ministerio de Sanidad y Bienestar Social'
           };
 
-          setUser(userProfile);
-          setUserRole(role);
-
-          console.log('✅ Usuario configurado:', {
-            email: userProfile.email,
-            role,
-            full_name: fullName,
-            isValidRole: role in ROLE_DEFINITIONS
-          });
+          if (mounted) {
+            setUser(userProfile);
+            setUserRole(role);
+            console.log('✅ Usuario configurado:', { email, role, fullName });
+          }
         } else {
           console.log('❌ No hay usuario autenticado');
-          setUser(null);
-          setUserRole(null);
+          if (mounted) {
+            setUser(null);
+            setUserRole(null);
+          }
         }
       } catch (error) {
         console.error('❌ Error inicializando auth:', error);
-        setUser(null);
-        setUserRole(null);
+        if (mounted) {
+          setUser(null);
+          setUserRole(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -145,7 +132,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
     initializeAuth();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [defaultRole]);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {

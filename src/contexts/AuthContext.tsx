@@ -85,23 +85,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           } else if (email.includes('director') || email.includes('centro') || email.includes('hospital')) {
             role = 'DIRECTIVO_CENTRO_SANITARIO';
           } else {
-            role = 'OBSERVADOR'; // Rol más restrictivo por defecto
-          }
-          console.log('🎭 Rol asignado:', role);
 
-          // Validar que el rol sea válido
-          if (!(role in ROLE_DEFINITIONS)) {
-            console.warn('⚠️ Rol inválido detectado:', role, '- usando OBSERVADOR como fallback');
-            role = 'OBSERVADOR';
           }
 
           const userProfile: UserProfile = {
             ...supabaseUser,
-            role,
-            full_name: supabaseUser.user_metadata?.full_name ||
-                       (supabaseUser.email === 'juan.froilan@ministeriosanidad.gq' ? 'Juan Froilan Ramos Nabama' :
-                        supabaseUser.email?.split('@')[0]?.replace('.', ' ').toUpperCase()),
-            department: supabaseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
+            role, department: supabaseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
             assigned_center_id: supabaseUser.user_metadata?.assigned_center_id
           };
 

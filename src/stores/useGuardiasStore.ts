@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Helper function to format Supabase errors properly
 const formatSupabaseError = (error: any): string => {
-  console.log('🔍 Debugging error object:', error);
+  console.error('🔍 Debugging error object type:', typeof error, error);
 
   if (!error) return 'Error desconocido';
 
@@ -60,13 +60,26 @@ const formatSupabaseError = (error: any): string => {
     return error.message;
   }
 
-  // Last resort: stringify but make it readable
+  // Extract properties manually as last resort
   try {
-    const errorStr = JSON.stringify(error, null, 2);
-    console.log('📄 Stringified error:', errorStr);
-    return errorStr.length > 500 ?
-      'Error de conexión con la base de datos. Ver consola para detalles.' :
-      errorStr;
+    const errorProperties = [];
+    for (const key in error) {
+      if (error.hasOwnProperty(key)) {
+        errorProperties.push(`${key}: ${error[key]}`);
+      }
+    }
+
+    if (errorProperties.length > 0) {
+      const errorStr = errorProperties.join(', ');
+      console.error('🔍 Extracted error properties:', errorStr);
+      return errorStr.length > 200 ?
+        'Error de base de datos. Ver consola para detalles.' :
+        errorStr;
+    }
+
+    // Ultimate fallback
+    console.error('🚫 No readable error properties found, using toString');
+    return error.toString() || 'Error desconocido';
   } catch {
     return 'Error desconocido al procesar la solicitud';
   }
@@ -1249,7 +1262,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           console.log('✅ Validacion created successfully');
           set({ loading: false });
         } catch (error: any) {
-          console.error('��� Exception in createValidacion:', error);
+          console.error('💥 Exception in createValidacion:', error);
           const errorMessage = formatSupabaseError(error);
           set({ error: 'Error al crear validación: ' + errorMessage, loading: false });
           throw error;

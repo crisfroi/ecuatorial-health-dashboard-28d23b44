@@ -417,7 +417,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
           set({ loading: false });
         } catch (error: any) {
-          set({ error: 'Error al crear guardia: ' + error.message, loading: false });
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al crear guardia: ' + errorMessage, loading: false });
         }
       },
 
@@ -497,7 +498,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           set({ loading: false });
         } catch (error: any) {
           console.error('Error updating guardia:', error);
-          set({ error: 'Error al actualizar guardia: ' + error.message, loading: false });
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al actualizar guardia: ' + errorMessage, loading: false });
         }
       },
 
@@ -518,7 +520,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           set({ loading: false });
         } catch (error: any) {
           console.error('Error deleting guardia:', error);
-          set({ error: 'Error al eliminar guardia: ' + error.message, loading: false });
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al eliminar guardia: ' + errorMessage, loading: false });
         }
       },
 

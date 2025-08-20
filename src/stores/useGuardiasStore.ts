@@ -202,6 +202,7 @@ interface GuardiasStoreState {
   createGuardia: (data: Partial<Guardia>) => Promise<void>;
   updateGuardia: (id: string, data: Partial<Guardia>) => Promise<void>;
   deleteGuardia: (id: string) => Promise<void>;
+  ensureProfesionalGuardia: (profesionalId: string) => Promise<string>;
 
   // Operaciones CRUD - Profesionales
   fetchProfesionales: (centroId?: string | null) => Promise<void>;

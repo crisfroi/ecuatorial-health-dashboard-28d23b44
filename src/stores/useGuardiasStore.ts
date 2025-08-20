@@ -4,35 +4,69 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Helper function to format Supabase errors properly
 const formatSupabaseError = (error: any): string => {
+  console.log('🔍 Debugging error object:', error);
+
   if (!error) return 'Error desconocido';
 
   if (typeof error === 'string') return error;
 
-  if (error.message) return error.message;
+  // Supabase error structure
+  if (error.message) {
+    console.log('📝 Error message found:', error.message);
+    return error.message;
+  }
 
-  if (error.details) return error.details;
+  if (error.details) {
+    console.log('📋 Error details found:', error.details);
+    return error.details;
+  }
 
-  if (error.hint) return error.hint;
+  if (error.hint) {
+    console.log('💡 Error hint found:', error.hint);
+    return error.hint;
+  }
 
-  // If it's a PostgreSQL error
+  // PostgreSQL error codes
   if (error.code) {
+    console.log('🏷️ Error code found:', error.code);
     switch (error.code) {
       case '23505':
         return 'Ya existe un registro con estos datos';
       case '23503':
         return 'Referencia a un registro que no existe';
+      case '23502':
+        return 'Campo requerido faltante en la base de datos';
       case '42P01':
         return 'La tabla no existe en la base de datos';
       case '42703':
         return 'Columna no encontrada en la tabla';
+      case '42501':
+        return 'Permisos insuficientes para realizar la operación';
       default:
-        return `Error de base de datos (${error.code}): ${error.message || 'Error desconocido'}`;
+        const codeMsg = error.message || error.details || 'Error de base de datos';
+        return `Error BD (${error.code}): ${codeMsg}`;
     }
   }
 
-  // Fallback: stringify the error object but make it readable
+  // Try to extract meaningful info from error object
+  if (error.error && error.error.message) {
+    console.log('🔗 Nested error message found:', error.error.message);
+    return error.error.message;
+  }
+
+  // If it's an HttpException with nested error
+  if (error.name === 'HttpException' && error.message) {
+    console.log('🌐 HTTP Exception found:', error.message);
+    return error.message;
+  }
+
+  // Last resort: stringify but make it readable
   try {
-    return JSON.stringify(error, null, 2);
+    const errorStr = JSON.stringify(error, null, 2);
+    console.log('📄 Stringified error:', errorStr);
+    return errorStr.length > 500 ?
+      'Error de conexión con la base de datos. Ver consola para detalles.' :
+      errorStr;
   } catch {
     return 'Error desconocido al procesar la solicitud';
   }
@@ -548,6 +582,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       // Nueva función para asegurar que existe un profesional_guardia
       ensureProfesionalGuardia: async (profesionalId: string) => {
+        console.log('🔍 Ensuring profesional_guardia exists for:', profesionalId);
         try {
           // Buscar si ya existe un registro en profesionales_guardias
           const { data: existing, error: searchError } = await supabase
@@ -557,24 +592,35 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             .single();
 
           if (!searchError && existing) {
+            console.log('✅ Profesional_guardia already exists:', existing.id);
             return existing.id;
           }
+
+          console.log('🔍 Searching error (expected if not found):', searchError);
 
           // Si no existe, obtener datos del profesional sanitario
           const { data: profesional, error: profError } = await supabase
             .from('profesionales_sanitarios')
-            .select('id, nombre_completo, area_profesional')
+            .select('id, nombre_completo, area_profesional, especialidad')
             .eq('id', profesionalId)
             .single();
 
-          if (profError || !profesional) {
-            throw new Error('Profesional no encontrado');
+          if (profError) {
+            console.error('❌ Error fetching profesional:', profError);
+            const errorMsg = formatSupabaseError(profError);
+            throw new Error(`Profesional no encontrado: ${errorMsg}`);
           }
+
+          if (!profesional) {
+            throw new Error('Profesional no encontrado en la base de datos');
+          }
+
+          console.log('👨‍⚕️ Found profesional:', profesional);
 
           // Determinar categoría basada en area_profesional
           let categoria: 'especialista' | 'general_licenciado' | 'tecnico_diplomado' | 'auxiliar' | 'subalterno' | 'odepac' | 'secre_asist_pacientes' | 'caja' = 'general_licenciado';
 
-          const areaProfesional = profesional.area_profesional?.toLowerCase() || '';
+          const areaProfesional = (profesional.area_profesional || profesional.especialidad || '').toLowerCase();
           if (areaProfesional.includes('especialista') || areaProfesional.includes('especialidad')) {
             categoria = 'especialista';
           } else if (areaProfesional.includes('técnico') || areaProfesional.includes('tecnico')) {
@@ -583,25 +629,41 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             categoria = 'auxiliar';
           }
 
+          // Determinar unidad_servicio (requerido)
+          const unidadServicio = profesional.area_profesional ||
+                                profesional.especialidad ||
+                                'Servicio General';
+
+          console.log('📋 Creating profesional_guardia with:', {
+            profesional_id: profesionalId,
+            categoria,
+            unidad_servicio: unidadServicio
+          });
+
           // Crear nuevo registro en profesionales_guardias
           const { data: newRecord, error: insertError } = await supabase
             .from('profesionales_guardias')
             .insert({
               profesional_id: profesionalId,
               categoria: categoria,
-              unidad_servicio: profesional.area_profesional || 'Servicio General',
+              unidad_servicio: unidadServicio,
               activo: true
             })
             .select('id')
             .single();
 
           if (insertError) {
-            throw insertError;
+            console.error('❌ Error inserting profesional_guardia:', insertError);
+            const errorMsg = formatSupabaseError(insertError);
+            throw new Error(`Error al crear registro de profesional_guardia: ${errorMsg}`);
           }
 
+          console.log('✅ Created profesional_guardia:', newRecord.id);
           return newRecord.id;
         } catch (error: any) {
-          throw new Error(`Error al preparar profesional para guardias: ${error.message}`);
+          console.error('💥 Exception in ensureProfesionalGuardia:', error);
+          const errorMsg = formatSupabaseError(error);
+          throw new Error(`Error al preparar profesional para guardias: ${errorMsg}`);
         }
       },
 
@@ -1232,7 +1294,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         } catch (error: any) {
           console.error('💥 Exception in fetchNominasLineas:', error);
           const errorMessage = formatSupabaseError(error);
-          set({ error: 'Error al cargar líneas de nómina: ' + errorMessage, loading: false });
+          set({ error: 'Error al cargar l��neas de nómina: ' + errorMessage, loading: false });
         }
       },
 

@@ -648,29 +648,29 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="font-semibold text-lg">{baremo.concepto}</h3>
+                          <h3 className="font-semibold text-lg">{baremo.categoria} - {baremo.tipo_guardia} - {baremo.tipo_dia}</h3>
                           <Badge variant={baremo.activo ? "default" : "secondary"}>
                             {baremo.activo ? 'Activo' : 'Inactivo'}
                           </Badge>
                           <Badge variant="outline">{baremo.fuente}</Badge>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600 mb-3">
                           <div>
-                            <span className="font-medium">Tarifa Base:</span>
-                            <p className="text-lg font-bold text-green-600">{formatCurrency(baremo.tarifa_base)}</p>
+                            <span className="font-medium">Valor Base:</span>
+                            <p className="text-lg font-bold text-green-600">{formatCurrency(baremo.valor)}</p>
                           </div>
                           <div>
-                            <span className="font-medium">Multiplicador Nocturno:</span>
-                            <p className="text-lg font-bold text-blue-600">{baremo.multiplicador_nocturno}x</p>
+                            <span className="font-medium">% Localizable:</span>
+                            <p className="text-lg font-bold text-blue-600">{baremo.porcentaje_localizable}%</p>
                           </div>
                           <div>
-                            <span className="font-medium">Multiplicador Festivo:</span>
-                            <p className="text-lg font-bold text-orange-600">{baremo.multiplicador_festivo}x</p>
+                            <span className="font-medium">% Llamada:</span>
+                            <p className="text-lg font-bold text-orange-600">{baremo.porcentaje_llamada}%</p>
                           </div>
                           <div>
-                            <span className="font-medium">Última Actualización:</span>
-                            <p className="text-sm">{new Date(baremo.updated_at).toLocaleDateString('es-ES')}</p>
+                            <span className="font-medium">Vigente Desde:</span>
+                            <p className="text-sm">{baremo.vigente_desde ? new Date(baremo.vigente_desde).toLocaleDateString('es-ES') : 'N/A'}</p>
                           </div>
                         </div>
 

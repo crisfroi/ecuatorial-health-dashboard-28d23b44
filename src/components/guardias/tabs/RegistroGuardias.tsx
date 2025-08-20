@@ -30,13 +30,17 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     guardias,
     profesionales,
     centros,
+    diasFestivos,
     loading,
     fetchGuardias,
     fetchProfesionales,
     fetchCentros,
+    fetchDiasFestivos,
     createGuardia,
     updateGuardia,
-    deleteGuardia
+    deleteGuardia,
+    getTipoDia,
+    isDiaFestivo
   } = useGuardiasStore();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,6 +60,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
   useEffect(() => {
     fetchGuardias(selectedMonth, selectedYear, selectedCenter);
     fetchProfesionales(selectedCenter);
+    fetchDiasFestivos(); // Cargar días festivos para el cálculo automático
     if (!selectedCenter) {
       fetchCentros();
     }
@@ -308,9 +313,36 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
                       id="fecha_inicio"
                       type="datetime-local"
                       value={formData.fecha_inicio}
-                      onChange={(e) => setFormData(prev => ({ ...prev, fecha_inicio: e.target.value }))}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          fecha_inicio: newDate,
+                          // Calcular automáticamente el tipo de día cuando cambia la fecha
+                          tipo_dia: newDate ? getTipoDia(newDate) : 'ordinario'
+                        }));
+                      }}
                       required
                     />
+                    {formData.fecha_inicio && (
+                      <div className="mt-1 flex items-center gap-2">
+                        {isDiaFestivo(formData.fecha_inicio) && (
+                          <Badge className="bg-red-100 text-red-800 text-xs">
+                            🎆 Día Festivo
+                          </Badge>
+                        )}
+                        {getTipoDia(formData.fecha_inicio) === 'fin_semana' && (
+                          <Badge className="bg-orange-100 text-orange-800 text-xs">
+                            📅 Fin de Semana
+                          </Badge>
+                        )}
+                        {getTipoDia(formData.fecha_inicio) === 'ordinario' && (
+                          <Badge className="bg-blue-100 text-blue-800 text-xs">
+                            📅 Día Ordinario
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -346,15 +378,16 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
                   </div>
 
                   <div>
-                    <Label htmlFor="tipo_dia">Tipo de Día *</Label>
+                    <Label htmlFor="tipo_dia">Tipo de Día (Auto-calculado)</Label>
                     <Select
                       value={formData.tipo_dia}
                       onValueChange={(value: 'ordinario' | 'fin_semana' | 'festivo') =>
                         setFormData(prev => ({ ...prev, tipo_dia: value }))
                       }
+                      disabled={!!formData.fecha_inicio} // Deshabilitar si hay fecha (se calcula automáticamente)
                     >
-                      <SelectTrigger>
-                        <SelectValue />
+                      <SelectTrigger className={formData.fecha_inicio ? 'bg-gray-50' : ''}>
+                        <SelectValue placeholder="Se calculará automáticamente" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ordinario">Ordinario</SelectItem>
@@ -362,6 +395,11 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
                         <SelectItem value="festivo">Festivo</SelectItem>
                       </SelectContent>
                     </Select>
+                    {formData.fecha_inicio && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        🤖 Calculado automáticamente según la fecha seleccionada
+                      </p>
+                    )}
                   </div>
                 </div>
 

@@ -197,23 +197,71 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="profesional_id">Profesional *</Label>
+                    <Label htmlFor="profesional_ids">Profesionales *</Label>
                     <Select
-                      value={formData.profesional_id}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, profesional_id: value }))}
-                      required
+                      value={formData.profesional_ids.length === 1 ? formData.profesional_ids[0] : ""}
+                      onValueChange={(value) => {
+                        if (editingGuardia) {
+                          // En modo edición, solo un profesional
+                          setFormData(prev => ({ ...prev, profesional_ids: [value] }));
+                        } else {
+                          // En modo creación, permite múltiples
+                          setFormData(prev => ({
+                            ...prev,
+                            profesional_ids: prev.profesional_ids.includes(value)
+                              ? prev.profesional_ids.filter(id => id !== value)
+                              : [...prev.profesional_ids, value]
+                          }));
+                        }
+                      }}
+                      required={formData.profesional_ids.length === 0}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar profesional" />
+                        <SelectValue
+                          placeholder={
+                            editingGuardia
+                              ? "Seleccionar profesional"
+                              : formData.profesional_ids.length === 0
+                                ? "Seleccionar profesionales"
+                                : `${formData.profesional_ids.length} profesional(es) seleccionado(s)`
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {profesionales.map((prof) => (
                           <SelectItem key={prof.id} value={prof.id}>
-                            {prof.nombre_completo} - {prof.especialidad}
+                            <div className="flex items-center gap-2">
+                              {!editingGuardia && formData.profesional_ids.includes(prof.id) && (
+                                <span className="text-guinea-teal">✓</span>
+                              )}
+                              {prof.nombre_completo} - {prof.especialidad}
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {!editingGuardia && formData.profesional_ids.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {formData.profesional_ids.map(id => {
+                          const prof = profesionales.find(p => p.id === id);
+                          return prof ? (
+                            <Badge key={id} variant="secondary" className="text-xs">
+                              {prof.nombre_completo}
+                              <button
+                                type="button"
+                                className="ml-1 hover:text-red-600"
+                                onClick={() => setFormData(prev => ({
+                                  ...prev,
+                                  profesional_ids: prev.profesional_ids.filter(pid => pid !== id)
+                                }))}
+                              >
+                                ×
+                              </button>
+                            </Badge>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   {!selectedCenter && (

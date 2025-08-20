@@ -355,16 +355,31 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       createGuardia: async (data) => {
         set({ loading: true });
         try {
+          // Mapear los datos al esquema correcto de la base de datos
+          const guardiaData = {
+            profesional_guardia_id: data.profesional_id, // El store local usa profesional_id pero BD usa profesional_guardia_id
+            centro_salud_id: data.centro_id,
+            tipo: data.tipo_guardia === 'ORDINARIA' ? 'fisica' :
+                  data.tipo_guardia === 'NOCTURNA' ? 'fisica' : 'localizable',
+            fecha_inicio: new Date(`${data.fecha} ${data.horas_inicio}`).toISOString(),
+            fecha_fin: new Date(`${data.fecha} ${data.horas_fin}`).toISOString(),
+            tipo_dia: 'ordinario', // Por defecto, luego se puede calcular basado en la fecha
+            observaciones: data.observaciones
+          };
+
           const { error } = await supabase
             .from('guardias')
-            .insert(data);
+            .insert(guardiaData);
 
-          if (error) throw error;
+          if (error) {
+            console.error('Database error details:', error);
+            throw error;
+          }
 
           // Refrescar datos
           const currentDate = new Date();
           await get().fetchGuardias(currentDate.getMonth() + 1, currentDate.getFullYear());
-          
+
           set({ loading: false });
         } catch (error: any) {
           console.error('Error creating guardia:', error);

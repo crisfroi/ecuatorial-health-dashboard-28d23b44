@@ -344,7 +344,7 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
-      currency: 'EUR'
+      currency: 'XAF'
     }).format(amount);
   };
 
@@ -449,7 +449,7 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
                       </div>
 
                       <div>
-                        <Label htmlFor="tarifa_base">Tarifa Base (€) *</Label>
+                        <Label htmlFor="tarifa_base">Tarifa Base (XAF) *</Label>
                         <Input
                           id="tarifa_base"
                           type="number"
@@ -878,7 +878,7 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="PORCENTAJE">Porcentaje (%)</SelectItem>
-                            <SelectItem value="MONTO_FIJO">Monto Fijo (€)</SelectItem>
+                            <SelectItem value="MONTO_FIJO">Monto Fijo (XAF)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -887,7 +887,7 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="valor_ajuste">
-                          Valor del Ajuste {ajusteForm.tipo_ajuste === 'PORCENTAJE' ? '(%)' : '(€)'}
+                          Valor del Ajuste {ajusteForm.tipo_ajuste === 'PORCENTAJE' ? '(%)' : '(XAF)'}
                         </Label>
                         <Input
                           id="valor_ajuste"

@@ -355,9 +355,12 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       createGuardia: async (data) => {
         set({ loading: true });
         try {
+          // Primero, asegurar que existe un registro en profesionales_guardias
+          let profesionalGuardiaId = await get().ensureProfesionalGuardia(data.profesional_id);
+
           // Mapear los datos al esquema correcto de la base de datos
           const guardiaData = {
-            profesional_guardia_id: data.profesional_id, // El store local usa profesional_id pero BD usa profesional_guardia_id
+            profesional_guardia_id: profesionalGuardiaId,
             centro_salud_id: data.centro_id,
             tipo: data.tipo_guardia === 'ORDINARIA' ? 'fisica' :
                   data.tipo_guardia === 'NOCTURNA' ? 'fisica' : 'localizable',
@@ -372,7 +375,6 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             .insert(guardiaData);
 
           if (error) {
-            console.error('Database error details:', error);
             throw error;
           }
 
@@ -382,8 +384,66 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
           set({ loading: false });
         } catch (error: any) {
-          console.error('Error creating guardia:', error);
           set({ error: 'Error al crear guardia: ' + error.message, loading: false });
+        }
+      },
+
+      // Nueva función para asegurar que existe un profesional_guardia
+      ensureProfesionalGuardia: async (profesionalId: string) => {
+        try {
+          // Buscar si ya existe un registro en profesionales_guardias
+          const { data: existing, error: searchError } = await supabase
+            .from('profesionales_guardias')
+            .select('id')
+            .eq('profesional_id', profesionalId)
+            .single();
+
+          if (!searchError && existing) {
+            return existing.id;
+          }
+
+          // Si no existe, obtener datos del profesional sanitario
+          const { data: profesional, error: profError } = await supabase
+            .from('profesionales_sanitarios')
+            .select('id, nombre_completo, area_profesional')
+            .eq('id', profesionalId)
+            .single();
+
+          if (profError || !profesional) {
+            throw new Error('Profesional no encontrado');
+          }
+
+          // Determinar categoría basada en area_profesional
+          let categoria: 'especialista' | 'general_licenciado' | 'tecnico_diplomado' | 'auxiliar' | 'subalterno' | 'odepac' | 'secre_asist_pacientes' | 'caja' = 'general_licenciado';
+
+          const areaProfesional = profesional.area_profesional?.toLowerCase() || '';
+          if (areaProfesional.includes('especialista') || areaProfesional.includes('especialidad')) {
+            categoria = 'especialista';
+          } else if (areaProfesional.includes('técnico') || areaProfesional.includes('tecnico')) {
+            categoria = 'tecnico_diplomado';
+          } else if (areaProfesional.includes('auxiliar')) {
+            categoria = 'auxiliar';
+          }
+
+          // Crear nuevo registro en profesionales_guardias
+          const { data: newRecord, error: insertError } = await supabase
+            .from('profesionales_guardias')
+            .insert({
+              profesional_id: profesionalId,
+              categoria: categoria,
+              unidad_servicio: profesional.area_profesional || 'Servicio General',
+              activo: true
+            })
+            .select('id')
+            .single();
+
+          if (insertError) {
+            throw insertError;
+          }
+
+          return newRecord.id;
+        } catch (error: any) {
+          throw new Error(`Error al preparar profesional para guardias: ${error.message}`);
         }
       },
 

@@ -346,6 +346,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       // Operaciones CRUD - Guardias
       fetchGuardias: async (mes, ano, centroId) => {
+        console.log('🔍 Fetching guardias for:', { mes, ano, centroId });
         set({ loading: true, error: null });
         try {
           let query = supabase
@@ -356,26 +357,29 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           // Filtrar por mes y año
           const startDate = new Date(ano, mes - 1, 1);
           const endDate = new Date(ano, mes, 0);
+          console.log('📅 Date range:', { startDate: startDate.toISOString(), endDate: endDate.toISOString() });
+
           query = query
             .gte('fecha_inicio', startDate.toISOString())
             .lte('fecha_inicio', endDate.toISOString());
 
           // Filtrar por centro si se especifica
           if (centroId) {
+            console.log('🏥 Filtering by center:', centroId);
             query = query.eq('centro_salud_id', centroId);
           }
 
           const { data, error } = await query;
 
           if (error) {
-            console.error('Error fetching guardias:', error);
+            console.error('❌ Supabase error in fetchGuardias:', error);
             throw error;
           }
 
-          console.log('Guardias fetched:', data?.length || 0);
+          console.log('✅ Guardias fetched successfully:', data?.length || 0, 'records');
           set({ guardias: data || [], loading: false });
         } catch (error: any) {
-          console.error('Error fetching guardias:', error);
+          console.error('💥 Exception in fetchGuardias:', error);
           const errorMessage = formatSupabaseError(error);
           set({ error: 'Error al cargar guardias: ' + errorMessage, loading: false });
         }
@@ -520,7 +524,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       // Operaciones CRUD - Profesionales
       fetchProfesionales: async (centroId) => {
-        set({ loading: true });
+        console.log('👨‍⚕️ Fetching profesionales for center:', centroId);
+        set({ loading: true, error: null });
         try {
           let query = supabase
             .from('profesionales_sanitarios')
@@ -536,15 +541,18 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             .order('nombre_completo');
 
           if (centroId) {
+            console.log('🏥 Filtering profesionales by center:', centroId);
             query = query.eq('centro_salud_id', centroId);
           }
 
           const { data, error } = await query;
 
           if (error) {
-            console.error('Error fetching profesionales:', error);
+            console.error('❌ Supabase error in fetchProfesionales:', error);
             throw error;
           }
+
+          console.log('📊 Raw profesionales data:', data?.length || 0, 'records');
 
           const profesionales: Profesional[] = (data || []).map(prof => ({
             id: prof.id,
@@ -554,10 +562,10 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             activo: prof.estado_solicitud === 'Aprobado'
           }));
 
-          console.log('Profesionales fetched:', profesionales.length);
+          console.log('✅ Profesionales processed successfully:', profesionales.length);
           set({ profesionales, loading: false });
         } catch (error: any) {
-          console.error('Error fetching profesionales:', error);
+          console.error('💥 Exception in fetchProfesionales:', error);
           const errorMessage = formatSupabaseError(error);
           set({ error: 'Error al cargar profesionales: ' + errorMessage, loading: false });
         }
@@ -565,7 +573,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       // Operaciones CRUD - Centros
       fetchCentros: async () => {
-        set({ loading: true });
+        console.log('🏥 Fetching centros de salud...');
+        set({ loading: true, error: null });
         try {
           const { data, error } = await supabase
             .from('centros_salud')
@@ -580,9 +589,11 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             .order('nombre');
 
           if (error) {
-            console.error('Error fetching centros:', error);
+            console.error('❌ Supabase error in fetchCentros:', error);
             throw error;
           }
+
+          console.log('📊 Raw centros data:', data?.length || 0, 'records');
 
           const centros: Centro[] = (data || []).map(centro => ({
             id: centro.id,
@@ -591,10 +602,10 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             provincia: centro.provincia || 'No especificada'
           }));
 
-          console.log('Centros fetched:', centros.length);
+          console.log('✅ Centros processed successfully:', centros.length);
           set({ centros, loading: false });
         } catch (error: any) {
-          console.error('Error fetching centros:', error);
+          console.error('💥 Exception in fetchCentros:', error);
           const errorMessage = formatSupabaseError(error);
           set({ error: 'Error al cargar centros: ' + errorMessage, loading: false });
         }

@@ -211,12 +211,16 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
   const handleEditBaremo = (baremo: any) => {
     setEditingBaremo(baremo);
     setBaremoForm({
-      concepto: baremo.concepto,
-      tarifa_base: baremo.tarifa_base,
-      multiplicador_nocturno: baremo.multiplicador_nocturno,
-      multiplicador_festivo: baremo.multiplicador_festivo,
-      activo: baremo.activo,
       fuente: baremo.fuente,
+      categoria: baremo.categoria,
+      tipo_guardia: baremo.tipo_guardia,
+      tipo_dia: baremo.tipo_dia,
+      valor: baremo.valor,
+      porcentaje_localizable: baremo.porcentaje_localizable,
+      porcentaje_llamada: baremo.porcentaje_llamada,
+      vigente_desde: baremo.vigente_desde?.split('T')[0] || '',
+      vigente_hasta: baremo.vigente_hasta?.split('T')[0] || '',
+      activo: baremo.activo,
       observaciones: baremo.observaciones || ''
     });
     setIsBaremoDialogOpen(true);

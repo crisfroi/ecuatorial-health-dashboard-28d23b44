@@ -75,12 +75,16 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
   const [editingAjuste, setEditingAjuste] = useState<any>(null);
 
   const [baremoForm, setBaremoForm] = useState({
-    concepto: '',
-    tarifa_base: 0,
-    multiplicador_nocturno: 1.5,
-    multiplicador_festivo: 2.0,
+    fuente: 'manual' as 'protocol' | 'excel' | 'manual',
+    categoria: 'general_licenciado' as 'especialista' | 'general_licenciado' | 'tecnico_diplomado' | 'auxiliar' | 'subalterno' | 'odepac' | 'secre_asist_pacientes' | 'caja',
+    tipo_guardia: 'fisica' as 'fisica' | 'localizable' | 'administrativa',
+    tipo_dia: 'ordinario' as 'ordinario' | 'fin_semana' | 'festivo',
+    valor: 0,
+    porcentaje_localizable: 10,
+    porcentaje_llamada: 20,
+    vigente_desde: new Date().toISOString().split('T')[0],
+    vigente_hasta: '',
     activo: true,
-    fuente: 'PROTOCOLO' as 'PROTOCOLO' | 'EXCEL',
     observaciones: ''
   });
 

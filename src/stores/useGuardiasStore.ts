@@ -173,18 +173,26 @@ export interface NominaLinea {
 export interface Pago {
   id: string;
   nomina_id: string;
-  profesional_id: string;
-  monto: number;
-  metodo_pago: 'TRANSFERENCIA' | 'CHEQUE' | 'EFECTIVO';
-  estado: 'PENDIENTE' | 'APROBADO' | 'PROCESADO' | 'RECHAZADO';
-  referencia_pago?: string;
+  profesional_guardia_id: string;
+  forma_pago: string;
+  fecha_pago?: string;
+  importe: number;
+  comprobante_url?: string;
   observaciones?: string;
-  fecha_creacion: string;
-  fecha_aprobacion?: string;
-  fecha_procesamiento?: string;
+  estado?: string;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Datos relacionados
   profesional?: {
     id: string;
     nombre_completo: string;
+  };
+  nomina?: {
+    id: string;
+    mes: number;
+    anio: number;
+    total_importe?: number;
   };
 }
 
@@ -1148,12 +1156,13 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       fetchPagos: async (mes, ano, centroId) => {
-        set({ loading: true });
+        console.log('💳 Fetching pagos for:', { mes, ano, centroId });
+        set({ loading: true, error: null });
         try {
           // Los pagos están relacionados con nóminas, así que primero obtenemos las nóminas
           let nominasQuery = supabase
             .from('nominas_guardias')
-            .select('id')
+            .select('id, mes, anio, total_importe')
             .eq('mes', mes)
             .eq('anio', ano);
 
@@ -1163,82 +1172,170 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
           const { data: nominasData, error: nominasError } = await nominasQuery;
 
-          if (nominasError) throw nominasError;
+          if (nominasError) {
+            console.error('❌ Supabase error in fetchPagos (nominas):', nominasError);
+            throw nominasError;
+          }
 
           if (!nominasData || nominasData.length === 0) {
+            console.log('📄 No nominas found for period, no pagos to fetch');
             set({ pagos: [], loading: false });
             return;
           }
 
           const nominaIds = nominasData.map(n => n.id);
+          console.log('📊 Found nominas:', nominaIds.length);
 
           const { data, error } = await supabase
             .from('pagos_guardias')
             .select(`
-              *,
-              profesional_guardia_id (
-                profesional_id (
-                  id,
-                  nombre_completo
-                )
-              )
+              id,
+              nomina_id,
+              profesional_guardia_id,
+              forma_pago,
+              fecha_pago,
+              importe,
+              comprobante_url,
+              observaciones,
+              estado,
+              created_by,
+              created_at,
+              updated_at
             `)
             .in('nomina_id', nominaIds)
             .order('created_at', { ascending: false });
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Supabase error in fetchPagos:', error);
+            throw error;
+          }
 
-          set({ pagos: data || [], loading: false });
+          // Enriquecer con datos de nóminas
+          const pagosEnriquecidos = (data || []).map(pago => ({
+            ...pago,
+            nomina: nominasData.find(n => n.id === pago.nomina_id)
+          }));
+
+          console.log('✅ Pagos fetched successfully:', pagosEnriquecidos.length, 'records');
+          set({ pagos: pagosEnriquecidos, loading: false });
         } catch (error: any) {
-          set({ error: 'Error al cargar pagos: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchPagos:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar pagos: ' + errorMessage, loading: false });
         }
       },
 
       createPago: async (data) => {
+        console.log('💳 Creating pago with data:', data);
+        set({ loading: true, error: null });
         try {
+          const pagoData = {
+            nomina_id: data.nomina_id,
+            profesional_guardia_id: data.profesional_guardia_id,
+            forma_pago: data.forma_pago || 'TRANSFERENCIA',
+            importe: data.importe,
+            observaciones: data.observaciones,
+            estado: data.estado || 'pendiente'
+          };
+
           const { error } = await supabase
             .from('pagos_guardias')
-            .insert(data);
+            .insert(pagoData);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Error creating pago:', error);
+            throw error;
+          }
+
+          console.log('✅ Pago created successfully');
+          set({ loading: false });
         } catch (error: any) {
-          console.error('Error creating pago:', error);
+          console.error('💥 Exception in createPago:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al crear pago: ' + errorMessage, loading: false });
           throw error;
         }
       },
 
       updatePago: async (id, data) => {
+        console.log('🔄 Updating pago:', id, data);
         try {
           const { error } = await supabase
             .from('pagos_guardias')
             .update(data)
             .eq('id', id);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Error updating pago:', error);
+            throw error;
+          }
+
+          console.log('✅ Pago updated successfully');
         } catch (error: any) {
-          console.error('Error updating pago:', error);
-          throw error;
+          console.error('💥 Exception in updatePago:', error);
+          const errorMessage = formatSupabaseError(error);
+          throw new Error('Error al actualizar pago: ' + errorMessage);
         }
       },
 
       aprobarPago: async (id) => {
-        await get().updatePago(id, { estado: 'realizado' });
+        console.log('✅ Approving pago:', id);
+        try {
+          await get().updatePago(id, {
+            estado: 'aprobado',
+            fecha_pago: new Date().toISOString()
+          });
+
+          // Refrescar pagos
+          const currentDate = new Date();
+          await get().fetchPagos(currentDate.getMonth() + 1, currentDate.getFullYear());
+        } catch (error: any) {
+          console.error('Error approving pago:', error);
+          throw error;
+        }
       },
 
       rechazarPago: async (id) => {
-        await get().updatePago(id, { estado: 'pendiente' });
+        console.log('❌ Rejecting pago:', id);
+        try {
+          await get().updatePago(id, { estado: 'rechazado' });
+
+          // Refrescar pagos
+          const currentDate = new Date();
+          await get().fetchPagos(currentDate.getMonth() + 1, currentDate.getFullYear());
+        } catch (error: any) {
+          console.error('Error rejecting pago:', error);
+          throw error;
+        }
       },
 
       procesarPagoMasivo: async (pagoIds) => {
+        console.log('🔄 Processing batch payments:', pagoIds.length, 'pagos');
+        set({ loading: true, error: null });
         try {
           const { error } = await supabase
             .from('pagos_guardias')
-            .update({ estado: 'realizado' })
+            .update({
+              estado: 'procesado',
+              fecha_pago: new Date().toISOString()
+            })
             .in('id', pagoIds);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Error processing batch payments:', error);
+            throw error;
+          }
+
+          console.log('✅ Batch payments processed successfully');
+
+          // Refrescar pagos
+          const currentDate = new Date();
+          await get().fetchPagos(currentDate.getMonth() + 1, currentDate.getFullYear());
+          set({ loading: false });
         } catch (error: any) {
-          console.error('Error processing batch payments:', error);
+          console.error('💥 Exception in procesarPagoMasivo:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al procesar pagos masivos: ' + errorMessage, loading: false });
           throw error;
         }
       },

@@ -41,17 +41,27 @@ const formatSupabaseError = (error: any): string => {
 // Tipos básicos
 export interface Guardia {
   id: string;
-  profesional_id: string;
-  centro_id: string;
-  fecha: string;
-  turno: 'MAÑANA' | 'TARDE' | 'NOCHE';
-  tipo_guardia: 'ORDINARIA' | 'FESTIVA' | 'NOCTURNA';
-  horas_inicio: string;
-  horas_fin: string;
+  profesional_guardia_id: string;
+  centro_salud_id: string;
+  tipo: 'fisica' | 'localizable' | 'administrativa';
+  fecha_inicio: string;
+  fecha_fin: string;
+  horas?: number;
+  tipo_dia: 'ordinario' | 'fin_semana' | 'festivo';
+  estado?: string;
+  validacion_estado?: string;
   observaciones?: string;
+  localizable_activada?: boolean;
+  hora_llamada?: string;
+  hora_llegada?: string;
+  servicio_atendido?: string;
+  caso_atendido?: string;
   created_at?: string;
   updated_at?: string;
-  // Datos relacionados
+  created_by?: string;
+  approved_by?: string;
+  approved_at?: string;
+  // Datos relacionados (para facilitar el uso en frontend)
   profesional?: {
     id: string;
     nombre_completo: string;
@@ -351,12 +361,34 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         try {
           let query = supabase
             .from('guardias')
-            .select('*')
+            .select(`
+              id,
+              profesional_guardia_id,
+              centro_salud_id,
+              tipo,
+              fecha_inicio,
+              fecha_fin,
+              horas,
+              tipo_dia,
+              estado,
+              validacion_estado,
+              observaciones,
+              localizable_activada,
+              hora_llamada,
+              hora_llegada,
+              servicio_atendido,
+              caso_atendido,
+              created_at,
+              updated_at,
+              created_by,
+              approved_by,
+              approved_at
+            `)
             .order('fecha_inicio', { ascending: false });
 
           // Filtrar por mes y año
           const startDate = new Date(ano, mes - 1, 1);
-          const endDate = new Date(ano, mes, 0);
+          const endDate = new Date(ano, mes, 0, 23, 59, 59);
           console.log('📅 Date range:', { startDate: startDate.toISOString(), endDate: endDate.toISOString() });
 
           query = query
@@ -377,6 +409,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           }
 
           console.log('✅ Guardias fetched successfully:', data?.length || 0, 'records');
+          console.log('📊 Sample guardia data:', data?.[0]);
           set({ guardias: data || [], loading: false });
         } catch (error: any) {
           console.error('💥 Exception in fetchGuardias:', error);
@@ -386,30 +419,68 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       createGuardia: async (data) => {
-        set({ loading: true });
+        console.log('🔄 Creating guardia with data:', data);
+        set({ loading: true, error: null });
         try {
-          // Primero, asegurar que existe un registro en profesionales_guardias
-          let profesionalGuardiaId = await get().ensureProfesionalGuardia(data.profesional_id);
+          // Si tiene profesional_ids múltiples (multiselección)
+          if (data.profesional_ids && Array.isArray(data.profesional_ids)) {
+            console.log('👥 Creating multiple guardias for:', data.profesional_ids.length, 'professionals');
+            for (const profesionalId of data.profesional_ids) {
+              const profesionalGuardiaId = await get().ensureProfesionalGuardia(profesionalId);
 
-          // Mapear los datos al esquema correcto de la base de datos
-          const guardiaData = {
-            profesional_guardia_id: profesionalGuardiaId,
-            centro_salud_id: data.centro_id,
-            tipo: data.tipo_guardia === 'ORDINARIA' ? 'fisica' :
-                  data.tipo_guardia === 'NOCTURNA' ? 'fisica' : 'localizable',
-            fecha_inicio: new Date(`${data.fecha} ${data.horas_inicio}`).toISOString(),
-            fecha_fin: new Date(`${data.fecha} ${data.horas_fin}`).toISOString(),
-            tipo_dia: 'ordinario', // Por defecto, luego se puede calcular basado en la fecha
-            observaciones: data.observaciones
-          };
+              const guardiaData = {
+                profesional_guardia_id: profesionalGuardiaId,
+                centro_salud_id: data.centro_salud_id,
+                tipo: data.tipo || 'fisica',
+                fecha_inicio: data.fecha_inicio,
+                fecha_fin: data.fecha_fin,
+                tipo_dia: data.tipo_dia || 'ordinario',
+                observaciones: data.observaciones
+              };
 
-          const { error } = await supabase
-            .from('guardias')
-            .insert(guardiaData);
+              console.log('💾 Inserting guardia:', guardiaData);
+              const { error } = await supabase
+                .from('guardias')
+                .insert(guardiaData);
 
-          if (error) {
-            throw error;
+              if (error) {
+                console.error('❌ Error inserting guardia for professional', profesionalId, ':', error);
+                throw error;
+              }
+            }
+          } else {
+            // Guardia individual (retrocompatibilidad)
+            let profesionalGuardiaId;
+            if (data.profesional_id) {
+              profesionalGuardiaId = await get().ensureProfesionalGuardia(data.profesional_id);
+            } else if (data.profesional_guardia_id) {
+              profesionalGuardiaId = data.profesional_guardia_id;
+            } else {
+              throw new Error('Se requiere profesional_id o profesional_guardia_id');
+            }
+
+            const guardiaData = {
+              profesional_guardia_id: profesionalGuardiaId,
+              centro_salud_id: data.centro_salud_id,
+              tipo: data.tipo || 'fisica',
+              fecha_inicio: data.fecha_inicio,
+              fecha_fin: data.fecha_fin,
+              tipo_dia: data.tipo_dia || 'ordinario',
+              observaciones: data.observaciones
+            };
+
+            console.log('💾 Inserting single guardia:', guardiaData);
+            const { error } = await supabase
+              .from('guardias')
+              .insert(guardiaData);
+
+            if (error) {
+              console.error('❌ Error inserting single guardia:', error);
+              throw error;
+            }
           }
+
+          console.log('✅ Guardia(s) created successfully');
 
           // Refrescar datos
           const currentDate = new Date();
@@ -417,6 +488,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
           set({ loading: false });
         } catch (error: any) {
+          console.error('💥 Exception in createGuardia:', error);
           const errorMessage = formatSupabaseError(error);
           set({ error: 'Error al crear guardia: ' + errorMessage, loading: false });
         }

@@ -173,7 +173,7 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
-      currency: 'EUR'
+      currency: 'XAF'
     }).format(amount);
   };
 
@@ -364,7 +364,7 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                     <div>
                       <p className="text-sm font-medium text-gray-600">Promedio/Guardia</p>
                       <p className="text-2xl font-bold">
-                        {guardias.length > 0 ? formatCurrency(nominaActual.total / guardias.length) : '€0'}
+                        {guardias.length > 0 ? formatCurrency(nominaActual.total / guardias.length) : 'XAF 0'}
                       </p>
                     </div>
                     <TrendingUp className="w-8 h-8 text-purple-600" />

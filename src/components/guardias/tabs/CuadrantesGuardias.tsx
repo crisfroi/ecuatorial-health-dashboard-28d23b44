@@ -66,10 +66,10 @@ export const CuadrantesGuardias: React.FC<CuadrantesGuardiasProps> = ({
     fetchProfesionales(selectedCenter);
   }, [selectedMonth, selectedYear, selectedCenter]);
 
-  const cuadranteActual = cuadrantes.find(c => 
-    c.mes === selectedMonth && 
-    c.ano === selectedYear && 
-    (selectedCenter ? c.centro_id === selectedCenter : true)
+  const cuadranteActual = cuadrantes.find(c =>
+    c.mes === selectedMonth &&
+    c.anio === selectedYear &&
+    (selectedCenter ? c.centro_salud_id === selectedCenter : true)
   );
 
   const handleGenerateCuadrante = async () => {
@@ -123,8 +123,13 @@ export const CuadrantesGuardias: React.FC<CuadrantesGuardiasProps> = ({
   };
 
   const getGuardiasForDay = (day: number) => {
-    const fecha = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    return guardias.filter(guardia => guardia.fecha === fecha);
+    const fecha = new Date(selectedYear, selectedMonth - 1, day);
+    return guardias.filter(guardia => {
+      const guardiaFecha = new Date(guardia.fecha_inicio);
+      return guardiaFecha.getDate() === day &&
+             guardiaFecha.getMonth() === selectedMonth - 1 &&
+             guardiaFecha.getFullYear() === selectedYear;
+    });
   };
 
   const getDayName = (dayIndex: number) => {
@@ -140,11 +145,11 @@ export const CuadrantesGuardias: React.FC<CuadrantesGuardiasProps> = ({
     return months[month - 1];
   };
 
-  const getTurnoBadgeColor = (turno: string) => {
-    switch (turno) {
-      case 'MAÑANA': return 'bg-blue-100 text-blue-800';
-      case 'TARDE': return 'bg-orange-100 text-orange-800';
-      case 'NOCHE': return 'bg-purple-100 text-purple-800';
+  const getTurnoBadgeColor = (tipoDia: string) => {
+    switch (tipoDia) {
+      case 'ordinario': return 'bg-blue-100 text-blue-800';
+      case 'fin_semana': return 'bg-orange-100 text-orange-800';
+      case 'festivo': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -185,9 +190,9 @@ export const CuadrantesGuardias: React.FC<CuadrantesGuardiasProps> = ({
                 key={index}
                 className="text-xs p-1 rounded truncate"
                 style={{ backgroundColor: '#e3f2fd', color: '#1976d2' }}
-                title={`${guardia.profesional?.nombre_completo} - ${guardia.turno}`}
+                title={`${guardia.profesional?.nombre_completo || 'Sin asignar'} - ${guardia.tipo}`}
               >
-                {guardia.profesional?.nombre_completo?.split(' ')[0]} ({guardia.turno})
+                {guardia.profesional?.nombre_completo?.split(' ')[0] || 'Sin prof.'} ({guardia.tipo})
               </div>
             ))}
             {guardiasDelDia.length > 2 && (
@@ -219,7 +224,7 @@ export const CuadrantesGuardias: React.FC<CuadrantesGuardiasProps> = ({
 
   const renderListView = () => {
     const groupedGuardias = guardias.reduce((acc, guardia) => {
-      const fecha = guardia.fecha;
+      const fecha = new Date(guardia.fecha_inicio).toISOString().split('T')[0];
       if (!acc[fecha]) {
         acc[fecha] = [];
       }
@@ -253,16 +258,17 @@ export const CuadrantesGuardias: React.FC<CuadrantesGuardiasProps> = ({
                   >
                     <div className="flex items-center space-x-3">
                       <Users className="w-4 h-4 text-gray-500" />
-                      <span className="font-medium">{guardia.profesional?.nombre_completo}</span>
-                      <Badge className={getTurnoBadgeColor(guardia.turno)}>
-                        {guardia.turno}
+                      <span className="font-medium">{guardia.profesional?.nombre_completo || 'No asignado'}</span>
+                      <Badge className={getTurnoBadgeColor(guardia.tipo_dia)}>
+                        {guardia.tipo_dia}
                       </Badge>
                       <span className="text-sm text-gray-600">
-                        {guardia.horas_inicio} - {guardia.horas_fin}
+                        {new Date(guardia.fecha_inicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} -
+                        {new Date(guardia.fecha_fin).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     <Badge variant="outline" className="text-xs">
-                      {guardia.tipo_guardia}
+                      {guardia.tipo}
                     </Badge>
                   </div>
                 ))}
@@ -440,19 +446,19 @@ export const CuadrantesGuardias: React.FC<CuadrantesGuardiasProps> = ({
                   <Calendar className="w-4 h-4 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Cuadrante {cuadranteActual.tipo_cuadrante}</h3>
+                  <h3 className="font-semibold">Cuadrante {cuadranteActual.tipo_cuadrante || 'Mensual'}</h3>
                   <p className="text-sm text-gray-600">
-                    Estado: <span className="font-medium">{cuadranteActual.estado}</span>
+                    Estado: <span className="font-medium">{cuadranteActual.estado || 'Borrador'}</span>
                     {cuadranteActual.fecha_aprobacion && (
                       <span> • Aprobado el {new Date(cuadranteActual.fecha_aprobacion).toLocaleDateString('es-ES')}</span>
                     )}
                   </p>
                 </div>
               </div>
-              <Badge 
+              <Badge
                 variant={cuadranteActual.estado === 'APROBADO' ? 'default' : 'secondary'}
               >
-                {cuadranteActual.estado}
+                {cuadranteActual.estado || 'Borrador'}
               </Badge>
             </div>
           </CardContent>
@@ -493,7 +499,7 @@ export const CuadrantesGuardias: React.FC<CuadrantesGuardiasProps> = ({
               <div>
                 <p className="text-sm font-medium text-gray-600">Profesionales</p>
                 <p className="text-2xl font-bold">
-                  {new Set(guardias.map(g => g.profesional_id)).size}
+                  {new Set(guardias.map(g => g.profesional_guardia_id)).size}
                 </p>
               </div>
               <Users className="w-8 h-8 text-green-600" />
@@ -505,9 +511,9 @@ export const CuadrantesGuardias: React.FC<CuadrantesGuardiasProps> = ({
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Turnos Noche</p>
+                <p className="text-sm font-medium text-gray-600">Localizables</p>
                 <p className="text-2xl font-bold">
-                  {guardias.filter(g => g.turno === 'NOCHE').length}
+                  {guardias.filter(g => g.tipo === 'localizable').length}
                 </p>
               </div>
               <Clock className="w-8 h-8 text-purple-600" />
@@ -521,7 +527,7 @@ export const CuadrantesGuardias: React.FC<CuadrantesGuardiasProps> = ({
               <div>
                 <p className="text-sm font-medium text-gray-600">Días Festivos</p>
                 <p className="text-2xl font-bold">
-                  {guardias.filter(g => g.tipo_guardia === 'FESTIVA').length}
+                  {guardias.filter(g => g.tipo_dia === 'festivo').length}
                 </p>
               </div>
               <Calendar className="w-8 h-8 text-red-600" />

@@ -67,10 +67,10 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
   
   const [formData, setFormData] = useState({
     nomina_id: '',
-    profesional_id: '',
-    monto: 0,
-    metodo_pago: 'TRANSFERENCIA' as 'TRANSFERENCIA' | 'CHEQUE' | 'EFECTIVO',
-    referencia_pago: '',
+    profesional_guardia_id: '',
+    importe: 0,
+    forma_pago: 'TRANSFERENCIA' as string,
+    comprobante_url: '',
     observaciones: ''
   });
 
@@ -79,16 +79,16 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
     fetchNominas(selectedMonth, selectedYear, selectedCenter);
   }, [selectedMonth, selectedYear, selectedCenter]);
 
-  const pagosPendientes = pagos.filter(p => p.estado === 'PENDIENTE');
-  const pagosAprobados = pagos.filter(p => p.estado === 'APROBADO');
-  const pagosProcesados = pagos.filter(p => p.estado === 'PROCESADO');
-  const pagosRechazados = pagos.filter(p => p.estado === 'RECHAZADO');
+  const pagosPendientes = pagos.filter(p => p.estado === 'pendiente');
+  const pagosAprobados = pagos.filter(p => p.estado === 'aprobado');
+  const pagosProcesados = pagos.filter(p => p.estado === 'procesado');
+  const pagosRechazados = pagos.filter(p => p.estado === 'rechazado');
 
   const pagosFiltrados = pagos.filter(pago => {
     const matchesSearch = pago.profesional?.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         pago.referencia_pago?.toLowerCase().includes(searchTerm.toLowerCase());
+                         pago.comprobante_url?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesEstado = filtroEstado === 'todos' || pago.estado === filtroEstado;
-    const matchesMetodo = filtroMetodo === 'todos' || pago.metodo_pago === filtroMetodo;
+    const matchesMetodo = filtroMetodo === 'todos' || pago.forma_pago === filtroMetodo;
     
     return matchesSearch && matchesEstado && matchesMetodo;
   });
@@ -211,16 +211,16 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
-      case 'PENDIENTE':
+      case 'pendiente':
         return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Pendiente</Badge>;
-      case 'APROBADO':
+      case 'aprobado':
         return <Badge className="bg-blue-100 text-blue-800"><CheckCircle className="w-3 h-3 mr-1" />Aprobado</Badge>;
-      case 'PROCESADO':
+      case 'procesado':
         return <Badge className="bg-green-100 text-green-800"><CreditCard className="w-3 h-3 mr-1" />Procesado</Badge>;
-      case 'RECHAZADO':
+      case 'rechazado':
         return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Rechazado</Badge>;
       default:
-        return <Badge variant="secondary">{estado}</Badge>;
+        return <Badge variant="secondary">{estado || 'Sin estado'}</Badge>;
     }
   };
 

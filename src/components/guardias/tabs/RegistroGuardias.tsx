@@ -162,20 +162,20 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     });
   };
 
-  const getTurnoBadgeColor = (turno: string) => {
-    switch (turno) {
-      case 'MAÑANA': return 'bg-blue-100 text-blue-800';
-      case 'TARDE': return 'bg-orange-100 text-orange-800';
-      case 'NOCHE': return 'bg-purple-100 text-purple-800';
+  const getTurnoBadgeColor = (tipoDia: string) => {
+    switch (tipoDia) {
+      case 'ordinario': return 'bg-blue-100 text-blue-800';
+      case 'fin_semana': return 'bg-orange-100 text-orange-800';
+      case 'festivo': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getTipoGuardiaBadgeColor = (tipo: string) => {
     switch (tipo) {
-      case 'ORDINARIA': return 'bg-green-100 text-green-800';
-      case 'FESTIVA': return 'bg-red-100 text-red-800';
-      case 'NOCTURNA': return 'bg-indigo-100 text-indigo-800';
+      case 'fisica': return 'bg-green-100 text-green-800';
+      case 'localizable': return 'bg-yellow-100 text-yellow-800';
+      case 'administrativa': return 'bg-indigo-100 text-indigo-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };

@@ -189,10 +189,10 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
     setSelectedPago(pago);
     setFormData({
       nomina_id: pago.nomina_id,
-      profesional_id: pago.profesional_id,
-      monto: pago.monto,
-      metodo_pago: pago.metodo_pago,
-      referencia_pago: pago.referencia_pago || '',
+      profesional_guardia_id: pago.profesional_guardia_id,
+      importe: pago.importe,
+      forma_pago: pago.forma_pago,
+      comprobante_url: pago.comprobante_url || '',
       observaciones: pago.observaciones || ''
     });
     setIsCreateDialogOpen(true);
@@ -201,10 +201,10 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
   const resetForm = () => {
     setFormData({
       nomina_id: '',
-      profesional_id: '',
-      monto: 0,
-      metodo_pago: 'TRANSFERENCIA',
-      referencia_pago: '',
+      profesional_guardia_id: '',
+      importe: 0,
+      forma_pago: 'TRANSFERENCIA',
+      comprobante_url: '',
       observaciones: ''
     });
   };
@@ -279,15 +279,15 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
                 <div className="flex items-center space-x-2">
                   <DollarSign className="w-4 h-4" />
-                  <span>{formatCurrency(pago.monto)}</span>
+                  <span>{formatCurrency(pago.importe)}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <FileText className="w-4 h-4" />
-                  <span>Ref: {pago.referencia_pago || 'Sin referencia'}</span>
+                  <span>Comprobante: {pago.comprobante_url ? 'Disponible' : 'Sin comprobante'}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Calendar className="w-4 h-4" />
-                  <span>{new Date(pago.fecha_creacion).toLocaleDateString('es-ES')}</span>
+                  <span>{pago.created_at ? new Date(pago.created_at).toLocaleDateString('es-ES') : 'Sin fecha'}</span>
                 </div>
               </div>
 
@@ -549,7 +549,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Monto</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {formatCurrency(pagos.reduce((sum, p) => sum + p.monto, 0))}
+                  {formatCurrency(pagos.reduce((sum, p) => sum + (p.importe || 0), 0))}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-purple-600" />

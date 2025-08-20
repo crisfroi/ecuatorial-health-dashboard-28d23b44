@@ -2,6 +2,42 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '@/integrations/supabase/client';
 
+// Helper function to format Supabase errors properly
+const formatSupabaseError = (error: any): string => {
+  if (!error) return 'Error desconocido';
+
+  if (typeof error === 'string') return error;
+
+  if (error.message) return error.message;
+
+  if (error.details) return error.details;
+
+  if (error.hint) return error.hint;
+
+  // If it's a PostgreSQL error
+  if (error.code) {
+    switch (error.code) {
+      case '23505':
+        return 'Ya existe un registro con estos datos';
+      case '23503':
+        return 'Referencia a un registro que no existe';
+      case '42P01':
+        return 'La tabla no existe en la base de datos';
+      case '42703':
+        return 'Columna no encontrada en la tabla';
+      default:
+        return `Error de base de datos (${error.code}): ${error.message || 'Error desconocido'}`;
+    }
+  }
+
+  // Fallback: stringify the error object but make it readable
+  try {
+    return JSON.stringify(error, null, 2);
+  } catch {
+    return 'Error desconocido al procesar la solicitud';
+  }
+};
+
 // Tipos básicos
 export interface Guardia {
   id: string;
@@ -353,7 +389,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           set({ guardias: data || [], loading: false });
         } catch (error: any) {
           console.error('Error fetching guardias:', error);
-          set({ error: 'Error al cargar guardias: ' + error.message, loading: false });
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar guardias: ' + errorMessage, loading: false });
         }
       },
 
@@ -534,7 +571,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           set({ profesionales, loading: false });
         } catch (error: any) {
           console.error('Error fetching profesionales:', error);
-          set({ error: 'Error al cargar profesionales: ' + error.message, loading: false });
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar profesionales: ' + errorMessage, loading: false });
         }
       },
 
@@ -570,7 +608,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           set({ centros, loading: false });
         } catch (error: any) {
           console.error('Error fetching centros:', error);
-          set({ error: 'Error al cargar centros: ' + error.message, loading: false });
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar centros: ' + errorMessage, loading: false });
         }
       },
 

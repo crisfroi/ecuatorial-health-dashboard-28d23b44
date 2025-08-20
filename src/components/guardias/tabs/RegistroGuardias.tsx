@@ -542,7 +542,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Guardias Ordinarias</p>
+                    <p className="text-sm font-medium text-gray-600">Guardias Físicas</p>
                     <p className="text-2xl font-bold">
                       {guardias.filter(g => g.tipo === 'fisica').length}
                     </p>
@@ -556,7 +556,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Guardias Festivas</p>
+                    <p className="text-sm font-medium text-gray-600">Días Festivos</p>
                     <p className="text-2xl font-bold">
                       {guardias.filter(g => g.tipo_dia === 'festivo').length}
                     </p>

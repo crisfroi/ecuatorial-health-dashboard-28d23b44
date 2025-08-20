@@ -125,25 +125,45 @@ export interface Validacion {
 
 export interface Nomina {
   id: string;
+  centro_salud_id: string;
   mes: number;
-  ano: number;
-  centro_id?: string;
-  estado: 'BORRADOR' | 'GENERADA' | 'REVISADA' | 'APROBADA' | 'RECHAZADA';
-  total: number;
-  total_lineas: number;
-  fecha_generacion: string;
-  fecha_aprobacion?: string;
+  anio: number;
+  estado?: string;
+  total_importe?: number;
+  total_guardias?: number;
+  total_profesionales?: number;
+  created_by?: string;
+  approved_by?: string;
+  approved_at?: string;
+  observaciones?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Datos relacionados
+  centro?: {
+    id: string;
+    nombre: string;
+  };
 }
 
 export interface NominaLinea {
   id: string;
   nomina_id: string;
-  profesional_id: string;
-  cantidad_guardias: number;
-  total_horas: number;
-  total_base: number;
-  total_complementos: number;
-  total_linea: number;
+  profesional_guardia_id: string;
+  categoria: string;
+  guardias_ordinarias?: number;
+  guardias_fines_semana?: number;
+  guardias_festivos?: number;
+  localizables_programadas?: number;
+  localizables_llamadas?: number;
+  coste_unitario_ordinario?: number;
+  coste_unitario_fin_semana?: number;
+  coste_unitario_festivo?: number;
+  coste_localizable_programada?: number;
+  coste_localizable_llamada?: number;
+  total_linea?: number;
+  created_at?: string;
+  updated_at?: string;
+  // Datos relacionados
   profesional?: {
     id: string;
     nombre_completo: string;
@@ -805,11 +825,27 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       fetchNominas: async (mes, ano, centroId) => {
-        set({ loading: true });
+        console.log('📄 Fetching nominas for:', { mes, ano, centroId });
+        set({ loading: true, error: null });
         try {
           let query = supabase
             .from('nominas_guardias')
-            .select('*')
+            .select(`
+              id,
+              centro_salud_id,
+              mes,
+              anio,
+              estado,
+              total_importe,
+              total_guardias,
+              total_profesionales,
+              created_by,
+              approved_by,
+              approved_at,
+              observaciones,
+              created_at,
+              updated_at
+            `)
             .eq('mes', mes)
             .eq('anio', ano)
             .order('created_at', { ascending: false });
@@ -820,62 +856,261 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
           const { data, error } = await query;
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Supabase error in fetchNominas:', error);
+            throw error;
+          }
 
+          console.log('✅ Nominas fetched successfully:', data?.length || 0, 'records');
           set({ nominas: data || [], loading: false });
         } catch (error: any) {
-          set({ error: 'Error al cargar nóminas: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchNominas:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar nóminas: ' + errorMessage, loading: false });
         }
       },
 
       fetchNominasLineas: async (nominaId) => {
-        set({ loading: true });
+        console.log('📄 Fetching nomina lineas for nomina:', nominaId);
+        set({ loading: true, error: null });
         try {
           const { data, error } = await supabase
             .from('nominas_guardias_lineas')
             .select(`
-              *,
-              profesional_guardia_id (
-                profesional_id (
-                  id,
-                  nombre_completo
-                )
-              )
+              id,
+              nomina_id,
+              profesional_guardia_id,
+              categoria,
+              guardias_ordinarias,
+              guardias_fines_semana,
+              guardias_festivos,
+              localizables_programadas,
+              localizables_llamadas,
+              coste_unitario_ordinario,
+              coste_unitario_fin_semana,
+              coste_unitario_festivo,
+              coste_localizable_programada,
+              coste_localizable_llamada,
+              total_linea,
+              created_at,
+              updated_at
             `)
             .eq('nomina_id', nominaId);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Supabase error in fetchNominasLineas:', error);
+            throw error;
+          }
 
+          console.log('✅ Nomina lineas fetched successfully:', data?.length || 0, 'records');
           set({ nominasLineas: data || [], loading: false });
         } catch (error: any) {
-          set({ error: 'Error al cargar líneas de nómina: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchNominasLineas:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar líneas de nómina: ' + errorMessage, loading: false });
         }
       },
 
       generateNomina: async (data) => {
+        console.log('📄 Generating nomina with data:', data);
+        set({ loading: true, error: null });
         try {
-          const { error } = await supabase
-            .from('nominas_guardias')
-            .insert(data);
+          // Paso 1: Obtener guardias del mes/año/centro especificado
+          let guardiasQuery = supabase
+            .from('guardias')
+            .select(`
+              id,
+              profesional_guardia_id,
+              centro_salud_id,
+              tipo,
+              tipo_dia,
+              fecha_inicio,
+              fecha_fin
+            `)
+            .eq('centro_salud_id', data.centro_id)
+            .gte('fecha_inicio', new Date(data.ano, data.mes - 1, 1).toISOString())
+            .lte('fecha_inicio', new Date(data.ano, data.mes, 0, 23, 59, 59).toISOString());
 
-          if (error) throw error;
+          const { data: guardiasData, error: guardiasError } = await guardiasQuery;
+          if (guardiasError) throw guardiasError;
+
+          console.log('📅 Found guardias for nomina:', guardiasData?.length || 0);
+
+          if (!guardiasData || guardiasData.length === 0) {
+            throw new Error('No se encontraron guardias para el período especificado');
+          }
+
+          // Paso 2: Agrupar guardias por profesional y calcular totales
+          const guardiasGrouped = guardiasData.reduce((acc, guardia) => {
+            const key = guardia.profesional_guardia_id;
+            if (!acc[key]) {
+              acc[key] = {
+                profesional_guardia_id: key,
+                guardias_ordinarias: 0,
+                guardias_fines_semana: 0,
+                guardias_festivos: 0,
+                localizables_programadas: 0,
+                localizables_llamadas: 0
+              };
+            }
+
+            // Contar por tipo de día
+            if (guardia.tipo_dia === 'ordinario') {
+              acc[key].guardias_ordinarias++;
+            } else if (guardia.tipo_dia === 'fin_semana') {
+              acc[key].guardias_fines_semana++;
+            } else if (guardia.tipo_dia === 'festivo') {
+              acc[key].guardias_festivos++;
+            }
+
+            // Contar localizables
+            if (guardia.tipo === 'localizable') {
+              acc[key].localizables_programadas++;
+            }
+
+            return acc;
+          }, {} as any);
+
+          const profesionalesConGuardias = Object.values(guardiasGrouped);
+          console.log('👥 Professionals with guardias:', profesionalesConGuardias.length);
+
+          // Paso 3: Asegurar que tenemos baremos cargados
+          if (get().baremos.length === 0) {
+            await get().fetchBaremos();
+          }
+
+          // Paso 4: Crear la nómina principal
+          const nominaData = {
+            centro_salud_id: data.centro_id,
+            mes: data.mes,
+            anio: data.ano,
+            estado: 'BORRADOR',
+            total_guardias: guardiasData.length,
+            total_profesionales: profesionalesConGuardias.length,
+            observaciones: `Nómina generada automáticamente para ${data.mes}/${data.ano}`
+          };
+
+          const { data: nominaCreated, error: nominaError } = await supabase
+            .from('nominas_guardias')
+            .insert(nominaData)
+            .select()
+            .single();
+
+          if (nominaError) throw nominaError;
+          console.log('✅ Nomina created:', nominaCreated.id);
+
+          // Paso 5: Crear las líneas de nómina con cálculos
+          const baremos = get().baremos;
+          let totalImporte = 0;
+
+          for (const profesionalGuardias of profesionalesConGuardias) {
+            // Obtener categoria del profesional (simplificado - usar 'general_licenciado' por defecto)
+            const categoria = 'general_licenciado';
+
+            // Buscar baremos aplicables
+            const baremoOrdinario = baremos.find(b => b.categoria === categoria && b.tipo_dia === 'ordinario' && b.tipo_guardia === 'fisica');
+            const baremoFinSemana = baremos.find(b => b.categoria === categoria && b.tipo_dia === 'fin_semana' && b.tipo_guardia === 'fisica');
+            const baremoFestivo = baremos.find(b => b.categoria === categoria && b.tipo_dia === 'festivo' && b.tipo_guardia === 'fisica');
+            const baremoLocalizable = baremos.find(b => b.categoria === categoria && b.tipo_guardia === 'localizable');
+
+            // Calcular costes
+            const costeOrdinario = baremoOrdinario?.valor || 50000; // XAF por defecto
+            const costeFinSemana = baremoFinSemana?.valor || 75000;
+            const costeFestivo = baremoFestivo?.valor || 100000;
+            const costeLocalizable = baremoLocalizable?.valor || 25000;
+
+            const totalLinea =
+              (profesionalGuardias.guardias_ordinarias * costeOrdinario) +
+              (profesionalGuardias.guardias_fines_semana * costeFinSemana) +
+              (profesionalGuardias.guardias_festivos * costeFestivo) +
+              (profesionalGuardias.localizables_programadas * costeLocalizable);
+
+            const lineaData = {
+              nomina_id: nominaCreated.id,
+              profesional_guardia_id: profesionalGuardias.profesional_guardia_id,
+              categoria: categoria,
+              guardias_ordinarias: profesionalGuardias.guardias_ordinarias,
+              guardias_fines_semana: profesionalGuardias.guardias_fines_semana,
+              guardias_festivos: profesionalGuardias.guardias_festivos,
+              localizables_programadas: profesionalGuardias.localizables_programadas,
+              localizables_llamadas: profesionalGuardias.localizables_llamadas,
+              coste_unitario_ordinario: costeOrdinario,
+              coste_unitario_fin_semana: costeFinSemana,
+              coste_unitario_festivo: costeFestivo,
+              coste_localizable_programada: costeLocalizable,
+              total_linea: totalLinea
+            };
+
+            const { error: lineaError } = await supabase
+              .from('nominas_guardias_lineas')
+              .insert(lineaData);
+
+            if (lineaError) throw lineaError;
+
+            totalImporte += totalLinea;
+          }
+
+          // Paso 6: Actualizar nómina con total calculado
+          const { error: updateError } = await supabase
+            .from('nominas_guardias')
+            .update({ total_importe: totalImporte })
+            .eq('id', nominaCreated.id);
+
+          if (updateError) throw updateError;
+
+          console.log('✅ Nomina generated successfully with total:', totalImporte);
+
+          // Refrescar datos
+          await get().fetchNominas(data.mes, data.ano, data.centro_id);
+          set({ loading: false });
+
         } catch (error: any) {
-          console.error('Error generating nomina:', error);
+          console.error('💥 Exception in generateNomina:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al generar nómina: ' + errorMessage, loading: false });
           throw error;
         }
       },
 
       aprobarNomina: async (id) => {
-        await get().updateValidacion(id, { 
-          estado: 'aprobada',
-          approved_at: new Date().toISOString()
-        });
+        console.log('✅ Approving nomina:', id);
+        try {
+          const { error } = await supabase
+            .from('nominas_guardias')
+            .update({
+              estado: 'APROBADA',
+              approved_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+          if (error) throw error;
+
+          // Refrescar nóminas
+          const currentDate = new Date();
+          await get().fetchNominas(currentDate.getMonth() + 1, currentDate.getFullYear());
+        } catch (error: any) {
+          console.error('Error approving nomina:', error);
+          throw error;
+        }
       },
 
       rechazarNomina: async (id) => {
-        await get().updateValidacion(id, { 
-          estado: 'rechazada'
-        });
+        console.log('❌ Rejecting nomina:', id);
+        try {
+          const { error } = await supabase
+            .from('nominas_guardias')
+            .update({ estado: 'RECHAZADA' })
+            .eq('id', id);
+
+          if (error) throw error;
+
+          // Refrescar nóminas
+          const currentDate = new Date();
+          await get().fetchNominas(currentDate.getMonth() + 1, currentDate.getFullYear());
+        } catch (error: any) {
+          console.error('Error rejecting nomina:', error);
+          throw error;
+        }
       },
 
       exportNomina: async (id, formato) => {

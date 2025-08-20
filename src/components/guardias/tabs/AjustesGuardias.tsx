@@ -442,49 +442,116 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
                   <form onSubmit={handleSubmitBaremo} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="concepto">Concepto *</Label>
+                        <Label htmlFor="categoria">Categoría Profesional *</Label>
+                        <Select
+                          value={baremoForm.categoria}
+                          onValueChange={(value) => setBaremoForm(prev => ({ ...prev, categoria: value as any }))}
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar categoría" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="especialista">Especialista</SelectItem>
+                            <SelectItem value="general_licenciado">General/Licenciado</SelectItem>
+                            <SelectItem value="tecnico_diplomado">Técnico/Diplomado</SelectItem>
+                            <SelectItem value="auxiliar">Auxiliar</SelectItem>
+                            <SelectItem value="subalterno">Subalterno</SelectItem>
+                            <SelectItem value="odepac">ODEPAC</SelectItem>
+                            <SelectItem value="secre_asist_pacientes">Secretaria/Asist. Pacientes</SelectItem>
+                            <SelectItem value="caja">Caja</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="tipo_guardia">Tipo de Guardia *</Label>
+                        <Select
+                          value={baremoForm.tipo_guardia}
+                          onValueChange={(value) => setBaremoForm(prev => ({ ...prev, tipo_guardia: value as any }))}
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fisica">Física</SelectItem>
+                            <SelectItem value="localizable">Localizable</SelectItem>
+                            <SelectItem value="administrativa">Administrativa</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="tipo_dia">Tipo de Día *</Label>
+                        <Select
+                          value={baremoForm.tipo_dia}
+                          onValueChange={(value) => setBaremoForm(prev => ({ ...prev, tipo_dia: value as any }))}
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ordinario">Ordinario</SelectItem>
+                            <SelectItem value="fin_semana">Fin de Semana</SelectItem>
+                            <SelectItem value="festivo">Festivo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="valor">Valor Base (XAF) *</Label>
                         <Input
-                          id="concepto"
-                          value={baremoForm.concepto}
-                          onChange={(e) => setBaremoForm(prev => ({ ...prev, concepto: e.target.value }))}
-                          placeholder="Ej: Guardia Médico General"
+                          id="valor"
+                          type="number"
+                          step="0.01"
+                          value={baremoForm.valor}
+                          onChange={(e) => setBaremoForm(prev => ({ ...prev, valor: parseFloat(e.target.value) || 0 }))}
                           required
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor="tarifa_base">Tarifa Base (XAF) *</Label>
-                        <Input
-                          id="tarifa_base"
-                          type="number"
-                          step="0.01"
-                          value={baremoForm.tarifa_base}
-                          onChange={(e) => setBaremoForm(prev => ({ ...prev, tarifa_base: parseFloat(e.target.value) || 0 }))}
-                          required
-                        />
+                        <Label htmlFor="fuente">Fuente</Label>
+                        <Select
+                          value={baremoForm.fuente}
+                          onValueChange={(value) => setBaremoForm(prev => ({ ...prev, fuente: value as any }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar fuente" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="protocol">Protocol</SelectItem>
+                            <SelectItem value="excel">Excel</SelectItem>
+                            <SelectItem value="manual">Manual</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="multiplicador_nocturno">Multiplicador Nocturno</Label>
+                        <Label htmlFor="porcentaje_localizable">% Localizable</Label>
                         <Input
-                          id="multiplicador_nocturno"
+                          id="porcentaje_localizable"
                           type="number"
-                          step="0.1"
-                          value={baremoForm.multiplicador_nocturno}
-                          onChange={(e) => setBaremoForm(prev => ({ ...prev, multiplicador_nocturno: parseFloat(e.target.value) || 1 }))}
+                          step="0.01"
+                          value={baremoForm.porcentaje_localizable}
+                          onChange={(e) => setBaremoForm(prev => ({ ...prev, porcentaje_localizable: parseFloat(e.target.value) || 0 }))}
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor="multiplicador_festivo">Multiplicador Festivo</Label>
+                        <Label htmlFor="porcentaje_llamada">% Llamada</Label>
                         <Input
-                          id="multiplicador_festivo"
+                          id="porcentaje_llamada"
                           type="number"
-                          step="0.1"
-                          value={baremoForm.multiplicador_festivo}
-                          onChange={(e) => setBaremoForm(prev => ({ ...prev, multiplicador_festivo: parseFloat(e.target.value) || 1 }))}
+                          step="0.01"
+                          value={baremoForm.porcentaje_llamada}
+                          onChange={(e) => setBaremoForm(prev => ({ ...prev, porcentaje_llamada: parseFloat(e.target.value) || 0 }))}
                         />
                       </div>
                     </div>

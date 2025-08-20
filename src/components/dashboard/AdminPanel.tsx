@@ -372,11 +372,12 @@ const AdminPanel = () => {
         <TabsContent value="diagnostics">
           <div className="space-y-6">
             <ConnectivityDiagnostic />
-            <SupabaseDebugTest />
-            <SupabaseConnectionTest />
-            <SimpleConnectionTest />
-            <ConnectionStatus />
-            <ErrorAnalysis />
+            {/* Debug components hidden in production */}
+            {/* <SupabaseDebugTest /> */}
+            {/* <SupabaseConnectionTest /> */}
+            {/* <SimpleConnectionTest /> */}
+            {/* <ConnectionStatus /> */}
+            {/* <ErrorAnalysis /> */}
           </div>
         </TabsContent>
 

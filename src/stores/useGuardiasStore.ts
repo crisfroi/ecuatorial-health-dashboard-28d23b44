@@ -124,12 +124,16 @@ export interface Pago {
 
 export interface Baremo {
   id: string;
-  concepto: string;
-  tarifa_base: number;
-  multiplicador_nocturno: number;
-  multiplicador_festivo: number;
+  fuente: 'protocol' | 'excel' | 'manual';
+  categoria: 'especialista' | 'general_licenciado' | 'tecnico_diplomado' | 'auxiliar' | 'subalterno' | 'odepac' | 'secre_asist_pacientes' | 'caja';
+  tipo_guardia: 'fisica' | 'localizable' | 'administrativa';
+  tipo_dia: 'ordinario' | 'fin_semana' | 'festivo';
+  valor: number;
+  porcentaje_localizable: number;
+  porcentaje_llamada: number;
+  vigente_desde?: string;
+  vigente_hasta?: string;
   activo: boolean;
-  fuente: 'PROTOCOLO' | 'EXCEL';
   observaciones?: string;
   created_at: string;
   updated_at: string;
@@ -866,15 +870,19 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
           if (error) throw error;
 
-          // Convertir los datos al formato esperado de Baremo
+          // Usar los datos directamente del esquema de la BD
           const baremos: Baremo[] = (data || []).map(item => ({
             id: item.id,
-            concepto: `${item.categoria} - ${item.tipo_guardia} - ${item.tipo_dia}`,
-            tarifa_base: Number(item.valor),
-            multiplicador_nocturno: 1.5, // Valores por defecto
-            multiplicador_festivo: 2.0,
+            fuente: item.fuente,
+            categoria: item.categoria,
+            tipo_guardia: item.tipo_guardia,
+            tipo_dia: item.tipo_dia,
+            valor: Number(item.valor),
+            porcentaje_localizable: Number(item.porcentaje_localizable || 10),
+            porcentaje_llamada: Number(item.porcentaje_llamada || 20),
+            vigente_desde: item.vigente_desde,
+            vigente_hasta: item.vigente_hasta,
             activo: item.activo,
-            fuente: item.fuente?.toUpperCase() === 'PROTOCOL' ? 'PROTOCOLO' : 'EXCEL',
             observaciones: item.observaciones,
             created_at: item.created_at,
             updated_at: item.updated_at
@@ -888,20 +896,9 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       createBaremo: async (data) => {
         try {
-          // Convertir Baremo a AjusteBaremo para insertar
-          const ajusteData = {
-            fuente: 'manual',
-            categoria: 'general_licenciado', // Valor por defecto
-            tipo_guardia: 'fisica',
-            tipo_dia: 'ordinario', 
-            valor: data.tarifa_base || 0,
-            observaciones: data.observaciones,
-            activo: data.activo !== false
-          };
-
           const { error } = await supabase
             .from('ajustes_baremos')
-            .insert(ajusteData);
+            .insert(data);
 
           if (error) throw error;
 
@@ -914,15 +911,9 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       updateBaremo: async (id, data) => {
         try {
-          const ajusteData = {
-            valor: data.tarifa_base,
-            observaciones: data.observaciones,
-            activo: data.activo
-          };
-
           const { error } = await supabase
             .from('ajustes_baremos')
-            .update(ajusteData)
+            .update(data)
             .eq('id', id);
 
           if (error) throw error;

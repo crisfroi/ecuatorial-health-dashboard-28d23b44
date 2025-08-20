@@ -314,12 +314,16 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
 
   const resetBaremoForm = () => {
     setBaremoForm({
-      concepto: '',
-      tarifa_base: 0,
-      multiplicador_nocturno: 1.5,
-      multiplicador_festivo: 2.0,
+      fuente: 'manual',
+      categoria: 'general_licenciado',
+      tipo_guardia: 'fisica',
+      tipo_dia: 'ordinario',
+      valor: 0,
+      porcentaje_localizable: 10,
+      porcentaje_llamada: 20,
+      vigente_desde: new Date().toISOString().split('T')[0],
+      vigente_hasta: '',
       activo: true,
-      fuente: 'PROTOCOLO',
       observaciones: ''
     });
   };

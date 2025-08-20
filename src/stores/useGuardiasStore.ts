@@ -740,25 +740,251 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       // Implementaciones placeholder para las demás operaciones (se pueden implementar gradualmente)
       fetchCuadrantes: async (mes, ano, centroId) => {
-        set({ loading: true });
+        console.log('🗺 Fetching cuadrantes for:', { mes, ano, centroId });
+        set({ loading: true, error: null });
         try {
-          // TODO: Implementar cuando se diseñe la tabla de cuadrantes
-          set({ cuadrantes: [], loading: false });
+          let query = supabase
+            .from('cuadrantes_guardias')
+            .select('*')
+            .eq('mes', mes)
+            .eq('anio', ano)
+            .order('created_at', { ascending: false });
+
+          if (centroId) {
+            query = query.eq('centro_salud_id', centroId);
+          }
+
+          const { data, error } = await query;
+
+          if (error) {
+            console.error('❌ Supabase error in fetchCuadrantes:', error);
+            throw error;
+          }
+
+          console.log('✅ Cuadrantes fetched successfully:', data?.length || 0, 'records');
+          set({ cuadrantes: data || [], loading: false });
         } catch (error: any) {
-          set({ error: 'Error al cargar cuadrantes: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchCuadrantes:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar cuadrantes: ' + errorMessage, loading: false });
         }
       },
 
       generateCuadrante: async (data) => {
-        console.log('Generate cuadrante:', data);
+        console.log('🗺 Generating cuadrante with data:', data);
+        set({ loading: true, error: null });
+        try {
+          // Paso 1: Verificar si ya existe un cuadrante para el período
+          const { data: existingCuadrante, error: checkError } = await supabase
+            .from('cuadrantes_guardias')
+            .select('id')
+            .eq('mes', data.mes)
+            .eq('anio', data.ano)
+            .eq('centro_salud_id', data.centro_id || null)
+            .single();
+
+          if (existingCuadrante && !checkError) {
+            // Ya existe un cuadrante, preguntar si regenerar
+            console.log('📄 Cuadrante already exists, updating...');
+            const { error: updateError } = await supabase
+              .from('cuadrantes_guardias')
+              .update({
+                tipo_cuadrante: data.tipo_cuadrante || 'MENSUAL',
+                auto_asignar: data.auto_asignar || false,
+                considerar_preferencias: data.considerar_preferencias || false,
+                estado: 'REGENERADO',
+                fecha_generacion: new Date().toISOString()
+              })
+              .eq('id', existingCuadrante.id);
+
+            if (updateError) throw updateError;
+          } else {
+            // Crear nuevo cuadrante
+            console.log('🆕 Creating new cuadrante...');
+            const cuadranteData = {
+              mes: data.mes,
+              anio: data.ano,
+              centro_salud_id: data.centro_id,
+              tipo_cuadrante: data.tipo_cuadrante || 'MENSUAL',
+              estado: 'GENERADO',
+              fecha_generacion: new Date().toISOString(),
+              auto_asignar: data.auto_asignar || false,
+              considerar_preferencias: data.considerar_preferencias || false
+            };
+
+            const { error: insertError } = await supabase
+              .from('cuadrantes_guardias')
+              .insert(cuadranteData);
+
+            if (insertError) throw insertError;
+          }
+
+          // Paso 2: Obtener profesionales disponibles
+          let profesionalesQuery = supabase
+            .from('profesionales_sanitarios')
+            .select('id, nombre_completo, area_profesional')
+            .eq('estado_solicitud', 'Aprobado');
+
+          if (data.centro_id) {
+            profesionalesQuery = profesionalesQuery.eq('centro_salud_id', data.centro_id);
+          }
+
+          const { data: profesionalesData, error: profError } = await profesionalesQuery;
+          if (profError) throw profError;
+
+          console.log('👥 Found professionals:', profesionalesData?.length || 0);
+
+          if (!profesionalesData || profesionalesData.length === 0) {
+            throw new Error('No hay profesionales disponibles para generar el cuadrante');
+          }
+
+          // Paso 3: Generar guardias básicas para el mes si auto_asignar está activado
+          if (data.auto_asignar) {
+            const daysInMonth = new Date(data.ano, data.mes, 0).getDate();
+            const guardiasToCreate = [];
+
+            // Asegurar que tenemos días festivos cargados
+            if (get().diasFestivos.length === 0) {
+              await get().fetchDiasFestivos();
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+              const fecha = new Date(data.ano, data.mes - 1, day);
+              const tipoDia = get().getTipoDia(fecha.toISOString());
+
+              // Seleccionar profesional de forma rotatoria
+              const profesionalIndex = (day - 1) % profesionalesData.length;
+              const profesional = profesionalesData[profesionalIndex];
+
+              // Asegurar que existe en profesionales_guardias
+              const profesionalGuardiaId = await get().ensureProfesionalGuardia(profesional.id);
+
+              // Crear guardias para diferentes turnos
+              const turnos = [
+                { inicio: 8, fin: 16, tipo: 'fisica' },  // Mañana
+                { inicio: 16, fin: 24, tipo: 'fisica' }, // Tarde
+                { inicio: 0, fin: 8, tipo: 'localizable' } // Noche/Localizable
+              ];
+
+              for (const turno of turnos) {
+                const fechaInicio = new Date(fecha);
+                fechaInicio.setHours(turno.inicio, 0, 0, 0);
+
+                const fechaFin = new Date(fecha);
+                if (turno.fin === 24) {
+                  fechaFin.setDate(fechaFin.getDate() + 1);
+                  fechaFin.setHours(0, 0, 0, 0);
+                } else {
+                  fechaFin.setHours(turno.fin, 0, 0, 0);
+                }
+
+                guardiasToCreate.push({
+                  profesional_guardia_id: profesionalGuardiaId,
+                  centro_salud_id: data.centro_id,
+                  tipo: turno.tipo,
+                  fecha_inicio: fechaInicio.toISOString(),
+                  fecha_fin: fechaFin.toISOString(),
+                  tipo_dia: tipoDia,
+                  observaciones: `Generado automáticamente - Cuadrante ${data.tipo_cuadrante}`
+                });
+              }
+            }
+
+            // Insertar guardias en lotes para mejor rendimiento
+            console.log('📅 Creating', guardiasToCreate.length, 'guardias...');
+            const batchSize = 50;
+            for (let i = 0; i < guardiasToCreate.length; i += batchSize) {
+              const batch = guardiasToCreate.slice(i, i + batchSize);
+              const { error: guardiaError } = await supabase
+                .from('guardias')
+                .insert(batch);
+
+              if (guardiaError) {
+                console.error('Error inserting guardias batch:', guardiaError);
+                throw guardiaError;
+              }
+            }
+          }
+
+          console.log('✅ Cuadrante generated successfully');
+          set({ loading: false });
+        } catch (error: any) {
+          console.error('💥 Exception in generateCuadrante:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al generar cuadrante: ' + errorMessage, loading: false });
+          throw error;
+        }
       },
 
       updateCuadrante: async (id, data) => {
-        console.log('Update cuadrante:', id, data);
+        console.log('🔄 Updating cuadrante:', id, data);
+        try {
+          const { error } = await supabase
+            .from('cuadrantes_guardias')
+            .update(data)
+            .eq('id', id);
+
+          if (error) {
+            console.error('❌ Error updating cuadrante:', error);
+            throw error;
+          }
+
+          console.log('✅ Cuadrante updated successfully');
+        } catch (error: any) {
+          console.error('💥 Exception in updateCuadrante:', error);
+          const errorMessage = formatSupabaseError(error);
+          throw new Error('Error al actualizar cuadrante: ' + errorMessage);
+        }
       },
 
       exportCuadrante: async (id, formato) => {
-        console.log('Export cuadrante:', id, formato);
+        console.log('💾 Exporting cuadrante:', id, 'in format:', formato);
+        try {
+          // Obtener datos del cuadrante
+          const { data: cuadrante, error: cuadranteError } = await supabase
+            .from('cuadrantes_guardias')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+          if (cuadranteError) throw cuadranteError;
+
+          // Obtener guardias del período
+          const startDate = new Date(cuadrante.anio, cuadrante.mes - 1, 1);
+          const endDate = new Date(cuadrante.anio, cuadrante.mes, 0, 23, 59, 59);
+
+          const { data: guardias, error: guardiasError } = await supabase
+            .from('guardias')
+            .select(`
+              *,
+              profesionales_guardias!inner(
+                profesional_id,
+                profesionales_sanitarios(nombre_completo, area_profesional)
+              )
+            `)
+            .eq('centro_salud_id', cuadrante.centro_salud_id)
+            .gte('fecha_inicio', startDate.toISOString())
+            .lte('fecha_inicio', endDate.toISOString())
+            .order('fecha_inicio');
+
+          if (guardiasError) throw guardiasError;
+
+          // En una implementación real, aquí se generaría el archivo
+          // Por ahora, simular la exportación
+          console.log('✅ Cuadrante export data prepared:', {
+            cuadrante,
+            guardias: guardias?.length || 0,
+            formato
+          });
+
+          // Simular tiempo de exportación
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+        } catch (error: any) {
+          console.error('💥 Exception in exportCuadrante:', error);
+          const errorMessage = formatSupabaseError(error);
+          throw new Error('Error al exportar cuadrante: ' + errorMessage);
+        }
       },
 
       fetchValidaciones: async (mes, ano, centroId) => {

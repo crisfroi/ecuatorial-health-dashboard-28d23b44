@@ -350,20 +350,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         try {
           let query = supabase
             .from('guardias')
-            .select(`
-              *,
-              profesional_guardia_id (
-                profesional_id (
-                  id,
-                  nombre_completo,
-                  area_profesional
-                )
-              ),
-              centro_salud_id (
-                id,
-                nombre
-              )
-            `)
+            .select('*')
             .order('fecha_inicio', { ascending: false });
 
           // Filtrar por mes y año

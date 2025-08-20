@@ -67,10 +67,10 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
     fetchBaremos();
   }, [selectedMonth, selectedYear, selectedCenter]);
 
-  const nominaActual = nominas.find(n => 
-    n.mes === selectedMonth && 
-    n.ano === selectedYear && 
-    (selectedCenter ? n.centro_id === selectedCenter : true)
+  const nominaActual = nominas.find(n =>
+    n.mes === selectedMonth &&
+    n.anio === selectedYear &&
+    (selectedCenter ? n.centro_salud_id === selectedCenter : true)
   );
 
   const handleGenerateNomina = async () => {
@@ -270,9 +270,10 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                 <div>
                   <h3 className="font-semibold">Nómina {selectedMonth}/{selectedYear}</h3>
                   <p className="text-sm text-gray-600">
-                    Total: {formatCurrency(nominaActual.total)} • 
-                    Líneas: {nominaActual.total_lineas} •
-                    Generada: {new Date(nominaActual.fecha_generacion).toLocaleDateString('es-ES')}
+                    Total: {formatCurrency(nominaActual.total_importe || 0)} •
+                    Profesionales: {nominaActual.total_profesionales || 0} •
+                    Guardias: {nominaActual.total_guardias || 0} •
+                    Creada: {new Date(nominaActual.created_at || Date.now()).toLocaleDateString('es-ES')}
                   </p>
                 </div>
               </div>
@@ -326,7 +327,7 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                     <div>
                       <p className="text-sm font-medium text-gray-600">Total Nómina</p>
                       <p className="text-2xl font-bold text-green-600">
-                        {formatCurrency(nominaActual.total)}
+                        {formatCurrency(nominaActual.total_importe || 0)}
                       </p>
                     </div>
                     <DollarSign className="w-8 h-8 text-green-600" />
@@ -339,7 +340,7 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Profesionales</p>
-                      <p className="text-2xl font-bold">{nominaActual.total_lineas}</p>
+                      <p className="text-2xl font-bold">{nominaActual.total_profesionales || 0}</p>
                     </div>
                     <User className="w-8 h-8 text-blue-600" />
                   </div>
@@ -351,7 +352,7 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Guardias Pagadas</p>
-                      <p className="text-2xl font-bold">{guardias.length}</p>
+                      <p className="text-2xl font-bold">{nominaActual.total_guardias || 0}</p>
                     </div>
                     <Calendar className="w-8 h-8 text-orange-600" />
                   </div>
@@ -364,7 +365,7 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                     <div>
                       <p className="text-sm font-medium text-gray-600">Promedio/Guardia</p>
                       <p className="text-2xl font-bold">
-                        {guardias.length > 0 ? formatCurrency(nominaActual.total / guardias.length) : 'XAF 0'}
+                        {(nominaActual.total_guardias || 0) > 0 ? formatCurrency((nominaActual.total_importe || 0) / (nominaActual.total_guardias || 1)) : 'XAF 0'}
                       </p>
                     </div>
                     <TrendingUp className="w-8 h-8 text-purple-600" />

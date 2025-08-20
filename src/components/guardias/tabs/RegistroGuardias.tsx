@@ -45,12 +45,11 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
   const [editingGuardia, setEditingGuardia] = useState<any>(null);
   const [formData, setFormData] = useState({
     profesional_ids: [] as string[],
-    centro_id: selectedCenter || '',
-    fecha: '',
-    turno: 'MAÑANA' as 'MAÑANA' | 'TARDE' | 'NOCHE',
-    tipo_guardia: 'ORDINARIA' as 'ORDINARIA' | 'FESTIVA' | 'NOCTURNA',
-    horas_inicio: '',
-    horas_fin: '',
+    centro_salud_id: selectedCenter || '',
+    fecha_inicio: '',
+    fecha_fin: '',
+    tipo: 'fisica' as 'fisica' | 'localizable' | 'administrativa',
+    tipo_dia: 'ordinario' as 'ordinario' | 'fin_semana' | 'festivo',
     observaciones: ''
   });
 
@@ -72,16 +71,32 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
 
     try {
       if (editingGuardia) {
-        await updateGuardia(editingGuardia.id, {...formData, profesional_id: formData.profesional_ids[0]});
+        // En modo edición, actualizar con datos correctos del esquema
+        const updateData = {
+          profesional_guardia_id: formData.profesional_ids[0],
+          centro_salud_id: formData.centro_salud_id,
+          fecha_inicio: formData.fecha_inicio,
+          fecha_fin: formData.fecha_fin,
+          tipo: formData.tipo,
+          tipo_dia: formData.tipo_dia,
+          observaciones: formData.observaciones
+        };
+        await updateGuardia(editingGuardia.id, updateData);
         toast({
           title: "Guardia actualizada",
           description: "La guardia ha sido actualizada correctamente.",
         });
       } else {
-        // Crear múltiples guardias para cada profesional seleccionado
-        for (const profesional_id of formData.profesional_ids) {
-          await createGuardia({...formData, profesional_id});
-        }
+        // Crear guardias usando el nuevo método del store que maneja profesional_ids
+        await createGuardia({
+          profesional_ids: formData.profesional_ids,
+          centro_salud_id: formData.centro_salud_id,
+          fecha_inicio: formData.fecha_inicio,
+          fecha_fin: formData.fecha_fin,
+          tipo: formData.tipo,
+          tipo_dia: formData.tipo_dia,
+          observaciones: formData.observaciones
+        });
         toast({
           title: "Guardias registradas",
           description: `Se han registrado ${formData.profesional_ids.length} guardias correctamente.`,
@@ -103,22 +118,14 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
 
   const handleEdit = (guardia: any) => {
     setEditingGuardia(guardia);
-    // Extraer la fecha de fecha_inicio para el formulario
-    const fechaInicio = new Date(guardia.fecha_inicio || guardia.fecha);
-    const fechaFormato = fechaInicio.toISOString().split('T')[0];
-    const horaInicio = fechaInicio.toTimeString().slice(0, 5);
-
-    const fechaFin = new Date(guardia.fecha_fin || guardia.fecha);
-    const horaFin = fechaFin.toTimeString().slice(0, 5);
 
     setFormData({
-      profesional_ids: [guardia.profesional_guardia_id || guardia.profesional_id],
-      centro_id: guardia.centro_salud_id || guardia.centro_id,
-      fecha: fechaFormato,
-      turno: 'MAÑANA', // Mapear desde tipo si es necesario
-      tipo_guardia: guardia.tipo === 'fisica' ? 'ORDINARIA' : 'NOCTURNA',
-      horas_inicio: horaInicio,
-      horas_fin: horaFin,
+      profesional_ids: [guardia.profesional_guardia_id],
+      centro_salud_id: guardia.centro_salud_id,
+      fecha_inicio: guardia.fecha_inicio,
+      fecha_fin: guardia.fecha_fin,
+      tipo: guardia.tipo || 'fisica',
+      tipo_dia: guardia.tipo_dia || 'ordinario',
       observaciones: guardia.observaciones || ''
     });
     setIsDialogOpen(true);
@@ -146,12 +153,11 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
   const resetForm = () => {
     setFormData({
       profesional_ids: [],
-      centro_id: selectedCenter || '',
-      fecha: '',
-      turno: 'MAÑANA',
-      tipo_guardia: 'ORDINARIA',
-      horas_inicio: '',
-      horas_fin: '',
+      centro_salud_id: selectedCenter || '',
+      fecha_inicio: '',
+      fecha_fin: '',
+      tipo: 'fisica',
+      tipo_dia: 'ordinario',
       observaciones: ''
     });
   };
@@ -274,10 +280,10 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
 
                   {!selectedCenter && (
                     <div>
-                      <Label htmlFor="centro_id">Centro de Salud *</Label>
+                      <Label htmlFor="centro_salud_id">Centro de Salud *</Label>
                       <Select
-                        value={formData.centro_id}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, centro_id: value }))}
+                        value={formData.centro_salud_id}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, centro_salud_id: value }))}
                         required
                       >
                         <SelectTrigger>
@@ -297,76 +303,65 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="fecha">Fecha *</Label>
+                    <Label htmlFor="fecha_inicio">Fecha y Hora Inicio *</Label>
                     <Input
-                      id="fecha"
-                      type="date"
-                      value={formData.fecha}
-                      onChange={(e) => setFormData(prev => ({ ...prev, fecha: e.target.value }))}
+                      id="fecha_inicio"
+                      type="datetime-local"
+                      value={formData.fecha_inicio}
+                      onChange={(e) => setFormData(prev => ({ ...prev, fecha_inicio: e.target.value }))}
                       required
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="turno">Turno *</Label>
-                    <Select
-                      value={formData.turno}
-                      onValueChange={(value: 'MAÑANA' | 'TARDE' | 'NOCHE') => 
-                        setFormData(prev => ({ ...prev, turno: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MAÑANA">Mañana</SelectItem>
-                        <SelectItem value="TARDE">Tarde</SelectItem>
-                        <SelectItem value="NOCHE">Noche</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="fecha_fin">Fecha y Hora Fin *</Label>
+                    <Input
+                      id="fecha_fin"
+                      type="datetime-local"
+                      value={formData.fecha_fin}
+                      onChange={(e) => setFormData(prev => ({ ...prev, fecha_fin: e.target.value }))}
+                      required
+                    />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="tipo_guardia">Tipo de Guardia *</Label>
+                    <Label htmlFor="tipo">Tipo de Guardia *</Label>
                     <Select
-                      value={formData.tipo_guardia}
-                      onValueChange={(value: 'ORDINARIA' | 'FESTIVA' | 'NOCTURNA') => 
-                        setFormData(prev => ({ ...prev, tipo_guardia: value }))
+                      value={formData.tipo}
+                      onValueChange={(value: 'fisica' | 'localizable' | 'administrativa') =>
+                        setFormData(prev => ({ ...prev, tipo: value }))
                       }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ORDINARIA">Ordinaria</SelectItem>
-                        <SelectItem value="FESTIVA">Festiva</SelectItem>
-                        <SelectItem value="NOCTURNA">Nocturna</SelectItem>
+                        <SelectItem value="fisica">Física</SelectItem>
+                        <SelectItem value="localizable">Localizable</SelectItem>
+                        <SelectItem value="administrativa">Administrativa</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="horas_inicio">Hora Inicio *</Label>
-                    <Input
-                      id="horas_inicio"
-                      type="time"
-                      value={formData.horas_inicio}
-                      onChange={(e) => setFormData(prev => ({ ...prev, horas_inicio: e.target.value }))}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="horas_fin">Hora Fin *</Label>
-                    <Input
-                      id="horas_fin"
-                      type="time"
-                      value={formData.horas_fin}
-                      onChange={(e) => setFormData(prev => ({ ...prev, horas_fin: e.target.value }))}
-                      required
-                    />
+                    <Label htmlFor="tipo_dia">Tipo de Día *</Label>
+                    <Select
+                      value={formData.tipo_dia}
+                      onValueChange={(value: 'ordinario' | 'fin_semana' | 'festivo') =>
+                        setFormData(prev => ({ ...prev, tipo_dia: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ordinario">Ordinario</SelectItem>
+                        <SelectItem value="fin_semana">Fin de Semana</SelectItem>
+                        <SelectItem value="festivo">Festivo</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -454,22 +449,25 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
                           <h3 className="font-semibold text-lg">
                             {guardia.profesional?.nombre_completo}
                           </h3>
-                          <Badge className={getTurnoBadgeColor(guardia.turno)}>
-                            {guardia.turno}
+                          <Badge className={getTipoGuardiaBadgeColor(guardia.tipo)}>
+                            {guardia.tipo}
                           </Badge>
-                          <Badge className={getTipoGuardiaBadgeColor(guardia.tipo_guardia)}>
-                            {guardia.tipo_guardia}
+                          <Badge className={getTurnoBadgeColor(guardia.tipo_dia)}>
+                            {guardia.tipo_dia}
                           </Badge>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                           <div className="flex items-center space-x-2">
                             <Calendar className="w-4 h-4" />
-                            <span>{new Date(guardia.fecha).toLocaleDateString('es-ES')}</span>
+                            <span>{new Date(guardia.fecha_inicio).toLocaleDateString('es-ES')}</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Clock className="w-4 h-4" />
-                            <span>{guardia.horas_inicio} - {guardia.horas_fin}</span>
+                            <span>
+                              {new Date(guardia.fecha_inicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} -
+                              {new Date(guardia.fecha_fin).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <MapPin className="w-4 h-4" />
@@ -546,7 +544,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
                   <div>
                     <p className="text-sm font-medium text-gray-600">Guardias Ordinarias</p>
                     <p className="text-2xl font-bold">
-                      {guardias.filter(g => g.tipo_guardia === 'ORDINARIA').length}
+                      {guardias.filter(g => g.tipo === 'fisica').length}
                     </p>
                   </div>
                   <Clock className="w-8 h-8 text-green-600" />
@@ -560,7 +558,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
                   <div>
                     <p className="text-sm font-medium text-gray-600">Guardias Festivas</p>
                     <p className="text-2xl font-bold">
-                      {guardias.filter(g => g.tipo_guardia === 'FESTIVA').length}
+                      {guardias.filter(g => g.tipo_dia === 'festivo').length}
                     </p>
                   </div>
                   <User className="w-8 h-8 text-red-600" />
@@ -572,9 +570,9 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Guardias Nocturnas</p>
+                    <p className="text-sm font-medium text-gray-600">Guardias Localizables</p>
                     <p className="text-2xl font-bold">
-                      {guardias.filter(g => g.tipo_guardia === 'NOCTURNA').length}
+                      {guardias.filter(g => g.tipo === 'localizable').length}
                     </p>
                   </div>
                   <MapPin className="w-8 h-8 text-purple-600" />

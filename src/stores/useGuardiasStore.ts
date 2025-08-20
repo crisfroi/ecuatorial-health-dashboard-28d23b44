@@ -244,16 +244,20 @@ export interface AjusteBaremo {
 
 export interface BitacoraEntry {
   id: string;
+  ref_tipo: string;
+  ref_id: string;
+  usuario_id?: string;
   accion: string;
-  entidad_tipo: string;
-  entidad_id?: string;
-  usuario_email: string;
-  descripcion: string;
-  datos_anteriores?: any;
-  datos_nuevos?: any;
-  fecha_hora: string;
+  detalle?: any;
+  fecha?: string;
   ip_address?: string;
   user_agent?: string;
+  // Datos relacionados
+  usuario?: {
+    id: string;
+    nombre_completo: string;
+    email: string;
+  };
 }
 
 interface GuardiasStoreState {
@@ -1682,43 +1686,85 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       fetchBitacora: async (params) => {
-        set({ loading: true });
+        console.log('📄 Fetching bitacora with params:', params);
+        set({ loading: true, error: null });
         try {
           let query = supabase
             .from('bitacora_guardias')
-            .select('*')
+            .select(`
+              id,
+              ref_tipo,
+              ref_id,
+              usuario_id,
+              accion,
+              detalle,
+              fecha,
+              ip_address,
+              user_agent
+            `)
             .order('fecha', { ascending: false });
 
           // Aplicar filtros de fecha si están presentes
           if (params.fecha_inicio) {
+            console.log('📅 Applying start date filter:', params.fecha_inicio);
             query = query.gte('fecha', params.fecha_inicio);
           }
           if (params.fecha_fin) {
+            console.log('📅 Applying end date filter:', params.fecha_fin);
             query = query.lte('fecha', params.fecha_fin);
           }
 
-          const { data, error } = await query;
+          // Filtrar por centro si se especifica (por guardias del centro)
+          if (params.centro_id) {
+            console.log('🏥 Filtering by center:', params.centro_id);
+            // Obtener guardias del centro para filtrar bitacora relacionada
+            const { data: guardiasData } = await supabase
+              .from('guardias')
+              .select('id')
+              .eq('centro_salud_id', params.centro_id);
 
-          if (error) throw error;
+            if (guardiasData && guardiasData.length > 0) {
+              const guardiaIds = guardiasData.map(g => g.id);
+              query = query.or(`ref_tipo.eq.guardia,ref_tipo.eq.nomina,ref_tipo.eq.pago`)
+                           .in('ref_id', guardiaIds);
+            }
+          }
 
-          // Convertir al formato esperado
+          // Filtrar por mes y año si se especifica
+          if (params.mes && params.ano) {
+            const startDate = new Date(params.ano, params.mes - 1, 1);
+            const endDate = new Date(params.ano, params.mes, 0, 23, 59, 59);
+            query = query.gte('fecha', startDate.toISOString())
+                         .lte('fecha', endDate.toISOString());
+          }
+
+          const { data, error } = await query.limit(500); // Limitar a 500 registros por rendimiento
+
+          if (error) {
+            console.error('❌ Supabase error in fetchBitacora:', error);
+            throw error;
+          }
+
+          console.log('✅ Bitacora fetched successfully:', data?.length || 0, 'records');
+
+          // Convertir al formato esperado con datos enriquecidos
           const bitacora: BitacoraEntry[] = (data || []).map(item => ({
             id: item.id,
+            ref_tipo: item.ref_tipo,
+            ref_id: item.ref_id,
+            usuario_id: item.usuario_id,
             accion: item.accion,
-            entidad_tipo: item.ref_tipo,
-            entidad_id: item.ref_id,
-            usuario_email: 'Sistema', // TODO: obtener del usuario real
-            descripcion: item.accion,
-            datos_anteriores: item.detalle?.datos_anteriores,
-            datos_nuevos: item.detalle?.datos_nuevos,
-            fecha_hora: item.fecha,
+            detalle: item.detalle,
+            fecha: item.fecha,
             ip_address: item.ip_address,
             user_agent: item.user_agent
           }));
 
           set({ bitacora, loading: false });
         } catch (error: any) {
-          set({ error: 'Error al cargar bitácora: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchBitacora:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar bitácora: ' + errorMessage, loading: false });
         }
       },
 

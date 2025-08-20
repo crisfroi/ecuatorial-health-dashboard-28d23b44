@@ -323,6 +323,11 @@ interface GuardiasStoreState {
   generateReport: (tipo: string, params: any) => Promise<void>;
   exportReport: (tipo: string, params: any) => Promise<void>;
 
+  // Utilidades para días festivos
+  isDiaFestivo: (fecha: string) => boolean;
+  getTipoDia: (fecha: string) => 'ordinario' | 'fin_semana' | 'festivo';
+  calcularMontoConTipoDia: (montoBase: number, tipoDia: string, tipo: string) => number;
+
   // Configuración
   exportConfiguration: () => Promise<void>;
   importConfiguration: (file: File) => Promise<void>;
@@ -422,11 +427,19 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         console.log('🔄 Creating guardia with data:', data);
         set({ loading: true, error: null });
         try {
+          // Cargar días festivos si no están cargados
+          if (get().diasFestivos.length === 0) {
+            await get().fetchDiasFestivos();
+          }
+
           // Si tiene profesional_ids múltiples (multiselección)
           if (data.profesional_ids && Array.isArray(data.profesional_ids)) {
             console.log('👥 Creating multiple guardias for:', data.profesional_ids.length, 'professionals');
             for (const profesionalId of data.profesional_ids) {
               const profesionalGuardiaId = await get().ensureProfesionalGuardia(profesionalId);
+
+              // Calcular tipo_dia automáticamente
+              const tipoDiaCalculado = data.tipo_dia || get().getTipoDia(data.fecha_inicio);
 
               const guardiaData = {
                 profesional_guardia_id: profesionalGuardiaId,
@@ -434,11 +447,11 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
                 tipo: data.tipo || 'fisica',
                 fecha_inicio: data.fecha_inicio,
                 fecha_fin: data.fecha_fin,
-                tipo_dia: data.tipo_dia || 'ordinario',
+                tipo_dia: tipoDiaCalculado,
                 observaciones: data.observaciones
               };
 
-              console.log('💾 Inserting guardia:', guardiaData);
+              console.log('💾 Inserting guardia with calculated tipo_dia:', tipoDiaCalculado, guardiaData);
               const { error } = await supabase
                 .from('guardias')
                 .insert(guardiaData);
@@ -459,17 +472,20 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               throw new Error('Se requiere profesional_id o profesional_guardia_id');
             }
 
+            // Calcular tipo_dia automáticamente
+            const tipoDiaCalculado = data.tipo_dia || get().getTipoDia(data.fecha_inicio);
+
             const guardiaData = {
               profesional_guardia_id: profesionalGuardiaId,
               centro_salud_id: data.centro_salud_id,
               tipo: data.tipo || 'fisica',
               fecha_inicio: data.fecha_inicio,
               fecha_fin: data.fecha_fin,
-              tipo_dia: data.tipo_dia || 'ordinario',
+              tipo_dia: tipoDiaCalculado,
               observaciones: data.observaciones
             };
 
-            console.log('💾 Inserting single guardia:', guardiaData);
+            console.log('💾 Inserting single guardia with calculated tipo_dia:', tipoDiaCalculado, guardiaData);
             const { error } = await supabase
               .from('guardias')
               .insert(guardiaData);
@@ -867,8 +883,33 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       calcularMontoGuardia: async (guardiaId) => {
-        console.log('Calcular monto guardia:', guardiaId);
-        return 0;
+        console.log('💰 Calculating amount for guardia:', guardiaId);
+        try {
+          // Buscar la guardia
+          const guardia = get().guardias.find(g => g.id === guardiaId);
+          if (!guardia) {
+            console.warn('Guardia not found:', guardiaId);
+            return 0;
+          }
+
+          // Asegurar que los baremos estén cargados
+          if (get().baremos.length === 0) {
+            await get().fetchBaremos();
+          }
+
+          // Calcular el monto usando la lógica de tipo de día
+          const montoCalculado = get().calcularMontoConTipoDia(
+            0, // monto base (será reemplazado por el valor del baremo)
+            guardia.tipo_dia,
+            guardia.tipo
+          );
+
+          console.log('✅ Calculated amount:', montoCalculado, 'for guardia:', guardiaId);
+          return montoCalculado;
+        } catch (error: any) {
+          console.error('❌ Error calculating guardia amount:', error);
+          return 0;
+        }
       },
 
       fetchPagos: async (mes, ano, centroId) => {
@@ -1054,7 +1095,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       fetchDiasFestivos: async () => {
-        set({ loading: true });
+        console.log('🎆 Fetching días festivos...');
+        set({ loading: true, error: null });
         try {
           const { data, error } = await supabase
             .from('dias_festivos')
@@ -1062,7 +1104,12 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             .eq('activo', true)
             .order('fecha');
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Supabase error in fetchDiasFestivos:', error);
+            throw error;
+          }
+
+          console.log('📊 Raw dias festivos data:', data?.length || 0, 'records');
 
           // Convertir al formato esperado
           const diasFestivos: DiaFestivo[] = (data || []).map(item => ({
@@ -1075,9 +1122,12 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             observaciones: item.descripcion
           }));
 
+          console.log('✅ Dias festivos processed successfully:', diasFestivos.length);
           set({ diasFestivos, loading: false });
         } catch (error: any) {
-          set({ error: 'Error al cargar días festivos: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchDiasFestivos:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar días festivos: ' + errorMessage, loading: false });
         }
       },
 
@@ -1271,6 +1321,57 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       importConfiguration: async (file) => {
         console.log('Import configuration:', file);
+      },
+
+      // Utilidades para días festivos
+      isDiaFestivo: (fecha: string) => {
+        const fechaObj = new Date(fecha);
+        const fechaStr = fechaObj.toISOString().split('T')[0];
+        return get().diasFestivos.some(festivo =>
+          festivo.activo && festivo.fecha === fechaStr
+        );
+      },
+
+      getTipoDia: (fecha: string) => {
+        const fechaObj = new Date(fecha);
+        const diaSemana = fechaObj.getDay(); // 0 = domingo, 6 = sábado
+
+        // Verificar si es día festivo
+        if (get().isDiaFestivo(fecha)) {
+          return 'festivo';
+        }
+
+        // Verificar si es fin de semana
+        if (diaSemana === 0 || diaSemana === 6) {
+          return 'fin_semana';
+        }
+
+        return 'ordinario';
+      },
+
+      calcularMontoConTipoDia: (montoBase: number, tipoDia: string, tipo: string) => {
+        const baremos = get().baremos;
+
+        // Buscar baremo correspondiente
+        const baremo = baremos.find(b =>
+          b.activo &&
+          b.tipo_guardia === tipo &&
+          b.tipo_dia === tipoDia
+        );
+
+        if (!baremo) {
+          console.warn(`No se encontró baremo para tipo: ${tipo}, tipo_dia: ${tipoDia}`);
+          return montoBase;
+        }
+
+        let montoFinal = baremo.valor;
+
+        // Aplicar porcentajes según el tipo
+        if (tipo === 'localizable') {
+          montoFinal *= (1 + baremo.porcentaje_localizable / 100);
+        }
+
+        return Math.round(montoFinal * 100) / 100; // Redondear a 2 decimales
       },
 
       resetConfiguration: async () => {

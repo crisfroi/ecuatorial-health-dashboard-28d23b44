@@ -103,23 +103,27 @@ export interface Cuadrante {
 
 export interface Validacion {
   id: string;
-  numero_validacion: string;
-  mes: number;
-  ano: number;
-  centro_id?: string;
-  estado: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO';
-  prioridad: 'ALTA' | 'MEDIA' | 'BAJA';
-  fecha_solicitud: string;
-  fecha_validacion?: string;
-  descripcion: string;
-  observaciones?: string;
-  solicitante?: {
+  guardia_id?: string;
+  etapa: 'revision_inicial' | 'supervision_tecnica' | 'aprobacion_final';
+  usuario_id?: string;
+  fecha?: string;
+  resultado?: string;
+  comentario?: string;
+  firma?: string;
+  created_at?: string;
+  // Datos relacionados
+  guardia?: {
+    id: string;
+    profesional_guardia_id: string;
+    centro_salud_id: string;
+    fecha_inicio: string;
+    fecha_fin: string;
+    tipo: string;
+    tipo_dia: string;
+  };
+  usuario?: {
     id: string;
     nombre_completo: string;
-  };
-  centro?: {
-    id: string;
-    nombre: string;
   };
 }
 
@@ -754,82 +758,165 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       fetchValidaciones: async (mes, ano, centroId) => {
-        set({ loading: true });
+        console.log('✅ Fetching validaciones for:', { mes, ano, centroId });
+        set({ loading: true, error: null });
         try {
           let query = supabase
             .from('validaciones_guardias')
-            .select('*')
-            .order('fecha', { ascending: false });
+            .select(`
+              id,
+              guardia_id,
+              etapa,
+              usuario_id,
+              fecha,
+              resultado,
+              comentario,
+              firma,
+              created_at
+            `)
+            .order('created_at', { ascending: false });
 
           // Filtrar por centro si se especifica
           if (centroId) {
-            // Filtrar por guardias del centro específico
+            // Filtrar por guardias del centro específico para el período
+            const startDate = new Date(ano, mes - 1, 1);
+            const endDate = new Date(ano, mes, 0, 23, 59, 59);
+
             const { data: guardiasData } = await supabase
               .from('guardias')
               .select('id')
-              .eq('centro_salud_id', centroId);
-            
+              .eq('centro_salud_id', centroId)
+              .gte('fecha_inicio', startDate.toISOString())
+              .lte('fecha_inicio', endDate.toISOString());
+
             if (guardiasData && guardiasData.length > 0) {
               const guardiaIds = guardiasData.map(g => g.id);
               query = query.in('guardia_id', guardiaIds);
             } else {
-              // No hay guardias para este centro
+              console.log('📄 No guardias found for center in this period');
               set({ validaciones: [], loading: false });
               return;
+            }
+          } else {
+            // Sin filtro de centro, obtener por período general
+            const startDate = new Date(ano, mes - 1, 1);
+            const endDate = new Date(ano, mes, 0, 23, 59, 59);
+
+            const { data: guardiasData } = await supabase
+              .from('guardias')
+              .select('id')
+              .gte('fecha_inicio', startDate.toISOString())
+              .lte('fecha_inicio', endDate.toISOString());
+
+            if (guardiasData && guardiasData.length > 0) {
+              const guardiaIds = guardiasData.map(g => g.id);
+              query = query.in('guardia_id', guardiaIds);
             }
           }
 
           const { data, error } = await query;
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Supabase error in fetchValidaciones:', error);
+            throw error;
+          }
 
+          console.log('✅ Validaciones fetched successfully:', data?.length || 0, 'records');
           set({ validaciones: data || [], loading: false });
         } catch (error: any) {
-          set({ error: 'Error al cargar validaciones: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchValidaciones:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar validaciones: ' + errorMessage, loading: false });
         }
       },
 
       createValidacion: async (data) => {
+        console.log('✅ Creating validacion with data:', data);
+        set({ loading: true, error: null });
         try {
+          const validacionData = {
+            guardia_id: data.guardia_id,
+            etapa: data.etapa || 'revision_inicial',
+            usuario_id: data.usuario_id,
+            resultado: data.resultado,
+            comentario: data.comentario,
+            firma: data.firma
+          };
+
           const { error } = await supabase
             .from('validaciones_guardias')
-            .insert(data);
+            .insert(validacionData);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Error creating validacion:', error);
+            throw error;
+          }
+
+          console.log('✅ Validacion created successfully');
+          set({ loading: false });
         } catch (error: any) {
-          console.error('Error creating validacion:', error);
+          console.error('💥 Exception in createValidacion:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al crear validación: ' + errorMessage, loading: false });
           throw error;
         }
       },
 
       updateValidacion: async (id, data) => {
+        console.log('🔄 Updating validacion:', id, data);
         try {
           const { error } = await supabase
             .from('validaciones_guardias')
             .update(data)
             .eq('id', id);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Error updating validacion:', error);
+            throw error;
+          }
+
+          console.log('✅ Validacion updated successfully');
         } catch (error: any) {
-          console.error('Error updating validacion:', error);
-          throw error;
+          console.error('💥 Exception in updateValidacion:', error);
+          const errorMessage = formatSupabaseError(error);
+          throw new Error('Error al actualizar validación: ' + errorMessage);
         }
       },
 
       aprobarValidacion: async (id, comentarios) => {
-        await get().updateValidacion(id, { 
-          resultado: 'aprobada',
-          comentario: comentarios,
-          fecha: new Date().toISOString()
-        });
+        console.log('✅ Approving validacion:', id);
+        try {
+          await get().updateValidacion(id, {
+            resultado: 'aprobada',
+            comentario: comentarios,
+            fecha: new Date().toISOString()
+          });
+
+          // Refrescar validaciones
+          const currentDate = new Date();
+          await get().fetchValidaciones(currentDate.getMonth() + 1, currentDate.getFullYear());
+        } catch (error: any) {
+          console.error('Error approving validacion:', error);
+          throw error;
+        }
       },
 
       rechazarValidacion: async (id, comentarios) => {
-        await get().updateValidacion(id, { 
-          resultado: 'rechazada',
-          comentario: comentarios,
-          fecha: new Date().toISOString()
-        });
+        console.log('❌ Rejecting validacion:', id);
+        try {
+          await get().updateValidacion(id, {
+            resultado: 'rechazada',
+            comentario: comentarios,
+            fecha: new Date().toISOString()
+          });
+
+          // Refrescar validaciones
+          const currentDate = new Date();
+          await get().fetchValidaciones(currentDate.getMonth() + 1, currentDate.getFullYear());
+        } catch (error: any) {
+          console.error('Error rejecting validacion:', error);
+          throw error;
+        }
       },
 
       fetchNominas: async (mes, ano, centroId) => {

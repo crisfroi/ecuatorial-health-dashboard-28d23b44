@@ -1249,7 +1249,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           console.log('✅ Validacion created successfully');
           set({ loading: false });
         } catch (error: any) {
-          console.error('💥 Exception in createValidacion:', error);
+          console.error('��� Exception in createValidacion:', error);
           const errorMessage = formatSupabaseError(error);
           set({ error: 'Error al crear validación: ' + errorMessage, loading: false });
           throw error;
@@ -1416,12 +1416,20 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               fecha_inicio,
               fecha_fin
             `)
-            .eq('centro_salud_id', data.centro_id)
             .gte('fecha_inicio', new Date(data.ano, data.mes - 1, 1).toISOString())
             .lte('fecha_inicio', new Date(data.ano, data.mes, 0, 23, 59, 59).toISOString());
 
+          // Solo filtrar por centro si se proporciona
+          if (data.centro_id) {
+            guardiasQuery = guardiasQuery.eq('centro_salud_id', data.centro_id);
+          }
+
           const { data: guardiasData, error: guardiasError } = await guardiasQuery;
-          if (guardiasError) throw guardiasError;
+          if (guardiasError) {
+            console.error('❌ Error fetching guardias for nomina:', guardiasError);
+            const errorMessage = formatSupabaseError(guardiasError);
+            throw new Error(errorMessage);
+          }
 
           console.log('📅 Found guardias for nomina:', guardiasData?.length || 0);
 
@@ -1470,7 +1478,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
           // Paso 4: Crear la nómina principal
           const nominaData = {
-            centro_salud_id: data.centro_id,
+            centro_salud_id: data.centro_id || null,
             mes: data.mes,
             anio: data.ano,
             estado: 'BORRADOR',
@@ -1485,7 +1493,11 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             .select()
             .single();
 
-          if (nominaError) throw nominaError;
+          if (nominaError) {
+            console.error('❌ Error creating nomina:', nominaError);
+            const errorMessage = formatSupabaseError(nominaError);
+            throw new Error(errorMessage);
+          }
           console.log('✅ Nomina created:', nominaCreated.id);
 
           // Paso 5: Crear las líneas de nómina con cálculos
@@ -1534,7 +1546,11 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               .from('nominas_guardias_lineas')
               .insert(lineaData);
 
-            if (lineaError) throw lineaError;
+            if (lineaError) {
+              console.error('❌ Error creating nomina line:', lineaError);
+              const errorMessage = formatSupabaseError(lineaError);
+              throw new Error(`Error al crear línea de nómina: ${errorMessage}`);
+            }
 
             totalImporte += totalLinea;
           }
@@ -1545,7 +1561,11 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             .update({ total_importe: totalImporte })
             .eq('id', nominaCreated.id);
 
-          if (updateError) throw updateError;
+          if (updateError) {
+            console.error('❌ Error updating nomina total:', updateError);
+            const errorMessage = formatSupabaseError(updateError);
+            throw new Error(errorMessage);
+          }
 
           console.log('✅ Nomina generated successfully with total:', totalImporte);
 
@@ -1553,11 +1573,13 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           await get().fetchNominas(data.mes, data.ano, data.centro_id);
           set({ loading: false });
 
+          console.log('✅ Nomina generation completed successfully');
+
         } catch (error: any) {
           console.error('💥 Exception in generateNomina:', error);
           const errorMessage = formatSupabaseError(error);
           set({ error: 'Error al generar nómina: ' + errorMessage, loading: false });
-          throw error;
+          throw new Error(errorMessage);
         }
       },
 

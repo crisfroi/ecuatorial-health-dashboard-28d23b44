@@ -103,14 +103,22 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
 
   const handleEdit = (guardia: any) => {
     setEditingGuardia(guardia);
+    // Extraer la fecha de fecha_inicio para el formulario
+    const fechaInicio = new Date(guardia.fecha_inicio || guardia.fecha);
+    const fechaFormato = fechaInicio.toISOString().split('T')[0];
+    const horaInicio = fechaInicio.toTimeString().slice(0, 5);
+
+    const fechaFin = new Date(guardia.fecha_fin || guardia.fecha);
+    const horaFin = fechaFin.toTimeString().slice(0, 5);
+
     setFormData({
-      profesional_ids: [guardia.profesional_id],
-      centro_id: guardia.centro_id,
-      fecha: guardia.fecha,
-      turno: guardia.turno,
-      tipo_guardia: guardia.tipo_guardia,
-      horas_inicio: guardia.horas_inicio,
-      horas_fin: guardia.horas_fin,
+      profesional_ids: [guardia.profesional_guardia_id || guardia.profesional_id],
+      centro_id: guardia.centro_salud_id || guardia.centro_id,
+      fecha: fechaFormato,
+      turno: 'MAÑANA', // Mapear desde tipo si es necesario
+      tipo_guardia: guardia.tipo === 'fisica' ? 'ORDINARIA' : 'NOCTURNA',
+      horas_inicio: horaInicio,
+      horas_fin: horaFin,
       observaciones: guardia.observaciones || ''
     });
     setIsDialogOpen(true);

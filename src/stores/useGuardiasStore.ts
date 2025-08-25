@@ -498,6 +498,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       // Datos iniciales
       guardias: [],
       profesionales: [],
+      profesionalesGuardias: [],
       centros: [],
       cuadrantes: [],
       validaciones: [],

@@ -24,11 +24,22 @@ export const FuncionariosStatsWidget: React.FC<FuncionariosStatsWidgetProps> = (
   onNavigateToFuncionarios,
   userRole
 }) => {
-  // Filtros para obtener solo funcionarios aprobados
-  const { data: funcionarios = [], isLoading, error } = useProfesionales({
+  // Filtros para obtener solo funcionarios aprobados y de función pública
+  const filtrosFuncionarios = {
     estado_solicitud: 'Aprobado',
     funcion_publica: true // Solo funcionarios públicos (boolean)
-  });
+  };
+
+  console.log('FuncionariosStatsWidget: Aplicando filtros:', filtrosFuncionarios);
+
+  const { data: funcionarios = [], isLoading, error } = useProfesionales(filtrosFuncionarios);
+
+  console.log('FuncionariosStatsWidget: Funcionarios obtenidos:', funcionarios.length);
+  console.log('FuncionariosStatsWidget: Primeros 3 funcionarios (muestra):', funcionarios.slice(0, 3).map(f => ({
+    nombre: f.nombre_completo,
+    estado: f.estado_solicitud,
+    funcion_publica: f.funcion_publica
+  })));
 
   // Cálculos estadísticos
   const totalFuncionarios = funcionarios.length;

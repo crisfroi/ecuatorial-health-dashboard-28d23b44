@@ -51,6 +51,7 @@ interface Filtros {
   año_graduacion?: number;
   categoria_titulacion?: string;
   categoria_centro?: string;
+  funcion_publica?: boolean; // Filtro para funcionarios públicos
   // Filtros de fecha
   fecha_solicitud_gte?: string;
   fecha_solicitud_lte?: string;

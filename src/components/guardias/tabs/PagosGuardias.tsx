@@ -213,8 +213,8 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
       profesional_id: '',
       importe: 0,
       monto: 0,
-      forma_pago: 'TRANSFERENCIA',
-      metodo_pago: 'TRANSFERENCIA',
+      forma_pago: 'transfer_trabajador',
+      metodo_pago: 'transfer_trabajador',
       comprobante_url: '',
       referencia_pago: '',
       observaciones: ''

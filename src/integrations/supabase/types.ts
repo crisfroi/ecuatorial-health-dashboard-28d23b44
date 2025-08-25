@@ -558,7 +558,7 @@ export type Database = {
         }
         Update: {
           año_graduacion?: number | null
-          a��o_inicio_paro?: number | null
+          año_inicio_paro?: number | null
           apellidos?: string | null
           area_profesional?: string | null
           brigada_cooperacion?: string | null

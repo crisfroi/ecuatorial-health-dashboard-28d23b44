@@ -210,9 +210,13 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
     setFormData({
       nomina_id: '',
       profesional_guardia_id: '',
+      profesional_id: '',
       importe: 0,
+      monto: 0,
       forma_pago: 'TRANSFERENCIA',
+      metodo_pago: 'TRANSFERENCIA',
       comprobante_url: '',
+      referencia_pago: '',
       observaciones: ''
     });
   };

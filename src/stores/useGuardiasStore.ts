@@ -1871,7 +1871,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           const { error } = await supabase
             .from('nominas_guardias')
             .update({
-              estado: 'APROBADA',
+              estado: 'aprobada',
               approved_at: new Date().toISOString()
             })
             .eq('id', id);
@@ -1892,7 +1892,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         try {
           const { error } = await supabase
             .from('nominas_guardias')
-            .update({ estado: 'RECHAZADA' })
+            .update({ estado: 'rechazada' })
             .eq('id', id);
 
           if (error) throw error;

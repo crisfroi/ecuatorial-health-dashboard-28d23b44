@@ -447,17 +447,17 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
                     <div>
                       <label className="text-sm font-medium">Profesional</label>
                       <Select
-                        value={formData.profesional_id}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, profesional_id: value }))}
+                        value={formData.profesional_guardia_id}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, profesional_guardia_id: value, profesional_id: value }))}
                         required
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccionar profesional" />
                         </SelectTrigger>
                         <SelectContent>
-                          {profesionales.map((prof) => (
+                          {profesionalesGuardias.map((prof) => (
                             <SelectItem key={prof.id} value={prof.id}>
-                              {prof.nombre_completo}
+                              {prof.nombre_completo} - {prof.categoria} ({prof.unidad_servicio})
                             </SelectItem>
                           ))}
                         </SelectContent>

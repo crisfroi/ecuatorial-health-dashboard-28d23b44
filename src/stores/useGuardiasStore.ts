@@ -970,6 +970,67 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         }
       },
 
+      fetchProfesionalesGuardias: async (centroId) => {
+        console.log('👨‍⚕️ Fetching profesionales guardias for center:', centroId);
+        set({ loading: true, error: null });
+        try {
+          let query = supabase
+            .from('profesionales_guardias')
+            .select(`
+              id,
+              profesional_id,
+              categoria,
+              unidad_servicio,
+              banco,
+              iban_cuenta,
+              activo,
+              telefono_guardias,
+              email_guardias,
+              profesionales_sanitarios!inner (
+                id,
+                nombre_completo,
+                centro_salud_id
+              )
+            `)
+            .eq('activo', true)
+            .order('profesionales_sanitarios(nombre_completo)');
+
+          if (centroId) {
+            console.log('🏥 Filtering profesionales guardias by center:', centroId);
+            query = query.eq('profesionales_sanitarios.centro_salud_id', centroId);
+          }
+
+          const { data, error } = await query;
+
+          if (error) {
+            console.error('❌ Supabase error in fetchProfesionalesGuardias:', error);
+            throw error;
+          }
+
+          console.log('📊 Raw profesionales guardias data:', data?.length || 0, 'records');
+
+          const profesionalesGuardias: ProfesionalGuardia[] = (data || []).map(pg => ({
+            id: pg.id,
+            profesional_id: pg.profesional_id,
+            nombre_completo: pg.profesionales_sanitarios?.nombre_completo || 'Sin nombre',
+            categoria: pg.categoria,
+            unidad_servicio: pg.unidad_servicio,
+            banco: pg.banco,
+            iban_cuenta: pg.iban_cuenta,
+            activo: pg.activo,
+            telefono_guardias: pg.telefono_guardias,
+            email_guardias: pg.email_guardias
+          }));
+
+          console.log('✅ Profesionales guardias processed successfully:', profesionalesGuardias.length);
+          set({ profesionalesGuardias, loading: false });
+        } catch (error: any) {
+          console.error('💥 Exception in fetchProfesionalesGuardias:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar profesionales de guardias: ' + errorMessage, loading: false });
+        }
+      },
+
       // Operaciones CRUD - Centros
       fetchCentros: async () => {
         console.log('🏥 Fetching centros de salud...');
@@ -1882,7 +1943,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       aprobarNomina: async (id) => {
-        console.log('✅ Approving nomina:', id);
+        console.log('�� Approving nomina:', id);
         try {
           const { error } = await supabase
             .from('nominas_guardias')

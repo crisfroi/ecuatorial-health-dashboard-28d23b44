@@ -638,8 +638,8 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="aprobados">Aprobados</TabsTrigger>
-          <TabsTrigger value="procesados">Procesados</TabsTrigger>
+          <TabsTrigger value="realizados">Realizados</TabsTrigger>
+          <TabsTrigger value="confirmados">Confirmados</TabsTrigger>
           <TabsTrigger value="todos">Todos</TabsTrigger>
         </TabsList>
 

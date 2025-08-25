@@ -236,9 +236,12 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                     <div className="text-sm text-blue-800">
                       <p>Mes: {selectedMonth}/{selectedYear}</p>
                       {selectedCenter ? (
-                        <p className="text-green-700">Centro: {selectedCenter}</p>
+                        <p className="text-green-700">✅ Centro: {selectedCenter}</p>
                       ) : (
-                        <p className="text-red-600 font-medium">⚠️ Debe seleccionar un centro de salud</p>
+                        <div className="text-red-600">
+                          <p className="font-medium">⚠️ Debe seleccionar un centro de salud</p>
+                          <p className="text-xs mt-1">Las nóminas deben estar asociadas a un centro específico</p>
+                        </div>
                       )}
                       <p>Guardias registradas: {guardias.length}</p>
                     </div>

@@ -660,7 +660,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
                   No hay pagos pendientes
                 </h3>
                 <p className="text-gray-600">
-                  Todos los pagos han sido procesados.
+                  Todos los pagos han sido confirmados.
                 </p>
               </CardContent>
             </Card>

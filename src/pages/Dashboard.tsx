@@ -722,6 +722,9 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* ResizeObserver test indicator - only shown during development */}
+      {import.meta.env.DEV && <ResizeObserverTestIndicator />}
     </div>
   );
 };

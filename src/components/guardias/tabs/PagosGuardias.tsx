@@ -45,9 +45,11 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
     pagos,
     nominas,
     profesionales,
+    profesionalesGuardias,
     loading,
     fetchPagos,
     fetchNominas,
+    fetchProfesionalesGuardias,
     createPago,
     updatePago,
     aprobarPago,
@@ -67,9 +69,13 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
   
   const [formData, setFormData] = useState({
     nomina_id: '',
+    profesional_guardia_id: '',
     profesional_id: '',
+    importe: 0,
     monto: 0,
-    metodo_pago: 'TRANSFERENCIA' as 'TRANSFERENCIA' | 'CHEQUE' | 'EFECTIVO',
+    forma_pago: 'transfer_trabajador' as string,
+    metodo_pago: 'transfer_trabajador' as string,
+    comprobante_url: '',
     referencia_pago: '',
     observaciones: ''
   });
@@ -77,18 +83,20 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
   useEffect(() => {
     fetchPagos(selectedMonth, selectedYear, selectedCenter);
     fetchNominas(selectedMonth, selectedYear, selectedCenter);
+    fetchProfesionalesGuardias(selectedCenter);
   }, [selectedMonth, selectedYear, selectedCenter]);
 
-  const pagosPendientes = pagos.filter(p => p.estado === 'PENDIENTE');
-  const pagosAprobados = pagos.filter(p => p.estado === 'APROBADO');
-  const pagosProcesados = pagos.filter(p => p.estado === 'PROCESADO');
-  const pagosRechazados = pagos.filter(p => p.estado === 'RECHAZADO');
+  const pagosPendientes = pagos.filter(p => p.estado === 'pendiente');
+  const pagosRealizados = pagos.filter(p => p.estado === 'realizado');
+  const pagosConfirmados = pagos.filter(p => p.estado === 'confirmado');
+  // Note: 'rechazado' is not in DB constraints, but keeping for backwards compatibility
+  const pagosRechazados = pagos.filter(p => p.estado === 'rechazado');
 
   const pagosFiltrados = pagos.filter(pago => {
     const matchesSearch = pago.profesional?.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         pago.referencia_pago?.toLowerCase().includes(searchTerm.toLowerCase());
+                         pago.comprobante_url?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesEstado = filtroEstado === 'todos' || pago.estado === filtroEstado;
-    const matchesMetodo = filtroMetodo === 'todos' || pago.metodo_pago === filtroMetodo;
+    const matchesMetodo = filtroMetodo === 'todos' || pago.forma_pago === filtroMetodo;
     
     return matchesSearch && matchesEstado && matchesMetodo;
   });
@@ -171,15 +179,15 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
     try {
       await procesarPagoMasivo(selectedPagos);
       toast({
-        title: "Pagos procesados",
-        description: `Se han procesado ${selectedPagos.length} pagos exitosamente.`,
+        title: "Pagos confirmados",
+        description: `Se han confirmado ${selectedPagos.length} pagos exitosamente.`,
       });
       setSelectedPagos([]);
       fetchPagos(selectedMonth, selectedYear, selectedCenter);
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudieron procesar los pagos masivos.",
+        description: "No se pudieron confirmar los pagos masivos.",
         variant: "destructive",
       });
     }
@@ -188,10 +196,14 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
   const handleEdit = (pago: any) => {
     setSelectedPago(pago);
     setFormData({
-      nomina_id: pago.nomina_id,
-      profesional_id: pago.profesional_id,
-      monto: pago.monto,
-      metodo_pago: pago.metodo_pago,
+      nomina_id: pago.nomina_id || '',
+      profesional_guardia_id: pago.profesional_guardia_id || '',
+      profesional_id: pago.profesional_guardia_id || '', // Use profesional_guardia_id as primary
+      importe: pago.importe || 0,
+      monto: pago.monto || pago.importe || 0,
+      forma_pago: pago.forma_pago || 'transfer_trabajador',
+      metodo_pago: pago.metodo_pago || pago.forma_pago || 'transfer_trabajador',
+      comprobante_url: pago.comprobante_url || '',
       referencia_pago: pago.referencia_pago || '',
       observaciones: pago.observaciones || ''
     });
@@ -201,9 +213,13 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
   const resetForm = () => {
     setFormData({
       nomina_id: '',
+      profesional_guardia_id: '',
       profesional_id: '',
+      importe: 0,
       monto: 0,
-      metodo_pago: 'TRANSFERENCIA',
+      forma_pago: 'transfer_trabajador',
+      metodo_pago: 'transfer_trabajador',
+      comprobante_url: '',
       referencia_pago: '',
       observaciones: ''
     });
@@ -211,21 +227,35 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
-      case 'PENDIENTE':
+      case 'pendiente':
         return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Pendiente</Badge>;
-      case 'APROBADO':
+      case 'realizado':
+        return <Badge className="bg-blue-100 text-blue-800"><CheckCircle className="w-3 h-3 mr-1" />Realizado</Badge>;
+      case 'confirmado':
+        return <Badge className="bg-green-100 text-green-800"><CreditCard className="w-3 h-3 mr-1" />Confirmado</Badge>;
+      // Backwards compatibility
+      case 'aprobado':
         return <Badge className="bg-blue-100 text-blue-800"><CheckCircle className="w-3 h-3 mr-1" />Aprobado</Badge>;
-      case 'PROCESADO':
+      case 'procesado':
         return <Badge className="bg-green-100 text-green-800"><CreditCard className="w-3 h-3 mr-1" />Procesado</Badge>;
-      case 'RECHAZADO':
+      case 'rechazado':
         return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Rechazado</Badge>;
       default:
-        return <Badge variant="secondary">{estado}</Badge>;
+        return <Badge variant="secondary">{estado || 'Sin estado'}</Badge>;
     }
   };
 
   const getMetodoPagoBadge = (metodo: string) => {
     switch (metodo) {
+      case 'transfer_trabajador':
+        return <Badge variant="outline">Transferencia al Trabajador</Badge>;
+      case 'transfer_hospital':
+        return <Badge variant="outline">Transferencia al Hospital</Badge>;
+      case 'efectivo':
+        return <Badge variant="outline">Efectivo</Badge>;
+      case 'cheque':
+        return <Badge variant="outline">Cheque</Badge>;
+      // Backwards compatibility for old values
       case 'TRANSFERENCIA':
         return <Badge variant="outline">Transferencia</Badge>;
       case 'CHEQUE':
@@ -240,7 +270,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
-      currency: 'EUR'
+      currency: 'XAF'
     }).format(amount);
   };
 
@@ -279,15 +309,15 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
                 <div className="flex items-center space-x-2">
                   <DollarSign className="w-4 h-4" />
-                  <span>{formatCurrency(pago.monto)}</span>
+                  <span>{formatCurrency(pago.importe)}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <FileText className="w-4 h-4" />
-                  <span>Ref: {pago.referencia_pago || 'Sin referencia'}</span>
+                  <span>Comprobante: {pago.comprobante_url ? 'Disponible' : 'Sin comprobante'}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Calendar className="w-4 h-4" />
-                  <span>{new Date(pago.fecha_creacion).toLocaleDateString('es-ES')}</span>
+                  <span>{pago.created_at ? new Date(pago.created_at).toLocaleDateString('es-ES') : 'Sin fecha'}</span>
                 </div>
               </div>
 
@@ -365,7 +395,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
               className="bg-blue-600 hover:bg-blue-700"
             >
               <CreditCard className="w-4 h-4 mr-2" />
-              Procesar {selectedPagos.length} Pagos
+              Confirmar {selectedPagos.length} Pagos
             </Button>
           )}
           
@@ -417,17 +447,17 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
                     <div>
                       <label className="text-sm font-medium">Profesional</label>
                       <Select
-                        value={formData.profesional_id}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, profesional_id: value }))}
+                        value={formData.profesional_guardia_id}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, profesional_guardia_id: value, profesional_id: value }))}
                         required
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccionar profesional" />
                         </SelectTrigger>
                         <SelectContent>
-                          {profesionales.map((prof) => (
+                          {profesionalesGuardias.map((prof) => (
                             <SelectItem key={prof.id} value={prof.id}>
-                              {prof.nombre_completo}
+                              {prof.nombre_completo} - {prof.categoria} ({prof.unidad_servicio})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -451,7 +481,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
                       <label className="text-sm font-medium">Método de Pago</label>
                       <Select
                         value={formData.metodo_pago}
-                        onValueChange={(value: 'TRANSFERENCIA' | 'CHEQUE' | 'EFECTIVO') => 
+                        onValueChange={(value: 'transfer_trabajador' | 'transfer_hospital' | 'efectivo' | 'cheque') =>
                           setFormData(prev => ({ ...prev, metodo_pago: value }))
                         }
                       >
@@ -459,9 +489,10 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="TRANSFERENCIA">Transferencia Bancaria</SelectItem>
-                          <SelectItem value="CHEQUE">Cheque</SelectItem>
-                          <SelectItem value="EFECTIVO">Efectivo</SelectItem>
+                          <SelectItem value="transfer_trabajador">Transferencia al Trabajador</SelectItem>
+                          <SelectItem value="transfer_hospital">Transferencia al Hospital</SelectItem>
+                          <SelectItem value="efectivo">Efectivo</SelectItem>
+                          <SelectItem value="cheque">Cheque</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -523,20 +554,20 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Aprobados</p>
-                <p className="text-2xl font-bold text-blue-600">{pagosAprobados.length}</p>
+                <p className="text-sm font-medium text-gray-600">Realizados</p>
+                <p className="text-2xl font-bold text-blue-600">{pagosRealizados.length}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Procesados</p>
-                <p className="text-2xl font-bold text-green-600">{pagosProcesados.length}</p>
+                <p className="text-sm font-medium text-gray-600">Confirmados</p>
+                <p className="text-2xl font-bold text-green-600">{pagosConfirmados.length}</p>
               </div>
               <CreditCard className="w-8 h-8 text-green-600" />
             </div>
@@ -549,7 +580,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Monto</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {formatCurrency(pagos.reduce((sum, p) => sum + p.monto, 0))}
+                  {formatCurrency(pagos.reduce((sum, p) => sum + (p.importe || 0), 0))}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-purple-600" />
@@ -578,10 +609,9 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="PENDIENTE">Pendientes</SelectItem>
-                <SelectItem value="APROBADO">Aprobados</SelectItem>
-                <SelectItem value="PROCESADO">Procesados</SelectItem>
-                <SelectItem value="RECHAZADO">Rechazados</SelectItem>
+                <SelectItem value="pendiente">Pendientes</SelectItem>
+                <SelectItem value="realizado">Realizados</SelectItem>
+                <SelectItem value="confirmado">Confirmados</SelectItem>
               </SelectContent>
             </Select>
             
@@ -591,9 +621,10 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los métodos</SelectItem>
-                <SelectItem value="TRANSFERENCIA">Transferencia</SelectItem>
-                <SelectItem value="CHEQUE">Cheque</SelectItem>
-                <SelectItem value="EFECTIVO">Efectivo</SelectItem>
+                <SelectItem value="transfer_trabajador">Transferencia al Trabajador</SelectItem>
+                <SelectItem value="transfer_hospital">Transferencia al Hospital</SelectItem>
+                <SelectItem value="efectivo">Efectivo</SelectItem>
+                <SelectItem value="cheque">Cheque</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -610,8 +641,8 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="aprobados">Aprobados</TabsTrigger>
-          <TabsTrigger value="procesados">Procesados</TabsTrigger>
+          <TabsTrigger value="realizados">Realizados</TabsTrigger>
+          <TabsTrigger value="confirmados">Confirmados</TabsTrigger>
           <TabsTrigger value="todos">Todos</TabsTrigger>
         </TabsList>
 
@@ -629,7 +660,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
                   No hay pagos pendientes
                 </h3>
                 <p className="text-gray-600">
-                  Todos los pagos han sido procesados.
+                  Todos los pagos han sido confirmados.
                 </p>
               </CardContent>
             </Card>
@@ -640,42 +671,42 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
           )}
         </TabsContent>
 
-        <TabsContent value="aprobados" className="space-y-4">
-          {pagosAprobados.length === 0 ? (
+        <TabsContent value="realizados" className="space-y-4">
+          {pagosRealizados.length === 0 ? (
             <Card>
               <CardContent className="text-center py-8">
                 <CheckCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  No hay pagos aprobados
+                  No hay pagos realizados
                 </h3>
                 <p className="text-gray-600">
-                  Los pagos aprobados aparecerán aquí.
+                  Los pagos realizados aparecerán aquí.
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
-              {pagosAprobados.map(renderPagoCard)}
+              {pagosRealizados.map(renderPagoCard)}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="procesados" className="space-y-4">
-          {pagosProcesados.length === 0 ? (
+        <TabsContent value="confirmados" className="space-y-4">
+          {pagosConfirmados.length === 0 ? (
             <Card>
               <CardContent className="text-center py-8">
                 <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  No hay pagos procesados
+                  No hay pagos confirmados
                 </h3>
                 <p className="text-gray-600">
-                  Los pagos procesados aparecerán aquí.
+                  Los pagos confirmados aparecerán aquí.
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
-              {pagosProcesados.map(renderPagoCard)}
+              {pagosConfirmados.map(renderPagoCard)}
             </div>
           )}
         </TabsContent>
@@ -732,7 +763,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
                   <p className="text-lg font-bold text-green-600">{formatCurrency(selectedPago.monto)}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Método</h4>
+                  <h4 className="font-medium text-gray-900 mb-2">M��todo</h4>
                   {getMetodoPagoBadge(selectedPago.metodo_pago)}
                 </div>
               </div>
@@ -757,7 +788,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
                   <p>Aprobado: {new Date(selectedPago.fecha_aprobacion).toLocaleString('es-ES')}</p>
                 )}
                 {selectedPago.fecha_procesamiento && (
-                  <p>Procesado: {new Date(selectedPago.fecha_procesamiento).toLocaleString('es-ES')}</p>
+                  <p>Confirmado: {new Date(selectedPago.fecha_procesamiento).toLocaleString('es-ES')}</p>
                 )}
               </div>
             </div>

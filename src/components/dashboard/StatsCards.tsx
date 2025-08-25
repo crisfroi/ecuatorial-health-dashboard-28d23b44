@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 // CAMBIO AQUÍ: Importamos PersonStanding en lugar de Male y Female
 import {
   Users,
@@ -138,18 +139,18 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
     onNavigateToProfessionals(filters);
   };
 
-  // Debug: Log the stats data
-  console.log("StatsCards: Current stats data:", stats);
-  console.log("StatsCards: Is loading:", isLoading);
-  console.log("StatsCards: Error:", error);
-  console.log("StatsCards: Test stats data:", testStats);
-  console.log("StatsCards: Test loading:", testLoading);
-  console.log("StatsCards: Test error:", testError);
-  console.log("StatsCards: Mock stats data:", mockStats);
-  console.log("StatsCards: Connectivity data:", connectivityData);
-  console.log("StatsCards: Connectivity loading:", connectivityLoading);
-  console.log("StatsCards: Connectivity error:", connectivityError);
-  console.log("StatsCards: Effective stats (final):", effectiveStats);
+  // Debug: Log the stats data (hidden in production)
+  // console.log("StatsCards: Current stats data:", stats);
+  // console.log("StatsCards: Is loading:", isLoading);
+  // console.log("StatsCards: Error:", error);
+  // console.log("StatsCards: Test stats data:", testStats);
+  // console.log("StatsCards: Test loading:", testLoading);
+  // console.log("StatsCards: Test error:", testError);
+  // console.log("StatsCards: Mock stats data:", mockStats);
+  // console.log("StatsCards: Connectivity data:", connectivityData);
+  // console.log("StatsCards: Connectivity loading:", connectivityLoading);
+  // console.log("StatsCards: Connectivity error:", connectivityError);
+  // console.log("StatsCards: Effective stats (final):", effectiveStats);
 
   if (!effectiveStats) {
     console.log("StatsCards: No stats data available");

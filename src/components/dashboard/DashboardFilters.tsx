@@ -1,4 +1,3 @@
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +9,7 @@ interface Filtros {
   provincia?: string;
   genero?: string;
   tipo_sector?: string;
+  funcion_publica?: string; // Nueva categorización
   distrito?: string;
   distrito_sanitario?: string;
   anoGraduacion?: string;
@@ -115,7 +115,7 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
                 <SelectItem value="Distrito Sanitario de Conakry">Distrito Sanitario de Conakry</SelectItem>
                 <SelectItem value="Distrito Sanitario de Kindia">Distrito Sanitario de Kindia</SelectItem>
                 <SelectItem value="Distrito Sanitario de Boké">Distrito Sanitario de Boké</SelectItem>
-                <SelectItem value="Distrito Sanitario de Labé">Distrito Sanitario de Labé</SelectItem>
+                <SelectItem value="Distrito Sanitario de Lab��">Distrito Sanitario de Labé</SelectItem>
                 <SelectItem value="Distrito Sanitario de Faranah">Distrito Sanitario de Faranah</SelectItem>
                 <SelectItem value="Distrito Sanitario de Kankan">Distrito Sanitario de Kankan</SelectItem>
                 <SelectItem value="Distrito Sanitario de Nzérékoré">Distrito Sanitario de Nzérékoré</SelectItem>
@@ -148,6 +148,22 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
                 <SelectItem value="todos">Todos los sectores</SelectItem>
                 <SelectItem value="Público">Público</SelectItem>
                 <SelectItem value="Privado">Privado</SelectItem>
+                <SelectItem value="Mixto">Mixto</SelectItem>
+                <SelectItem value="ONG">ONG</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Función Pública</label>
+            <Select value={filters.funcion_publica || 'todos'} onValueChange={(value) => updateFilter('funcion_publica', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="true">Función Pública</SelectItem>
+                <SelectItem value="false">No Función Pública</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Calendar, 
   Clock, 
@@ -29,6 +30,7 @@ import { PagosGuardias } from './tabs/PagosGuardias';
 import { ReportesGuardias } from './tabs/ReportesGuardias';
 import { AuditoriaGuardias } from './tabs/AuditoriaGuardias';
 import { AjustesGuardias } from './tabs/AjustesGuardias';
+import { NetworkStatusSimple } from '@/components/ui/network-status-simple';
 import { GuardiasStatusIndicators } from './GuardiasStatusIndicators';
 import { GuardiasNotificationSystem } from './GuardiasNotificationSystem';
 import { GuardiasHelpSystem } from './GuardiasHelpSystem';
@@ -40,6 +42,7 @@ interface GuardiasDashboardProps {
 
 export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const {
     centros,
     guardias,
@@ -49,10 +52,10 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
     loading,
     fetchCentros
   } = useGuardiasStore();
-  
+
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedCenter, setSelectedCenter] = useState<string | null>(null);
+  const [selectedCenter, setSelectedCenter] = useState<string | null>(user?.assigned_center_id || null);
   const [activeTab, setActiveTab] = useState('registro');
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -66,6 +69,13 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
       localStorage.setItem(`guardias-visited-${userRole}`, 'true');
     }
   }, [userRole]);
+
+  // Auto-select user's assigned center when available
+  useEffect(() => {
+    if (user?.assigned_center_id && !selectedCenter) {
+      setSelectedCenter(user.assigned_center_id);
+    }
+  }, [user?.assigned_center_id, selectedCenter]);
 
   // Configuración de pestañas basada en roles
   const getVisibleTabs = () => {
@@ -154,6 +164,7 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
               <p className="text-gray-600">
                 Administración integral de guardias, cuadrantes, nóminas y pagos
               </p>
+              <NetworkStatusSimple className="mt-2" />
             </div>
             
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">

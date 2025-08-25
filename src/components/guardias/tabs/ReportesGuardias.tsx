@@ -148,7 +148,7 @@ export const ReportesGuardias: React.FC<ReportesGuardiasProps> = ({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
-      currency: 'EUR'
+      currency: 'XAF'
     }).format(amount);
   };
 

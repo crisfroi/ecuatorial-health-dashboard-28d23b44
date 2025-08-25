@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -128,6 +127,29 @@ export const WorkSituationStep = ({ form, watchedValues, distritosSanitarios }: 
                   </SelectContent>
                 </Select>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="funcion_publica"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>
+                    ¿Pertenece a la Función Pública?
+                  </FormLabel>
+                  <p className="text-sm text-gray-600">
+                    Marque esta casilla si es empleado/funcionario del sector público de salud
+                  </p>
+                </div>
               </FormItem>
             )}
           />

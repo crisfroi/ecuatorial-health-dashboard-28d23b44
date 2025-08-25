@@ -67,10 +67,10 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
     fetchBaremos();
   }, [selectedMonth, selectedYear, selectedCenter]);
 
-  const nominaActual = nominas.find(n => 
-    n.mes === selectedMonth && 
-    n.ano === selectedYear && 
-    (selectedCenter ? n.centro_id === selectedCenter : true)
+  const nominaActual = nominas.find(n =>
+    n.mes === selectedMonth &&
+    n.anio === selectedYear &&
+    (selectedCenter ? n.centro_salud_id === selectedCenter : true)
   );
 
   const handleGenerateNomina = async () => {
@@ -155,16 +155,16 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
-      case 'BORRADOR':
+      case 'borrador':
         return <Badge className="bg-gray-100 text-gray-800"><Clock className="w-3 h-3 mr-1" />Borrador</Badge>;
-      case 'GENERADA':
+      case 'enviada':
         return <Badge className="bg-blue-100 text-blue-800"><FileText className="w-3 h-3 mr-1" />Generada</Badge>;
-      case 'REVISADA':
-        return <Badge className="bg-yellow-100 text-yellow-800"><Eye className="w-3 h-3 mr-1" />Revisada</Badge>;
-      case 'APROBADA':
+      case 'aprobada':
         return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Aprobada</Badge>;
-      case 'RECHAZADA':
+      case 'rechazada':
         return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Rechazada</Badge>;
+      case 'pagada':
+        return <Badge className="bg-blue-600 text-white"><DollarSign className="w-3 h-3 mr-1" />Pagada</Badge>;
       default:
         return <Badge variant="secondary">{estado}</Badge>;
     }
@@ -173,7 +173,7 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
-      currency: 'EUR'
+      currency: 'XAF'
     }).format(amount);
   };
 
@@ -235,7 +235,14 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                     <h4 className="font-medium text-blue-900 mb-2">Información del Período</h4>
                     <div className="text-sm text-blue-800">
                       <p>Mes: {selectedMonth}/{selectedYear}</p>
-                      {selectedCenter && <p>Centro: {selectedCenter}</p>}
+                      {selectedCenter ? (
+                        <p className="text-green-700">✅ Centro: {selectedCenter}</p>
+                      ) : (
+                        <div className="text-red-600">
+                          <p className="font-medium">⚠️ Debe seleccionar un centro de salud</p>
+                          <p className="text-xs mt-1">Las nóminas deben estar asociadas a un centro específico</p>
+                        </div>
+                      )}
                       <p>Guardias registradas: {guardias.length}</p>
                     </div>
                   </div>
@@ -247,7 +254,11 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                     >
                       Cancelar
                     </Button>
-                    <Button onClick={handleGenerateNomina} disabled={loading}>
+                    <Button
+                      onClick={handleGenerateNomina}
+                      disabled={loading || !selectedCenter}
+                      className={!selectedCenter ? "opacity-50 cursor-not-allowed" : ""}
+                    >
                       Generar Nómina
                     </Button>
                   </div>
@@ -270,9 +281,10 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                 <div>
                   <h3 className="font-semibold">Nómina {selectedMonth}/{selectedYear}</h3>
                   <p className="text-sm text-gray-600">
-                    Total: {formatCurrency(nominaActual.total)} • 
-                    Líneas: {nominaActual.total_lineas} •
-                    Generada: {new Date(nominaActual.fecha_generacion).toLocaleDateString('es-ES')}
+                    Total: {formatCurrency(nominaActual.total_importe || 0)} •
+                    Profesionales: {nominaActual.total_profesionales || 0} •
+                    Guardias: {nominaActual.total_guardias || 0} •
+                    Creada: {new Date(nominaActual.created_at || Date.now()).toLocaleDateString('es-ES')}
                   </p>
                 </div>
               </div>
@@ -326,7 +338,7 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                     <div>
                       <p className="text-sm font-medium text-gray-600">Total Nómina</p>
                       <p className="text-2xl font-bold text-green-600">
-                        {formatCurrency(nominaActual.total)}
+                        {formatCurrency(nominaActual.total_importe || 0)}
                       </p>
                     </div>
                     <DollarSign className="w-8 h-8 text-green-600" />
@@ -339,7 +351,7 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Profesionales</p>
-                      <p className="text-2xl font-bold">{nominaActual.total_lineas}</p>
+                      <p className="text-2xl font-bold">{nominaActual.total_profesionales || 0}</p>
                     </div>
                     <User className="w-8 h-8 text-blue-600" />
                   </div>
@@ -351,7 +363,7 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Guardias Pagadas</p>
-                      <p className="text-2xl font-bold">{guardias.length}</p>
+                      <p className="text-2xl font-bold">{nominaActual.total_guardias || 0}</p>
                     </div>
                     <Calendar className="w-8 h-8 text-orange-600" />
                   </div>
@@ -364,7 +376,7 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                     <div>
                       <p className="text-sm font-medium text-gray-600">Promedio/Guardia</p>
                       <p className="text-2xl font-bold">
-                        {guardias.length > 0 ? formatCurrency(nominaActual.total / guardias.length) : '€0'}
+                        {(nominaActual.total_guardias || 0) > 0 ? formatCurrency((nominaActual.total_importe || 0) / (nominaActual.total_guardias || 1)) : 'XAF 0'}
                       </p>
                     </div>
                     <TrendingUp className="w-8 h-8 text-purple-600" />

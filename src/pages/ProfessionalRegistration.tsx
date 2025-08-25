@@ -66,9 +66,11 @@ const formSchema = z
     pais_formacion_1: z.string().min(1, "El país de formación es requerido"),
     situacion_laboral: z.string().min(1, "La situación laboral es requerida"),
     nombre_centro: z.string().min(1, "El centro de trabajo es requerido"),
+    centro_salud_id: z.string().optional(), // ID del centro seleccionado
     categoria_centro: z.string().min(1, "La categoría del centro es requerida"),
     tipo_sector: z.string().min(1, "El tipo de sector es requerido"),
     distrito_sanitario: z.string().optional(),
+    funcion_publica: z.boolean().default(false), // Nueva categorización
     pertenece_brigada_medica: z.boolean().default(false),
     tipo_cooperacion: z.string().optional(),
 
@@ -381,9 +383,11 @@ const ProfessionalRegistration = () => {
         pais_formacion_1: data.pais_formacion_1,
         situacion_laboral: data.situacion_laboral,
         nombre_centro: data.nombre_centro || null,
+        centro_salud_id: data.centro_salud_id || null, // Añadir ID del centro
         categoria_centro: data.categoria_centro || null,
         tipo_sector: data.tipo_sector || null,
         distrito_sanitario: data.distrito_sanitario || null,
+        funcion_publica: data.funcion_publica || false, // Nueva categorización
         pertenece_brigada_medica: data.pertenece_brigada_medica,
         tipo_cooperacion: data.tipo_cooperacion || null,
         // URLs de documentos adicionales subidos al bucket

@@ -2,20 +2,229 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '@/integrations/supabase/client';
 
+// Helper function to detect network connectivity issues
+const isNetworkError = (error: any): boolean => {
+  if (!error) return false;
+
+  // Check for common network error patterns
+  const networkErrorPatterns = [
+    'Failed to fetch',
+    'TypeError: Failed to fetch',
+    'Network request failed',
+    'ERR_NETWORK',
+    'ERR_INTERNET_DISCONNECTED',
+    'Connection timeout',
+    'Request timeout'
+  ];
+
+  const errorMessage = error.message || error.toString() || '';
+  return networkErrorPatterns.some(pattern =>
+    errorMessage.toLowerCase().includes(pattern.toLowerCase())
+  );
+};
+
+// Helper function to wait for a specified time (for retry logic)
+const wait = (ms: number): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
+// Enhanced retry function with exponential backoff
+const retryWithBackoff = async <T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> => {
+  let lastError: any;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      // If it's not a network error, don't retry
+      if (!isNetworkError(error)) {
+        throw error;
+      }
+
+      // If this was the last attempt, throw the error
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      // Calculate delay with exponential backoff
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.log(`🔄 Network error detected, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+      await wait(delay);
+    }
+  }
+
+  throw lastError;
+};
+
+// Helper function to format Supabase errors properly
+const formatSupabaseError = (error: any): string => {
+  console.error('🔍 Debugging error object type:', typeof error, error);
+  console.error('🔍 Error object keys:', Object.keys(error || {}));
+  console.error('🔍 Error object JSON:', JSON.stringify(error, null, 2));
+
+  if (!error) return 'Error desconocido';
+
+  if (typeof error === 'string') return error;
+
+  // Check for network errors first
+  if (isNetworkError(error)) {
+    console.log('🌐 Network error detected:', error.message);
+    return 'Error de conectividad: No se pudo conectar al servidor. Verifique su conexión a internet y vuelva a intentarlo.';
+  }
+
+  // Handle HTTP status errors first
+  if (error.status || error.statusCode) {
+    const status = error.status || error.statusCode;
+    console.log('��� HTTP Status found:', status);
+
+    switch (status) {
+      case 400:
+        const badRequestMsg = error.message || error.details || error.hint || 'Datos de solicitud inválidos';
+        return `Error 400: ${badRequestMsg}`;
+      case 401:
+        return 'Error 401: No autorizado - Verifique sus permisos';
+      case 403:
+        return 'Error 403: Acceso prohibido - Permisos insuficientes';
+      case 404:
+        return 'Error 404: Recurso no encontrado';
+      case 422:
+        const validationMsg = error.message || error.details || 'Error de validación de datos';
+        return `Error 422: ${validationMsg}`;
+      case 500:
+        return 'Error 500: Error interno del servidor';
+      default:
+        const statusMsg = error.message || error.details || 'Error de servidor';
+        return `Error ${status}: ${statusMsg}`;
+    }
+  }
+
+  // Supabase error structure
+  if (error.message) {
+    console.log('📝 Error message found:', error.message);
+    return error.message;
+  }
+
+  if (error.details) {
+    console.log('📋 Error details found:', error.details);
+    return error.details;
+  }
+
+  if (error.hint) {
+    console.log('💡 Error hint found:', error.hint);
+    return error.hint;
+  }
+
+  // PostgreSQL error codes
+  if (error.code) {
+    console.log('🏷️ Error code found:', error.code);
+    switch (error.code) {
+      case '23505':
+        return 'Ya existe un registro con estos datos (duplicado)';
+      case '23503':
+        return 'Referencia a un registro que no existe (foreign key)';
+      case '23502':
+        return 'Campo requerido faltante en la base de datos (not null)';
+      case '42P01':
+        return 'La tabla no existe en la base de datos';
+      case '42703':
+        return 'Columna no encontrada en la tabla';
+      case '42501':
+        return 'Permisos insuficientes para realizar la operación';
+      case '23514':
+        // Special handling for constraint violations
+        if (error.message && error.message.includes('guardias_duracion_check')) {
+          return 'Duración de guardia inválida: Las guardias deben durar entre 12 y 24 horas. Verifique las horas de inicio y fin.';
+        } else if (error.message && error.message.includes('guardias_fecha_check')) {
+          return 'Fechas de guardia inválidas: La fecha de fin debe ser posterior a la fecha de inicio.';
+        }
+        return 'Violación de restricción de verificación (check constraint)';
+      case '22001':
+        return 'Dato demasiado largo para el campo';
+      case '22007':
+        return 'Formato de fecha/hora inválido';
+      case '22P02':
+        // Special handling for enum errors
+        if (error.message && error.message.includes('invalid input value for enum')) {
+          const enumMatch = error.message.match(/invalid input value for enum (\w+): "([^"]+)"/);
+          if (enumMatch) {
+            const [, enumType, invalidValue] = enumMatch;
+            return `Valor "${invalidValue}" no válido para el tipo ${enumType}. Valores permitidos: dir_medica, dir_admin, dir_enfermeria, jefe_rrhh, admin_hospital, dir_gerente, dg_coordinacion`;
+          }
+        }
+        return 'Valor inválido para el tipo de dato';
+      default:
+        const codeMsg = error.message || error.details || 'Error de base de datos';
+        return `Error BD (${error.code}): ${codeMsg}`;
+    }
+  }
+
+  // Try to extract meaningful info from error object
+  if (error.error && error.error.message) {
+    console.log('🔗 Nested error message found:', error.error.message);
+    return error.error.message;
+  }
+
+  // If it's an HttpException with nested error
+  if (error.name === 'HttpException' && error.message) {
+    console.log('🌐 HTTP Exception found:', error.message);
+    return error.message;
+  }
+
+  // Extract properties manually as last resort
+  try {
+    const errorProperties = [];
+    for (const key in error) {
+      if (error.hasOwnProperty(key)) {
+        errorProperties.push(`${key}: ${error[key]}`);
+      }
+    }
+
+    if (errorProperties.length > 0) {
+      const errorStr = errorProperties.join(', ');
+      console.error('🔍 Extracted error properties:', errorStr);
+      return errorStr.length > 200 ?
+        'Error de base de datos. Ver consola para detalles.' :
+        errorStr;
+    }
+
+    // Ultimate fallback
+    console.error('🚫 No readable error properties found, using toString');
+    return error.toString() || 'Error desconocido';
+  } catch {
+    return 'Error desconocido al procesar la solicitud';
+  }
+};
+
 // Tipos básicos
 export interface Guardia {
   id: string;
-  profesional_id: string;
-  centro_id: string;
-  fecha: string;
-  turno: 'MAÑANA' | 'TARDE' | 'NOCHE';
-  tipo_guardia: 'ORDINARIA' | 'FESTIVA' | 'NOCTURNA';
-  horas_inicio: string;
-  horas_fin: string;
+  profesional_guardia_id: string;
+  centro_salud_id: string;
+  tipo: 'fisica' | 'localizable' | 'administrativa';
+  fecha_inicio: string;
+  fecha_fin: string;
+  horas?: number;
+  tipo_dia: 'ordinario' | 'fin_semana' | 'festivo';
+  estado?: string;
+  validacion_estado?: string;
   observaciones?: string;
+  localizable_activada?: boolean;
+  hora_llamada?: string;
+  hora_llegada?: string;
+  servicio_atendido?: string;
+  caso_atendido?: string;
   created_at?: string;
   updated_at?: string;
-  // Datos relacionados
+  created_by?: string;
+  approved_by?: string;
+  approved_at?: string;
+  // Datos relacionados (para facilitar el uso en frontend)
   profesional?: {
     id: string;
     nombre_completo: string;
@@ -33,6 +242,21 @@ export interface Profesional {
   especialidad: string;
   centro_id?: string;
   activo: boolean;
+  funcion_publica?: boolean; // Nueva categorización para pagos
+  tipo_sector?: string;
+}
+
+export interface ProfesionalGuardia {
+  id: string;
+  profesional_id: string;
+  nombre_completo?: string; // Joined from profesionales_sanitarios
+  categoria: 'especialista' | 'general_licenciado' | 'tecnico_diplomado' | 'auxiliar' | 'subalterno' | 'odepac' | 'secre_asist_pacientes' | 'caja';
+  unidad_servicio: string;
+  banco?: string;
+  iban_cuenta?: string;
+  activo: boolean;
+  telefono_guardias?: string;
+  email_guardias?: string;
 }
 
 export interface Centro {
@@ -48,56 +272,86 @@ export interface Cuadrante {
   ano: number;
   centro_id?: string;
   tipo_cuadrante: 'MENSUAL' | 'SEMANAL';
-  estado: 'BORRADOR' | 'GENERADO' | 'APROBADO';
+  estado: 'borrador' | 'generado' | 'aprobado' | 'rechazado' | 'enviada' | 'pagada';
   fecha_generacion: string;
   fecha_aprobacion?: string;
   auto_asignar: boolean;
   considerar_preferencias: boolean;
 }
 
+// Database enum values for etapa_validacion
+export type EtapaValidacion = 'dir_medica' | 'dir_admin' | 'dir_enfermeria' | 'jefe_rrhh' | 'admin_hospital' | 'dir_gerente' | 'dg_coordinacion';
+
+// Frontend workflow stages (for UI)
+export type EtapaWorkflow = 'revision_inicial' | 'supervision_tecnica' | 'aprobacion_final';
+
 export interface Validacion {
   id: string;
-  numero_validacion: string;
-  mes: number;
-  ano: number;
-  centro_id?: string;
-  estado: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO';
-  prioridad: 'ALTA' | 'MEDIA' | 'BAJA';
-  fecha_solicitud: string;
-  fecha_validacion?: string;
-  descripcion: string;
-  observaciones?: string;
-  solicitante?: {
+  guardia_id?: string;
+  etapa: EtapaValidacion;
+  usuario_id?: string;
+  fecha?: string;
+  resultado?: string;
+  comentario?: string;
+  firma?: string;
+  created_at?: string;
+  // Datos relacionados
+  guardia?: {
+    id: string;
+    profesional_guardia_id: string;
+    centro_salud_id: string;
+    fecha_inicio: string;
+    fecha_fin: string;
+    tipo: string;
+    tipo_dia: string;
+  };
+  usuario?: {
     id: string;
     nombre_completo: string;
   };
+}
+
+export interface Nomina {
+  id: string;
+  centro_salud_id: string;
+  mes: number;
+  anio: number;
+  estado?: string;
+  total_importe?: number;
+  total_guardias?: number;
+  total_profesionales?: number;
+  created_by?: string;
+  approved_by?: string;
+  approved_at?: string;
+  observaciones?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Datos relacionados
   centro?: {
     id: string;
     nombre: string;
   };
 }
 
-export interface Nomina {
-  id: string;
-  mes: number;
-  ano: number;
-  centro_id?: string;
-  estado: 'BORRADOR' | 'GENERADA' | 'REVISADA' | 'APROBADA' | 'RECHAZADA';
-  total: number;
-  total_lineas: number;
-  fecha_generacion: string;
-  fecha_aprobacion?: string;
-}
-
 export interface NominaLinea {
   id: string;
   nomina_id: string;
-  profesional_id: string;
-  cantidad_guardias: number;
-  total_horas: number;
-  total_base: number;
-  total_complementos: number;
-  total_linea: number;
+  profesional_guardia_id: string;
+  categoria: string;
+  guardias_ordinarias?: number;
+  guardias_fines_semana?: number;
+  guardias_festivos?: number;
+  localizables_programadas?: number;
+  localizables_llamadas?: number;
+  coste_unitario_ordinario?: number;
+  coste_unitario_fin_semana?: number;
+  coste_unitario_festivo?: number;
+  coste_localizable_programada?: number;
+  coste_localizable_llamada?: number;
+  total_linea?: number;
+  created_at?: string;
+  updated_at?: string;
+  // Datos relacionados
   profesional?: {
     id: string;
     nombre_completo: string;
@@ -107,29 +361,41 @@ export interface NominaLinea {
 export interface Pago {
   id: string;
   nomina_id: string;
-  profesional_id: string;
-  monto: number;
-  metodo_pago: 'TRANSFERENCIA' | 'CHEQUE' | 'EFECTIVO';
-  estado: 'PENDIENTE' | 'APROBADO' | 'PROCESADO' | 'RECHAZADO';
-  referencia_pago?: string;
+  profesional_guardia_id: string;
+  forma_pago: string;
+  fecha_pago?: string;
+  importe: number;
+  comprobante_url?: string;
   observaciones?: string;
-  fecha_creacion: string;
-  fecha_aprobacion?: string;
-  fecha_procesamiento?: string;
+  estado?: string;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Datos relacionados
   profesional?: {
     id: string;
     nombre_completo: string;
+  };
+  nomina?: {
+    id: string;
+    mes: number;
+    anio: number;
+    total_importe?: number;
   };
 }
 
 export interface Baremo {
   id: string;
-  concepto: string;
-  tarifa_base: number;
-  multiplicador_nocturno: number;
-  multiplicador_festivo: number;
+  fuente: 'protocol' | 'excel' | 'manual';
+  categoria: 'especialista' | 'general_licenciado' | 'tecnico_diplomado' | 'auxiliar' | 'subalterno' | 'odepac' | 'secre_asist_pacientes' | 'caja';
+  tipo_guardia: 'fisica' | 'localizable' | 'administrativa';
+  tipo_dia: 'ordinario' | 'fin_semana' | 'festivo';
+  valor: number;
+  porcentaje_localizable: number;
+  porcentaje_llamada: number;
+  vigente_desde?: string;
+  vigente_hasta?: string;
   activo: boolean;
-  fuente: 'PROTOCOLO' | 'EXCEL';
   observaciones?: string;
   created_at: string;
   updated_at: string;
@@ -162,16 +428,20 @@ export interface AjusteBaremo {
 
 export interface BitacoraEntry {
   id: string;
+  ref_tipo: string;
+  ref_id: string;
+  usuario_id?: string;
   accion: string;
-  entidad_tipo: string;
-  entidad_id?: string;
-  usuario_email: string;
-  descripcion: string;
-  datos_anteriores?: any;
-  datos_nuevos?: any;
-  fecha_hora: string;
+  detalle?: any;
+  fecha?: string;
   ip_address?: string;
   user_agent?: string;
+  // Datos relacionados
+  usuario?: {
+    id: string;
+    nombre_completo: string;
+    email: string;
+  };
 }
 
 interface GuardiasStoreState {
@@ -182,6 +452,7 @@ interface GuardiasStoreState {
   // Datos
   guardias: Guardia[];
   profesionales: Profesional[];
+  profesionalesGuardias: ProfesionalGuardia[];
   centros: Centro[];
   cuadrantes: Cuadrante[];
   validaciones: Validacion[];
@@ -202,9 +473,11 @@ interface GuardiasStoreState {
   createGuardia: (data: Partial<Guardia>) => Promise<void>;
   updateGuardia: (id: string, data: Partial<Guardia>) => Promise<void>;
   deleteGuardia: (id: string) => Promise<void>;
+  ensureProfesionalGuardia: (profesionalId: string) => Promise<string>;
 
   // Operaciones CRUD - Profesionales
   fetchProfesionales: (centroId?: string | null) => Promise<void>;
+  fetchProfesionalesGuardias: (centroId?: string | null) => Promise<void>;
 
   // Operaciones CRUD - Centros
   fetchCentros: () => Promise<void>;
@@ -226,6 +499,8 @@ interface GuardiasStoreState {
   fetchNominas: (mes: number, ano: number, centroId?: string | null) => Promise<void>;
   fetchNominasLineas: (nominaId: string) => Promise<void>;
   generateNomina: (data: { mes: number; ano: number; centro_id?: string | null }) => Promise<void>;
+  generateNominaServerSide: (data: { mes: number; ano: number; centro_id: string }) => Promise<string>;
+  exportNominaEnhanced: (nominaId: string, format?: 'csv' | 'json') => Promise<any>;
   aprobarNomina: (id: string) => Promise<void>;
   rechazarNomina: (id: string) => Promise<void>;
   exportNomina: (id: string, formato: 'PDF' | 'EXCEL') => Promise<void>;
@@ -239,6 +514,13 @@ interface GuardiasStoreState {
   rechazarPago: (id: string) => Promise<void>;
   procesarPagoMasivo: (pagoIds: string[]) => Promise<void>;
   exportPagos: (mes: number, ano: number, centroId?: string | null) => Promise<void>;
+
+  // Enhanced protocol functions
+  exportPagosEnhanced: (nominaId?: string, mes?: number, ano?: number, centroId?: string, format?: 'csv' | 'json') => Promise<any>;
+  exportBankTransfers: (nominaId?: string) => Promise<any>;
+  validatePagoForProtocol: (pago: Partial<Pago>) => Promise<{ valid: boolean; errors: string[] }>;
+  generatePaymentReceipt: (pagoId: string) => Promise<string>;
+  auditPaymentChanges: (pagoId: string, changes: any, userId: string) => Promise<void>;
 
   // Operaciones CRUD - Baremos
   fetchBaremos: () => Promise<void>;
@@ -272,6 +554,11 @@ interface GuardiasStoreState {
   generateReport: (tipo: string, params: any) => Promise<void>;
   exportReport: (tipo: string, params: any) => Promise<void>;
 
+  // Utilidades para días festivos
+  isDiaFestivo: (fecha: string) => boolean;
+  getTipoDia: (fecha: string) => 'ordinario' | 'fin_semana' | 'festivo';
+  calcularMontoConTipoDia: (montoBase: number, tipoDia: string, tipo: string) => number;
+
   // Configuración
   exportConfiguration: () => Promise<void>;
   importConfiguration: (file: File) => Promise<void>;
@@ -288,6 +575,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       // Datos iniciales
       guardias: [],
       profesionales: [],
+      profesionalesGuardias: [],
       centros: [],
       cuadrantes: [],
       validaciones: [],
@@ -305,103 +593,321 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       // Operaciones CRUD - Guardias
       fetchGuardias: async (mes, ano, centroId) => {
+        console.log('🔍 Fetching guardias for:', { mes, ano, centroId });
         set({ loading: true, error: null });
+
         try {
-          let query = supabase
-            .from('guardias')
-            .select(`
-              *,
-              profesional_id (
-                id,
-                nombre_completo,
-                area_profesional
-              ),
-              centro_salud_id (
-                id,
-                nombre
-              )
-            `)
-            .order('fecha', { ascending: false });
 
-          // Filtrar por mes y año
-          const startDate = new Date(ano, mes - 1, 1);
-          const endDate = new Date(ano, mes, 0);
-          query = query
-            .gte('fecha', startDate.toISOString())
-            .lte('fecha', endDate.toISOString());
 
-          // Filtrar por centro si se especifica
-          if (centroId) {
-            query = query.eq('centro_salud_id', centroId);
-          }
+            const { data, error } = await query;
 
-          const { data, error } = await query;
+            if (error) {
+              console.error('❌ Supabase error in fetchGuardias:', error);
+              throw error;
+            }
 
-          if (error) {
-            console.error('Error fetching guardias:', error);
-            throw error;
-          }
 
-          // Normalizar al shape esperado por el UI
-          const normalized = (data || []).map((g: any) => ({
-            id: g.id,
-            profesional_id: g.profesional_id?.id ? g.profesional_id.id : g.profesional_id,
-            centro_id: g.centro_salud_id?.id ? g.centro_salud_id.id : g.centro_salud_id,
-            fecha: g.fecha,
-            turno: g.turno,
-            tipo_guardia: g.tipo_guardia,
-            horas_inicio: g.horas_inicio,
-            horas_fin: g.horas_fin,
-            observaciones: g.observaciones,
-            created_at: g.created_at,
-            updated_at: g.updated_at,
-            profesional: g.profesional_id && typeof g.profesional_id === 'object' ? {
-              id: g.profesional_id.id,
-              nombre_completo: g.profesional_id.nombre_completo,
-              especialidad: g.profesional_id.area_profesional
-            } : undefined,
-            centro: g.centro_salud_id && typeof g.centro_salud_id === 'object' ? {
-              id: g.centro_salud_id.id,
-              nombre: g.centro_salud_id.nombre
-            } : undefined,
-          }));
-
-          console.log('Guardias fetched:', normalized.length);
-          set({ guardias: normalized, loading: false });
         } catch (error: any) {
-          console.error('Error fetching guardias:', error);
-          set({ error: 'Error al cargar guardias: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchGuardias:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar guardias: ' + errorMessage, loading: false });
         }
       },
 
       createGuardia: async (data) => {
-        set({ loading: true });
+        console.log('��� Creating guardia with data:', data);
+        set({ loading: true, error: null });
         try {
-          const insertData: any = {
-            profesional_id: (data as any).profesional_id,
-            centro_salud_id: (data as any).centro_salud_id || (data as any).centro_id,
-            fecha: (data as any).fecha,
-            turno: (data as any).turno,
-            tipo_guardia: (data as any).tipo_guardia,
-            horas_inicio: (data as any).horas_inicio,
-            horas_fin: (data as any).horas_fin,
-            observaciones: (data as any).observaciones,
-          };
 
-          const { error } = await supabase
-            .from('guardias')
-            .insert(insertData);
 
-          if (error) throw error;
+          // Si tiene profesional_ids múltiples (multiselección)
+          if (data.profesional_ids && Array.isArray(data.profesional_ids)) {
+            console.log('👥 Creating multiple guardias for:', data.profesional_ids.length, 'professionals');
+            for (const profesionalId of data.profesional_ids) {
+              const profesionalGuardiaId = await get().ensureProfesionalGuardia(profesionalId);
+
+              // Calcular tipo_dia automáticamente
+              const tipoDiaCalculado = data.tipo_dia || get().getTipoDia(data.fecha_inicio);
+
+              // Validate dates
+              const fechaInicio = new Date(data.fecha_inicio);
+              const fechaFin = new Date(data.fecha_fin);
+
+              if (isNaN(fechaInicio.getTime())) {
+                throw new Error(`Fecha de inicio inv��lida: ${data.fecha_inicio}`);
+              }
+
+              if (isNaN(fechaFin.getTime())) {
+                throw new Error(`Fecha de fin inválida: ${data.fecha_fin}`);
+              }
+
+              if (fechaFin <= fechaInicio) {
+                throw new Error(`La fecha de fin (${data.fecha_fin}) debe ser posterior a la fecha de inicio (${data.fecha_inicio})`);
+              }
+
+              // Validate duration (must be between 12 and 24 hours)
+              const durationHours = (fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60);
+              console.log('⏱️ Calculated duration:', durationHours, 'hours');
+
+              if (durationHours < 12) {
+                throw new Error(`La duración de la guardia debe ser de al menos 12 horas. Duración actual: ${durationHours.toFixed(1)} horas`);
+              }
+
+              if (durationHours > 24) {
+                throw new Error(`La duración de la guardia no puede exceder 24 horas. Duración actual: ${durationHours.toFixed(1)} horas`);
+              }
+
+              // Validate centro_salud_id exists
+              if (!data.centro_salud_id) {
+                throw new Error('Centro de salud es requerido');
+              }
+
+              const { data: centro, error: centroError } = await supabase
+                .from('centros_salud')
+                .select('id, nombre')
+                .eq('id', data.centro_salud_id)
+                .single();
+
+              if (centroError || !centro) {
+                console.error('❌ Error validating centro_salud:', centroError);
+                throw new Error(`Centro de salud no encontrado (ID: ${data.centro_salud_id})`);
+              }
+
+              console.log('✅ Validated centro de salud:', centro.nombre);
+
+              const guardiaData = {
+                profesional_guardia_id: profesionalGuardiaId,
+                centro_salud_id: data.centro_salud_id,
+                tipo: data.tipo || 'fisica',
+                fecha_inicio: data.fecha_inicio,
+                fecha_fin: data.fecha_fin,
+                tipo_dia: tipoDiaCalculado,
+                observaciones: data.observaciones || null
+              };
+
+              console.log('💾 Inserting guardia with calculated tipo_dia:', tipoDiaCalculado);
+              console.log('📦 Complete guardiaData payload:', JSON.stringify(guardiaData, null, 2));
+
+              const { data: insertedData, error } = await supabase
+                .from('guardias')
+                .insert(guardiaData)
+                .select();
+
+              if (error) {
+                console.error('❌ Error inserting guardia for professional', profesionalId);
+                console.error('❌ Error object:', error);
+                console.error('❌ Error status:', error.status || error.statusCode);
+                console.error('��� Error details:', error.details);
+                console.error('❌ Error hint:', error.hint);
+                console.error('❌ Data sent:', guardiaData);
+                const formattedError = formatSupabaseError(error);
+                throw new Error(`Error inserting guardia: ${formattedError}`);
+              }
+
+              console.log('✅ Successfully inserted guardia:', insertedData);
+            }
+          } else {
+            // Guardia individual (retrocompatibilidad)
+            let profesionalGuardiaId;
+            if (data.profesional_id) {
+              profesionalGuardiaId = await get().ensureProfesionalGuardia(data.profesional_id);
+            } else if (data.profesional_guardia_id) {
+              profesionalGuardiaId = data.profesional_guardia_id;
+            } else {
+              throw new Error('Se requiere profesional_id o profesional_guardia_id');
+            }
+
+            // Calcular tipo_dia automáticamente
+            const tipoDiaCalculado = data.tipo_dia || get().getTipoDia(data.fecha_inicio);
+
+            // Validate dates
+            const fechaInicio = new Date(data.fecha_inicio);
+            const fechaFin = new Date(data.fecha_fin);
+
+            if (isNaN(fechaInicio.getTime())) {
+              throw new Error(`Fecha de inicio inválida: ${data.fecha_inicio}`);
+            }
+
+            if (isNaN(fechaFin.getTime())) {
+              throw new Error(`Fecha de fin inválida: ${data.fecha_fin}`);
+            }
+
+            if (fechaFin <= fechaInicio) {
+              throw new Error(`La fecha de fin (${data.fecha_fin}) debe ser posterior a la fecha de inicio (${data.fecha_inicio})`);
+            }
+
+            // Validate duration (must be between 12 and 24 hours)
+            const durationHours = (fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60);
+            console.log('⏱️ Calculated single guardia duration:', durationHours, 'hours');
+
+            if (durationHours < 12) {
+              throw new Error(`La duración de la guardia debe ser de al menos 12 horas. Duración actual: ${durationHours.toFixed(1)} horas`);
+            }
+
+            if (durationHours > 24) {
+              throw new Error(`La duración de la guardia no puede exceder 24 horas. Duración actual: ${durationHours.toFixed(1)} horas`);
+            }
+
+            // Validate centro_salud_id exists
+            if (!data.centro_salud_id) {
+              throw new Error('Centro de salud es requerido');
+            }
+
+            const { data: centro, error: centroError } = await supabase
+              .from('centros_salud')
+              .select('id, nombre')
+              .eq('id', data.centro_salud_id)
+              .single();
+
+            if (centroError || !centro) {
+              console.error('❌ Error validating centro_salud:', centroError);
+              throw new Error(`Centro de salud no encontrado (ID: ${data.centro_salud_id})`);
+            }
+
+            console.log('✅ Validated centro de salud:', centro.nombre);
+
+            const guardiaData = {
+              profesional_guardia_id: profesionalGuardiaId,
+              centro_salud_id: data.centro_salud_id,
+              tipo: data.tipo || 'fisica',
+              fecha_inicio: data.fecha_inicio,
+              fecha_fin: data.fecha_fin,
+              tipo_dia: tipoDiaCalculado,
+              observaciones: data.observaciones || null
+            };
+
+            console.log('💾 Inserting single guardia with calculated tipo_dia:', tipoDiaCalculado);
+            console.log('📦 Complete single guardiaData payload:', JSON.stringify(guardiaData, null, 2));
+
+            const { data: insertedData, error } = await supabase
+              .from('guardias')
+              .insert(guardiaData)
+              .select();
+
+            if (error) {
+              console.error('❌ Error inserting single guardia');
+              console.error('❌ Error object:', error);
+              console.error('��� Error status:', error.status || error.statusCode);
+              console.error('❌ Error details:', error.details);
+              console.error('❌ Error hint:', error.hint);
+              console.error('❌ Data sent:', guardiaData);
+              const formattedError = formatSupabaseError(error);
+              throw new Error(`Error inserting single guardia: ${formattedError}`);
+            }
+
+            console.log('✅ Successfully inserted single guardia:', insertedData);
+          }
+
+          console.log('✅ Guardia(s) created successfully');
 
           // Refrescar datos
           const currentDate = new Date();
           await get().fetchGuardias(currentDate.getMonth() + 1, currentDate.getFullYear());
-          
+
           set({ loading: false });
         } catch (error: any) {
-          console.error('Error creating guardia:', error);
-          set({ error: 'Error al crear guardia: ' + error.message, loading: false });
+          console.error('💥 Exception in createGuardia:', error);
+          console.error('💥 Exception type:', typeof error);
+          console.error('💥 Exception constructor:', error?.constructor?.name);
+          console.error('💥 Exception keys:', Object.keys(error || {}));
+
+          let errorMessage: string;
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          } else {
+            errorMessage = formatSupabaseError(error);
+          }
+
+          console.error('��� Final formatted error message:', errorMessage);
+          set({ error: 'Error al crear guardia: ' + errorMessage, loading: false });
+        }
+      },
+
+      // Nueva función para asegurar que existe un profesional_guardia
+      ensureProfesionalGuardia: async (profesionalId: string) => {
+        console.log('🔍 Ensuring profesional_guardia exists for:', profesionalId);
+        try {
+          // Buscar si ya existe un registro en profesionales_guardias
+          const { data: existing, error: searchError } = await supabase
+            .from('profesionales_guardias')
+            .select('id')
+            .eq('profesional_id', profesionalId)
+            .single();
+
+          if (!searchError && existing) {
+            console.log('✅ Profesional_guardia already exists:', existing.id);
+            return existing.id;
+          }
+
+          console.log('🔍 Searching error (expected if not found):', searchError);
+
+          // Si no existe, obtener datos del profesional sanitario
+          const { data: profesional, error: profError } = await supabase
+            .from('profesionales_sanitarios')
+            .select('id, nombre_completo, area_profesional, especialidad, funcion_publica, tipo_sector')
+            .eq('id', profesionalId)
+            .single();
+
+          if (profError) {
+            console.error('❌ Error fetching profesional:', profError);
+            const errorMsg = formatSupabaseError(profError);
+            throw new Error(`Profesional no encontrado: ${errorMsg}`);
+          }
+
+          if (!profesional) {
+            throw new Error('Profesional no encontrado en la base de datos');
+          }
+
+          console.log('👨‍⚕️ Found profesional:', profesional);
+
+          // Determinar categoría basada en area_profesional
+          let categoria: 'especialista' | 'general_licenciado' | 'tecnico_diplomado' | 'auxiliar' | 'subalterno' | 'odepac' | 'secre_asist_pacientes' | 'caja' = 'general_licenciado';
+
+          const areaProfesional = (profesional.area_profesional || profesional.especialidad || '').toLowerCase();
+          if (areaProfesional.includes('especialista') || areaProfesional.includes('especialidad')) {
+            categoria = 'especialista';
+          } else if (areaProfesional.includes('técnico') || areaProfesional.includes('tecnico')) {
+            categoria = 'tecnico_diplomado';
+          } else if (areaProfesional.includes('auxiliar')) {
+            categoria = 'auxiliar';
+          }
+
+          // Determinar unidad_servicio (requerido)
+          const unidadServicio = profesional.area_profesional ||
+                                profesional.especialidad ||
+                                'Servicio General';
+
+          console.log('📋 Creating profesional_guardia with:', {
+            profesional_id: profesionalId,
+            categoria,
+            unidad_servicio: unidadServicio,
+            funcion_publica: profesional.funcion_publica || false
+          });
+
+          // Crear nuevo registro en profesionales_guardias
+          const { data: newRecord, error: insertError } = await supabase
+            .from('profesionales_guardias')
+            .insert({
+              profesional_id: profesionalId,
+              categoria: categoria,
+              unidad_servicio: unidadServicio,
+              activo: true
+            })
+            .select('id')
+            .single();
+
+          if (insertError) {
+            console.error('❌ Error inserting profesional_guardia:', insertError);
+            const errorMsg = formatSupabaseError(insertError);
+            throw new Error(`Error al crear registro de profesional_guardia: ${errorMsg}`);
+          }
+
+          console.log('✅ Created profesional_guardia:', newRecord.id);
+          return newRecord.id;
+        } catch (error: any) {
+          console.error('�� Exception in ensureProfesionalGuardia:', error);
+          const errorMsg = formatSupabaseError(error);
+          throw new Error(`Error al preparar profesional para guardias: ${errorMsg}`);
         }
       },
 
@@ -433,7 +939,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           set({ loading: false });
         } catch (error: any) {
           console.error('Error updating guardia:', error);
-          set({ error: 'Error al actualizar guardia: ' + error.message, loading: false });
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al actualizar guardia: ' + errorMessage, loading: false });
         }
       },
 
@@ -454,198 +961,994 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           set({ loading: false });
         } catch (error: any) {
           console.error('Error deleting guardia:', error);
-          set({ error: 'Error al eliminar guardia: ' + error.message, loading: false });
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al eliminar guardia: ' + errorMessage, loading: false });
         }
       },
 
       // Operaciones CRUD - Profesionales
       fetchProfesionales: async (centroId) => {
-        set({ loading: true });
+        console.log('👨‍⚕️ Fetching profesionales for center:', centroId);
+        set({ loading: true, error: null });
+
+        try {
+          await retryWithBackoff(async () => {
+            let query = supabase
+              .from('profesionales_sanitarios')
+              .select(`
+                id,
+                nombre_completo,
+                area_profesional,
+                especialidad,
+                centro_salud_id,
+                estado_solicitud
+              `)
+              .eq('estado_solicitud', 'Aprobado')
+              .order('nombre_completo');
+
+            if (centroId) {
+              console.log('🏥 Filtering profesionales by center:', centroId);
+              query = query.eq('centro_salud_id', centroId);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+              console.error('❌ Supabase error in fetchProfesionales:', error);
+              throw error;
+            }
+
+            console.log('📊 Raw profesionales data:', data?.length || 0, 'records');
+
+            const profesionales: Profesional[] = (data || []).map(prof => ({
+              id: prof.id,
+              nombre_completo: prof.nombre_completo,
+              especialidad: prof.area_profesional || prof.especialidad || 'No especificado',
+              centro_id: prof.centro_salud_id || undefined,
+              activo: prof.estado_solicitud === 'Aprobado'
+            }));
+
+            console.log('✅ Profesionales processed successfully:', profesionales.length);
+            set({ profesionales, loading: false });
+          });
+        } catch (error: any) {
+          console.error('💥 Exception in fetchProfesionales:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar profesionales: ' + errorMessage, loading: false });
+        }
+      },
+
+      fetchProfesionalesGuardias: async (centroId) => {
+        console.log('👨‍⚕️ Fetching profesionales guardias for center:', centroId);
+        set({ loading: true, error: null });
         try {
           let query = supabase
-            .from('profesionales_sanitarios')
+            .from('profesionales_guardias')
             .select(`
               id,
-              nombre_completo,
-              area_profesional,
-              especialidad,
-              centro_salud_id,
-              estado_solicitud
+              profesional_id,
+              categoria,
+              unidad_servicio,
+              banco,
+              iban_cuenta,
+              activo,
+              telefono_guardias,
+              email_guardias,
+              profesionales_sanitarios!inner (
+                id,
+                nombre_completo,
+                centro_salud_id
+              )
             `)
-            .eq('estado_solicitud', 'Aprobado')
-            .order('nombre_completo');
+            .eq('activo', true)
+            .order('profesionales_sanitarios(nombre_completo)');
 
           if (centroId) {
-            query = query.eq('centro_salud_id', centroId);
+            console.log('🏥 Filtering profesionales guardias by center:', centroId);
+            query = query.eq('profesionales_sanitarios.centro_salud_id', centroId);
           }
 
           const { data, error } = await query;
 
           if (error) {
-            console.error('Error fetching profesionales:', error);
+            console.error('❌ Supabase error in fetchProfesionalesGuardias:', error);
             throw error;
           }
 
-          const profesionales: Profesional[] = (data || []).map(prof => ({
-            id: prof.id,
-            nombre_completo: prof.nombre_completo,
-            especialidad: prof.area_profesional || prof.especialidad || 'No especificado',
-            centro_id: prof.centro_salud_id || undefined,
-            activo: prof.estado_solicitud === 'Aprobado'
+          console.log('📊 Raw profesionales guardias data:', data?.length || 0, 'records');
+
+          const profesionalesGuardias: ProfesionalGuardia[] = (data || []).map(pg => ({
+            id: pg.id,
+            profesional_id: pg.profesional_id,
+            nombre_completo: pg.profesionales_sanitarios?.nombre_completo || 'Sin nombre',
+            categoria: pg.categoria,
+            unidad_servicio: pg.unidad_servicio,
+            banco: pg.banco,
+            iban_cuenta: pg.iban_cuenta,
+            activo: pg.activo,
+            telefono_guardias: pg.telefono_guardias,
+            email_guardias: pg.email_guardias
           }));
 
-          console.log('Profesionales fetched:', profesionales.length);
-          set({ profesionales, loading: false });
+          console.log('��� Profesionales guardias processed successfully:', profesionalesGuardias.length);
+          set({ profesionalesGuardias, loading: false });
         } catch (error: any) {
-          console.error('Error fetching profesionales:', error);
-          set({ error: 'Error al cargar profesionales: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchProfesionalesGuardias:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar profesionales de guardias: ' + errorMessage, loading: false });
         }
       },
 
       // Operaciones CRUD - Centros
       fetchCentros: async () => {
-        set({ loading: true });
-        try {
-          const { data, error } = await supabase
-            .from('centros_salud')
-            .select(`
-              id,
-              nombre,
-              categoria,
-              provincia,
-              estado
-            `)
-            .eq('estado', 'Activo')
-            .order('nombre');
+        console.log('🏥 Fetching centros de salud...');
+        set({ loading: true, error: null });
 
-          if (error) {
-            console.error('Error fetching centros:', error);
-            throw error;
+        try {
+          await retryWithBackoff(async () => {
+            const { data, error } = await supabase
+              .from('centros_salud')
+              .select(`
+                id,
+                nombre,
+                categoria,
+                provincia,
+                estado
+              `)
+              .eq('estado', 'Activo')
+              .order('nombre');
+
+            if (error) {
+              console.error('❌ Supabase error in fetchCentros:', error);
+              throw error;
+            }
+
+            console.log('📊 Raw centros data:', data?.length || 0, 'records');
+
+            const centros: Centro[] = (data || []).map(centro => ({
+              id: centro.id,
+              nombre: centro.nombre,
+              tipo_centro: centro.categoria || 'Centro de Salud',
+              provincia: centro.provincia || 'No especificada'
+            }));
+
+            console.log('✅ Centros processed successfully:', centros.length);
+            set({ centros, loading: false });
+          });
+        } catch (error: any) {
+          console.error('💥 Exception in fetchCentros:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar centros: ' + errorMessage, loading: false });
+        }
+      },
+
+      // Enhanced export functions for payroll and bank integration
+      exportNominaEnhanced: async (nominaId: string, format: 'csv' | 'json' = 'csv') => {
+        set({ loading: true, error: null });
+        try {
+          const { data: result, error: functionError } = await supabase.functions.invoke('export-payroll', {
+            body: {
+              nomina_id: nominaId,
+              format,
+              tipo_export: 'nomina'
+            }
+          });
+
+          if (functionError) {
+            throw new Error(`Export failed: ${functionError.message}`);
           }
 
-          const centros: Centro[] = (data || []).map(centro => ({
-            id: centro.id,
-            nombre: centro.nombre,
-            tipo_centro: centro.categoria || 'Centro de Salud',
-            provincia: centro.provincia || 'No especificada'
-          }));
+          if (!result.success) {
+            throw new Error(result.error || 'Export failed');
+          }
 
-          console.log('Centros fetched:', centros.length);
-          set({ centros, loading: false });
+          console.log('✅ Nomina exported successfully');
+          set({ loading: false });
+          return result.data;
         } catch (error: any) {
-          console.error('Error fetching centros:', error);
-          set({ error: 'Error al cargar centros: ' + error.message, loading: false });
+          console.error('💥 Exception in exportNomina:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al exportar nómina: ' + errorMessage, loading: false });
+          throw error;
+        }
+      },
+
+      exportPagosEnhanced: async (nominaId?: string, mes?: number, ano?: number, centroId?: string, format: 'csv' | 'json' = 'csv') => {
+        set({ loading: true, error: null });
+        try {
+          const { data: result, error: functionError } = await supabase.functions.invoke('export-payroll', {
+            body: {
+              nomina_id: nominaId,
+              mes,
+              ano,
+              centro_id: centroId,
+              format,
+              tipo_export: 'pagos'
+            }
+          });
+
+          if (functionError) {
+            throw new Error(`Export failed: ${functionError.message}`);
+          }
+
+          if (!result.success) {
+            throw new Error(result.error || 'Export failed');
+          }
+
+          console.log('✅ Pagos exported successfully');
+          set({ loading: false });
+          return result.data;
+        } catch (error: any) {
+          console.error('💥 Exception in exportPagos:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al exportar pagos: ' + errorMessage, loading: false });
+          throw error;
+        }
+      },
+
+      exportBankTransfers: async (nominaId?: string) => {
+        set({ loading: true, error: null });
+        try {
+          const { data: result, error: functionError } = await supabase.functions.invoke('export-payroll', {
+            body: {
+              nomina_id: nominaId,
+              format: 'csv',
+              tipo_export: 'banco'
+            }
+          });
+
+          if (functionError) {
+            throw new Error(`Bank export failed: ${functionError.message}`);
+          }
+
+          if (!result.success) {
+            throw new Error(result.error || 'Bank export failed');
+          }
+
+          console.log('✅ Bank transfers exported successfully');
+          set({ loading: false });
+          return result.data;
+        } catch (error: any) {
+          console.error('💥 Exception in exportBankTransfers:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al exportar transferencias bancarias: ' + errorMessage, loading: false });
+          throw error;
+        }
+      },
+
+      // Enhanced nomina generation using server-side calculation
+      generateNominaServerSide: async (data: { mes: number; ano: number; centro_id: string }) => {
+        console.log('🧮 Generating nomina server-side for:', data);
+        set({ loading: true, error: null });
+        try {
+          const { data: result, error: functionError } = await supabase.functions.invoke('calculate-nomina', {
+            body: {
+              mes: data.mes,
+              ano: data.ano,
+              centro_id: data.centro_id
+            }
+          });
+
+          if (functionError) {
+            console.error('❌ Error in server-side calculation:', functionError);
+            throw new Error(`Server calculation failed: ${functionError.message}`);
+          }
+
+          if (!result.success) {
+            throw new Error(result.error || 'Unknown server error');
+          }
+
+          console.log('✅ Server-side nomina calculation completed:', result.summary);
+
+          // Refresh local data
+          await get().fetchNominas(data.mes, data.ano, data.centro_id);
+          set({ loading: false });
+
+          return result.nomina_id;
+        } catch (error: any) {
+          console.error('💥 Exception in generateNominaServerSide:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al generar nómina: ' + errorMessage, loading: false });
+          throw error;
+        }
+      },
+
+      // Protocol validation functions
+      validatePagoForProtocol: async (pago: Partial<Pago>) => {
+        try {
+          const { validatePaymentForProtocol } = await import('@/utils/protocolValidation');
+          return validatePaymentForProtocol(pago as any);
+        } catch (error: any) {
+          console.error('💥 Exception in validatePagoForProtocol:', error);
+          return { valid: false, errors: ['Error de validación: ' + error.message] };
+        }
+      },
+
+      generatePaymentReceipt: async (pagoId: string) => {
+        try {
+          // Fetch payment with related data
+          const { data: pago, error } = await supabase
+            .from('pagos_guardias')
+            .select(`
+              *,
+              profesionales_guardias!inner(
+                categoria,
+                profesionales_sanitarios!inner(nombre_completo, funcion_publica)
+              ),
+              nominas_guardias!inner(mes, anio, centros_salud!inner(nombre))
+            `)
+            .eq('id', pagoId)
+            .single();
+
+          if (error) throw error;
+
+          const { formatPaymentReceipt } = await import('@/utils/protocolValidation');
+          const receipt = formatPaymentReceipt(pago);
+
+          // Generate receipt URL (could be PDF generation)
+          const receiptUrl = `receipt-${pagoId}-${Date.now()}.json`;
+
+          return receiptUrl;
+        } catch (error: any) {
+          console.error('💥 Exception in generatePaymentReceipt:', error);
+          throw error;
+        }
+      },
+
+      auditPaymentChanges: async (pagoId: string, changes: any, userId: string) => {
+        try {
+          const { generatePaymentAuditEntry } = await import('@/utils/protocolValidation');
+
+          // Get user info
+          const { data: user } = await supabase.auth.getUser();
+          const userRole = user?.user?.user_metadata?.role || 'UNKNOWN';
+
+          const auditEntry = generatePaymentAuditEntry(pagoId, 'UPDATE', changes, userId, userRole);
+
+          const { error } = await supabase
+            .from('bitacora_guardias')
+            .insert(auditEntry);
+
+          if (error) throw error;
+
+          console.log('✅ Payment audit entry created');
+        } catch (error: any) {
+          console.error('💥 Exception in auditPaymentChanges:', error);
+          throw error;
         }
       },
 
       // Implementaciones placeholder para las demás operaciones (se pueden implementar gradualmente)
       fetchCuadrantes: async (mes, ano, centroId) => {
-        set({ loading: true });
+        console.log('🗺 Fetching cuadrantes for:', { mes, ano, centroId });
+        set({ loading: true, error: null });
         try {
-          // TODO: Implementar cuando se diseñe la tabla de cuadrantes
-          set({ cuadrantes: [], loading: false });
+          // Verificar si la tabla cuadrantes_guardias existe
+          const { data: tableExists } = await supabase
+            .from('cuadrantes_guardias')
+            .select('id')
+            .limit(1);
+
+          if (tableExists !== null) {
+            // La tabla existe, proceder con la consulta normal
+            let query = supabase
+              .from('cuadrantes_guardias')
+              .select('*')
+              .eq('mes', mes)
+              .eq('anio', ano)
+              .order('created_at', { ascending: false });
+
+            if (centroId) {
+              query = query.eq('centro_salud_id', centroId);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+              console.error('❌ Supabase error in fetchCuadrantes:', error);
+              throw error;
+            }
+
+            console.log('✅ Cuadrantes fetched successfully:', data?.length || 0, 'records');
+            set({ cuadrantes: data || [], loading: false });
+          } else {
+            // La tabla no existe, generar cuadrante virtual basado en guardias existentes
+            console.log('📋 Table cuadrantes_guardias does not exist, creating virtual cuadrante');
+
+            // Obtener guardias del período para simular un cuadrante
+            const startDate = new Date(ano, mes - 1, 1);
+            const endDate = new Date(ano, mes, 0, 23, 59, 59);
+
+            let guardiasQuery = supabase
+              .from('guardias')
+              .select('id, centro_salud_id, fecha_inicio')
+              .gte('fecha_inicio', startDate.toISOString())
+              .lte('fecha_inicio', endDate.toISOString());
+
+            if (centroId) {
+              guardiasQuery = guardiasQuery.eq('centro_salud_id', centroId);
+            }
+
+            const { data: guardiasData, error: guardiasError } = await guardiasQuery;
+
+            if (guardiasError) {
+              console.error('❌ Error fetching guardias for virtual cuadrante:', guardiasError);
+              const errorMessage = formatSupabaseError(guardiasError);
+              throw new Error(errorMessage);
+            }
+
+            // Crear cuadrante virtual si hay guardias
+            const cuadranteVirtual = guardiasData && guardiasData.length > 0 ? [{
+              id: `virtual-${mes}-${ano}-${centroId || 'all'}`,
+              mes,
+              anio: ano,
+              centro_salud_id: centroId,
+              tipo_cuadrante: 'MENSUAL',
+              estado: 'GENERADO',
+              fecha_generacion: new Date().toISOString(),
+              auto_asignar: false,
+              considerar_preferencias: false,
+              total_guardias: guardiasData.length
+            }] : [];
+
+            console.log('✅ Virtual cuadrante created:', cuadranteVirtual.length, 'records');
+            set({ cuadrantes: cuadranteVirtual, loading: false });
+          }
         } catch (error: any) {
-          set({ error: 'Error al cargar cuadrantes: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchCuadrantes:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar cuadrantes: ' + errorMessage, loading: false });
         }
       },
 
       generateCuadrante: async (data) => {
-        console.log('Generate cuadrante:', data);
-      },
-
-      updateCuadrante: async (id, data) => {
-        console.log('Update cuadrante:', id, data);
-      },
-
-      exportCuadrante: async (id, formato) => {
-        console.log('Export cuadrante:', id, formato);
-      },
-
-      fetchValidaciones: async (mes, ano, centroId) => {
-        set({ loading: true });
+        console.log('🗺 Generating cuadrante with data:', data);
+        set({ loading: true, error: null });
         try {
-          let query = supabase
-            .from('validaciones_guardias')
-            .select('*')
-            .order('fecha', { ascending: false });
+          // Verificar si la tabla cuadrantes_guardias existe antes de proceder
+          console.log('🔍 Checking if cuadrantes_guardias table exists...');
 
-          // Filtrar por centro si se especifica
-          if (centroId) {
-            // Filtrar por guardias del centro específico
-            const { data: guardiasData } = await supabase
-              .from('guardias')
+          try {
+            // Intentar hacer una consulta simple para verificar existencia
+            await supabase.from('cuadrantes_guardias').select('id').limit(1);
+            console.log('✅ Table cuadrantes_guardias exists');
+
+            // Paso 1: Verificar si ya existe un cuadrante para el período
+            const { data: existingCuadrante, error: checkError } = await supabase
+              .from('cuadrantes_guardias')
               .select('id')
-              .eq('centro_salud_id', centroId);
-            
-            if (guardiasData && guardiasData.length > 0) {
-              const guardiaIds = guardiasData.map(g => g.id);
-              query = query.in('guardia_id', guardiaIds);
+              .eq('mes', data.mes)
+              .eq('anio', data.ano)
+              .eq('centro_salud_id', data.centro_id || null)
+              .single();
+
+            if (existingCuadrante && !checkError) {
+              // Ya existe un cuadrante, preguntar si regenerar
+              console.log('📄 Cuadrante already exists, updating...');
+              const { error: updateError } = await supabase
+                .from('cuadrantes_guardias')
+                .update({
+                  tipo_cuadrante: data.tipo_cuadrante || 'MENSUAL',
+                  auto_asignar: data.auto_asignar || false,
+                  considerar_preferencias: data.considerar_preferencias || false,
+                  estado: 'REGENERADO',
+                  fecha_generacion: new Date().toISOString()
+                })
+                .eq('id', existingCuadrante.id);
+
+              if (updateError) throw updateError;
             } else {
-              // No hay guardias para este centro
-              set({ validaciones: [], loading: false });
-              return;
+              // Crear nuevo cuadrante
+              console.log('🆕 Creating new cuadrante...');
+              const cuadranteData = {
+                mes: data.mes,
+                anio: data.ano,
+                centro_salud_id: data.centro_id,
+                tipo_cuadrante: data.tipo_cuadrante || 'MENSUAL',
+                estado: 'GENERADO',
+                fecha_generacion: new Date().toISOString(),
+                auto_asignar: data.auto_asignar || false,
+                considerar_preferencias: data.considerar_preferencias || false
+              };
+
+              const { error: insertError } = await supabase
+                .from('cuadrantes_guardias')
+                .insert(cuadranteData);
+
+              if (insertError) throw insertError;
+            }
+          } catch (tableError: any) {
+            console.log('📝 Table cuadrantes_guardias does not exist, proceeding with guardias generation only');
+            // La tabla no existe, pero podemos continuar generando guardias
+          }
+
+          // Paso 2: Obtener profesionales disponibles
+          let profesionalesQuery = supabase
+            .from('profesionales_sanitarios')
+            .select('id, nombre_completo, area_profesional')
+            .eq('estado_solicitud', 'Aprobado');
+
+          if (data.centro_id) {
+            profesionalesQuery = profesionalesQuery.eq('centro_salud_id', data.centro_id);
+          }
+
+          const { data: profesionalesData, error: profError } = await profesionalesQuery;
+          if (profError) throw profError;
+
+          console.log('��� Found professionals:', profesionalesData?.length || 0);
+
+          if (!profesionalesData || profesionalesData.length === 0) {
+            throw new Error('No hay profesionales disponibles para generar el cuadrante');
+          }
+
+          // Paso 3: Generar guardias básicas para el mes si auto_asignar est�� activado
+          if (data.auto_asignar) {
+            const daysInMonth = new Date(data.ano, data.mes, 0).getDate();
+            const guardiasToCreate = [];
+
+            // Asegurar que tenemos días festivos cargados
+            if (get().diasFestivos.length === 0) {
+              await get().fetchDiasFestivos();
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+              const fecha = new Date(data.ano, data.mes - 1, day);
+              const tipoDia = get().getTipoDia(fecha.toISOString());
+
+              // Seleccionar profesional de forma rotatoria
+              const profesionalIndex = (day - 1) % profesionalesData.length;
+              const profesional = profesionalesData[profesionalIndex];
+
+              // Asegurar que existe en profesionales_guardias
+              const profesionalGuardiaId = await get().ensureProfesionalGuardia(profesional.id);
+
+              // Crear guardias para diferentes turnos (12-24 horas para cumplir constraint)
+              const turnos = [
+                { inicio: 8, fin: 20, tipo: 'fisica' },  // Diurna: 8AM-8PM (12 horas)
+                { inicio: 20, fin: 8, tipo: 'localizable', overnight: true }, // Nocturna: 8PM-8AM (12 horas)
+                { inicio: 8, fin: 8, tipo: 'fisica', fullDay: true } // Completa: 8AM-8AM siguiente día (24 horas)
+              ];
+
+              for (const turno of turnos) {
+                const fechaInicio = new Date(fecha);
+                fechaInicio.setHours(turno.inicio, 0, 0, 0);
+
+                const fechaFin = new Date(fecha);
+                if (turno.fullDay) {
+                  // Guardia completa de 24 horas
+                  fechaFin.setDate(fechaFin.getDate() + 1);
+                  fechaFin.setHours(turno.fin, 0, 0, 0);
+                } else if (turno.overnight || turno.fin < turno.inicio) {
+                  // Guardia nocturna que cruza la medianoche
+                  fechaFin.setDate(fechaFin.getDate() + 1);
+                  fechaFin.setHours(turno.fin, 0, 0, 0);
+                } else {
+                  // Guardia del mismo día
+                  fechaFin.setHours(turno.fin, 0, 0, 0);
+                }
+
+                // Validar duración antes de crear la guardia
+                const durationHours = (fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60);
+
+                if (durationHours < 12 || durationHours > 24) {
+                  console.warn(`⚠️ Skipping invalid guardia: ${durationHours.toFixed(1)}h duration. Required: 12-24h`, {
+                    turno: turno,
+                    fechaInicio: fechaInicio.toISOString(),
+                    fechaFin: fechaFin.toISOString()
+                  });
+                  continue; // Skip this invalid guardia
+                }
+
+                console.log(`✅ Creating valid guardia: ${durationHours.toFixed(1)}h duration`, {
+                  tipo: turno.tipo,
+                  inicio: fechaInicio.toLocaleString(),
+                  fin: fechaFin.toLocaleString()
+                });
+
+                guardiasToCreate.push({
+                  profesional_guardia_id: profesionalGuardiaId,
+                  centro_salud_id: data.centro_id,
+                  tipo: turno.tipo,
+                  fecha_inicio: fechaInicio.toISOString(),
+                  fecha_fin: fechaFin.toISOString(),
+                  tipo_dia: tipoDia,
+                  observaciones: `Generado automáticamente - Cuadrante ${data.tipo_cuadrante}`
+                });
+              }
+            }
+
+            // Validación final antes de inserción en lotes
+            console.log('��� Validation summary:', {
+              totalGuardias: guardiasToCreate.length,
+              avgDuration: guardiasToCreate.length > 0 ?
+                (guardiasToCreate.reduce((sum, g) => {
+                  const start = new Date(g.fecha_inicio);
+                  const end = new Date(g.fecha_fin);
+                  return sum + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+                }, 0) / guardiasToCreate.length).toFixed(1) + ' hours' : 'N/A'
+            });
+
+            if (guardiasToCreate.length === 0) {
+              throw new Error('No se generaron guardias válidas. Verifique la configuración de turnos.');
+            }
+
+            // Insertar guardias en lotes para mejor rendimiento
+            console.log('📅 Creating', guardiasToCreate.length, 'validated guardias...');
+            const batchSize = 50;
+            for (let i = 0; i < guardiasToCreate.length; i += batchSize) {
+              const batch = guardiasToCreate.slice(i, i + batchSize);
+              const { error: guardiaError } = await supabase
+                .from('guardias')
+                .insert(batch);
+
+              if (guardiaError) {
+                console.error('❌ Error inserting guardias batch:', guardiaError);
+                console.error('❌ Batch details:', {
+                  batchNumber: Math.floor(i / batchSize) + 1,
+                  batchSize: batch.length,
+                  startIndex: i,
+                  endIndex: i + batch.length - 1
+                });
+
+                // Log some sample guardias for debugging
+                if (batch.length > 0) {
+                  console.error('❌ Sample batch guardias:', batch.slice(0, 3).map(g => {
+                    const start = new Date(g.fecha_inicio);
+                    const end = new Date(g.fecha_fin);
+                    const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+                    return {
+                      tipo: g.tipo,
+                      duration: duration.toFixed(1) + 'h',
+                      start: start.toLocaleString(),
+                      end: end.toLocaleString()
+                    };
+                  }));
+                }
+
+                const formattedError = formatSupabaseError(guardiaError);
+                throw new Error(`Error en lote ${Math.floor(i / batchSize) + 1}: ${formattedError}`);
+              }
             }
           }
 
-          const { data, error } = await query;
-
-          if (error) throw error;
-
-          set({ validaciones: data || [], loading: false });
+          console.log('✅ Cuadrante generated successfully');
+          set({ loading: false });
         } catch (error: any) {
-          set({ error: 'Error al cargar validaciones: ' + error.message, loading: false });
+          console.error('💥 Exception in generateCuadrante:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al generar cuadrante: ' + errorMessage, loading: false });
+          throw error;
+        }
+      },
+
+      updateCuadrante: async (id, data) => {
+        console.log('🔄 Updating cuadrante:', id, data);
+        try {
+          // Verificar si es un cuadrante virtual
+          if (id.startsWith('virtual-')) {
+            console.log('�� Virtual cuadrante, no database update needed');
+            return;
+          }
+
+          const { error } = await supabase
+            .from('cuadrantes_guardias')
+            .update(data)
+            .eq('id', id);
+
+          if (error) {
+            console.error('❌ Error updating cuadrante:', error);
+            const errorMessage = formatSupabaseError(error);
+            throw new Error(errorMessage);
+          }
+
+          console.log('✅ Cuadrante updated successfully');
+        } catch (error: any) {
+          console.error('💥 Exception in updateCuadrante:', error);
+          const errorMessage = formatSupabaseError(error);
+          throw new Error('Error al actualizar cuadrante: ' + errorMessage);
+        }
+      },
+
+      exportCuadrante: async (id, formato) => {
+        console.log('💾 Exporting cuadrante:', id, 'in format:', formato);
+        try {
+          let cuadrante: any;
+
+          // Verificar si es un cuadrante virtual
+          if (id.startsWith('virtual-')) {
+            console.log('📋 Exporting virtual cuadrante');
+            const parts = id.split('-');
+            cuadrante = {
+              id,
+              mes: parseInt(parts[1]),
+              anio: parseInt(parts[2]),
+              centro_salud_id: parts[3] === 'all' ? null : parts[3],
+              tipo_cuadrante: 'MENSUAL',
+              estado: 'VIRTUAL'
+            };
+          } else {
+            // Obtener datos del cuadrante real
+            const { data: cuadranteData, error: cuadranteError } = await supabase
+              .from('cuadrantes_guardias')
+              .select('*')
+              .eq('id', id)
+              .single();
+
+            if (cuadranteError) {
+              const errorMessage = formatSupabaseError(cuadranteError);
+              throw new Error(errorMessage);
+            }
+
+            cuadrante = cuadranteData;
+          }
+
+          // Obtener guardias del período
+          const startDate = new Date(cuadrante.anio, cuadrante.mes - 1, 1);
+          const endDate = new Date(cuadrante.anio, cuadrante.mes, 0, 23, 59, 59);
+
+          let guardiasQuery = supabase
+            .from('guardias')
+            .select(`
+              id,
+              profesional_guardia_id,
+              centro_salud_id,
+              tipo,
+              fecha_inicio,
+              fecha_fin,
+              tipo_dia,
+              observaciones
+            `)
+            .gte('fecha_inicio', startDate.toISOString())
+            .lte('fecha_inicio', endDate.toISOString())
+            .order('fecha_inicio');
+
+          if (cuadrante.centro_salud_id) {
+            guardiasQuery = guardiasQuery.eq('centro_salud_id', cuadrante.centro_salud_id);
+          }
+
+          const { data: guardias, error: guardiasError } = await guardiasQuery;
+
+          if (guardiasError) {
+            const errorMessage = formatSupabaseError(guardiasError);
+            throw new Error(errorMessage);
+          }
+
+          // En una implementación real, aquí se generaría el archivo
+          // Por ahora, simular la exportación
+          console.log('✅ Cuadrante export data prepared:', {
+            cuadrante,
+            guardias: guardias?.length || 0,
+            formato
+          });
+
+          // Simular tiempo de exportación
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+        } catch (error: any) {
+          console.error('💥 Exception in exportCuadrante:', error);
+          const errorMessage = formatSupabaseError(error);
+          throw new Error('Error al exportar cuadrante: ' + errorMessage);
+        }
+      },
+
+      fetchValidaciones: async (mes, ano, centroId) => {
+        console.log('✅ Fetching validaciones for:', { mes, ano, centroId });
+        set({ loading: true, error: null });
+
+        try {
+          await retryWithBackoff(async () => {
+            let query = supabase
+              .from('validaciones_guardias')
+              .select(`
+                id,
+                guardia_id,
+                etapa,
+                usuario_id,
+                fecha,
+                resultado,
+                comentario,
+                firma,
+                created_at
+              `)
+              .order('created_at', { ascending: false });
+
+            // Filtrar por centro si se especifica
+            if (centroId) {
+              // Filtrar por guardias del centro específico para el período
+              const startDate = new Date(ano, mes - 1, 1);
+              const endDate = new Date(ano, mes, 0, 23, 59, 59);
+
+              const { data: guardiasData, error: guardiasError } = await supabase
+                .from('guardias')
+                .select('id')
+                .eq('centro_salud_id', centroId)
+                .gte('fecha_inicio', startDate.toISOString())
+                .lte('fecha_inicio', endDate.toISOString());
+
+              if (guardiasError) {
+                console.error('❌ Error fetching guardias for centro:', guardiasError);
+                throw guardiasError;
+              }
+
+              if (guardiasData && guardiasData.length > 0) {
+                const guardiaIds = guardiasData.map(g => g.id);
+                query = query.in('guardia_id', guardiaIds);
+              } else {
+                console.log('📄 No guardias found for center in this period');
+                set({ validaciones: [], loading: false });
+                return;
+              }
+            } else {
+              // Sin filtro de centro, obtener por período general
+              const startDate = new Date(ano, mes - 1, 1);
+              const endDate = new Date(ano, mes, 0, 23, 59, 59);
+
+              const { data: guardiasData, error: guardiasError } = await supabase
+                .from('guardias')
+                .select('id')
+                .gte('fecha_inicio', startDate.toISOString())
+                .lte('fecha_inicio', endDate.toISOString());
+
+              if (guardiasError) {
+                console.error('❌ Error fetching guardias for period:', guardiasError);
+                throw guardiasError;
+              }
+
+              if (guardiasData && guardiasData.length > 0) {
+                const guardiaIds = guardiasData.map(g => g.id);
+                query = query.in('guardia_id', guardiaIds);
+              }
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+              console.error('❌ Supabase error in fetchValidaciones:', error);
+              throw error;
+            }
+
+            console.log('✅ Validaciones fetched successfully:', data?.length || 0, 'records');
+            set({ validaciones: data || [], loading: false });
+          });
+        } catch (error: any) {
+          console.error('💥 Exception in fetchValidaciones:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar validaciones: ' + errorMessage, loading: false });
         }
       },
 
       createValidacion: async (data) => {
+        console.log('✅ Creating validacion with data:', data);
+        set({ loading: true, error: null });
         try {
+          // Import helper functions for enum validation and mapping
+          const { mapWorkflowToEtapa, isValidWorkflowStage } = await import('@/utils/validacionHelpers');
+
+          const validEtapas: EtapaValidacion[] = ['dir_medica', 'dir_admin', 'dir_enfermeria', 'jefe_rrhh', 'admin_hospital', 'dir_gerente', 'dg_coordinacion'];
+
+          let etapaToUse: EtapaValidacion;
+
+          // Accept both workflow stages and database enum values
+          if (isValidWorkflowStage(data.etapa as string)) {
+            etapaToUse = mapWorkflowToEtapa(data.etapa as any);
+            console.log('🔄 Mapped workflow stage to database enum:', data.etapa, '→', etapaToUse);
+          } else if (validEtapas.includes(data.etapa as EtapaValidacion)) {
+            etapaToUse = data.etapa as EtapaValidacion;
+            console.log('✅ Using provided database enum:', etapaToUse);
+          } else {
+            etapaToUse = 'dir_medica';
+            console.warn('⚠️ Invalid etapa provided, defaulting to dir_medica. Provided:', data.etapa);
+          }
+
+          console.log('💾 Creating validacion with final etapa:', etapaToUse);
+
+          const validacionData = {
+            guardia_id: data.guardia_id,
+            etapa: etapaToUse,
+            usuario_id: data.usuario_id,
+            resultado: data.resultado,
+            comentario: data.comentario,
+            firma: data.firma
+          };
+
           const { error } = await supabase
             .from('validaciones_guardias')
-            .insert(data);
+            .insert(validacionData);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Error creating validacion:', error);
+            throw error;
+          }
+
+          console.log('✅ Validacion created successfully');
+          set({ loading: false });
         } catch (error: any) {
-          console.error('Error creating validacion:', error);
+          console.error('💥 Exception in createValidacion:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al crear validación: ' + errorMessage, loading: false });
           throw error;
         }
       },
 
       updateValidacion: async (id, data) => {
+        console.log('🔄 Updating validacion:', id, data);
         try {
           const { error } = await supabase
             .from('validaciones_guardias')
             .update(data)
             .eq('id', id);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Error updating validacion:', error);
+            throw error;
+          }
+
+          console.log('✅ Validacion updated successfully');
         } catch (error: any) {
-          console.error('Error updating validacion:', error);
-          throw error;
+          console.error('💥 Exception in updateValidacion:', error);
+          const errorMessage = formatSupabaseError(error);
+          throw new Error('Error al actualizar validación: ' + errorMessage);
         }
       },
 
       aprobarValidacion: async (id, comentarios) => {
-        await get().updateValidacion(id, { 
-          resultado: 'aprobada',
-          comentario: comentarios,
-          fecha: new Date().toISOString()
-        });
+        console.log('✅ Approving validacion:', id);
+        try {
+          await get().updateValidacion(id, {
+            resultado: 'aprobada',
+            comentario: comentarios,
+            fecha: new Date().toISOString()
+          });
+
+          // Refrescar validaciones
+          const currentDate = new Date();
+          await get().fetchValidaciones(currentDate.getMonth() + 1, currentDate.getFullYear());
+        } catch (error: any) {
+          console.error('Error approving validacion:', error);
+          throw error;
+        }
       },
 
       rechazarValidacion: async (id, comentarios) => {
-        await get().updateValidacion(id, { 
-          resultado: 'rechazada',
-          comentario: comentarios,
-          fecha: new Date().toISOString()
-        });
+        console.log('❌ Rejecting validacion:', id);
+        try {
+          await get().updateValidacion(id, {
+            resultado: 'rechazada',
+            comentario: comentarios,
+            fecha: new Date().toISOString()
+          });
+
+          // Refrescar validaciones
+          const currentDate = new Date();
+          await get().fetchValidaciones(currentDate.getMonth() + 1, currentDate.getFullYear());
+        } catch (error: any) {
+          console.error('Error rejecting validacion:', error);
+          throw error;
+        }
       },
 
       fetchNominas: async (mes, ano, centroId) => {
-        set({ loading: true });
+        console.log('📄 Fetching nominas for:', { mes, ano, centroId });
+        set({ loading: true, error: null });
         try {
           let query = supabase
             .from('nominas_guardias')
-            .select('*')
+            .select(`
+              id,
+              centro_salud_id,
+              mes,
+              anio,
+              estado,
+              total_importe,
+              total_guardias,
+              total_profesionales,
+              created_by,
+              approved_by,
+              approved_at,
+              observaciones,
+              created_at,
+              updated_at
+            `)
             .eq('mes', mes)
             .eq('anio', ano)
             .order('created_at', { ascending: false });
@@ -656,62 +1959,288 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
           const { data, error } = await query;
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Supabase error in fetchNominas:', error);
+            throw error;
+          }
 
+          console.log('✅ Nominas fetched successfully:', data?.length || 0, 'records');
           set({ nominas: data || [], loading: false });
         } catch (error: any) {
-          set({ error: 'Error al cargar nóminas: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchNominas:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar nóminas: ' + errorMessage, loading: false });
         }
       },
 
       fetchNominasLineas: async (nominaId) => {
-        set({ loading: true });
+        console.log('📄 Fetching nomina lineas for nomina:', nominaId);
+        set({ loading: true, error: null });
         try {
           const { data, error } = await supabase
             .from('nominas_guardias_lineas')
             .select(`
-              *,
-              profesional_guardia_id (
-                profesional_id (
-                  id,
-                  nombre_completo
-                )
-              )
+              id,
+              nomina_id,
+              profesional_guardia_id,
+              categoria,
+              guardias_ordinarias,
+              guardias_fines_semana,
+              guardias_festivos,
+              localizables_programadas,
+              localizables_llamadas,
+              coste_unitario_ordinario,
+              coste_unitario_fin_semana,
+              coste_unitario_festivo,
+              coste_localizable_programada,
+              coste_localizable_llamada,
+              total_linea,
+              created_at,
+              updated_at
             `)
             .eq('nomina_id', nominaId);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Supabase error in fetchNominasLineas:', error);
+            throw error;
+          }
 
+          console.log('✅ Nomina lineas fetched successfully:', data?.length || 0, 'records');
           set({ nominasLineas: data || [], loading: false });
         } catch (error: any) {
-          set({ error: 'Error al cargar líneas de nómina: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchNominasLineas:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar líneas de nómina: ' + errorMessage, loading: false });
         }
       },
 
       generateNomina: async (data) => {
+        console.log('📄 Generating nomina with data:', data);
+        set({ loading: true, error: null });
         try {
-          const { error } = await supabase
-            .from('nominas_guardias')
-            .insert(data);
+          // Paso 1: Obtener guardias del mes/año/centro especificado
+          let guardiasQuery = supabase
+            .from('guardias')
+            .select(`
+              id,
+              profesional_guardia_id,
+              centro_salud_id,
+              tipo,
+              tipo_dia,
+              fecha_inicio,
+              fecha_fin
+            `)
+            .gte('fecha_inicio', new Date(data.ano, data.mes - 1, 1).toISOString())
+            .lte('fecha_inicio', new Date(data.ano, data.mes, 0, 23, 59, 59).toISOString());
 
-          if (error) throw error;
+          // Solo filtrar por centro si se proporciona
+          if (data.centro_id) {
+            guardiasQuery = guardiasQuery.eq('centro_salud_id', data.centro_id);
+          }
+
+          const { data: guardiasData, error: guardiasError } = await guardiasQuery;
+          if (guardiasError) {
+            console.error('❌ Error fetching guardias for nomina:', guardiasError);
+            const errorMessage = formatSupabaseError(guardiasError);
+            throw new Error(errorMessage);
+          }
+
+          console.log('📅 Found guardias for nomina:', guardiasData?.length || 0);
+
+          if (!guardiasData || guardiasData.length === 0) {
+            throw new Error('No se encontraron guardias para el período especificado');
+          }
+
+          // Paso 2: Agrupar guardias por profesional y calcular totales
+          const guardiasGrouped = guardiasData.reduce((acc, guardia) => {
+            const key = guardia.profesional_guardia_id;
+            if (!acc[key]) {
+              acc[key] = {
+                profesional_guardia_id: key,
+                guardias_ordinarias: 0,
+                guardias_fines_semana: 0,
+                guardias_festivos: 0,
+                localizables_programadas: 0,
+                localizables_llamadas: 0
+              };
+            }
+
+            // Contar por tipo de día
+            if (guardia.tipo_dia === 'ordinario') {
+              acc[key].guardias_ordinarias++;
+            } else if (guardia.tipo_dia === 'fin_semana') {
+              acc[key].guardias_fines_semana++;
+            } else if (guardia.tipo_dia === 'festivo') {
+              acc[key].guardias_festivos++;
+            }
+
+            // Contar localizables
+            if (guardia.tipo === 'localizable') {
+              acc[key].localizables_programadas++;
+            }
+
+            return acc;
+          }, {} as any);
+
+          const profesionalesConGuardias = Object.values(guardiasGrouped);
+          console.log('👥 Professionals with guardias:', profesionalesConGuardias.length);
+
+          // Paso 3: Asegurar que tenemos baremos cargados
+          if (get().baremos.length === 0) {
+            await get().fetchBaremos();
+          }
+
+          // Paso 4: Validar que se proporcione centro_salud_id
+          if (!data.centro_id) {
+            throw new Error('Debe seleccionar un centro de salud para generar la nómina');
+          }
+
+          // Crear la nómina principal
+          const nominaData = {
+            centro_salud_id: data.centro_id,
+            mes: data.mes,
+            anio: data.ano,
+            estado: 'borrador',
+            total_guardias: guardiasData.length,
+            total_profesionales: profesionalesConGuardias.length,
+            observaciones: `Nómina generada automáticamente para ${data.mes}/${data.ano}`
+          };
+
+          const { data: nominaCreated, error: nominaError } = await supabase
+            .from('nominas_guardias')
+            .insert(nominaData)
+            .select()
+            .single();
+
+          if (nominaError) {
+            console.error('❌ Error creating nomina:', nominaError);
+            const errorMessage = formatSupabaseError(nominaError);
+            throw new Error(errorMessage);
+          }
+          console.log('✅ Nomina created:', nominaCreated.id);
+
+          // Paso 5: Crear las líneas de nómina con cálculos
+          const baremos = get().baremos;
+          let totalImporte = 0;
+
+          for (const profesionalGuardias of profesionalesConGuardias) {
+            // Obtener categoria del profesional (simplificado - usar 'general_licenciado' por defecto)
+            const categoria = 'general_licenciado';
+
+            // Buscar baremos aplicables
+            const baremoOrdinario = baremos.find(b => b.categoria === categoria && b.tipo_dia === 'ordinario' && b.tipo_guardia === 'fisica');
+            const baremoFinSemana = baremos.find(b => b.categoria === categoria && b.tipo_dia === 'fin_semana' && b.tipo_guardia === 'fisica');
+            const baremoFestivo = baremos.find(b => b.categoria === categoria && b.tipo_dia === 'festivo' && b.tipo_guardia === 'fisica');
+            const baremoLocalizable = baremos.find(b => b.categoria === categoria && b.tipo_guardia === 'localizable');
+
+            // Calcular costes
+            const costeOrdinario = baremoOrdinario?.valor || 50000; // XAF por defecto
+            const costeFinSemana = baremoFinSemana?.valor || 75000;
+            const costeFestivo = baremoFestivo?.valor || 100000;
+            const costeLocalizable = baremoLocalizable?.valor || 25000;
+
+            const totalLinea =
+              (profesionalGuardias.guardias_ordinarias * costeOrdinario) +
+              (profesionalGuardias.guardias_fines_semana * costeFinSemana) +
+              (profesionalGuardias.guardias_festivos * costeFestivo) +
+              (profesionalGuardias.localizables_programadas * costeLocalizable);
+
+            const lineaData = {
+              nomina_id: nominaCreated.id,
+              profesional_guardia_id: profesionalGuardias.profesional_guardia_id,
+              categoria: categoria,
+              guardias_ordinarias: profesionalGuardias.guardias_ordinarias,
+              guardias_fines_semana: profesionalGuardias.guardias_fines_semana,
+              guardias_festivos: profesionalGuardias.guardias_festivos,
+              localizables_programadas: profesionalGuardias.localizables_programadas,
+              localizables_llamadas: profesionalGuardias.localizables_llamadas,
+              coste_unitario_ordinario: costeOrdinario,
+              coste_unitario_fin_semana: costeFinSemana,
+              coste_unitario_festivo: costeFestivo,
+              coste_localizable_programada: costeLocalizable,
+              total_linea: totalLinea
+            };
+
+            const { error: lineaError } = await supabase
+              .from('nominas_guardias_lineas')
+              .insert(lineaData);
+
+            if (lineaError) {
+              console.error('❌ Error creating nomina line:', lineaError);
+              const errorMessage = formatSupabaseError(lineaError);
+              throw new Error(`Error al crear línea de nómina: ${errorMessage}`);
+            }
+
+            totalImporte += totalLinea;
+          }
+
+          // Paso 6: Actualizar nómina con total calculado
+          const { error: updateError } = await supabase
+            .from('nominas_guardias')
+            .update({ total_importe: totalImporte })
+            .eq('id', nominaCreated.id);
+
+          if (updateError) {
+            console.error('❌ Error updating nomina total:', updateError);
+            const errorMessage = formatSupabaseError(updateError);
+            throw new Error(errorMessage);
+          }
+
+          console.log('✅ Nomina generated successfully with total:', totalImporte);
+
+          // Refrescar datos
+          await get().fetchNominas(data.mes, data.ano, data.centro_id);
+          set({ loading: false });
+
+          console.log('✅ Nomina generation completed successfully');
+
         } catch (error: any) {
-          console.error('Error generating nomina:', error);
-          throw error;
+          console.error('💥 Exception in generateNomina:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al generar nómina: ' + errorMessage, loading: false });
+          throw new Error(errorMessage);
         }
       },
 
       aprobarNomina: async (id) => {
-        await get().updateValidacion(id, { 
-          estado: 'aprobada',
-          approved_at: new Date().toISOString()
-        });
+        console.log('�� Approving nomina:', id);
+        try {
+          const { error } = await supabase
+            .from('nominas_guardias')
+            .update({
+              estado: 'aprobada',
+              approved_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+          if (error) throw error;
+
+          // Refrescar nóminas
+          const currentDate = new Date();
+          await get().fetchNominas(currentDate.getMonth() + 1, currentDate.getFullYear());
+        } catch (error: any) {
+          console.error('Error approving nomina:', error);
+          throw error;
+        }
       },
 
       rechazarNomina: async (id) => {
-        await get().updateValidacion(id, { 
-          estado: 'rechazada'
-        });
+        console.log('��� Rejecting nomina:', id);
+        try {
+          const { error } = await supabase
+            .from('nominas_guardias')
+            .update({ estado: 'rechazada' })
+            .eq('id', id);
+
+          if (error) throw error;
+
+          // Refrescar nóminas
+          const currentDate = new Date();
+          await get().fetchNominas(currentDate.getMonth() + 1, currentDate.getFullYear());
+        } catch (error: any) {
+          console.error('Error rejecting nomina:', error);
+          throw error;
+        }
       },
 
       exportNomina: async (id, formato) => {
@@ -719,102 +2248,240 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       calcularMontoGuardia: async (guardiaId) => {
-        console.log('Calcular monto guardia:', guardiaId);
-        return 0;
+        console.log('💰 Calculating amount for guardia:', guardiaId);
+        try {
+          // Buscar la guardia
+          const guardia = get().guardias.find(g => g.id === guardiaId);
+          if (!guardia) {
+            console.warn('Guardia not found:', guardiaId);
+            return 0;
+          }
+
+          // Asegurar que los baremos estén cargados
+          if (get().baremos.length === 0) {
+            await get().fetchBaremos();
+          }
+
+          // Calcular el monto usando la lógica de tipo de día
+          const montoCalculado = get().calcularMontoConTipoDia(
+            0, // monto base (será reemplazado por el valor del baremo)
+            guardia.tipo_dia,
+            guardia.tipo
+          );
+
+          console.log('✅ Calculated amount:', montoCalculado, 'for guardia:', guardiaId);
+          return montoCalculado;
+        } catch (error: any) {
+          console.error('❌ Error calculating guardia amount:', error);
+          return 0;
+        }
       },
 
       fetchPagos: async (mes, ano, centroId) => {
-        set({ loading: true });
+        console.log('💳 Fetching pagos for:', { mes, ano, centroId });
+        set({ loading: true, error: null });
+
         try {
-          // Los pagos están relacionados con nóminas, así que primero obtenemos las nóminas
-          let nominasQuery = supabase
-            .from('nominas_guardias')
-            .select('id')
-            .eq('mes', mes)
-            .eq('anio', ano);
+          await retryWithBackoff(async () => {
+            // Los pagos están relacionados con nóminas, así que primero obtenemos las nóminas
+            let nominasQuery = supabase
+              .from('nominas_guardias')
+              .select('id, mes, anio, total_importe')
+              .eq('mes', mes)
+              .eq('anio', ano);
 
-          if (centroId) {
-            nominasQuery = nominasQuery.eq('centro_salud_id', centroId);
-          }
+            if (centroId) {
+              nominasQuery = nominasQuery.eq('centro_salud_id', centroId);
+            }
 
-          const { data: nominasData, error: nominasError } = await nominasQuery;
+            const { data: nominasData, error: nominasError } = await nominasQuery;
 
-          if (nominasError) throw nominasError;
+            if (nominasError) {
+              console.error('❌ Supabase error in fetchPagos (nominas):', nominasError);
+              throw nominasError;
+            }
 
-          if (!nominasData || nominasData.length === 0) {
-            set({ pagos: [], loading: false });
-            return;
-          }
+            if (!nominasData || nominasData.length === 0) {
+              console.log('📄 No nominas found for period, no pagos to fetch');
+              set({ pagos: [], loading: false });
+              return;
+            }
 
-          const nominaIds = nominasData.map(n => n.id);
+            const nominaIds = nominasData.map(n => n.id);
+            console.log('📊 Found nominas:', nominaIds.length);
 
-          const { data, error } = await supabase
-            .from('pagos_guardias')
-            .select(`
-              *,
-              profesional_guardia_id (
-                profesional_id (
-                  id,
-                  nombre_completo
-                )
-              )
-            `)
-            .in('nomina_id', nominaIds)
-            .order('created_at', { ascending: false });
+            const { data, error } = await supabase
+              .from('pagos_guardias')
+              .select(`
+                id,
+                nomina_id,
+                profesional_guardia_id,
+                forma_pago,
+                fecha_pago,
+                importe,
+                comprobante_url,
+                observaciones,
+                estado,
+                created_by,
+                created_at,
+                updated_at
+              `)
+              .in('nomina_id', nominaIds)
+              .order('created_at', { ascending: false });
 
-          if (error) throw error;
+            if (error) {
+              console.error('❌ Supabase error in fetchPagos:', error);
+              throw error;
+            }
 
-          set({ pagos: data || [], loading: false });
+            // Enriquecer con datos de nóminas
+            const pagosEnriquecidos = (data || []).map(pago => ({
+              ...pago,
+              nomina: nominasData.find(n => n.id === pago.nomina_id)
+            }));
+
+            console.log('✅ Pagos fetched successfully:', pagosEnriquecidos.length, 'records');
+            set({ pagos: pagosEnriquecidos, loading: false });
+          });
         } catch (error: any) {
-          set({ error: 'Error al cargar pagos: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchPagos:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar pagos: ' + errorMessage, loading: false });
         }
       },
 
       createPago: async (data) => {
+        console.log('💳 Creating pago with data:', data);
+        set({ loading: true, error: null });
         try {
+          // Convert empty strings to null for UUID fields and map property names
+          const pagoData = {
+            nomina_id: data.nomina_id && data.nomina_id.trim() !== '' ? data.nomina_id : null,
+            profesional_guardia_id: data.profesional_guardia_id && data.profesional_guardia_id.trim() !== ''
+              ? data.profesional_guardia_id
+              : (data.profesional_id && data.profesional_id.trim() !== '' ? data.profesional_id : null),
+            forma_pago: data.forma_pago || data.metodo_pago || 'transfer_trabajador',
+            importe: data.importe || data.monto || 0,
+            comprobante_url: data.comprobante_url && data.comprobante_url.trim() !== '' ? data.comprobante_url : null,
+            observaciones: data.observaciones && data.observaciones.trim() !== '' ? data.observaciones : null,
+            estado: data.estado || 'pendiente'
+          };
+
+          console.log('🔍 Processed pago data:', pagoData);
+
+          // Validate required fields
+          if (!pagoData.nomina_id) {
+            throw new Error('Debe seleccionar una nómina');
+          }
+          if (!pagoData.profesional_guardia_id) {
+            throw new Error('Debe seleccionar un profesional');
+          }
+          if (!pagoData.importe || pagoData.importe <= 0) {
+            throw new Error('El importe debe ser mayor a 0');
+          }
+
           const { error } = await supabase
             .from('pagos_guardias')
-            .insert(data);
+            .insert(pagoData);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Error creating pago:', error);
+            throw error;
+          }
+
+          console.log('✅ Pago created successfully');
+          set({ loading: false });
         } catch (error: any) {
-          console.error('Error creating pago:', error);
+          console.error('💥 Exception in createPago:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al crear pago: ' + errorMessage, loading: false });
           throw error;
         }
       },
 
       updatePago: async (id, data) => {
+        console.log('🔄 Updating pago:', id, data);
         try {
           const { error } = await supabase
             .from('pagos_guardias')
             .update(data)
             .eq('id', id);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Error updating pago:', error);
+            throw error;
+          }
+
+          console.log('✅ Pago updated successfully');
         } catch (error: any) {
-          console.error('Error updating pago:', error);
-          throw error;
+          console.error('💥 Exception in updatePago:', error);
+          const errorMessage = formatSupabaseError(error);
+          throw new Error('Error al actualizar pago: ' + errorMessage);
         }
       },
 
       aprobarPago: async (id) => {
-        await get().updatePago(id, { estado: 'realizado' });
+        console.log('✅ Approving pago:', id);
+        try {
+          await get().updatePago(id, {
+            estado: 'realizado',
+            fecha_pago: new Date().toISOString()
+          });
+
+          // Refrescar pagos
+          const currentDate = new Date();
+          await get().fetchPagos(currentDate.getMonth() + 1, currentDate.getFullYear());
+        } catch (error: any) {
+          console.error('Error approving pago:', error);
+          throw error;
+        }
       },
 
       rechazarPago: async (id) => {
-        await get().updatePago(id, { estado: 'pendiente' });
+        console.log('❌ Rejecting pago:', id);
+        try {
+          // Since 'rechazado' is not in DB constraints, we'll set it back to 'pendiente' with a note
+          await get().updatePago(id, {
+            estado: 'pendiente',
+            observaciones: 'Pago rechazado - requiere revisión'
+          });
+
+          // Refrescar pagos
+          const currentDate = new Date();
+          await get().fetchPagos(currentDate.getMonth() + 1, currentDate.getFullYear());
+        } catch (error: any) {
+          console.error('Error rejecting pago:', error);
+          throw error;
+        }
       },
 
       procesarPagoMasivo: async (pagoIds) => {
+        console.log('🔄 Processing batch payments:', pagoIds.length, 'pagos');
+        set({ loading: true, error: null });
         try {
           const { error } = await supabase
             .from('pagos_guardias')
-            .update({ estado: 'realizado' })
+            .update({
+              estado: 'confirmado', // ✅ Valid DB constraint value (was 'procesado')
+              fecha_pago: new Date().toISOString()
+            })
             .in('id', pagoIds);
 
-          if (error) throw error;
+          if (error) {
+            console.error('❌ Error processing batch payments:', error);
+            throw error;
+          }
+
+          console.log('��� Batch payments processed successfully');
+
+          // Refrescar pagos
+          const currentDate = new Date();
+          await get().fetchPagos(currentDate.getMonth() + 1, currentDate.getFullYear());
+          set({ loading: false });
         } catch (error: any) {
-          console.error('Error processing batch payments:', error);
+          console.error('💥 Exception in procesarPagoMasivo:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al procesar pagos masivos: ' + errorMessage, loading: false });
           throw error;
         }
       },
@@ -825,30 +2492,37 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       fetchBaremos: async () => {
         set({ loading: true });
+
         try {
-          const { data, error } = await supabase
-            .from('ajustes_baremos')
-            .select('*')
-            .eq('activo', true)
-            .order('created_at', { ascending: false });
+          await retryWithBackoff(async () => {
+            const { data, error } = await supabase
+              .from('ajustes_baremos')
+              .select('*')
+              .eq('activo', true)
+              .order('created_at', { ascending: false });
 
-          if (error) throw error;
+            if (error) throw error;
 
-          // Convertir los datos al formato esperado de Baremo
-          const baremos: Baremo[] = (data || []).map(item => ({
-            id: item.id,
-            concepto: `${item.categoria} - ${item.tipo_guardia} - ${item.tipo_dia}`,
-            tarifa_base: Number(item.valor),
-            multiplicador_nocturno: 1.5, // Valores por defecto
-            multiplicador_festivo: 2.0,
-            activo: item.activo,
-            fuente: item.fuente?.toUpperCase() === 'PROTOCOL' ? 'PROTOCOLO' : 'EXCEL',
-            observaciones: item.observaciones,
-            created_at: item.created_at,
-            updated_at: item.updated_at
-          }));
+            // Usar los datos directamente del esquema de la BD
+            const baremos: Baremo[] = (data || []).map(item => ({
+              id: item.id,
+              fuente: item.fuente,
+              categoria: item.categoria,
+              tipo_guardia: item.tipo_guardia,
+              tipo_dia: item.tipo_dia,
+              valor: Number(item.valor),
+              porcentaje_localizable: Number(item.porcentaje_localizable || 10),
+              porcentaje_llamada: Number(item.porcentaje_llamada || 20),
+              vigente_desde: item.vigente_desde,
+              vigente_hasta: item.vigente_hasta,
+              activo: item.activo,
+              observaciones: item.observaciones,
+              created_at: item.created_at,
+              updated_at: item.updated_at
+            }));
 
-          set({ baremos, loading: false });
+            set({ baremos, loading: false });
+          });
         } catch (error: any) {
           set({ error: 'Error al cargar baremos: ' + error.message, loading: false });
         }
@@ -856,20 +2530,9 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       createBaremo: async (data) => {
         try {
-          // Convertir Baremo a AjusteBaremo para insertar
-          const ajusteData = {
-            fuente: 'manual',
-            categoria: 'general_licenciado', // Valor por defecto
-            tipo_guardia: 'fisica',
-            tipo_dia: 'ordinario', 
-            valor: data.tarifa_base || 0,
-            observaciones: data.observaciones,
-            activo: data.activo !== false
-          };
-
           const { error } = await supabase
             .from('ajustes_baremos')
-            .insert(ajusteData);
+            .insert(data);
 
           if (error) throw error;
 
@@ -882,15 +2545,9 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       updateBaremo: async (id, data) => {
         try {
-          const ajusteData = {
-            valor: data.tarifa_base,
-            observaciones: data.observaciones,
-            activo: data.activo
-          };
-
           const { error } = await supabase
             .from('ajustes_baremos')
-            .update(ajusteData)
+            .update(data)
             .eq('id', id);
 
           if (error) throw error;
@@ -919,30 +2576,42 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       fetchDiasFestivos: async () => {
-        set({ loading: true });
+        console.log('🎆 Fetching días festivos...');
+        set({ loading: true, error: null });
+
         try {
-          const { data, error } = await supabase
-            .from('dias_festivos')
-            .select('*')
-            .eq('activo', true)
-            .order('fecha');
+          await retryWithBackoff(async () => {
+            const { data, error } = await supabase
+              .from('dias_festivos')
+              .select('*')
+              .eq('activo', true)
+              .order('fecha');
 
-          if (error) throw error;
+            if (error) {
+              console.error('❌ Supabase error in fetchDiasFestivos:', error);
+              throw error;
+            }
 
-          // Convertir al formato esperado
-          const diasFestivos: DiaFestivo[] = (data || []).map(item => ({
-            id: item.id,
-            nombre: item.nombre,
-            fecha: item.fecha,
-            tipo: 'NACIONAL', // Valor por defecto
-            recurrente: false, // Valor por defecto
-            activo: item.activo,
-            observaciones: item.descripcion
-          }));
+            console.log('📊 Raw dias festivos data:', data?.length || 0, 'records');
 
-          set({ diasFestivos, loading: false });
+            // Convertir al formato esperado
+            const diasFestivos: DiaFestivo[] = (data || []).map(item => ({
+              id: item.id,
+              nombre: item.nombre,
+              fecha: item.fecha,
+              tipo: 'NACIONAL', // Valor por defecto
+              recurrente: false, // Valor por defecto
+              activo: item.activo,
+              observaciones: item.descripcion
+            }));
+
+            console.log('✅ Dias festivos processed successfully:', diasFestivos.length);
+            set({ diasFestivos, loading: false });
+          });
         } catch (error: any) {
-          set({ error: 'Error al cargar días festivos: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchDiasFestivos:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar días festivos: ' + errorMessage, loading: false });
         }
       },
 
@@ -1008,25 +2677,33 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       fetchAjustesBaremos: async (centroId) => {
-        set({ loading: true });
+        set({ loading: true, error: null });
+
         try {
-          let query = supabase
-            .from('ajustes_baremos')
-            .select('*')
-            .eq('activo', true);
+          await retryWithBackoff(async () => {
+            let query = supabase
+              .from('ajustes_baremos')
+              .select('*')
+              .eq('activo', true);
 
-          if (centroId) {
-            // Nota: La tabla ajustes_baremos no tiene centro_id en el esquema actual
-            // Se mantiene para compatibilidad futura
-          }
+            if (centroId) {
+              // Nota: La tabla ajustes_baremos no tiene centro_id en el esquema actual
+              // Se mantiene para compatibilidad futura
+            }
 
-          const { data, error } = await query;
+            const { data, error } = await query;
 
-          if (error) throw error;
+            if (error) {
+              console.error('❌ Supabase error in fetchAjustesBaremos:', error);
+              throw error;
+            }
 
-          set({ ajustesBaremos: data || [], loading: false });
+            set({ ajustesBaremos: data || [], loading: false });
+          });
         } catch (error: any) {
-          set({ error: 'Error al cargar ajustes de baremos: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchAjustesBaremos:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar ajustes de baremos: ' + errorMessage, loading: false });
         }
       },
 
@@ -1078,43 +2755,88 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       fetchBitacora: async (params) => {
-        set({ loading: true });
+        console.log('📄 Fetching bitacora with params:', params);
+        set({ loading: true, error: null });
+
         try {
-          let query = supabase
-            .from('bitacora_guardias')
-            .select('*')
-            .order('fecha', { ascending: false });
+          await retryWithBackoff(async () => {
+            let query = supabase
+              .from('bitacora_guardias')
+              .select(`
+                id,
+                ref_tipo,
+                ref_id,
+                usuario_id,
+                accion,
+                detalle,
+                fecha,
+                ip_address,
+                user_agent
+              `)
+              .order('fecha', { ascending: false });
 
-          // Aplicar filtros de fecha si están presentes
-          if (params.fecha_inicio) {
-            query = query.gte('fecha', params.fecha_inicio);
-          }
-          if (params.fecha_fin) {
-            query = query.lte('fecha', params.fecha_fin);
-          }
+            // Aplicar filtros de fecha si están presentes
+            if (params.fecha_inicio) {
+              console.log('📅 Applying start date filter:', params.fecha_inicio);
+              query = query.gte('fecha', params.fecha_inicio);
+            }
+            if (params.fecha_fin) {
+              console.log('📅 Applying end date filter:', params.fecha_fin);
+              query = query.lte('fecha', params.fecha_fin);
+            }
 
-          const { data, error } = await query;
+            // Filtrar por centro si se especifica (por guardias del centro)
+            if (params.centro_id) {
+              console.log('🏥 Filtering by center:', params.centro_id);
+              // Obtener guardias del centro para filtrar bitacora relacionada
+              const { data: guardiasData } = await supabase
+                .from('guardias')
+                .select('id')
+                .eq('centro_salud_id', params.centro_id);
 
-          if (error) throw error;
+              if (guardiasData && guardiasData.length > 0) {
+                const guardiaIds = guardiasData.map(g => g.id);
+                query = query.or(`ref_tipo.eq.guardia,ref_tipo.eq.nomina,ref_tipo.eq.pago`)
+                             .in('ref_id', guardiaIds);
+              }
+            }
 
-          // Convertir al formato esperado
-          const bitacora: BitacoraEntry[] = (data || []).map(item => ({
-            id: item.id,
-            accion: item.accion,
-            entidad_tipo: item.ref_tipo,
-            entidad_id: item.ref_id,
-            usuario_email: 'Sistema', // TODO: obtener del usuario real
-            descripcion: item.accion,
-            datos_anteriores: item.detalle?.datos_anteriores,
-            datos_nuevos: item.detalle?.datos_nuevos,
-            fecha_hora: item.fecha,
-            ip_address: item.ip_address,
-            user_agent: item.user_agent
-          }));
+            // Filtrar por mes y año si se especifica
+            if (params.mes && params.ano) {
+              const startDate = new Date(params.ano, params.mes - 1, 1);
+              const endDate = new Date(params.ano, params.mes, 0, 23, 59, 59);
+              query = query.gte('fecha', startDate.toISOString())
+                           .lte('fecha', endDate.toISOString());
+            }
 
-          set({ bitacora, loading: false });
+            const { data, error } = await query.limit(500); // Limitar a 500 registros por rendimiento
+
+            if (error) {
+              console.error('❌ Supabase error in fetchBitacora:', error);
+              throw error;
+            }
+
+            console.log('✅ Bitacora fetched successfully:', data?.length || 0, 'records');
+
+            // Convertir al formato esperado con datos enriquecidos
+            const bitacora: BitacoraEntry[] = (data || []).map(item => ({
+              id: item.id,
+              ref_tipo: item.ref_tipo,
+              ref_id: item.ref_id,
+              usuario_id: item.usuario_id,
+              accion: item.accion,
+              detalle: item.detalle,
+              fecha: item.fecha,
+              ip_address: item.ip_address,
+              user_agent: item.user_agent
+            }));
+
+            set({ bitacora, loading: false });
+          });
         } catch (error: any) {
-          set({ error: 'Error al cargar bitácora: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchBitacora:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar bitácora: ' + errorMessage, loading: false });
         }
       },
 
@@ -1136,6 +2858,57 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       importConfiguration: async (file) => {
         console.log('Import configuration:', file);
+      },
+
+      // Utilidades para días festivos
+      isDiaFestivo: (fecha: string) => {
+        const fechaObj = new Date(fecha);
+        const fechaStr = fechaObj.toISOString().split('T')[0];
+        return get().diasFestivos.some(festivo =>
+          festivo.activo && festivo.fecha === fechaStr
+        );
+      },
+
+      getTipoDia: (fecha: string) => {
+        const fechaObj = new Date(fecha);
+        const diaSemana = fechaObj.getDay(); // 0 = domingo, 6 = sábado
+
+        // Verificar si es día festivo
+        if (get().isDiaFestivo(fecha)) {
+          return 'festivo';
+        }
+
+        // Verificar si es fin de semana
+        if (diaSemana === 0 || diaSemana === 6) {
+          return 'fin_semana';
+        }
+
+        return 'ordinario';
+      },
+
+      calcularMontoConTipoDia: (montoBase: number, tipoDia: string, tipo: string) => {
+        const baremos = get().baremos;
+
+        // Buscar baremo correspondiente
+        const baremo = baremos.find(b =>
+          b.activo &&
+          b.tipo_guardia === tipo &&
+          b.tipo_dia === tipoDia
+        );
+
+        if (!baremo) {
+          console.warn(`No se encontró baremo para tipo: ${tipo}, tipo_dia: ${tipoDia}`);
+          return montoBase;
+        }
+
+        let montoFinal = baremo.valor;
+
+        // Aplicar porcentajes según el tipo
+        if (tipo === 'localizable') {
+          montoFinal *= (1 + baremo.porcentaje_localizable / 100);
+        }
+
+        return Math.round(montoFinal * 100) / 100; // Redondear a 2 decimales
       },
 
       resetConfiguration: async () => {

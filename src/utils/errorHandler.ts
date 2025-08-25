@@ -9,24 +9,62 @@ export function getErrorMessage(error: any): string {
     return "Unknown error occurred";
   }
 
+  // Enhanced network error detection
+  const isNetworkError = (err: any): boolean => {
+    if (!err) return false;
+
+    const networkPatterns = [
+      'Failed to fetch',
+      'TypeError: Failed to fetch',
+      'Network request failed',
+      'ERR_NETWORK',
+      'ERR_INTERNET_DISCONNECTED',
+      'Connection timeout',
+      'Request timeout',
+      'fetch is not defined',
+      'Load failed',
+      'NetworkError'
+    ];
+
+    const message = err.message || err.toString() || '';
+    const stack = err.stack || '';
+
+    return networkPatterns.some(pattern =>
+      message.toLowerCase().includes(pattern.toLowerCase()) ||
+      stack.toLowerCase().includes(pattern.toLowerCase())
+    );
+  };
+
+  // Check for network errors first
+  if (isNetworkError(error)) {
+    console.log("🌐 Network error detected:", error.message);
+
+    // Check if offline
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      return "Sin conexión a internet. Verifique su conexión y vuelva a intentarlo.";
+    }
+
+    return "Error de conexión: No se pudo conectar al servidor. Verifique su conexión a internet.";
+  }
+
   // Special handling for connection failures with empty messages
   if (error && typeof error === "object" && error.message === "") {
     console.log("Detected empty message error, checking for connection issues");
 
     // Check if this looks like a network/connection error
     if (error.code === "PGRST301" || error.code === "PGRST116") {
-      return "Database connection error - please check your internet connection";
+      return "Error de conexión de base de datos - verifique su conexión a internet";
     }
 
     // Check for common Supabase error patterns
     if (error.details || error.hint || error.code) {
-      return `Database error (${error.code || "unknown"}): ${error.details || error.hint || "Connection failed"}`;
+      return `Error de base de datos (${error.code || "desconocido"}): ${error.details || error.hint || "Conexión fallida"}`;
     }
 
     // If message is empty but we have other properties, use them
     const keys = Object.keys(error);
     if (keys.length > 1) {
-      return `Connection error - detected properties: ${keys.join(", ")}`;
+      return `Error de conexión - propiedades detectadas: ${keys.join(", ")}`;
     }
 
     // Provide more context for empty error responses
@@ -34,7 +72,7 @@ export function getErrorMessage(error: any): string {
 
     // Check if we're offline
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      return "Database connection failed - device appears to be offline";
+      return "Error de conexión de base de datos - el dispositivo parece estar desconectado";
     }
 
     // Check if this might be a CORS issue
@@ -45,7 +83,7 @@ export function getErrorMessage(error: any): string {
         currentOrigin.includes("localhost") ||
         currentOrigin.includes("127.0.0.1")
       ) {
-        return "Database connection failed - possible CORS issue on localhost";
+        return "Error de conexión de base de datos - posible problema de CORS en localhost";
       }
     }
 
@@ -53,17 +91,17 @@ export function getErrorMessage(error: any): string {
     if (error && typeof error === "object") {
       const errorKeys = Object.keys(error);
       if (errorKeys.length === 0) {
-        return "Database connection failed - received empty error object (possible network timeout)";
+        return "Error de conexión de base de datos - objeto de error vacío (posible timeout de red)";
       }
       if (errorKeys.includes("name") && error.name === "TypeError") {
-        return "Database connection failed - network error (TypeError detected)";
+        return "Error de conexión de base de datos - error de red (TypeError detectado)";
       }
       if (errorKeys.includes("stack") && errorKeys.length <= 2) {
-        return "Database connection failed - minimal error info (possible fetch/network issue)";
+        return "Error de conexión de base de datos - información mínima de error (posible problema de fetch/red)";
       }
     }
 
-    return "Database connection failed - empty error response (check network and Supabase configuration)";
+    return "Error de conexión de base de datos - respuesta de error vacía (verifique la red y configuración de Supabase)";
   }
 
   console.log("Error analysis:", {

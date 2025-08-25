@@ -2014,14 +2014,31 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         console.log('💳 Creating pago with data:', data);
         set({ loading: true, error: null });
         try {
+          // Convert empty strings to null for UUID fields and map property names
           const pagoData = {
-            nomina_id: data.nomina_id,
-            profesional_guardia_id: data.profesional_guardia_id,
-            forma_pago: data.forma_pago || 'TRANSFERENCIA',
-            importe: data.importe,
-            observaciones: data.observaciones,
+            nomina_id: data.nomina_id && data.nomina_id.trim() !== '' ? data.nomina_id : null,
+            profesional_guardia_id: data.profesional_guardia_id && data.profesional_guardia_id.trim() !== ''
+              ? data.profesional_guardia_id
+              : (data.profesional_id && data.profesional_id.trim() !== '' ? data.profesional_id : null),
+            forma_pago: data.forma_pago || data.metodo_pago || 'transfer_trabajador',
+            importe: data.importe || data.monto || 0,
+            comprobante_url: data.comprobante_url && data.comprobante_url.trim() !== '' ? data.comprobante_url : null,
+            observaciones: data.observaciones && data.observaciones.trim() !== '' ? data.observaciones : null,
             estado: data.estado || 'pendiente'
           };
+
+          console.log('🔍 Processed pago data:', pagoData);
+
+          // Validate required fields
+          if (!pagoData.nomina_id) {
+            throw new Error('Debe seleccionar una nómina');
+          }
+          if (!pagoData.profesional_guardia_id) {
+            throw new Error('Debe seleccionar un profesional');
+          }
+          if (!pagoData.importe || pagoData.importe <= 0) {
+            throw new Error('El importe debe ser mayor a 0');
+          }
 
           const { error } = await supabase
             .from('pagos_guardias')

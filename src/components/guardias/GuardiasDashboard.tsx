@@ -69,6 +69,13 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
     }
   }, [userRole]);
 
+  // Auto-select user's assigned center when available
+  useEffect(() => {
+    if (user?.assigned_center_id && !selectedCenter) {
+      setSelectedCenter(user.assigned_center_id);
+    }
+  }, [user?.assigned_center_id, selectedCenter]);
+
   // Configuración de pestañas basada en roles
   const getVisibleTabs = () => {
     const allTabs = [

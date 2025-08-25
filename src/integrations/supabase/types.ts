@@ -421,6 +421,7 @@ export type Database = {
           fecha_solicitud: string | null
           fecha_validez_carnet: string | null
           foto_carnet: string | null
+          funcion_publica: boolean | null
           genero: string | null
           gentilicio_femenino: string | null
           id: string
@@ -557,7 +558,7 @@ export type Database = {
         }
         Update: {
           año_graduacion?: number | null
-          año_inicio_paro?: number | null
+          a��o_inicio_paro?: number | null
           apellidos?: string | null
           area_profesional?: string | null
           brigada_cooperacion?: string | null

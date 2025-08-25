@@ -880,7 +880,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           // Si no existe, obtener datos del profesional sanitario
           const { data: profesional, error: profError } = await supabase
             .from('profesionales_sanitarios')
-            .select('id, nombre_completo, area_profesional, especialidad')
+            .select('id, nombre_completo, area_profesional, especialidad, funcion_publica, tipo_sector')
             .eq('id', profesionalId)
             .single();
 
@@ -916,7 +916,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           console.log('📋 Creating profesional_guardia with:', {
             profesional_id: profesionalId,
             categoria,
-            unidad_servicio: unidadServicio
+            unidad_servicio: unidadServicio,
+            funcion_publica: profesional.funcion_publica || false
           });
 
           // Crear nuevo registro en profesionales_guardias

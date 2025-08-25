@@ -1,4 +1,4 @@
-
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Expand, Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -10,6 +10,7 @@ interface ChartActionsProps {
 }
 
 const ChartActions = ({ title, children, onDownload }: ChartActionsProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const handleDownload = () => {
     if (onDownload) {
       onDownload();
@@ -31,7 +32,7 @@ const ChartActions = ({ title, children, onDownload }: ChartActionsProps) => {
     <div className="relative group">
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
         <div className="flex space-x-1">
-          <Dialog>
+          <Dialog open={isExpanded} onOpenChange={setIsExpanded}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 w-8 p-0">
                 <Expand className="w-4 h-4" />
@@ -41,15 +42,15 @@ const ChartActions = ({ title, children, onDownload }: ChartActionsProps) => {
               <DialogHeader>
                 <DialogTitle>{title}</DialogTitle>
               </DialogHeader>
-              <div className="w-full h-96">
+              <div className="w-full min-h-[400px] h-96">
                 {children}
               </div>
             </DialogContent>
           </Dialog>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
+
+          <Button
+            variant="outline"
+            size="sm"
             className="h-8 w-8 p-0"
             onClick={handleDownload}
           >
@@ -57,7 +58,11 @@ const ChartActions = ({ title, children, onDownload }: ChartActionsProps) => {
           </Button>
         </div>
       </div>
-      {children}
+
+      {/* Hide original chart when expanded to prevent duplicate ResizeObserver instances */}
+      <div style={{ display: isExpanded ? 'none' : 'block' }}>
+        {children}
+      </div>
     </div>
   );
 };

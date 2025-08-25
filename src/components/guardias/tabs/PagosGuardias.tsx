@@ -600,10 +600,9 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="PENDIENTE">Pendientes</SelectItem>
-                <SelectItem value="APROBADO">Aprobados</SelectItem>
-                <SelectItem value="PROCESADO">Procesados</SelectItem>
-                <SelectItem value="RECHAZADO">Rechazados</SelectItem>
+                <SelectItem value="pendiente">Pendientes</SelectItem>
+                <SelectItem value="realizado">Realizados</SelectItem>
+                <SelectItem value="confirmado">Confirmados</SelectItem>
               </SelectContent>
             </Select>
             

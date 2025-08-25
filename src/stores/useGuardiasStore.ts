@@ -560,6 +560,40 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               // Calcular tipo_dia automáticamente
               const tipoDiaCalculado = data.tipo_dia || get().getTipoDia(data.fecha_inicio);
 
+              // Validate dates
+              const fechaInicio = new Date(data.fecha_inicio);
+              const fechaFin = new Date(data.fecha_fin);
+
+              if (isNaN(fechaInicio.getTime())) {
+                throw new Error(`Fecha de inicio inválida: ${data.fecha_inicio}`);
+              }
+
+              if (isNaN(fechaFin.getTime())) {
+                throw new Error(`Fecha de fin inválida: ${data.fecha_fin}`);
+              }
+
+              if (fechaFin <= fechaInicio) {
+                throw new Error(`La fecha de fin (${data.fecha_fin}) debe ser posterior a la fecha de inicio (${data.fecha_inicio})`);
+              }
+
+              // Validate centro_salud_id exists
+              if (!data.centro_salud_id) {
+                throw new Error('Centro de salud es requerido');
+              }
+
+              const { data: centro, error: centroError } = await supabase
+                .from('centros_salud')
+                .select('id, nombre')
+                .eq('id', data.centro_salud_id)
+                .single();
+
+              if (centroError || !centro) {
+                console.error('❌ Error validating centro_salud:', centroError);
+                throw new Error(`Centro de salud no encontrado (ID: ${data.centro_salud_id})`);
+              }
+
+              console.log('✅ Validated centro de salud:', centro.nombre);
+
               const guardiaData = {
                 profesional_guardia_id: profesionalGuardiaId,
                 centro_salud_id: data.centro_salud_id,
@@ -567,7 +601,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
                 fecha_inicio: data.fecha_inicio,
                 fecha_fin: data.fecha_fin,
                 tipo_dia: tipoDiaCalculado,
-                observaciones: data.observaciones
+                observaciones: data.observaciones || null
               };
 
               console.log('💾 Inserting guardia with calculated tipo_dia:', tipoDiaCalculado);
@@ -605,6 +639,40 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             // Calcular tipo_dia automáticamente
             const tipoDiaCalculado = data.tipo_dia || get().getTipoDia(data.fecha_inicio);
 
+            // Validate dates
+            const fechaInicio = new Date(data.fecha_inicio);
+            const fechaFin = new Date(data.fecha_fin);
+
+            if (isNaN(fechaInicio.getTime())) {
+              throw new Error(`Fecha de inicio inválida: ${data.fecha_inicio}`);
+            }
+
+            if (isNaN(fechaFin.getTime())) {
+              throw new Error(`Fecha de fin inválida: ${data.fecha_fin}`);
+            }
+
+            if (fechaFin <= fechaInicio) {
+              throw new Error(`La fecha de fin (${data.fecha_fin}) debe ser posterior a la fecha de inicio (${data.fecha_inicio})`);
+            }
+
+            // Validate centro_salud_id exists
+            if (!data.centro_salud_id) {
+              throw new Error('Centro de salud es requerido');
+            }
+
+            const { data: centro, error: centroError } = await supabase
+              .from('centros_salud')
+              .select('id, nombre')
+              .eq('id', data.centro_salud_id)
+              .single();
+
+            if (centroError || !centro) {
+              console.error('❌ Error validating centro_salud:', centroError);
+              throw new Error(`Centro de salud no encontrado (ID: ${data.centro_salud_id})`);
+            }
+
+            console.log('✅ Validated centro de salud:', centro.nombre);
+
             const guardiaData = {
               profesional_guardia_id: profesionalGuardiaId,
               centro_salud_id: data.centro_salud_id,
@@ -612,7 +680,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               fecha_inicio: data.fecha_inicio,
               fecha_fin: data.fecha_fin,
               tipo_dia: tipoDiaCalculado,
-              observaciones: data.observaciones
+              observaciones: data.observaciones || null
             };
 
             console.log('💾 Inserting single guardia with calculated tipo_dia:', tipoDiaCalculado);

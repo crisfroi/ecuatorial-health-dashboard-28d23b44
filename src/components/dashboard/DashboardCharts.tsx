@@ -102,8 +102,9 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
         </CardHeader>
         <CardContent>
           <ChartActions title="Profesionales por Área">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={stats?.datosGraficoAreas || []}>
+            <div className="min-h-[300px]">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={stats?.datosGraficoAreas || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="area"
@@ -122,8 +123,9 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
                   onClick={(data) => onChartClick(data, "area_profesional")}
                   className="cursor-pointer hover:opacity-80"
                 />
-              </BarChart>
-            </ResponsiveContainer>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </ChartActions>
         </CardContent>
       </Card>
@@ -141,8 +143,9 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
         </CardHeader>
         <CardContent>
           <ChartActions title="Distribución por Provincia">
-            <ResponsiveContainer width="100%" height={300}>
-              <RechartsPieChart>
+            <div className="min-h-[300px]">
+              <ResponsiveContainer width="100%" height={300}>
+                <RechartsPieChart>
                 <Pie
                   data={stats?.datosGraficoProvincias || []}
                   cx="50%"
@@ -165,8 +168,9 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
                   ))}
                 </Pie>
                 <Tooltip />
-              </RechartsPieChart>
-            </ResponsiveContainer>
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </div>
           </ChartActions>
         </CardContent>
       </Card>
@@ -184,8 +188,9 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
         </CardHeader>
         <CardContent>
           <ChartActions title="Estados de Solicitud">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={stats?.datosGraficoEstados || []}>
+            <div className="min-h-[300px]">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={stats?.datosGraficoEstados || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="estado" />
                 <YAxis />
@@ -196,8 +201,9 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
                   onClick={(data) => onChartClick(data, "estado_solicitud")}
                   className="cursor-pointer hover:opacity-80"
                 />
-              </BarChart>
-            </ResponsiveContainer>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </ChartActions>
         </CardContent>
       </Card>
@@ -215,8 +221,9 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
         </CardHeader>
         <CardContent>
           <ChartActions title="Tendencia de Registros">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={stats?.tendenciasMensuales || []}>
+            <div className="min-h-[300px]">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={stats?.tendenciasMensuales || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" />
                 <YAxis />
@@ -228,8 +235,9 @@ const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
                   strokeWidth={2}
                   dot={{ fill: "hsl(var(--guinea-teal))" }}
                 />
-              </LineChart>
-            </ResponsiveContainer>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </ChartActions>
         </CardContent>
       </Card>

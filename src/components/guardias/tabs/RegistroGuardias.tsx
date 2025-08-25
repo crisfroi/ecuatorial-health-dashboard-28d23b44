@@ -70,7 +70,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     fetchProfesionales(selectedCenter);
     fetchDiasFestivos(); // Cargar días festivos para el cálculo automático
     if (!selectedCenter) {
-      fetchCentros();
+      fetchCentros(true); // Solo centros públicos para guardias
     }
   }, [selectedMonth, selectedYear, selectedCenter]);
 

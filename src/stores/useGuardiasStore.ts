@@ -2199,7 +2199,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           const { error } = await supabase
             .from('pagos_guardias')
             .update({
-              estado: 'procesado',
+              estado: 'confirmado', // ✅ Valid DB constraint value (was 'procesado')
               fecha_pago: new Date().toISOString()
             })
             .in('id', pagoIds);

@@ -254,8 +254,7 @@ const Dashboard = () => {
         return;
       }
 
-      // Limpiar datos locales si es necesario
-      localStorage.removeItem('supabase.auth.token');
+      // Auth state is handled automatically by Supabase client
 
       toast({
         title: "Sesión cerrada",

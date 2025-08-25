@@ -5,10 +5,38 @@ import { supabase } from '@/integrations/supabase/client';
 // Helper function to format Supabase errors properly
 const formatSupabaseError = (error: any): string => {
   console.error('🔍 Debugging error object type:', typeof error, error);
+  console.error('🔍 Error object keys:', Object.keys(error || {}));
+  console.error('🔍 Error object JSON:', JSON.stringify(error, null, 2));
 
   if (!error) return 'Error desconocido';
 
   if (typeof error === 'string') return error;
+
+  // Handle HTTP status errors first
+  if (error.status || error.statusCode) {
+    const status = error.status || error.statusCode;
+    console.log('🌐 HTTP Status found:', status);
+
+    switch (status) {
+      case 400:
+        const badRequestMsg = error.message || error.details || error.hint || 'Datos de solicitud inválidos';
+        return `Error 400: ${badRequestMsg}`;
+      case 401:
+        return 'Error 401: No autorizado - Verifique sus permisos';
+      case 403:
+        return 'Error 403: Acceso prohibido - Permisos insuficientes';
+      case 404:
+        return 'Error 404: Recurso no encontrado';
+      case 422:
+        const validationMsg = error.message || error.details || 'Error de validación de datos';
+        return `Error 422: ${validationMsg}`;
+      case 500:
+        return 'Error 500: Error interno del servidor';
+      default:
+        const statusMsg = error.message || error.details || 'Error de servidor';
+        return `Error ${status}: ${statusMsg}`;
+    }
+  }
 
   // Supabase error structure
   if (error.message) {
@@ -31,17 +59,25 @@ const formatSupabaseError = (error: any): string => {
     console.log('🏷️ Error code found:', error.code);
     switch (error.code) {
       case '23505':
-        return 'Ya existe un registro con estos datos';
+        return 'Ya existe un registro con estos datos (duplicado)';
       case '23503':
-        return 'Referencia a un registro que no existe';
+        return 'Referencia a un registro que no existe (foreign key)';
       case '23502':
-        return 'Campo requerido faltante en la base de datos';
+        return 'Campo requerido faltante en la base de datos (not null)';
       case '42P01':
         return 'La tabla no existe en la base de datos';
       case '42703':
         return 'Columna no encontrada en la tabla';
       case '42501':
         return 'Permisos insuficientes para realizar la operación';
+      case '23514':
+        return 'Violación de restricción de verificación (check constraint)';
+      case '22001':
+        return 'Dato demasiado largo para el campo';
+      case '22007':
+        return 'Formato de fecha/hora inválido';
+      case '22P02':
+        return 'Valor inválido para el tipo de dato';
       default:
         const codeMsg = error.message || error.details || 'Error de base de datos';
         return `Error BD (${error.code}): ${codeMsg}`;
@@ -534,15 +570,26 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
                 observaciones: data.observaciones
               };
 
-              console.log('💾 Inserting guardia with calculated tipo_dia:', tipoDiaCalculado, guardiaData);
-              const { error } = await supabase
+              console.log('💾 Inserting guardia with calculated tipo_dia:', tipoDiaCalculado);
+              console.log('📦 Complete guardiaData payload:', JSON.stringify(guardiaData, null, 2));
+
+              const { data: insertedData, error } = await supabase
                 .from('guardias')
-                .insert(guardiaData);
+                .insert(guardiaData)
+                .select();
 
               if (error) {
-                console.error('❌ Error inserting guardia for professional', profesionalId, ':', error);
-                throw error;
+                console.error('❌ Error inserting guardia for professional', profesionalId);
+                console.error('❌ Error object:', error);
+                console.error('❌ Error status:', error.status || error.statusCode);
+                console.error('❌ Error details:', error.details);
+                console.error('❌ Error hint:', error.hint);
+                console.error('❌ Data sent:', guardiaData);
+                const formattedError = formatSupabaseError(error);
+                throw new Error(`Error inserting guardia: ${formattedError}`);
               }
+
+              console.log('✅ Successfully inserted guardia:', insertedData);
             }
           } else {
             // Guardia individual (retrocompatibilidad)
@@ -568,15 +615,26 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               observaciones: data.observaciones
             };
 
-            console.log('💾 Inserting single guardia with calculated tipo_dia:', tipoDiaCalculado, guardiaData);
-            const { error } = await supabase
+            console.log('💾 Inserting single guardia with calculated tipo_dia:', tipoDiaCalculado);
+            console.log('📦 Complete single guardiaData payload:', JSON.stringify(guardiaData, null, 2));
+
+            const { data: insertedData, error } = await supabase
               .from('guardias')
-              .insert(guardiaData);
+              .insert(guardiaData)
+              .select();
 
             if (error) {
-              console.error('❌ Error inserting single guardia:', error);
-              throw error;
+              console.error('❌ Error inserting single guardia');
+              console.error('❌ Error object:', error);
+              console.error('❌ Error status:', error.status || error.statusCode);
+              console.error('❌ Error details:', error.details);
+              console.error('❌ Error hint:', error.hint);
+              console.error('❌ Data sent:', guardiaData);
+              const formattedError = formatSupabaseError(error);
+              throw new Error(`Error inserting single guardia: ${formattedError}`);
             }
+
+            console.log('✅ Successfully inserted single guardia:', insertedData);
           }
 
           console.log('✅ Guardia(s) created successfully');
@@ -588,7 +646,18 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           set({ loading: false });
         } catch (error: any) {
           console.error('💥 Exception in createGuardia:', error);
-          const errorMessage = formatSupabaseError(error);
+          console.error('💥 Exception type:', typeof error);
+          console.error('💥 Exception constructor:', error?.constructor?.name);
+          console.error('💥 Exception keys:', Object.keys(error || {}));
+
+          let errorMessage: string;
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          } else {
+            errorMessage = formatSupabaseError(error);
+          }
+
+          console.error('💥 Final formatted error message:', errorMessage);
           set({ error: 'Error al crear guardia: ' + errorMessage, loading: false });
         }
       },

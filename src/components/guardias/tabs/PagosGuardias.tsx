@@ -788,7 +788,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
                   <p>Aprobado: {new Date(selectedPago.fecha_aprobacion).toLocaleString('es-ES')}</p>
                 )}
                 {selectedPago.fecha_procesamiento && (
-                  <p>Procesado: {new Date(selectedPago.fecha_procesamiento).toLocaleString('es-ES')}</p>
+                  <p>Confirmado: {new Date(selectedPago.fecha_procesamiento).toLocaleString('es-ES')}</p>
                 )}
               </div>
             </div>

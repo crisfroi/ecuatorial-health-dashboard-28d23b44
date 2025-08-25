@@ -499,6 +499,8 @@ interface GuardiasStoreState {
   fetchNominas: (mes: number, ano: number, centroId?: string | null) => Promise<void>;
   fetchNominasLineas: (nominaId: string) => Promise<void>;
   generateNomina: (data: { mes: number; ano: number; centro_id?: string | null }) => Promise<void>;
+  generateNominaServerSide: (data: { mes: number; ano: number; centro_id: string }) => Promise<string>;
+  exportNominaEnhanced: (nominaId: string, format?: 'csv' | 'json') => Promise<any>;
   aprobarNomina: (id: string) => Promise<void>;
   rechazarNomina: (id: string) => Promise<void>;
   exportNomina: (id: string, formato: 'PDF' | 'EXCEL') => Promise<void>;
@@ -512,6 +514,13 @@ interface GuardiasStoreState {
   rechazarPago: (id: string) => Promise<void>;
   procesarPagoMasivo: (pagoIds: string[]) => Promise<void>;
   exportPagos: (mes: number, ano: number, centroId?: string | null) => Promise<void>;
+
+  // Enhanced protocol functions
+  exportPagosEnhanced: (nominaId?: string, mes?: number, ano?: number, centroId?: string, format?: 'csv' | 'json') => Promise<any>;
+  exportBankTransfers: (nominaId?: string) => Promise<any>;
+  validatePagoForProtocol: (pago: Partial<Pago>) => Promise<{ valid: boolean; errors: string[] }>;
+  generatePaymentReceipt: (pagoId: string) => Promise<string>;
+  auditPaymentChanges: (pagoId: string, changes: any, userId: string) => Promise<void>;
 
   // Operaciones CRUD - Baremos
   fetchBaremos: () => Promise<void>;
@@ -943,7 +952,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           console.log('✅ Created profesional_guardia:', newRecord.id);
           return newRecord.id;
         } catch (error: any) {
-          console.error('💥 Exception in ensureProfesionalGuardia:', error);
+          console.error('�� Exception in ensureProfesionalGuardia:', error);
           const errorMsg = formatSupabaseError(error);
           throw new Error(`Error al preparar profesional para guardias: ${errorMsg}`);
         }
@@ -1149,8 +1158,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         }
       },
 
-      // Export functions for payroll and bank integration
-      exportNomina: async (nominaId: string, format: 'csv' | 'json' = 'csv') => {
+      // Enhanced export functions for payroll and bank integration
+      exportNominaEnhanced: async (nominaId: string, format: 'csv' | 'json' = 'csv') => {
         set({ loading: true, error: null });
         try {
           const { data: result, error: functionError } = await supabase.functions.invoke('export-payroll', {
@@ -1180,7 +1189,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         }
       },
 
-      exportPagos: async (nominaId?: string, mes?: number, ano?: number, centroId?: string, format: 'csv' | 'json' = 'csv') => {
+      exportPagosEnhanced: async (nominaId?: string, mes?: number, ano?: number, centroId?: string, format: 'csv' | 'json' = 'csv') => {
         set({ loading: true, error: null });
         try {
           const { data: result, error: functionError } = await supabase.functions.invoke('export-payroll', {

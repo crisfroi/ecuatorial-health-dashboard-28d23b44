@@ -649,9 +649,6 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               end: endDate.toISOString()
             });
 
-            // Import the enhanced query wrapper
-            const { executeSupabaseQuery } = await import('@/integrations/supabase/client');
-
             // Use the enhanced query wrapper
             const { data, error } = await executeSupabaseQuery(
               () => {
@@ -2849,7 +2846,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             set({ ajustesBaremos: data || [], loading: false });
           });
         } catch (error: any) {
-          console.error('��� Exception in fetchAjustesBaremos:', error);
+          console.error('💥 Exception in fetchAjustesBaremos:', error);
           const errorMessage = formatSupabaseError(error);
           set({ error: 'Error al cargar ajustes de baremos: ' + errorMessage, loading: false });
         }

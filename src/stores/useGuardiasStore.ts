@@ -906,13 +906,19 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
             const { data: centro, error: centroError } = await supabase
               .from('centros_salud')
-              .select('id, nombre')
+              .select('id, nombre, sector')
               .eq('id', data.centro_salud_id)
               .single();
 
             if (centroError || !centro) {
               console.error('❌ Error validating centro_salud:', centroError);
               throw new Error(`Centro de salud no encontrado (ID: ${data.centro_salud_id})`);
+            }
+
+            // Validar que el centro sea público (obligatorio para guardias)
+            if (!centro.sector || centro.sector.toLowerCase() !== 'público') {
+              console.error('❌ Attempt to create guardia for non-public center:', centro);
+              throw new Error(`Las guardias solo pueden registrarse en establecimientos del sector Público. Centro actual: ${centro.sector || 'Sin sector definido'}`);
             }
 
             console.log('✅ Validated centro de salud:', centro.nombre);

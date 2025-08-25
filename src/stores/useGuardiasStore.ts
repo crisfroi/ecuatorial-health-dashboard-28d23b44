@@ -659,7 +659,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       createGuardia: async (data) => {
-        console.log('🔄 Creating guardia with data:', data);
+        console.log('��� Creating guardia with data:', data);
         set({ loading: true, error: null });
         try {
           // Cargar días festivos si no están cargados
@@ -2713,25 +2713,33 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       fetchAjustesBaremos: async (centroId) => {
-        set({ loading: true });
+        set({ loading: true, error: null });
+
         try {
-          let query = supabase
-            .from('ajustes_baremos')
-            .select('*')
-            .eq('activo', true);
+          await retryWithBackoff(async () => {
+            let query = supabase
+              .from('ajustes_baremos')
+              .select('*')
+              .eq('activo', true);
 
-          if (centroId) {
-            // Nota: La tabla ajustes_baremos no tiene centro_id en el esquema actual
-            // Se mantiene para compatibilidad futura
-          }
+            if (centroId) {
+              // Nota: La tabla ajustes_baremos no tiene centro_id en el esquema actual
+              // Se mantiene para compatibilidad futura
+            }
 
-          const { data, error } = await query;
+            const { data, error } = await query;
 
-          if (error) throw error;
+            if (error) {
+              console.error('❌ Supabase error in fetchAjustesBaremos:', error);
+              throw error;
+            }
 
-          set({ ajustesBaremos: data || [], loading: false });
+            set({ ajustesBaremos: data || [], loading: false });
+          });
         } catch (error: any) {
-          set({ error: 'Error al cargar ajustes de baremos: ' + error.message, loading: false });
+          console.error('💥 Exception in fetchAjustesBaremos:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al cargar ajustes de baremos: ' + errorMessage, loading: false });
         }
       },
 
@@ -2785,79 +2793,82 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       fetchBitacora: async (params) => {
         console.log('📄 Fetching bitacora with params:', params);
         set({ loading: true, error: null });
+
         try {
-          let query = supabase
-            .from('bitacora_guardias')
-            .select(`
-              id,
-              ref_tipo,
-              ref_id,
-              usuario_id,
-              accion,
-              detalle,
-              fecha,
-              ip_address,
-              user_agent
-            `)
-            .order('fecha', { ascending: false });
+          await retryWithBackoff(async () => {
+            let query = supabase
+              .from('bitacora_guardias')
+              .select(`
+                id,
+                ref_tipo,
+                ref_id,
+                usuario_id,
+                accion,
+                detalle,
+                fecha,
+                ip_address,
+                user_agent
+              `)
+              .order('fecha', { ascending: false });
 
-          // Aplicar filtros de fecha si están presentes
-          if (params.fecha_inicio) {
-            console.log('📅 Applying start date filter:', params.fecha_inicio);
-            query = query.gte('fecha', params.fecha_inicio);
-          }
-          if (params.fecha_fin) {
-            console.log('📅 Applying end date filter:', params.fecha_fin);
-            query = query.lte('fecha', params.fecha_fin);
-          }
-
-          // Filtrar por centro si se especifica (por guardias del centro)
-          if (params.centro_id) {
-            console.log('🏥 Filtering by center:', params.centro_id);
-            // Obtener guardias del centro para filtrar bitacora relacionada
-            const { data: guardiasData } = await supabase
-              .from('guardias')
-              .select('id')
-              .eq('centro_salud_id', params.centro_id);
-
-            if (guardiasData && guardiasData.length > 0) {
-              const guardiaIds = guardiasData.map(g => g.id);
-              query = query.or(`ref_tipo.eq.guardia,ref_tipo.eq.nomina,ref_tipo.eq.pago`)
-                           .in('ref_id', guardiaIds);
+            // Aplicar filtros de fecha si están presentes
+            if (params.fecha_inicio) {
+              console.log('📅 Applying start date filter:', params.fecha_inicio);
+              query = query.gte('fecha', params.fecha_inicio);
             }
-          }
+            if (params.fecha_fin) {
+              console.log('📅 Applying end date filter:', params.fecha_fin);
+              query = query.lte('fecha', params.fecha_fin);
+            }
 
-          // Filtrar por mes y año si se especifica
-          if (params.mes && params.ano) {
-            const startDate = new Date(params.ano, params.mes - 1, 1);
-            const endDate = new Date(params.ano, params.mes, 0, 23, 59, 59);
-            query = query.gte('fecha', startDate.toISOString())
-                         .lte('fecha', endDate.toISOString());
-          }
+            // Filtrar por centro si se especifica (por guardias del centro)
+            if (params.centro_id) {
+              console.log('🏥 Filtering by center:', params.centro_id);
+              // Obtener guardias del centro para filtrar bitacora relacionada
+              const { data: guardiasData } = await supabase
+                .from('guardias')
+                .select('id')
+                .eq('centro_salud_id', params.centro_id);
 
-          const { data, error } = await query.limit(500); // Limitar a 500 registros por rendimiento
+              if (guardiasData && guardiasData.length > 0) {
+                const guardiaIds = guardiasData.map(g => g.id);
+                query = query.or(`ref_tipo.eq.guardia,ref_tipo.eq.nomina,ref_tipo.eq.pago`)
+                             .in('ref_id', guardiaIds);
+              }
+            }
 
-          if (error) {
-            console.error('❌ Supabase error in fetchBitacora:', error);
-            throw error;
-          }
+            // Filtrar por mes y año si se especifica
+            if (params.mes && params.ano) {
+              const startDate = new Date(params.ano, params.mes - 1, 1);
+              const endDate = new Date(params.ano, params.mes, 0, 23, 59, 59);
+              query = query.gte('fecha', startDate.toISOString())
+                           .lte('fecha', endDate.toISOString());
+            }
 
-          console.log('✅ Bitacora fetched successfully:', data?.length || 0, 'records');
+            const { data, error } = await query.limit(500); // Limitar a 500 registros por rendimiento
 
-          // Convertir al formato esperado con datos enriquecidos
-          const bitacora: BitacoraEntry[] = (data || []).map(item => ({
-            id: item.id,
-            ref_tipo: item.ref_tipo,
-            ref_id: item.ref_id,
-            usuario_id: item.usuario_id,
-            accion: item.accion,
-            detalle: item.detalle,
-            fecha: item.fecha,
-            ip_address: item.ip_address,
-            user_agent: item.user_agent
-          }));
+            if (error) {
+              console.error('❌ Supabase error in fetchBitacora:', error);
+              throw error;
+            }
 
-          set({ bitacora, loading: false });
+            console.log('✅ Bitacora fetched successfully:', data?.length || 0, 'records');
+
+            // Convertir al formato esperado con datos enriquecidos
+            const bitacora: BitacoraEntry[] = (data || []).map(item => ({
+              id: item.id,
+              ref_tipo: item.ref_tipo,
+              ref_id: item.ref_id,
+              usuario_id: item.usuario_id,
+              accion: item.accion,
+              detalle: item.detalle,
+              fecha: item.fecha,
+              ip_address: item.ip_address,
+              user_agent: item.user_agent
+            }));
+
+            set({ bitacora, loading: false });
+          });
         } catch (error: any) {
           console.error('💥 Exception in fetchBitacora:', error);
           const errorMessage = formatSupabaseError(error);

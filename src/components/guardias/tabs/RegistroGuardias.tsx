@@ -109,6 +109,26 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
       return;
     }
 
+    // Validate centro_salud_id before submission
+    if (!formData.centro_salud_id || formData.centro_salud_id.trim() === '') {
+      toast({
+        title: "Centro de salud requerido",
+        description: "Debe seleccionar un centro de salud para registrar la guardia",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate profesional_ids before submission
+    if (!formData.profesional_ids || formData.profesional_ids.length === 0) {
+      toast({
+        title: "Profesional requerido",
+        description: "Debe seleccionar al menos un profesional para la guardia",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       if (editingGuardia) {
         // En modo edición, actualizar con datos correctos del esquema

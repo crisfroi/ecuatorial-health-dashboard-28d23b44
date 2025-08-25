@@ -668,42 +668,42 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
           )}
         </TabsContent>
 
-        <TabsContent value="aprobados" className="space-y-4">
-          {pagosAprobados.length === 0 ? (
+        <TabsContent value="realizados" className="space-y-4">
+          {pagosRealizados.length === 0 ? (
             <Card>
               <CardContent className="text-center py-8">
                 <CheckCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  No hay pagos aprobados
+                  No hay pagos realizados
                 </h3>
                 <p className="text-gray-600">
-                  Los pagos aprobados aparecerán aquí.
+                  Los pagos realizados aparecerán aquí.
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
-              {pagosAprobados.map(renderPagoCard)}
+              {pagosRealizados.map(renderPagoCard)}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="procesados" className="space-y-4">
-          {pagosProcesados.length === 0 ? (
+        <TabsContent value="confirmados" className="space-y-4">
+          {pagosConfirmados.length === 0 ? (
             <Card>
               <CardContent className="text-center py-8">
                 <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  No hay pagos procesados
+                  No hay pagos confirmados
                 </h3>
                 <p className="text-gray-600">
-                  Los pagos procesados aparecerán aquí.
+                  Los pagos confirmados aparecerán aquí.
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
-              {pagosProcesados.map(renderPagoCard)}
+              {pagosConfirmados.map(renderPagoCard)}
             </div>
           )}
         </TabsContent>

@@ -235,7 +235,11 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                     <h4 className="font-medium text-blue-900 mb-2">Información del Período</h4>
                     <div className="text-sm text-blue-800">
                       <p>Mes: {selectedMonth}/{selectedYear}</p>
-                      {selectedCenter && <p>Centro: {selectedCenter}</p>}
+                      {selectedCenter ? (
+                        <p className="text-green-700">Centro: {selectedCenter}</p>
+                      ) : (
+                        <p className="text-red-600 font-medium">⚠️ Debe seleccionar un centro de salud</p>
+                      )}
                       <p>Guardias registradas: {guardias.length}</p>
                     </div>
                   </div>
@@ -247,7 +251,11 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
                     >
                       Cancelar
                     </Button>
-                    <Button onClick={handleGenerateNomina} disabled={loading}>
+                    <Button
+                      onClick={handleGenerateNomina}
+                      disabled={loading || !selectedCenter}
+                      className={!selectedCenter ? "opacity-50 cursor-not-allowed" : ""}
+                    >
                       Generar Nómina
                     </Button>
                   </div>

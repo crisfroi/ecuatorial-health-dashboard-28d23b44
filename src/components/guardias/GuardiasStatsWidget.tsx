@@ -34,6 +34,7 @@ export const GuardiasStatsWidget: React.FC<GuardiasStatsWidgetProps> = ({
     pagos,
     validaciones,
     loading,
+    error,
     fetchGuardias,
     fetchNominas,
     fetchPagos,
@@ -42,6 +43,8 @@ export const GuardiasStatsWidget: React.FC<GuardiasStatsWidgetProps> = ({
 
   const [currentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear] = useState(new Date().getFullYear());
+  const [showConnectivityTest, setShowConnectivityTest] = useState(false);
+  const networkStatus = useNetworkStatus();
 
   useEffect(() => {
     // Solo cargar datos si el usuario tiene permisos para ver guardias

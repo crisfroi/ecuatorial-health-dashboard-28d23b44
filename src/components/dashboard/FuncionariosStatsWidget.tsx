@@ -25,38 +25,10 @@ export const FuncionariosStatsWidget: React.FC<FuncionariosStatsWidgetProps> = (
   userRole
 }) => {
   // Filtros para obtener solo funcionarios aprobados y de función pública
-  const filtrosFuncionarios = {
+  const { data: funcionarios = [], isLoading, error } = useProfesionales({
     estado_solicitud: 'Aprobado',
     funcion_publica: true // Solo funcionarios públicos (boolean)
-  };
-
-  console.log('FuncionariosStatsWidget: Aplicando filtros:', filtrosFuncionarios);
-
-  const { data: funcionarios = [], isLoading, error } = useProfesionales(filtrosFuncionarios);
-
-  // Para depuración: obtener todos los profesionales para comparar
-  const { data: todosProfesionales = [] } = useProfesionales({});
-
-  console.log('FuncionariosStatsWidget: Funcionarios filtrados obtenidos:', funcionarios.length);
-  console.log('FuncionariosStatsWidget: Primeros 3 funcionarios (muestra):', funcionarios.slice(0, 3).map(f => ({
-    nombre: f.nombre_completo,
-    estado: f.estado_solicitud,
-    funcion_publica: f.funcion_publica
-  })));
-
-  // Cálculos de depuración manual
-  const aprobados = todosProfesionales.filter(p => p.estado_solicitud === 'Aprobado');
-  const funcionariosPublicos = aprobados.filter(p => p.funcion_publica === true);
-
-  console.log('DEBUG - Total profesionales en BD:', todosProfesionales.length);
-  console.log('DEBUG - Profesionales aprobados:', aprobados.length);
-  console.log('DEBUG - Funcionarios públicos (filtro manual):', funcionariosPublicos.length);
-  console.log('DEBUG - Muestra valores funcion_publica:', todosProfesionales.slice(0, 5).map(f => ({
-    nombre: f.nombre_completo,
-    funcion_publica: f.funcion_publica,
-    estado: f.estado_solicitud,
-    tipo_sector: f.tipo_sector
-  })));
+  });
 
   // Cálculos estadísticos
   const totalFuncionarios = funcionarios.length;

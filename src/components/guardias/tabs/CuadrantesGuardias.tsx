@@ -6,6 +6,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useGuardiasStore } from "@/stores/useGuardiasStore";
 import { getStandardTurnos, getTurnoSummary, testTurnoValidation } from "@/utils/cuadranteHelpers";
+
+// Test turnos in development
+if (import.meta.env?.DEV) {
+  console.log('🧪 Testing cuadrante turnos for CuadrantesGuardias...');
+  const testResult = testTurnoValidation();
+  if (!testResult.allValid) {
+    console.warn('⚠️ Some turnos produce invalid guardias:', testResult.results.filter(r => !r.isValid));
+  }
+}
 import { 
   Calendar, 
   Download, 

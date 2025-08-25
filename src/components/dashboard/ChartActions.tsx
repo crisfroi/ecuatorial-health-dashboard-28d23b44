@@ -59,10 +59,12 @@ const ChartActions = ({ title, children, onDownload }: ChartActionsProps) => {
         </div>
       </div>
 
-      {/* Hide original chart when expanded to prevent duplicate ResizeObserver instances */}
-      <div style={{ display: isExpanded ? 'none' : 'block' }}>
-        {children}
-      </div>
+      {/* Use conditional rendering instead of CSS hiding to prevent measurement issues */}
+      {!isExpanded && (
+        <div>
+          {children}
+        </div>
+      )}
     </div>
   );
 };

@@ -41,7 +41,7 @@ interface GuardiasDashboardProps {
 
 export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }) => {
   const { toast } = useToast();
-  const { user } = useAuthContext();
+  const { user } = useAuth();
   const {
     centros,
     guardias,

@@ -2,6 +2,66 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '@/integrations/supabase/client';
 
+// Helper function to detect network connectivity issues
+const isNetworkError = (error: any): boolean => {
+  if (!error) return false;
+
+  // Check for common network error patterns
+  const networkErrorPatterns = [
+    'Failed to fetch',
+    'TypeError: Failed to fetch',
+    'Network request failed',
+    'ERR_NETWORK',
+    'ERR_INTERNET_DISCONNECTED',
+    'Connection timeout',
+    'Request timeout'
+  ];
+
+  const errorMessage = error.message || error.toString() || '';
+  return networkErrorPatterns.some(pattern =>
+    errorMessage.toLowerCase().includes(pattern.toLowerCase())
+  );
+};
+
+// Helper function to wait for a specified time (for retry logic)
+const wait = (ms: number): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
+// Enhanced retry function with exponential backoff
+const retryWithBackoff = async <T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> => {
+  let lastError: any;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      // If it's not a network error, don't retry
+      if (!isNetworkError(error)) {
+        throw error;
+      }
+
+      // If this was the last attempt, throw the error
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      // Calculate delay with exponential backoff
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.log(`🔄 Network error detected, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+      await wait(delay);
+    }
+  }
+
+  throw lastError;
+};
+
 // Helper function to format Supabase errors properly
 const formatSupabaseError = (error: any): string => {
   console.error('🔍 Debugging error object type:', typeof error, error);
@@ -11,6 +71,12 @@ const formatSupabaseError = (error: any): string => {
   if (!error) return 'Error desconocido';
 
   if (typeof error === 'string') return error;
+
+  // Check for network errors first
+  if (isNetworkError(error)) {
+    console.log('🌐 Network error detected:', error.message);
+    return 'Error de conectividad: No se pudo conectar al servidor. Verifique su conexión a internet y vuelva a intentarlo.';
+  }
 
   // Handle HTTP status errors first
   if (error.status || error.statusCode) {
@@ -1487,69 +1553,82 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       fetchValidaciones: async (mes, ano, centroId) => {
         console.log('✅ Fetching validaciones for:', { mes, ano, centroId });
         set({ loading: true, error: null });
+
         try {
-          let query = supabase
-            .from('validaciones_guardias')
-            .select(`
-              id,
-              guardia_id,
-              etapa,
-              usuario_id,
-              fecha,
-              resultado,
-              comentario,
-              firma,
-              created_at
-            `)
-            .order('created_at', { ascending: false });
+          await retryWithBackoff(async () => {
+            let query = supabase
+              .from('validaciones_guardias')
+              .select(`
+                id,
+                guardia_id,
+                etapa,
+                usuario_id,
+                fecha,
+                resultado,
+                comentario,
+                firma,
+                created_at
+              `)
+              .order('created_at', { ascending: false });
 
-          // Filtrar por centro si se especifica
-          if (centroId) {
-            // Filtrar por guardias del centro específico para el período
-            const startDate = new Date(ano, mes - 1, 1);
-            const endDate = new Date(ano, mes, 0, 23, 59, 59);
+            // Filtrar por centro si se especifica
+            if (centroId) {
+              // Filtrar por guardias del centro específico para el período
+              const startDate = new Date(ano, mes - 1, 1);
+              const endDate = new Date(ano, mes, 0, 23, 59, 59);
 
-            const { data: guardiasData } = await supabase
-              .from('guardias')
-              .select('id')
-              .eq('centro_salud_id', centroId)
-              .gte('fecha_inicio', startDate.toISOString())
-              .lte('fecha_inicio', endDate.toISOString());
+              const { data: guardiasData, error: guardiasError } = await supabase
+                .from('guardias')
+                .select('id')
+                .eq('centro_salud_id', centroId)
+                .gte('fecha_inicio', startDate.toISOString())
+                .lte('fecha_inicio', endDate.toISOString());
 
-            if (guardiasData && guardiasData.length > 0) {
-              const guardiaIds = guardiasData.map(g => g.id);
-              query = query.in('guardia_id', guardiaIds);
+              if (guardiasError) {
+                console.error('❌ Error fetching guardias for centro:', guardiasError);
+                throw guardiasError;
+              }
+
+              if (guardiasData && guardiasData.length > 0) {
+                const guardiaIds = guardiasData.map(g => g.id);
+                query = query.in('guardia_id', guardiaIds);
+              } else {
+                console.log('📄 No guardias found for center in this period');
+                set({ validaciones: [], loading: false });
+                return;
+              }
             } else {
-              console.log('📄 No guardias found for center in this period');
-              set({ validaciones: [], loading: false });
-              return;
+              // Sin filtro de centro, obtener por período general
+              const startDate = new Date(ano, mes - 1, 1);
+              const endDate = new Date(ano, mes, 0, 23, 59, 59);
+
+              const { data: guardiasData, error: guardiasError } = await supabase
+                .from('guardias')
+                .select('id')
+                .gte('fecha_inicio', startDate.toISOString())
+                .lte('fecha_inicio', endDate.toISOString());
+
+              if (guardiasError) {
+                console.error('❌ Error fetching guardias for period:', guardiasError);
+                throw guardiasError;
+              }
+
+              if (guardiasData && guardiasData.length > 0) {
+                const guardiaIds = guardiasData.map(g => g.id);
+                query = query.in('guardia_id', guardiaIds);
+              }
             }
-          } else {
-            // Sin filtro de centro, obtener por período general
-            const startDate = new Date(ano, mes - 1, 1);
-            const endDate = new Date(ano, mes, 0, 23, 59, 59);
 
-            const { data: guardiasData } = await supabase
-              .from('guardias')
-              .select('id')
-              .gte('fecha_inicio', startDate.toISOString())
-              .lte('fecha_inicio', endDate.toISOString());
+            const { data, error } = await query;
 
-            if (guardiasData && guardiasData.length > 0) {
-              const guardiaIds = guardiasData.map(g => g.id);
-              query = query.in('guardia_id', guardiaIds);
+            if (error) {
+              console.error('❌ Supabase error in fetchValidaciones:', error);
+              throw error;
             }
-          }
 
-          const { data, error } = await query;
-
-          if (error) {
-            console.error('❌ Supabase error in fetchValidaciones:', error);
-            throw error;
-          }
-
-          console.log('✅ Validaciones fetched successfully:', data?.length || 0, 'records');
-          set({ validaciones: data || [], loading: false });
+            console.log('✅ Validaciones fetched successfully:', data?.length || 0, 'records');
+            set({ validaciones: data || [], loading: false });
+          });
         } catch (error: any) {
           console.error('💥 Exception in fetchValidaciones:', error);
           const errorMessage = formatSupabaseError(error);
@@ -1965,7 +2044,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       rechazarNomina: async (id) => {
-        console.log('❌ Rejecting nomina:', id);
+        console.log('��� Rejecting nomina:', id);
         try {
           const { error } = await supabase
             .from('nominas_guardias')
@@ -2020,66 +2099,69 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       fetchPagos: async (mes, ano, centroId) => {
         console.log('💳 Fetching pagos for:', { mes, ano, centroId });
         set({ loading: true, error: null });
+
         try {
-          // Los pagos están relacionados con nóminas, así que primero obtenemos las nóminas
-          let nominasQuery = supabase
-            .from('nominas_guardias')
-            .select('id, mes, anio, total_importe')
-            .eq('mes', mes)
-            .eq('anio', ano);
+          await retryWithBackoff(async () => {
+            // Los pagos están relacionados con nóminas, así que primero obtenemos las nóminas
+            let nominasQuery = supabase
+              .from('nominas_guardias')
+              .select('id, mes, anio, total_importe')
+              .eq('mes', mes)
+              .eq('anio', ano);
 
-          if (centroId) {
-            nominasQuery = nominasQuery.eq('centro_salud_id', centroId);
-          }
+            if (centroId) {
+              nominasQuery = nominasQuery.eq('centro_salud_id', centroId);
+            }
 
-          const { data: nominasData, error: nominasError } = await nominasQuery;
+            const { data: nominasData, error: nominasError } = await nominasQuery;
 
-          if (nominasError) {
-            console.error('❌ Supabase error in fetchPagos (nominas):', nominasError);
-            throw nominasError;
-          }
+            if (nominasError) {
+              console.error('❌ Supabase error in fetchPagos (nominas):', nominasError);
+              throw nominasError;
+            }
 
-          if (!nominasData || nominasData.length === 0) {
-            console.log('📄 No nominas found for period, no pagos to fetch');
-            set({ pagos: [], loading: false });
-            return;
-          }
+            if (!nominasData || nominasData.length === 0) {
+              console.log('📄 No nominas found for period, no pagos to fetch');
+              set({ pagos: [], loading: false });
+              return;
+            }
 
-          const nominaIds = nominasData.map(n => n.id);
-          console.log('📊 Found nominas:', nominaIds.length);
+            const nominaIds = nominasData.map(n => n.id);
+            console.log('📊 Found nominas:', nominaIds.length);
 
-          const { data, error } = await supabase
-            .from('pagos_guardias')
-            .select(`
-              id,
-              nomina_id,
-              profesional_guardia_id,
-              forma_pago,
-              fecha_pago,
-              importe,
-              comprobante_url,
-              observaciones,
-              estado,
-              created_by,
-              created_at,
-              updated_at
-            `)
-            .in('nomina_id', nominaIds)
-            .order('created_at', { ascending: false });
+            const { data, error } = await supabase
+              .from('pagos_guardias')
+              .select(`
+                id,
+                nomina_id,
+                profesional_guardia_id,
+                forma_pago,
+                fecha_pago,
+                importe,
+                comprobante_url,
+                observaciones,
+                estado,
+                created_by,
+                created_at,
+                updated_at
+              `)
+              .in('nomina_id', nominaIds)
+              .order('created_at', { ascending: false });
 
-          if (error) {
-            console.error('❌ Supabase error in fetchPagos:', error);
-            throw error;
-          }
+            if (error) {
+              console.error('❌ Supabase error in fetchPagos:', error);
+              throw error;
+            }
 
-          // Enriquecer con datos de nóminas
-          const pagosEnriquecidos = (data || []).map(pago => ({
-            ...pago,
-            nomina: nominasData.find(n => n.id === pago.nomina_id)
-          }));
+            // Enriquecer con datos de nóminas
+            const pagosEnriquecidos = (data || []).map(pago => ({
+              ...pago,
+              nomina: nominasData.find(n => n.id === pago.nomina_id)
+            }));
 
-          console.log('✅ Pagos fetched successfully:', pagosEnriquecidos.length, 'records');
-          set({ pagos: pagosEnriquecidos, loading: false });
+            console.log('✅ Pagos fetched successfully:', pagosEnriquecidos.length, 'records');
+            set({ pagos: pagosEnriquecidos, loading: false });
+          });
         } catch (error: any) {
           console.error('💥 Exception in fetchPagos:', error);
           const errorMessage = formatSupabaseError(error);

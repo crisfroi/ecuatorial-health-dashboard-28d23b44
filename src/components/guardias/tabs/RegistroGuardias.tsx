@@ -188,7 +188,12 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
 
   const resetForm = () => {
     setFormData({
-
+      profesional_ids: [],
+      centro_salud_id: selectedCenter || '',
+      fecha_inicio: '',
+      fecha_fin: '',
+      tipo: 'fisica',
+      tipo_dia: 'ordinario',
       observaciones: ''
     });
   };

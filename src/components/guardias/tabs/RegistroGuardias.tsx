@@ -161,7 +161,12 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     setEditingGuardia(guardia);
 
     setFormData({
-
+      profesional_ids: guardia.profesional?.id ? [guardia.profesional.id] : [],
+      centro_salud_id: guardia.centro_salud_id || selectedCenter || '',
+      fecha_inicio: guardia.fecha_inicio || '',
+      fecha_fin: guardia.fecha_fin || '',
+      tipo: guardia.tipo || 'fisica',
+      tipo_dia: guardia.tipo_dia || 'ordinario',
       observaciones: guardia.observaciones || ''
     });
     setIsDialogOpen(true);

@@ -409,6 +409,7 @@ interface GuardiasStoreState {
 
   // Operaciones CRUD - Profesionales
   fetchProfesionales: (centroId?: string | null) => Promise<void>;
+  fetchProfesionalesGuardias: (centroId?: string | null) => Promise<void>;
 
   // Operaciones CRUD - Centros
   fetchCentros: () => Promise<void>;
@@ -959,7 +960,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             activo: prof.estado_solicitud === 'Aprobado'
           }));
 
-          console.log('��� Profesionales processed successfully:', profesionales.length);
+          console.log('✅ Profesionales processed successfully:', profesionales.length);
           set({ profesionales, loading: false });
         } catch (error: any) {
           console.error('💥 Exception in fetchProfesionales:', error);
@@ -1248,7 +1249,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             }
 
             // Validación final antes de inserción en lotes
-            console.log('📅 Validation summary:', {
+            console.log('��� Validation summary:', {
               totalGuardias: guardiasToCreate.length,
               avgDuration: guardiasToCreate.length > 0 ?
                 (guardiasToCreate.reduce((sum, g) => {
@@ -2146,7 +2147,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             throw error;
           }
 
-          console.log('✅ Batch payments processed successfully');
+          console.log('��� Batch payments processed successfully');
 
           // Refrescar pagos
           const currentDate = new Date();

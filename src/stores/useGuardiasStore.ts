@@ -1104,35 +1104,38 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       fetchCentros: async () => {
         console.log('🏥 Fetching centros de salud...');
         set({ loading: true, error: null });
+
         try {
-          const { data, error } = await supabase
-            .from('centros_salud')
-            .select(`
-              id,
-              nombre,
-              categoria,
-              provincia,
-              estado
-            `)
-            .eq('estado', 'Activo')
-            .order('nombre');
+          await retryWithBackoff(async () => {
+            const { data, error } = await supabase
+              .from('centros_salud')
+              .select(`
+                id,
+                nombre,
+                categoria,
+                provincia,
+                estado
+              `)
+              .eq('estado', 'Activo')
+              .order('nombre');
 
-          if (error) {
-            console.error('❌ Supabase error in fetchCentros:', error);
-            throw error;
-          }
+            if (error) {
+              console.error('❌ Supabase error in fetchCentros:', error);
+              throw error;
+            }
 
-          console.log('📊 Raw centros data:', data?.length || 0, 'records');
+            console.log('📊 Raw centros data:', data?.length || 0, 'records');
 
-          const centros: Centro[] = (data || []).map(centro => ({
-            id: centro.id,
-            nombre: centro.nombre,
-            tipo_centro: centro.categoria || 'Centro de Salud',
-            provincia: centro.provincia || 'No especificada'
-          }));
+            const centros: Centro[] = (data || []).map(centro => ({
+              id: centro.id,
+              nombre: centro.nombre,
+              tipo_centro: centro.categoria || 'Centro de Salud',
+              provincia: centro.provincia || 'No especificada'
+            }));
 
-          console.log('✅ Centros processed successfully:', centros.length);
-          set({ centros, loading: false });
+            console.log('✅ Centros processed successfully:', centros.length);
+            set({ centros, loading: false });
+          });
         } catch (error: any) {
           console.error('💥 Exception in fetchCentros:', error);
           const errorMessage = formatSupabaseError(error);
@@ -1448,7 +1451,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         try {
           // Verificar si es un cuadrante virtual
           if (id.startsWith('virtual-')) {
-            console.log('📋 Virtual cuadrante, no database update needed');
+            console.log('�� Virtual cuadrante, no database update needed');
             return;
           }
 

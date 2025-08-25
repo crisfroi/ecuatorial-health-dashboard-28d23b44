@@ -395,7 +395,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
               className="bg-blue-600 hover:bg-blue-700"
             >
               <CreditCard className="w-4 h-4 mr-2" />
-              Procesar {selectedPagos.length} Pagos
+              Confirmar {selectedPagos.length} Pagos
             </Button>
           )}
           

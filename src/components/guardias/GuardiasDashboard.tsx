@@ -47,9 +47,10 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
     nominas,
     pagos,
     loading,
-    fetchCentros
+    fetchCentros,
+    userProfile
   } = useGuardiasStore();
-  
+
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedCenter, setSelectedCenter] = useState<string | null>(null);

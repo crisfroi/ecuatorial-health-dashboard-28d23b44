@@ -34,4 +34,80 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: window.localStorage,
     flowType: 'pkce',
   },
+  global: {
+    headers: {
+      'X-Client-Info': 'guinea-salud-dashboard',
+    },
+  },
+  db: {
+    schema: 'public',
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
+});
+
+// Enhanced connection monitoring
+let connectionAttempts = 0;
+const MAX_CONNECTION_ATTEMPTS = 5;
+
+// Add connection event listeners
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('🔐 Auth state changed:', event, session?.user?.id ? 'User logged in' : 'No user');
+
+  if (event === 'SIGNED_IN') {
+    connectionAttempts = 0; // Reset on successful auth
+  }
+});
+
+// Create a wrapper for better error handling
+export const executeSupabaseQuery = async <T>(
+  queryFn: () => Promise<{ data: T | null; error: any }>,
+  context: string = 'Unknown query'
+): Promise<{ data: T | null; error: any }> => {
+  try {
+    console.log(`🔍 Executing Supabase query: ${context}`);
+    const startTime = Date.now();
+
+    const result = await queryFn();
+
+    const duration = Date.now() - startTime;
+    console.log(`⏱️ Query "${context}" completed in ${duration}ms`);
+
+    if (result.error) {
+      console.error(`❌ Query "${context}" failed:`, result.error);
+      connectionAttempts++;
+
+      if (connectionAttempts >= MAX_CONNECTION_ATTEMPTS) {
+        console.error(`🚨 Max connection attempts (${MAX_CONNECTION_ATTEMPTS}) reached for context: ${context}`);
+      }
+    } else {
+      connectionAttempts = 0; // Reset on success
+    }
+
+    return result;
+  } catch (error: any) {
+    console.error(`💥 Query "${context}" threw exception:`, error);
+    connectionAttempts++;
+
+    // Convert exceptions to Supabase-like error format
+    return {
+      data: null,
+      error: {
+        message: error.message || 'Unknown error',
+        details: error.stack || error.toString(),
+        hint: 'Check network connectivity and Supabase configuration',
+        code: error.code || 'QUERY_EXCEPTION'
+      }
+    };
+  }
+};
+
+// Export connection status
+export const getConnectionStatus = () => ({
+  attempts: connectionAttempts,
+  isHealthy: connectionAttempts < MAX_CONNECTION_ATTEMPTS,
+  maxAttempts: MAX_CONNECTION_ATTEMPTS
 });

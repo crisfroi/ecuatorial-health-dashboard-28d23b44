@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, executeSupabaseQuery } from '@/integrations/supabase/client';
 
 // Helper function to detect network connectivity issues
 const isNetworkError = (error: any): boolean => {
@@ -28,10 +28,10 @@ const wait = (ms: number): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-// Enhanced retry function with exponential backoff
+// Enhanced retry function with exponential backoff and better network error handling
 const retryWithBackoff = async <T>(
   fn: () => Promise<T>,
-  maxRetries: number = 3,
+  maxRetries: number = 5,
   baseDelay: number = 1000
 ): Promise<T> => {
   let lastError: any;
@@ -39,22 +39,35 @@ const retryWithBackoff = async <T>(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
-    } catch (error) {
+    } catch (error: any) {
       lastError = error;
 
+      // Enhanced network error detection
+      const isNetworkIssue = isNetworkError(error) ||
+                            error.message?.includes('Failed to fetch') ||
+                            error.message?.includes('TypeError: Failed to fetch') ||
+                            error.code === 'NETWORK_ERROR' ||
+                            (error.name === 'TypeError' && error.message?.includes('fetch'));
+
       // If it's not a network error, don't retry
-      if (!isNetworkError(error)) {
+      if (!isNetworkIssue) {
+        console.log(`❌ Non-network error, not retrying:`, error.message);
         throw error;
       }
 
       // If this was the last attempt, throw the error
       if (attempt === maxRetries) {
+        console.log(`❌ Max retries (${maxRetries}) reached for network error`);
         throw error;
       }
 
-      // Calculate delay with exponential backoff
-      const delay = baseDelay * Math.pow(2, attempt);
-      console.log(`🔄 Network error detected, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+      // Calculate delay with exponential backoff + jitter
+      const jitter = Math.random() * 500; // Add randomness to prevent thundering herd
+      const delay = (baseDelay * Math.pow(2, attempt)) + jitter;
+
+      console.log(`🔄 Network error detected, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+      console.log(`🌐 Error details:`, error.message);
+
       await wait(delay);
     }
   }
@@ -66,16 +79,45 @@ const retryWithBackoff = async <T>(
 const formatSupabaseError = (error: any): string => {
   console.error('🔍 Debugging error object type:', typeof error, error);
   console.error('🔍 Error object keys:', Object.keys(error || {}));
-  console.error('🔍 Error object JSON:', JSON.stringify(error, null, 2));
+
+  // Safely stringify the error object
+  try {
+    console.error('🔍 Error object JSON:', JSON.stringify(error, (key, value) => {
+      if (typeof value === 'object' && value !== null) {
+        // Handle circular references and complex objects
+        if (value.constructor && value.constructor.name !== 'Object') {
+          return `[${value.constructor.name}]`;
+        }
+      }
+      return value;
+    }, 2));
+  } catch (stringifyError) {
+    console.error('🔍 Error object (toString):', error.toString());
+  }
 
   if (!error) return 'Error desconocido';
 
   if (typeof error === 'string') return error;
 
-  // Check for network errors first
-  if (isNetworkError(error)) {
+  // Enhanced network error detection
+  if (isNetworkError(error) ||
+      error.message?.includes('Failed to fetch') ||
+      error.message?.includes('TypeError: Failed to fetch') ||
+      error.code === 'NETWORK_ERROR' ||
+      error.name === 'TypeError' && error.message?.includes('fetch')) {
+
     console.log('🌐 Network error detected:', error.message);
-    return 'Error de conectividad: No se pudo conectar al servidor. Verifique su conexión a internet y vuelva a intentarlo.';
+
+    // More specific network error messages
+    if (error.message?.includes('CORS')) {
+      return 'Error de CORS: El servidor no permite esta solicitud. Contacte al administrador.';
+    }
+
+    if (error.message?.includes('timeout')) {
+      return 'Error de tiempo de espera: La conexión tardó demasiado. Intente nuevamente.';
+    }
+
+    return 'Error de conectividad: No se pudo conectar al servidor de Supabase. Verifique su conexión a internet y vuelva a intentarlo en unos momentos.';
   }
 
   // Handle HTTP status errors first
@@ -593,20 +635,123 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       // Operaciones CRUD - Guardias
       fetchGuardias: async (mes, ano, centroId) => {
-        console.log('🔍 Fetching guardias for:', { mes, ano, centroId });
+        console.log('🔍 Fetching guardias for period:', { mes, ano, centroId });
         set({ loading: true, error: null });
 
         try {
+          await retryWithBackoff(async () => {
+            // Calcular rango de fechas para el mes/año solicitado
+            const startDate = new Date(ano, mes - 1, 1);
+            const endDate = new Date(ano, mes, 0, 23, 59, 59);
 
+            console.log('📅 Date range for guardias fetch:', {
+              start: startDate.toISOString(),
+              end: endDate.toISOString()
+            });
 
-            const { data, error } = await query;
+            // Use the enhanced query wrapper
+            const { data, error } = await executeSupabaseQuery(
+              () => {
+                let query = supabase
+                  .from('guardias')
+                  .select(`
+                    id,
+                    profesional_guardia_id,
+                    centro_salud_id,
+                    tipo,
+                    fecha_inicio,
+                    fecha_fin,
+                    horas,
+                    tipo_dia,
+                    estado,
+                    validacion_estado,
+                    observaciones,
+                    localizable_activada,
+                    hora_llamada,
+                    hora_llegada,
+                    servicio_atendido,
+                    caso_atendido,
+                    created_at,
+                    updated_at,
+                    created_by,
+                    approved_by,
+                    approved_at,
+                    profesionales_guardias!inner(
+                      id,
+                      categoria,
+                      unidad_servicio,
+                      profesionales_sanitarios!inner(
+                        id,
+                        nombre_completo,
+                        area_profesional
+                      )
+                    ),
+                    centros_salud!inner(
+                      id,
+                      nombre
+                    )
+                  `)
+                  .gte('fecha_inicio', startDate.toISOString())
+                  .lte('fecha_inicio', endDate.toISOString())
+                  .order('fecha_inicio', { ascending: true });
+
+                // Aplicar filtro por centro si se especifica
+                if (centroId) {
+                  console.log('🏥 Filtering guardias by center:', centroId);
+                  query = query.eq('centro_salud_id', centroId);
+                }
+
+                return query;
+              },
+              `fetchGuardias(${mes}/${ano}${centroId ? `, centro: ${centroId}` : ''})`
+            );
 
             if (error) {
+              console.error('❌ Error fetching guardias for period:', { mes, ano, centroId });
               console.error('❌ Supabase error in fetchGuardias:', error);
               throw error;
             }
 
+            console.log('📊 Raw guardias data:', data?.length || 0, 'records');
 
+            // Procesar y formatear los datos
+            const guardias: Guardia[] = (data || []).map(guardia => ({
+              id: guardia.id,
+              profesional_guardia_id: guardia.profesional_guardia_id,
+              centro_salud_id: guardia.centro_salud_id,
+              tipo: guardia.tipo,
+              fecha_inicio: guardia.fecha_inicio,
+              fecha_fin: guardia.fecha_fin,
+              horas: guardia.horas,
+              tipo_dia: guardia.tipo_dia,
+              estado: guardia.estado,
+              validacion_estado: guardia.validacion_estado,
+              observaciones: guardia.observaciones,
+              localizable_activada: guardia.localizable_activada,
+              hora_llamada: guardia.hora_llamada,
+              hora_llegada: guardia.hora_llegada,
+              servicio_atendido: guardia.servicio_atendido,
+              caso_atendido: guardia.caso_atendido,
+              created_at: guardia.created_at,
+              updated_at: guardia.updated_at,
+              created_by: guardia.created_by,
+              approved_by: guardia.approved_by,
+              approved_at: guardia.approved_at,
+              // Datos relacionados para facilitar el uso en frontend
+              profesional: guardia.profesionales_guardias?.profesionales_sanitarios ? {
+                id: guardia.profesionales_guardias.profesionales_sanitarios.id,
+                nombre_completo: guardia.profesionales_guardias.profesionales_sanitarios.nombre_completo,
+                especialidad: guardia.profesionales_guardias.profesionales_sanitarios.area_profesional || 'No especificada'
+              } : undefined,
+              centro: guardia.centros_salud ? {
+                id: guardia.centros_salud.id,
+                nombre: guardia.centros_salud.nombre
+              } : undefined
+            }));
+
+            console.log('✅ Guardias processed successfully:', guardias.length);
+            set({ guardias, loading: false });
+          });
         } catch (error: any) {
           console.error('💥 Exception in fetchGuardias:', error);
           const errorMessage = formatSupabaseError(error);
@@ -664,13 +809,19 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
               const { data: centro, error: centroError } = await supabase
                 .from('centros_salud')
-                .select('id, nombre')
+                .select('id, nombre, sector')
                 .eq('id', data.centro_salud_id)
                 .single();
 
               if (centroError || !centro) {
                 console.error('❌ Error validating centro_salud:', centroError);
                 throw new Error(`Centro de salud no encontrado (ID: ${data.centro_salud_id})`);
+              }
+
+              // Validar que el centro sea público (obligatorio para guardias)
+              if (!centro.sector || centro.sector.toLowerCase() !== 'público') {
+                console.error('❌ Attempt to create guardia for non-public center:', centro);
+                throw new Error(`Las guardias solo pueden registrarse en establecimientos del sector Público. Centro actual: ${centro.sector || 'Sin sector definido'}`);
               }
 
               console.log('✅ Validated centro de salud:', centro.nombre);
@@ -755,13 +906,19 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
             const { data: centro, error: centroError } = await supabase
               .from('centros_salud')
-              .select('id, nombre')
+              .select('id, nombre, sector')
               .eq('id', data.centro_salud_id)
               .single();
 
             if (centroError || !centro) {
               console.error('❌ Error validating centro_salud:', centroError);
               throw new Error(`Centro de salud no encontrado (ID: ${data.centro_salud_id})`);
+            }
+
+            // Validar que el centro sea público (obligatorio para guardias)
+            if (!centro.sector || centro.sector.toLowerCase() !== 'público') {
+              console.error('❌ Attempt to create guardia for non-public center:', centro);
+              throw new Error(`Las guardias solo pueden registrarse en establecimientos del sector Público. Centro actual: ${centro.sector || 'Sin sector definido'}`);
             }
 
             console.log('✅ Validated centro de salud:', centro.nombre);
@@ -1080,22 +1237,30 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       // Operaciones CRUD - Centros
-      fetchCentros: async () => {
-        console.log('🏥 Fetching centros de salud...');
+      fetchCentros: async (publicOnly = false) => {
+        console.log('🏥 Fetching centros de salud...', publicOnly ? '(Solo públicos)' : '(Todos)');
         set({ loading: true, error: null });
 
         try {
           await retryWithBackoff(async () => {
-            const { data, error } = await supabase
+            let query = supabase
               .from('centros_salud')
               .select(`
                 id,
                 nombre,
                 categoria,
                 provincia,
-                estado
+                estado,
+                sector
               `)
-              .eq('estado', 'Activo')
+              .eq('estado', 'Activo');
+
+            // Filtrar solo centros públicos si se solicita (para guardias)
+            if (publicOnly) {
+              query = query.eq('sector', 'Público');
+            }
+
+            const { data, error } = await query
               .order('nombre');
 
             if (error) {

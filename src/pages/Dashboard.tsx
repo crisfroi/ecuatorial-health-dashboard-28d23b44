@@ -191,7 +191,7 @@ const Dashboard = () => {
     setActiveTab("professionals");
     setAppliedFilters({
       estado_solicitud: "Aprobado",
-      funcion_publica: "true"
+      funcion_publica: true // Boolean correcto en lugar de string
     });
   };
 

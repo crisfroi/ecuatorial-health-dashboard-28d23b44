@@ -2,17 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Calendar, 
-  Clock, 
-  Users, 
-  DollarSign, 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Calendar,
+  Clock,
+  Users,
+  DollarSign,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
-  ArrowRight
+  ArrowRight,
+  WifiOff,
+  RefreshCw
 } from "lucide-react";
 import { useGuardiasStore } from "@/stores/useGuardiasStore";
+import { GuardiasConnectivityTest } from "./GuardiasConnectivityTest";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 interface GuardiasStatsWidgetProps {
   onNavigateToGuardias?: () => void;
@@ -29,6 +34,7 @@ export const GuardiasStatsWidget: React.FC<GuardiasStatsWidgetProps> = ({
     pagos,
     validaciones,
     loading,
+    error,
     fetchGuardias,
     fetchNominas,
     fetchPagos,
@@ -37,6 +43,8 @@ export const GuardiasStatsWidget: React.FC<GuardiasStatsWidgetProps> = ({
 
   const [currentMonth] = useState(new Date().getMonth() + 1);
   const [currentYear] = useState(new Date().getFullYear());
+  const [showConnectivityTest, setShowConnectivityTest] = useState(false);
+  const networkStatus = useNetworkStatus();
 
   useEffect(() => {
     // Solo cargar datos si el usuario tiene permisos para ver guardias
@@ -79,6 +87,20 @@ export const GuardiasStatsWidget: React.FC<GuardiasStatsWidgetProps> = ({
     return `${amount.toLocaleString()} XAF`;
   };
 
+  const retryFetch = () => {
+    if (['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES'].includes(userRole)) {
+      fetchGuardias(currentMonth, currentYear);
+      fetchNominas(currentMonth, currentYear);
+      fetchPagos(currentMonth, currentYear);
+      fetchValidaciones(currentMonth, currentYear);
+    }
+  };
+
+  const handleConnectionRestored = () => {
+    setShowConnectivityTest(false);
+    retryFetch();
+  };
+
   if (loading) {
     return (
       <Card>
@@ -91,7 +113,64 @@ export const GuardiasStatsWidget: React.FC<GuardiasStatsWidgetProps> = ({
         <CardContent>
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600">Cargando datos...</span>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state with connectivity options
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <WifiOff className="w-5 h-5 text-red-600" />
+            <span>Error de Conexión</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {error.includes('conectividad') || error.includes('Failed to fetch') ?
+                'Error de conectividad: No se pudo conectar al servidor.' :
+                error
+              }
+            </AlertDescription>
+          </Alert>
+
+          {!networkStatus.isOnline && (
+            <Alert>
+              <WifiOff className="h-4 w-4" />
+              <AlertDescription>
+                Su dispositivo está sin conexión a internet. Verifique su conexión de red.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              onClick={retryFetch}
+              size="sm"
+              disabled={!networkStatus.isOnline}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Reintentar
+            </Button>
+            <Button
+              onClick={() => setShowConnectivityTest(!showConnectivityTest)}
+              variant="outline"
+              size="sm"
+            >
+              Diagnosticar Conexión
+            </Button>
+          </div>
+
+          {showConnectivityTest && (
+            <GuardiasConnectivityTest onConnectionRestored={handleConnectionRestored} />
+          )}
         </CardContent>
       </Card>
     );

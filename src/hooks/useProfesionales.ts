@@ -51,6 +51,7 @@ interface Filtros {
   año_graduacion?: number;
   categoria_titulacion?: string;
   categoria_centro?: string;
+  funcion_publica?: boolean; // Filtro para funcionarios públicos
   // Filtros de fecha
   fecha_solicitud_gte?: string;
   fecha_solicitud_lte?: string;
@@ -73,6 +74,7 @@ export interface NavigationFilters {
   año_graduacion?: number;
   categoria_titulacion?: string;
   categoria_centro?: string;
+  funcion_publica?: boolean; // Filtro para funcionarios públicos
   fecha_solicitud_gte?: string;
   fecha_solicitud_lte?: string;
 }
@@ -161,6 +163,11 @@ export function useProfesionales(filtros: Filtros = {}) {
         // query = query.lte('created_at', filtros.fecha_solicitud_lte + 'T23:59:59.999Z');
       }
       // --- FIN FILTROS DE FECHA ---
+
+      // Filtro para funcionarios públicos
+      if (filtros.funcion_publica !== undefined) {
+        query = query.eq("funcion_publica", filtros.funcion_publica);
+      }
 
       const { data, error } = await query;
 

@@ -43,7 +43,12 @@ const ChartActions = ({ title, children, onDownload }: ChartActionsProps) => {
                 <DialogTitle>{title}</DialogTitle>
               </DialogHeader>
               <div className="w-full min-h-[400px] h-96">
-                {children}
+                {/* Force re-render when dialog opens to ensure proper measurements */}
+                {isExpanded && (
+                  <div key="expanded-chart">
+                    {children}
+                  </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>
@@ -59,10 +64,12 @@ const ChartActions = ({ title, children, onDownload }: ChartActionsProps) => {
         </div>
       </div>
 
-      {/* Hide original chart when expanded to prevent duplicate ResizeObserver instances */}
-      <div style={{ display: isExpanded ? 'none' : 'block' }}>
-        {children}
-      </div>
+      {/* Use conditional rendering instead of CSS hiding to prevent measurement issues */}
+      {!isExpanded && (
+        <div>
+          {children}
+        </div>
+      )}
     </div>
   );
 };

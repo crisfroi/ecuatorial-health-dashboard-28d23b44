@@ -60,7 +60,7 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    fetchCentros();
+    fetchCentros(true); // Solo centros públicos para guardias
 
     // Verificar si es la primera vez que el usuario accede al sistema de guardias
     const hasVisitedBefore = localStorage.getItem(`guardias-visited-${userRole}`);

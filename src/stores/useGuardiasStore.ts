@@ -1416,11 +1416,26 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         console.log('✅ Creating validacion with data:', data);
         set({ loading: true, error: null });
         try {
-          // Validate that etapa is a valid database enum value
-          const validEtapas: EtapaValidacion[] = ['dir_medica', 'dir_admin', 'dir_enfermeria', 'jefe_rrhh', 'admin_hospital', 'dir_gerente', 'dg_coordinacion'];
-          const etapaToUse = validEtapas.includes(data.etapa as EtapaValidacion) ? data.etapa as EtapaValidacion : 'dir_medica';
+          // Import helper functions for enum validation and mapping
+          const { mapWorkflowToEtapa, isValidWorkflowStage } = await import('@/utils/validacionHelpers');
 
-          console.log('💾 Creating validacion with etapa:', etapaToUse);
+          const validEtapas: EtapaValidacion[] = ['dir_medica', 'dir_admin', 'dir_enfermeria', 'jefe_rrhh', 'admin_hospital', 'dir_gerente', 'dg_coordinacion'];
+
+          let etapaToUse: EtapaValidacion;
+
+          // Accept both workflow stages and database enum values
+          if (isValidWorkflowStage(data.etapa as string)) {
+            etapaToUse = mapWorkflowToEtapa(data.etapa as any);
+            console.log('🔄 Mapped workflow stage to database enum:', data.etapa, '→', etapaToUse);
+          } else if (validEtapas.includes(data.etapa as EtapaValidacion)) {
+            etapaToUse = data.etapa as EtapaValidacion;
+            console.log('✅ Using provided database enum:', etapaToUse);
+          } else {
+            etapaToUse = 'dir_medica';
+            console.warn('⚠️ Invalid etapa provided, defaulting to dir_medica. Provided:', data.etapa);
+          }
+
+          console.log('💾 Creating validacion with final etapa:', etapaToUse);
 
           const validacionData = {
             guardia_id: data.guardia_id,

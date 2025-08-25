@@ -193,7 +193,7 @@ export const ValidacionGuardias: React.FC<ValidacionGuardiasProps> = ({
     setSelectedValidacion(validacion);
     setFormData({
       guardia_id: validacion.guardia_id,
-      etapa: validacion.etapa,
+      etapa: mapEtapaToWorkflow(validacion.etapa), // Map DB enum to frontend workflow
       resultado: validacion.resultado || '',
       comentario: validacion.comentario || '',
       firma: validacion.firma || ''
@@ -211,16 +211,21 @@ export const ValidacionGuardias: React.FC<ValidacionGuardiasProps> = ({
     });
   };
 
-  const getEtapaBadge = (etapa: string) => {
-    switch (etapa) {
+  const getEtapaBadge = (etapaInput: string) => {
+    // Handle both database enum values and workflow stages
+    const workflow = isValidWorkflowStage(etapaInput)
+      ? (etapaInput as EtapaWorkflow)
+      : mapEtapaToWorkflow(etapaInput as any);
+
+    switch (workflow) {
       case 'revision_inicial':
-        return <Badge className="bg-blue-100 text-blue-800">Revisión Inicial</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800">{getWorkflowDisplayName('revision_inicial')}</Badge>;
       case 'supervision_tecnica':
-        return <Badge className="bg-yellow-100 text-yellow-800">Supervisión Técnica</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800">{getWorkflowDisplayName('supervision_tecnica')}</Badge>;
       case 'aprobacion_final':
-        return <Badge className="bg-green-100 text-green-800">Aprobación Final</Badge>;
+        return <Badge className="bg-green-100 text-green-800">{getWorkflowDisplayName('aprobacion_final')}</Badge>;
       default:
-        return <Badge variant="secondary">{etapa}</Badge>;
+        return <Badge variant="secondary">{etapaInput}</Badge>;
     }
   };
 

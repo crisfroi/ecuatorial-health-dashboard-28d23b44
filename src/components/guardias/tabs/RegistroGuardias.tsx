@@ -135,24 +135,23 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
 
     try {
       const payload = {
-        profesional_id: formData.profesional_id,
-        centro_salud_id: formData.centro_id || selectedCenter || '',
-        fecha: formData.fecha,
-        turno: formData.turno,
-        tipo_guardia: formData.tipo_guardia,
-        horas_inicio: formData.horas_inicio,
-        horas_fin: formData.horas_fin,
+        profesional_ids: formData.profesional_ids,
+        centro_salud_id: formData.centro_salud_id || selectedCenter || '',
+        fecha_inicio: formData.fecha_inicio,
+        fecha_fin: formData.fecha_fin,
+        tipo: formData.tipo,
+        tipo_dia: formData.tipo_dia,
         observaciones: formData.observaciones,
       };
 
       if (editingGuardia) {
-
+        await updateGuardia(editingGuardia.id, payload);
         toast({
           title: "Guardia actualizada",
           description: "La guardia ha sido actualizada correctamente.",
         });
       } else {
-
+        await createGuardia(payload);
         toast({
           title: "Guardia registrada",
           description: `Se ha registrado la guardia correctamente.`,

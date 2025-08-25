@@ -584,59 +584,62 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       fetchGuardias: async (mes, ano, centroId) => {
         console.log('🔍 Fetching guardias for:', { mes, ano, centroId });
         set({ loading: true, error: null });
+
         try {
-          let query = supabase
-            .from('guardias')
-            .select(`
-              id,
-              profesional_guardia_id,
-              centro_salud_id,
-              tipo,
-              fecha_inicio,
-              fecha_fin,
-              horas,
-              tipo_dia,
-              estado,
-              validacion_estado,
-              observaciones,
-              localizable_activada,
-              hora_llamada,
-              hora_llegada,
-              servicio_atendido,
-              caso_atendido,
-              created_at,
-              updated_at,
-              created_by,
-              approved_by,
-              approved_at
-            `)
-            .order('fecha_inicio', { ascending: false });
+          await retryWithBackoff(async () => {
+            let query = supabase
+              .from('guardias')
+              .select(`
+                id,
+                profesional_guardia_id,
+                centro_salud_id,
+                tipo,
+                fecha_inicio,
+                fecha_fin,
+                horas,
+                tipo_dia,
+                estado,
+                validacion_estado,
+                observaciones,
+                localizable_activada,
+                hora_llamada,
+                hora_llegada,
+                servicio_atendido,
+                caso_atendido,
+                created_at,
+                updated_at,
+                created_by,
+                approved_by,
+                approved_at
+              `)
+              .order('fecha_inicio', { ascending: false });
 
-          // Filtrar por mes y año
-          const startDate = new Date(ano, mes - 1, 1);
-          const endDate = new Date(ano, mes, 0, 23, 59, 59);
-          console.log('📅 Date range:', { startDate: startDate.toISOString(), endDate: endDate.toISOString() });
+            // Filtrar por mes y año
+            const startDate = new Date(ano, mes - 1, 1);
+            const endDate = new Date(ano, mes, 0, 23, 59, 59);
+            console.log('📅 Date range:', { startDate: startDate.toISOString(), endDate: endDate.toISOString() });
 
-          query = query
-            .gte('fecha_inicio', startDate.toISOString())
-            .lte('fecha_inicio', endDate.toISOString());
+            query = query
+              .gte('fecha_inicio', startDate.toISOString())
+              .lte('fecha_inicio', endDate.toISOString());
 
-          // Filtrar por centro si se especifica
-          if (centroId) {
-            console.log('🏥 Filtering by center:', centroId);
-            query = query.eq('centro_salud_id', centroId);
-          }
+            // Filtrar por centro si se especifica
+            if (centroId) {
+              console.log('🏥 Filtering by center:', centroId);
+              query = query.eq('centro_salud_id', centroId);
+            }
 
-          const { data, error } = await query;
+            const { data, error } = await query;
 
-          if (error) {
-            console.error('❌ Supabase error in fetchGuardias:', error);
-            throw error;
-          }
+            if (error) {
+              console.error('❌ Supabase error in fetchGuardias:', error);
+              throw error;
+            }
 
-          console.log('✅ Guardias fetched successfully:', data?.length || 0, 'records');
-          console.log('📊 Sample guardia data:', data?.[0]);
-          set({ guardias: data || [], loading: false });
+            console.log('✅ Guardias fetched successfully:', data?.length || 0, 'records');
+            console.log('📊 Sample guardia data:', data?.[0]);
+            set({ guardias: data || [], loading: false });
+          });
         } catch (error: any) {
           console.error('💥 Exception in fetchGuardias:', error);
           const errorMessage = formatSupabaseError(error);

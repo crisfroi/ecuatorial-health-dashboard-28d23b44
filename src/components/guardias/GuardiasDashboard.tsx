@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { 
   Calendar, 
   Clock, 
@@ -40,6 +41,7 @@ interface GuardiasDashboardProps {
 
 export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }) => {
   const { toast } = useToast();
+  const { user } = useAuthContext();
   const {
     centros,
     guardias,
@@ -47,13 +49,12 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
     nominas,
     pagos,
     loading,
-    fetchCentros,
-    userProfile
+    fetchCentros
   } = useGuardiasStore();
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedCenter, setSelectedCenter] = useState<string | null>(null);
+  const [selectedCenter, setSelectedCenter] = useState<string | null>(user?.assigned_center_id || null);
   const [activeTab, setActiveTab] = useState('registro');
   const [showOnboarding, setShowOnboarding] = useState(false);
 

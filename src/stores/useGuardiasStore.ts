@@ -1149,6 +1149,202 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         }
       },
 
+      // Export functions for payroll and bank integration
+      exportNomina: async (nominaId: string, format: 'csv' | 'json' = 'csv') => {
+        set({ loading: true, error: null });
+        try {
+          const { data: result, error: functionError } = await supabase.functions.invoke('export-payroll', {
+            body: {
+              nomina_id: nominaId,
+              format,
+              tipo_export: 'nomina'
+            }
+          });
+
+          if (functionError) {
+            throw new Error(`Export failed: ${functionError.message}`);
+          }
+
+          if (!result.success) {
+            throw new Error(result.error || 'Export failed');
+          }
+
+          console.log('✅ Nomina exported successfully');
+          set({ loading: false });
+          return result.data;
+        } catch (error: any) {
+          console.error('💥 Exception in exportNomina:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al exportar nómina: ' + errorMessage, loading: false });
+          throw error;
+        }
+      },
+
+      exportPagos: async (nominaId?: string, mes?: number, ano?: number, centroId?: string, format: 'csv' | 'json' = 'csv') => {
+        set({ loading: true, error: null });
+        try {
+          const { data: result, error: functionError } = await supabase.functions.invoke('export-payroll', {
+            body: {
+              nomina_id: nominaId,
+              mes,
+              ano,
+              centro_id: centroId,
+              format,
+              tipo_export: 'pagos'
+            }
+          });
+
+          if (functionError) {
+            throw new Error(`Export failed: ${functionError.message}`);
+          }
+
+          if (!result.success) {
+            throw new Error(result.error || 'Export failed');
+          }
+
+          console.log('✅ Pagos exported successfully');
+          set({ loading: false });
+          return result.data;
+        } catch (error: any) {
+          console.error('💥 Exception in exportPagos:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al exportar pagos: ' + errorMessage, loading: false });
+          throw error;
+        }
+      },
+
+      exportBankTransfers: async (nominaId?: string) => {
+        set({ loading: true, error: null });
+        try {
+          const { data: result, error: functionError } = await supabase.functions.invoke('export-payroll', {
+            body: {
+              nomina_id: nominaId,
+              format: 'csv',
+              tipo_export: 'banco'
+            }
+          });
+
+          if (functionError) {
+            throw new Error(`Bank export failed: ${functionError.message}`);
+          }
+
+          if (!result.success) {
+            throw new Error(result.error || 'Bank export failed');
+          }
+
+          console.log('✅ Bank transfers exported successfully');
+          set({ loading: false });
+          return result.data;
+        } catch (error: any) {
+          console.error('💥 Exception in exportBankTransfers:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al exportar transferencias bancarias: ' + errorMessage, loading: false });
+          throw error;
+        }
+      },
+
+      // Enhanced nomina generation using server-side calculation
+      generateNominaServerSide: async (data: { mes: number; ano: number; centro_id: string }) => {
+        console.log('🧮 Generating nomina server-side for:', data);
+        set({ loading: true, error: null });
+        try {
+          const { data: result, error: functionError } = await supabase.functions.invoke('calculate-nomina', {
+            body: {
+              mes: data.mes,
+              ano: data.ano,
+              centro_id: data.centro_id
+            }
+          });
+
+          if (functionError) {
+            console.error('❌ Error in server-side calculation:', functionError);
+            throw new Error(`Server calculation failed: ${functionError.message}`);
+          }
+
+          if (!result.success) {
+            throw new Error(result.error || 'Unknown server error');
+          }
+
+          console.log('✅ Server-side nomina calculation completed:', result.summary);
+
+          // Refresh local data
+          await get().fetchNominas(data.mes, data.ano, data.centro_id);
+          set({ loading: false });
+
+          return result.nomina_id;
+        } catch (error: any) {
+          console.error('💥 Exception in generateNominaServerSide:', error);
+          const errorMessage = formatSupabaseError(error);
+          set({ error: 'Error al generar nómina: ' + errorMessage, loading: false });
+          throw error;
+        }
+      },
+
+      // Protocol validation functions
+      validatePagoForProtocol: async (pago: Partial<Pago>) => {
+        try {
+          const { validatePaymentForProtocol } = await import('@/utils/protocolValidation');
+          return validatePaymentForProtocol(pago as any);
+        } catch (error: any) {
+          console.error('💥 Exception in validatePagoForProtocol:', error);
+          return { valid: false, errors: ['Error de validación: ' + error.message] };
+        }
+      },
+
+      generatePaymentReceipt: async (pagoId: string) => {
+        try {
+          // Fetch payment with related data
+          const { data: pago, error } = await supabase
+            .from('pagos_guardias')
+            .select(`
+              *,
+              profesionales_guardias!inner(
+                categoria,
+                profesionales_sanitarios!inner(nombre_completo, funcion_publica)
+              ),
+              nominas_guardias!inner(mes, anio, centros_salud!inner(nombre))
+            `)
+            .eq('id', pagoId)
+            .single();
+
+          if (error) throw error;
+
+          const { formatPaymentReceipt } = await import('@/utils/protocolValidation');
+          const receipt = formatPaymentReceipt(pago);
+
+          // Generate receipt URL (could be PDF generation)
+          const receiptUrl = `receipt-${pagoId}-${Date.now()}.json`;
+
+          return receiptUrl;
+        } catch (error: any) {
+          console.error('💥 Exception in generatePaymentReceipt:', error);
+          throw error;
+        }
+      },
+
+      auditPaymentChanges: async (pagoId: string, changes: any, userId: string) => {
+        try {
+          const { generatePaymentAuditEntry } = await import('@/utils/protocolValidation');
+
+          // Get user info
+          const { data: user } = await supabase.auth.getUser();
+          const userRole = user?.user?.user_metadata?.role || 'UNKNOWN';
+
+          const auditEntry = generatePaymentAuditEntry(pagoId, 'UPDATE', changes, userId, userRole);
+
+          const { error } = await supabase
+            .from('bitacora_guardias')
+            .insert(auditEntry);
+
+          if (error) throw error;
+
+          console.log('✅ Payment audit entry created');
+        } catch (error: any) {
+          console.error('💥 Exception in auditPaymentChanges:', error);
+          throw error;
+        }
+      },
+
       // Implementaciones placeholder para las demás operaciones (se pueden implementar gradualmente)
       fetchCuadrantes: async (mes, ano, centroId) => {
         console.log('🗺 Fetching cuadrantes for:', { mes, ano, centroId });
@@ -1312,7 +1508,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             throw new Error('No hay profesionales disponibles para generar el cuadrante');
           }
 
-          // Paso 3: Generar guardias básicas para el mes si auto_asignar está activado
+          // Paso 3: Generar guardias básicas para el mes si auto_asignar est�� activado
           if (data.auto_asignar) {
             const daysInMonth = new Date(data.ano, data.mes, 0).getDate();
             const guardiasToCreate = [];

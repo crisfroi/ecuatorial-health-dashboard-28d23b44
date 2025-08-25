@@ -133,10 +133,12 @@ export const ValidacionGuardias: React.FC<ValidacionGuardiasProps> = ({
       setSelectedValidacion(null);
       resetForm();
       fetchValidaciones(selectedMonth, selectedYear, selectedCenter);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Error in validacion form submission:', error);
+      const errorMessage = error?.message || error?.toString() || "Ha ocurrido un error al procesar la solicitud.";
       toast({
-        title: "Error",
-        description: "Ha ocurrido un error al procesar la solicitud.",
+        title: "Error al procesar validación",
+        description: errorMessage,
         variant: "destructive",
       });
     }

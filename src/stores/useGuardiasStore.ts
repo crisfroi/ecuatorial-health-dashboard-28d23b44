@@ -1416,22 +1416,15 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         console.log('✅ Creating validacion with data:', data);
         set({ loading: true, error: null });
         try {
-          // Map frontend workflow stages to database enum values
-          const workflowToEtapaMap: Record<EtapaWorkflow, EtapaValidacion> = {
-            'revision_inicial': 'dir_medica',
-            'supervision_tecnica': 'jefe_rrhh',
-            'aprobacion_final': 'dir_gerente'
-          };
+          // Validate that etapa is a valid database enum value
+          const validEtapas: EtapaValidacion[] = ['dir_medica', 'dir_admin', 'dir_enfermeria', 'jefe_rrhh', 'admin_hospital', 'dir_gerente', 'dg_coordinacion'];
+          const etapaToUse = validEtapas.includes(data.etapa as EtapaValidacion) ? data.etapa as EtapaValidacion : 'dir_medica';
 
-          // Map the etapa value or use default
-          const frontendEtapa = (data.etapa as EtapaWorkflow) || 'revision_inicial';
-          const mappedEtapa = workflowToEtapaMap[frontendEtapa] || 'dir_medica';
-
-          console.log('🔄 Mapping frontend etapa:', frontendEtapa, '→ database etapa:', mappedEtapa);
+          console.log('💾 Creating validacion with etapa:', etapaToUse);
 
           const validacionData = {
             guardia_id: data.guardia_id,
-            etapa: mappedEtapa,
+            etapa: etapaToUse,
             usuario_id: data.usuario_id,
             resultado: data.resultado,
             comentario: data.comentario,

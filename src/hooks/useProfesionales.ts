@@ -164,6 +164,11 @@ export function useProfesionales(filtros: Filtros = {}) {
       }
       // --- FIN FILTROS DE FECHA ---
 
+      // Filtro para funcionarios públicos
+      if (filtros.funcion_publica !== undefined) {
+        query = query.eq("funcion_publica", filtros.funcion_publica);
+      }
+
       const { data, error } = await query;
 
       if (error) {

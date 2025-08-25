@@ -159,12 +159,12 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
         return <Badge className="bg-gray-100 text-gray-800"><Clock className="w-3 h-3 mr-1" />Borrador</Badge>;
       case 'enviada':
         return <Badge className="bg-blue-100 text-blue-800"><FileText className="w-3 h-3 mr-1" />Generada</Badge>;
-      case 'REVISADA':
-        return <Badge className="bg-yellow-100 text-yellow-800"><Eye className="w-3 h-3 mr-1" />Revisada</Badge>;
-      case 'APROBADA':
+      case 'aprobada':
         return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Aprobada</Badge>;
-      case 'RECHAZADA':
+      case 'rechazada':
         return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Rechazada</Badge>;
+      case 'pagada':
+        return <Badge className="bg-blue-600 text-white"><DollarSign className="w-3 h-3 mr-1" />Pagada</Badge>;
       default:
         return <Badge variant="secondary">{estado}</Badge>;
     }

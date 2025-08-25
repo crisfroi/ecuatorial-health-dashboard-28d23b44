@@ -648,7 +648,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
                 console.error('❌ Error inserting guardia for professional', profesionalId);
                 console.error('❌ Error object:', error);
                 console.error('❌ Error status:', error.status || error.statusCode);
-                console.error('❌ Error details:', error.details);
+                console.error('��� Error details:', error.details);
                 console.error('❌ Error hint:', error.hint);
                 console.error('❌ Data sent:', guardiaData);
                 const formattedError = formatSupabaseError(error);
@@ -738,7 +738,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             if (error) {
               console.error('❌ Error inserting single guardia');
               console.error('❌ Error object:', error);
-              console.error('❌ Error status:', error.status || error.statusCode);
+              console.error('��� Error status:', error.status || error.statusCode);
               console.error('❌ Error details:', error.details);
               console.error('❌ Error hint:', error.hint);
               console.error('❌ Data sent:', guardiaData);
@@ -769,7 +769,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             errorMessage = formatSupabaseError(error);
           }
 
-          console.error('💥 Final formatted error message:', errorMessage);
+          console.error('��� Final formatted error message:', errorMessage);
           set({ error: 'Error al crear guardia: ' + errorMessage, loading: false });
         }
       },
@@ -2084,7 +2084,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         console.log('✅ Approving pago:', id);
         try {
           await get().updatePago(id, {
-            estado: 'aprobado',
+            estado: 'realizado',
             fecha_pago: new Date().toISOString()
           });
 
@@ -2100,7 +2100,11 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       rechazarPago: async (id) => {
         console.log('❌ Rejecting pago:', id);
         try {
-          await get().updatePago(id, { estado: 'rechazado' });
+          // Since 'rechazado' is not in DB constraints, we'll set it back to 'pendiente' with a note
+          await get().updatePago(id, {
+            estado: 'pendiente',
+            observaciones: 'Pago rechazado - requiere revisión'
+          });
 
           // Refrescar pagos
           const currentDate = new Date();

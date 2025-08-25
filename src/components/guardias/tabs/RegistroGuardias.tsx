@@ -74,6 +74,23 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     }
   }, [selectedMonth, selectedYear, selectedCenter]);
 
+  // Effect to validate duration when dates change
+  useEffect(() => {
+    if (formData.fecha_inicio && formData.fecha_fin) {
+      const validation = validateGuardiaDuration(formData.fecha_inicio, formData.fecha_fin);
+      setDurationValidation(validation);
+    } else {
+      setDurationValidation({ isValid: true, hours: 0 });
+    }
+  }, [formData.fecha_inicio, formData.fecha_fin]);
+
+  const handleDurationSelect = (hours: number) => {
+    if (formData.fecha_inicio) {
+      const endTime = calculateEndTime(formData.fecha_inicio, hours);
+      setFormData(prev => ({ ...prev, fecha_fin: endTime }));
+    }
+  };
+
 
 
   const filteredGuardias = guardias.filter(guardia =>

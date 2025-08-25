@@ -65,6 +65,7 @@ import { OfflineNotification } from "@/components/ui/offline-notification";
 import { DatabaseDiagnostic } from "@/components/dashboard/DatabaseDiagnostic";
 import { GuardiasDashboard } from "@/components/guardias/GuardiasDashboard";
 import { GuardiasStatsWidget } from "@/components/guardias/GuardiasStatsWidget";
+import { FuncionariosStatsWidget } from "@/components/dashboard/FuncionariosStatsWidget";
 import ResizeObserverTestIndicator from "@/components/dashboard/ResizeObserverTestIndicator";
 
 import type { Tables } from "@/integrations/supabase/types";
@@ -183,6 +184,15 @@ const Dashboard = () => {
     if (filters) {
       setAppliedFilters(filters);
     }
+  };
+
+  const handleNavigateToFuncionarios = () => {
+    console.log("Dashboard: Navegando a funcionarios públicos");
+    setActiveTab("professionals");
+    setAppliedFilters({
+      estado_solicitud: "Aprobado",
+      funcion_publica: "true"
+    });
   };
 
   useEffect(() => {
@@ -621,10 +631,14 @@ const Dashboard = () => {
               <div className="lg:col-span-2">
                 <DashboardCharts onChartClick={handleChartClick} />
               </div>
-              <div>
+              <div className="space-y-6">
                 <GuardiasStatsWidget
                   userRole={userRole}
                   onNavigateToGuardias={() => setActiveTab("guardias")}
+                />
+                <FuncionariosStatsWidget
+                  userRole={userRole}
+                  onNavigateToFuncionarios={handleNavigateToFuncionarios}
                 />
               </div>
             </div>

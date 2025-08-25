@@ -34,25 +34,28 @@ export const FuncionariosStatsWidget: React.FC<FuncionariosStatsWidgetProps> = (
 
   const { data: funcionarios = [], isLoading, error } = useProfesionales(filtrosFuncionarios);
 
-  console.log('FuncionariosStatsWidget: Funcionarios obtenidos:', funcionarios.length);
+  // Para depuración: obtener todos los profesionales para comparar
+  const { data: todosProfesionales = [] } = useProfesionales({});
+
+  console.log('FuncionariosStatsWidget: Funcionarios filtrados obtenidos:', funcionarios.length);
   console.log('FuncionariosStatsWidget: Primeros 3 funcionarios (muestra):', funcionarios.slice(0, 3).map(f => ({
     nombre: f.nombre_completo,
     estado: f.estado_solicitud,
     funcion_publica: f.funcion_publica
   })));
 
-  // Obtener todos los profesionales para comparar (solo para depuración)
-  const { data: todosProfesionales = [] } = useProfesionales({});
+  // Cálculos de depuración manual
   const aprobados = todosProfesionales.filter(p => p.estado_solicitud === 'Aprobado');
   const funcionariosPublicos = aprobados.filter(p => p.funcion_publica === true);
 
-  console.log('DEBUG - Todos los profesionales:', todosProfesionales.length);
+  console.log('DEBUG - Total profesionales en BD:', todosProfesionales.length);
   console.log('DEBUG - Profesionales aprobados:', aprobados.length);
-  console.log('DEBUG - Funcionarios públicos (manual filter):', funcionariosPublicos.length);
-  console.log('DEBUG - Muestra de funcionarios públicos:', funcionariosPublicos.slice(0, 3).map(f => ({
+  console.log('DEBUG - Funcionarios públicos (filtro manual):', funcionariosPublicos.length);
+  console.log('DEBUG - Muestra valores funcion_publica:', todosProfesionales.slice(0, 5).map(f => ({
     nombre: f.nombre_completo,
     funcion_publica: f.funcion_publica,
-    estado: f.estado_solicitud
+    estado: f.estado_solicitud,
+    tipo_sector: f.tipo_sector
   })));
 
   // Cálculos estadísticos

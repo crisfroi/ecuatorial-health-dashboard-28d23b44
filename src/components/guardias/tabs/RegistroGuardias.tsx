@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useGuardiasStore } from "@/stores/useGuardiasStore";
-import { Plus, Search, Edit, Trash2, Calendar, Clock, User, MapPin } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Calendar, Clock, User, MapPin, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { validateGuardiaDuration, formatDuration, getCommonDurations, calculateEndTime } from "@/utils/guardiaHelpers";
 
 interface RegistroGuardiasProps {
   selectedMonth: number;
@@ -56,6 +58,12 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     tipo_dia: 'ordinario' as 'ordinario' | 'fin_semana' | 'festivo',
     observaciones: ''
   });
+
+  const [durationValidation, setDurationValidation] = useState<{
+    isValid: boolean;
+    error?: string;
+    hours: number;
+  }>({ isValid: true, hours: 0 });
 
   useEffect(() => {
     fetchGuardias(selectedMonth, selectedYear, selectedCenter);
@@ -112,10 +120,12 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
       setEditingGuardia(null);
       resetForm();
       fetchGuardias(selectedMonth, selectedYear, selectedCenter);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Error in form submission:', error);
+      const errorMessage = error?.message || error?.toString() || "Ha ocurrido un error al procesar la solicitud.";
       toast({
-        title: "Error",
-        description: "Ha ocurrido un error al procesar la solicitud.",
+        title: "Error al registrar guardia",
+        description: errorMessage,
         variant: "destructive",
       });
     }

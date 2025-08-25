@@ -635,7 +635,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       // Operaciones CRUD - Guardias
       fetchGuardias: async (mes, ano, centroId) => {
-        console.log('🔍 Fetching guardias for:', { mes, ano, centroId });
+        console.log('🔍 Fetching guardias for period:', { mes, ano, centroId });
         set({ loading: true, error: null });
 
         try {
@@ -644,64 +644,73 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             const startDate = new Date(ano, mes - 1, 1);
             const endDate = new Date(ano, mes, 0, 23, 59, 59);
 
-            console.log('📅 Date range:', {
+            console.log('📅 Date range for guardias fetch:', {
               start: startDate.toISOString(),
               end: endDate.toISOString()
             });
 
-            // Construir query base
-            let query = supabase
-              .from('guardias')
-              .select(`
-                id,
-                profesional_guardia_id,
-                centro_salud_id,
-                tipo,
-                fecha_inicio,
-                fecha_fin,
-                horas,
-                tipo_dia,
-                estado,
-                validacion_estado,
-                observaciones,
-                localizable_activada,
-                hora_llamada,
-                hora_llegada,
-                servicio_atendido,
-                caso_atendido,
-                created_at,
-                updated_at,
-                created_by,
-                approved_by,
-                approved_at,
-                profesionales_guardias!inner(
-                  id,
-                  categoria,
-                  unidad_servicio,
-                  profesionales_sanitarios!inner(
+            // Import the enhanced query wrapper
+            const { executeSupabaseQuery } = await import('@/integrations/supabase/client');
+
+            // Use the enhanced query wrapper
+            const { data, error } = await executeSupabaseQuery(
+              () => {
+                let query = supabase
+                  .from('guardias')
+                  .select(`
                     id,
-                    nombre_completo,
-                    area_profesional
-                  )
-                ),
-                centros_salud!inner(
-                  id,
-                  nombre
-                )
-              `)
-              .gte('fecha_inicio', startDate.toISOString())
-              .lte('fecha_inicio', endDate.toISOString())
-              .order('fecha_inicio', { ascending: true });
+                    profesional_guardia_id,
+                    centro_salud_id,
+                    tipo,
+                    fecha_inicio,
+                    fecha_fin,
+                    horas,
+                    tipo_dia,
+                    estado,
+                    validacion_estado,
+                    observaciones,
+                    localizable_activada,
+                    hora_llamada,
+                    hora_llegada,
+                    servicio_atendido,
+                    caso_atendido,
+                    created_at,
+                    updated_at,
+                    created_by,
+                    approved_by,
+                    approved_at,
+                    profesionales_guardias!inner(
+                      id,
+                      categoria,
+                      unidad_servicio,
+                      profesionales_sanitarios!inner(
+                        id,
+                        nombre_completo,
+                        area_profesional
+                      )
+                    ),
+                    centros_salud!inner(
+                      id,
+                      nombre
+                    )
+                  `)
+                  .gte('fecha_inicio', startDate.toISOString())
+                  .lte('fecha_inicio', endDate.toISOString())
+                  .order('fecha_inicio', { ascending: true });
 
-            // Aplicar filtro por centro si se especifica
-            if (centroId) {
-              console.log('🏥 Filtering by center:', centroId);
-              query = query.eq('centro_salud_id', centroId);
-            }
+                // Aplicar filtro por centro si se especifica
+                if (centroId) {
+                  console.log('🏥 Filtering guardias by center:', centroId);
+                  query = query.eq('centro_salud_id', centroId);
+                }
 
-            const { data, error } = await query;
+                return query;
+              },
+              `fetchGuardias(${mes}/${ano}${centroId ? `, centro: ${centroId}` : ''})`
+            );
 
             if (error) {
+              console.error('❌ Error fetching guardias for period:', { mes, ano, centroId });
               console.error('❌ Supabase error in fetchGuardias:', error);
               throw error;
             }

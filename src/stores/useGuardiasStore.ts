@@ -1753,9 +1753,14 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             await get().fetchBaremos();
           }
 
-          // Paso 4: Crear la nómina principal
+          // Paso 4: Validar que se proporcione centro_salud_id
+          if (!data.centro_id) {
+            throw new Error('Debe seleccionar un centro de salud para generar la nómina');
+          }
+
+          // Crear la nómina principal
           const nominaData = {
-            centro_salud_id: data.centro_id || null,
+            centro_salud_id: data.centro_id,
             mes: data.mes,
             anio: data.ano,
             estado: 'BORRADOR',

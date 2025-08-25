@@ -66,16 +66,45 @@ const retryWithBackoff = async <T>(
 const formatSupabaseError = (error: any): string => {
   console.error('🔍 Debugging error object type:', typeof error, error);
   console.error('🔍 Error object keys:', Object.keys(error || {}));
-  console.error('🔍 Error object JSON:', JSON.stringify(error, null, 2));
+
+  // Safely stringify the error object
+  try {
+    console.error('🔍 Error object JSON:', JSON.stringify(error, (key, value) => {
+      if (typeof value === 'object' && value !== null) {
+        // Handle circular references and complex objects
+        if (value.constructor && value.constructor.name !== 'Object') {
+          return `[${value.constructor.name}]`;
+        }
+      }
+      return value;
+    }, 2));
+  } catch (stringifyError) {
+    console.error('🔍 Error object (toString):', error.toString());
+  }
 
   if (!error) return 'Error desconocido';
 
   if (typeof error === 'string') return error;
 
-  // Check for network errors first
-  if (isNetworkError(error)) {
+  // Enhanced network error detection
+  if (isNetworkError(error) ||
+      error.message?.includes('Failed to fetch') ||
+      error.message?.includes('TypeError: Failed to fetch') ||
+      error.code === 'NETWORK_ERROR' ||
+      error.name === 'TypeError' && error.message?.includes('fetch')) {
+
     console.log('🌐 Network error detected:', error.message);
-    return 'Error de conectividad: No se pudo conectar al servidor. Verifique su conexión a internet y vuelva a intentarlo.';
+
+    // More specific network error messages
+    if (error.message?.includes('CORS')) {
+      return 'Error de CORS: El servidor no permite esta solicitud. Contacte al administrador.';
+    }
+
+    if (error.message?.includes('timeout')) {
+      return 'Error de tiempo de espera: La conexión tardó demasiado. Intente nuevamente.';
+    }
+
+    return 'Error de conectividad: No se pudo conectar al servidor de Supabase. Verifique su conexión a internet y vuelva a intentarlo en unos momentos.';
   }
 
   // Handle HTTP status errors first

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserRole, hasPermission, canAccessTab, getRoleRestrictions, ROLE_DEFINITIONS } from '@/types/roles';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { AuthErrorHandler } from '@/utils/authErrorHandler';
 
 interface UserProfile extends User {
   role: UserRole;
@@ -95,6 +96,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
       } catch (error) {
         console.error('❌ Error inicializando auth:', error);
+
+        // Handle refresh token errors
+        if (AuthErrorHandler.isRefreshTokenError(error)) {
+          await AuthErrorHandler.handleRefreshTokenError();
+          return;
+        }
+
         setUser(null);
         setUserRole(null);
       } finally {
@@ -199,6 +207,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       return { success: false, error: 'No se pudo obtener información del usuario' };
     } catch (error: any) {
       console.error('❌ Error de conexión en login:', error);
+
+      // Handle refresh token errors
+      if (AuthErrorHandler.isRefreshTokenError(error)) {
+        await AuthErrorHandler.handleRefreshTokenError();
+        return { success: false, error: 'Sesión expirada. Intente iniciar sesión nuevamente.' };
+      }
+
       return { success: false, error: 'Error de conexión. Intente nuevamente.' };
     } finally {
       console.log('🔄 AuthContext: Setting isLoading(false) in finally block');

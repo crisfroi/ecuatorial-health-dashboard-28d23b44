@@ -83,6 +83,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
   useEffect(() => {
     fetchPagos(selectedMonth, selectedYear, selectedCenter);
     fetchNominas(selectedMonth, selectedYear, selectedCenter);
+    fetchProfesionalesGuardias(selectedCenter);
   }, [selectedMonth, selectedYear, selectedCenter]);
 
   const pagosPendientes = pagos.filter(p => p.estado === 'pendiente');

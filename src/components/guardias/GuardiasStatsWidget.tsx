@@ -2,17 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Calendar, 
-  Clock, 
-  Users, 
-  DollarSign, 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Calendar,
+  Clock,
+  Users,
+  DollarSign,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
-  ArrowRight
+  ArrowRight,
+  WifiOff,
+  RefreshCw
 } from "lucide-react";
 import { useGuardiasStore } from "@/stores/useGuardiasStore";
+import { GuardiasConnectivityTest } from "./GuardiasConnectivityTest";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 interface GuardiasStatsWidgetProps {
   onNavigateToGuardias?: () => void;

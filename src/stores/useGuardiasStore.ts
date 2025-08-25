@@ -178,6 +178,19 @@ export interface Profesional {
   activo: boolean;
 }
 
+export interface ProfesionalGuardia {
+  id: string;
+  profesional_id: string;
+  nombre_completo?: string; // Joined from profesionales_sanitarios
+  categoria: 'especialista' | 'general_licenciado' | 'tecnico_diplomado' | 'auxiliar' | 'subalterno' | 'odepac' | 'secre_asist_pacientes' | 'caja';
+  unidad_servicio: string;
+  banco?: string;
+  iban_cuenta?: string;
+  activo: boolean;
+  telefono_guardias?: string;
+  email_guardias?: string;
+}
+
 export interface Centro {
   id: string;
   nombre: string;

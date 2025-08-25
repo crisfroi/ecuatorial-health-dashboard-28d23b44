@@ -30,7 +30,7 @@ import { PagosGuardias } from './tabs/PagosGuardias';
 import { ReportesGuardias } from './tabs/ReportesGuardias';
 import { AuditoriaGuardias } from './tabs/AuditoriaGuardias';
 import { AjustesGuardias } from './tabs/AjustesGuardias';
-import { NetworkStatus } from '@/components/ui/network-status';
+import { NetworkStatusSimple } from '@/components/ui/network-status-simple';
 import { GuardiasStatusIndicators } from './GuardiasStatusIndicators';
 import { GuardiasNotificationSystem } from './GuardiasNotificationSystem';
 import { GuardiasHelpSystem } from './GuardiasHelpSystem';
@@ -164,7 +164,7 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
               <p className="text-gray-600">
                 Administración integral de guardias, cuadrantes, nóminas y pagos
               </p>
-              <NetworkStatus className="mt-2" />
+              <NetworkStatusSimple className="mt-2" />
             </div>
             
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">

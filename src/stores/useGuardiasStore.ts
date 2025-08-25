@@ -191,7 +191,7 @@ export interface Cuadrante {
   ano: number;
   centro_id?: string;
   tipo_cuadrante: 'MENSUAL' | 'SEMANAL';
-  estado: 'BORRADOR' | 'GENERADO' | 'APROBADO';
+  estado: 'borrador' | 'generado' | 'aprobado' | 'rechazado' | 'enviada' | 'pagada';
   fecha_generacion: string;
   fecha_aprobacion?: string;
   auto_asignar: boolean;
@@ -1763,7 +1763,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             centro_salud_id: data.centro_id,
             mes: data.mes,
             anio: data.ano,
-            estado: 'BORRADOR',
+            estado: 'borrador',
             total_guardias: guardiasData.length,
             total_profesionales: profesionalesConGuardias.length,
             observaciones: `Nómina generada automáticamente para ${data.mes}/${data.ano}`

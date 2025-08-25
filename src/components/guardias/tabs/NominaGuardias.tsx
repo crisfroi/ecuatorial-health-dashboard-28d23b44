@@ -155,9 +155,9 @@ export const NominaGuardias: React.FC<NominaGuardiasProps> = ({
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
-      case 'BORRADOR':
+      case 'borrador':
         return <Badge className="bg-gray-100 text-gray-800"><Clock className="w-3 h-3 mr-1" />Borrador</Badge>;
-      case 'GENERADA':
+      case 'enviada':
         return <Badge className="bg-blue-100 text-blue-800"><FileText className="w-3 h-3 mr-1" />Generada</Badge>;
       case 'REVISADA':
         return <Badge className="bg-yellow-100 text-yellow-800"><Eye className="w-3 h-3 mr-1" />Revisada</Badge>;

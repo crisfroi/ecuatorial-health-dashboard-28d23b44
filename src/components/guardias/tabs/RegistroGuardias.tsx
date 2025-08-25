@@ -74,6 +74,23 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     }
   }, [selectedMonth, selectedYear, selectedCenter]);
 
+  // Validate duration when dates change
+  useEffect(() => {
+    if (formData.fecha_inicio && formData.fecha_fin) {
+      const validation = validateGuardiaDuration(formData.fecha_inicio, formData.fecha_fin);
+      setDurationValidation(validation);
+    } else {
+      setDurationValidation({ isValid: true, hours: 0 });
+    }
+  }, [formData.fecha_inicio, formData.fecha_fin]);
+
+  const handleDurationSelect = (hours: number) => {
+    if (formData.fecha_inicio) {
+      const calculatedEnd = calculateEndTime(formData.fecha_inicio, hours);
+      setFormData(prev => ({ ...prev, fecha_fin: calculatedEnd }));
+    }
+  };
+
   const filteredGuardias = guardias.filter(guardia =>
     guardia.profesional?.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     guardia.centro?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())

@@ -13,6 +13,13 @@ import {
   EtapaWorkflow,
   isValidWorkflowStage
 } from "@/utils/validacionHelpers";
+
+// Import test helpers for development verification
+if (import.meta.env?.DEV) {
+  import("@/utils/validacionTestHelpers").then(() => {
+    console.log("🧪 Validation enum mapping tests loaded");
+  });
+}
 import { 
   CheckCircle, 
   XCircle, 

@@ -99,6 +99,16 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate duration before submission
+    if (!durationValidation.isValid) {
+      toast({
+        title: "Error de duración",
+        description: durationValidation.error || "La duración de la guardia no es válida",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       if (editingGuardia) {
         // En modo edición, actualizar con datos correctos del esquema
@@ -380,9 +390,48 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
                       value={formData.fecha_fin}
                       onChange={(e) => setFormData(prev => ({ ...prev, fecha_fin: e.target.value }))}
                       required
+                      className={!durationValidation.isValid ? 'border-red-500' : ''}
                     />
+                    {formData.fecha_inicio && (
+                      <div className="mt-2">
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <Clock className="w-3 h-3" />
+                          <span>Duración rápida:</span>
+                          {getCommonDurations().map(duration => (
+                            <Button
+                              key={duration.value}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              onClick={() => handleDurationSelect(duration.value)}
+                            >
+                              {duration.value}h
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Duration Validation Alert */}
+                {(formData.fecha_inicio && formData.fecha_fin) && (
+                  <Alert className={durationValidation.isValid ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
+                    <Info className={`h-4 w-4 ${durationValidation.isValid ? "text-green-600" : "text-red-600"}`} />
+                    <AlertDescription className={durationValidation.isValid ? "text-green-800" : "text-red-800"}>
+                      {durationValidation.isValid ? (
+                        <span>
+                          ✅ Duración válida: <strong>{formatDuration(durationValidation.hours)}</strong>
+                          {durationValidation.hours === 12 && " (estándar)"}
+                          {durationValidation.hours === 24 && " (completa)"}
+                        </span>
+                      ) : (
+                        <span>❌ {durationValidation.error}</span>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>

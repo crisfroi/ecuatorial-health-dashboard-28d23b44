@@ -498,7 +498,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={loading}>
+                  <Button type="submit" disabled={loading || !durationValidation.isValid}>
                     {editingGuardia ? 'Actualizar' : 'Registrar'}
                   </Button>
                 </div>

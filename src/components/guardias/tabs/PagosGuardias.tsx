@@ -192,11 +192,15 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
   const handleEdit = (pago: any) => {
     setSelectedPago(pago);
     setFormData({
-      nomina_id: pago.nomina_id,
-      profesional_guardia_id: pago.profesional_guardia_id,
-      importe: pago.importe,
-      forma_pago: pago.forma_pago,
+      nomina_id: pago.nomina_id || '',
+      profesional_guardia_id: pago.profesional_guardia_id || '',
+      profesional_id: pago.profesional_id || pago.profesional_guardia_id || '',
+      importe: pago.importe || 0,
+      monto: pago.monto || pago.importe || 0,
+      forma_pago: pago.forma_pago || 'TRANSFERENCIA',
+      metodo_pago: pago.metodo_pago || pago.forma_pago || 'TRANSFERENCIA',
       comprobante_url: pago.comprobante_url || '',
+      referencia_pago: pago.referencia_pago || '',
       observaciones: pago.observaciones || ''
     });
     setIsCreateDialogOpen(true);

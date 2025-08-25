@@ -384,6 +384,7 @@ interface GuardiasStoreState {
   // Datos
   guardias: Guardia[];
   profesionales: Profesional[];
+  profesionalesGuardias: ProfesionalGuardia[];
   centros: Centro[];
   cuadrantes: Cuadrante[];
   validaciones: Validacion[];
@@ -958,7 +959,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             activo: prof.estado_solicitud === 'Aprobado'
           }));
 
-          console.log('✅ Profesionales processed successfully:', profesionales.length);
+          console.log('��� Profesionales processed successfully:', profesionales.length);
           set({ profesionales, loading: false });
         } catch (error: any) {
           console.error('💥 Exception in fetchProfesionales:', error);

@@ -71,6 +71,12 @@ const formatSupabaseError = (error: any): string => {
       case '42501':
         return 'Permisos insuficientes para realizar la operación';
       case '23514':
+        // Special handling for constraint violations
+        if (error.message && error.message.includes('guardias_duracion_check')) {
+          return 'Duración de guardia inválida: Las guardias deben durar entre 12 y 24 horas. Verifique las horas de inicio y fin.';
+        } else if (error.message && error.message.includes('guardias_fecha_check')) {
+          return 'Fechas de guardia inválidas: La fecha de fin debe ser posterior a la fecha de inicio.';
+        }
         return 'Violación de restricción de verificación (check constraint)';
       case '22001':
         return 'Dato demasiado largo para el campo';

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useGuardiasStore } from "@/stores/useGuardiasStore";
+import { getStandardTurnos, getTurnoSummary, testTurnoValidation } from "@/utils/cuadranteHelpers";
 import { 
   Calendar, 
   Download, 

@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { StorageCleanup } from './storageCleanup';
 
 /**
  * Handles Supabase authentication errors and provides recovery mechanisms
@@ -27,10 +28,9 @@ export class AuthErrorHandler {
     try {
       // Clear the session without calling the server (since the token is invalid)
       await supabase.auth.signOut({ scope: 'local' });
-      
+
       // Clear any remaining auth data from storage
-      localStorage.removeItem('supabase.auth.token');
-      sessionStorage.clear();
+      StorageCleanup.cleanAuthStorage();
       
       // Redirect to login page
       if (window.location.pathname !== '/auth' && window.location.pathname !== '/') {

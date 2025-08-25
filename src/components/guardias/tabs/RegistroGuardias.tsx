@@ -354,6 +354,9 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
                           ))}
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-blue-600 mt-1">
+                        ℹ️ Solo se muestran establecimientos sanitarios públicos (las guardias son exclusivas del sector público)
+                      </p>
                     </div>
                   )}
                 </div>

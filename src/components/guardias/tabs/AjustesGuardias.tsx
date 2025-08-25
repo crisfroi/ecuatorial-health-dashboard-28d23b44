@@ -75,12 +75,16 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
   const [editingAjuste, setEditingAjuste] = useState<any>(null);
 
   const [baremoForm, setBaremoForm] = useState({
-    concepto: '',
-    tarifa_base: 0,
-    multiplicador_nocturno: 1.5,
-    multiplicador_festivo: 2.0,
+    fuente: 'manual' as 'protocol' | 'excel' | 'manual',
+    categoria: 'general_licenciado' as 'especialista' | 'general_licenciado' | 'tecnico_diplomado' | 'auxiliar' | 'subalterno' | 'odepac' | 'secre_asist_pacientes' | 'caja',
+    tipo_guardia: 'fisica' as 'fisica' | 'localizable' | 'administrativa',
+    tipo_dia: 'ordinario' as 'ordinario' | 'fin_semana' | 'festivo',
+    valor: 0,
+    porcentaje_localizable: 10,
+    porcentaje_llamada: 20,
+    vigente_desde: new Date().toISOString().split('T')[0],
+    vigente_hasta: '',
     activo: true,
-    fuente: 'PROTOCOLO' as 'PROTOCOLO' | 'EXCEL',
     observaciones: ''
   });
 
@@ -207,12 +211,16 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
   const handleEditBaremo = (baremo: any) => {
     setEditingBaremo(baremo);
     setBaremoForm({
-      concepto: baremo.concepto,
-      tarifa_base: baremo.tarifa_base,
-      multiplicador_nocturno: baremo.multiplicador_nocturno,
-      multiplicador_festivo: baremo.multiplicador_festivo,
-      activo: baremo.activo,
       fuente: baremo.fuente,
+      categoria: baremo.categoria,
+      tipo_guardia: baremo.tipo_guardia,
+      tipo_dia: baremo.tipo_dia,
+      valor: baremo.valor,
+      porcentaje_localizable: baremo.porcentaje_localizable,
+      porcentaje_llamada: baremo.porcentaje_llamada,
+      vigente_desde: baremo.vigente_desde?.split('T')[0] || '',
+      vigente_hasta: baremo.vigente_hasta?.split('T')[0] || '',
+      activo: baremo.activo,
       observaciones: baremo.observaciones || ''
     });
     setIsBaremoDialogOpen(true);
@@ -306,12 +314,16 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
 
   const resetBaremoForm = () => {
     setBaremoForm({
-      concepto: '',
-      tarifa_base: 0,
-      multiplicador_nocturno: 1.5,
-      multiplicador_festivo: 2.0,
+      fuente: 'manual',
+      categoria: 'general_licenciado',
+      tipo_guardia: 'fisica',
+      tipo_dia: 'ordinario',
+      valor: 0,
+      porcentaje_localizable: 10,
+      porcentaje_llamada: 20,
+      vigente_desde: new Date().toISOString().split('T')[0],
+      vigente_hasta: '',
       activo: true,
-      fuente: 'PROTOCOLO',
       observaciones: ''
     });
   };
@@ -344,7 +356,7 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
-      currency: 'EUR'
+      currency: 'XAF'
     }).format(amount);
   };
 
@@ -438,49 +450,116 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
                   <form onSubmit={handleSubmitBaremo} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="concepto">Concepto *</Label>
+                        <Label htmlFor="categoria">Categoría Profesional *</Label>
+                        <Select
+                          value={baremoForm.categoria}
+                          onValueChange={(value) => setBaremoForm(prev => ({ ...prev, categoria: value as any }))}
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar categoría" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="especialista">Especialista</SelectItem>
+                            <SelectItem value="general_licenciado">General/Licenciado</SelectItem>
+                            <SelectItem value="tecnico_diplomado">Técnico/Diplomado</SelectItem>
+                            <SelectItem value="auxiliar">Auxiliar</SelectItem>
+                            <SelectItem value="subalterno">Subalterno</SelectItem>
+                            <SelectItem value="odepac">ODEPAC</SelectItem>
+                            <SelectItem value="secre_asist_pacientes">Secretaria/Asist. Pacientes</SelectItem>
+                            <SelectItem value="caja">Caja</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="tipo_guardia">Tipo de Guardia *</Label>
+                        <Select
+                          value={baremoForm.tipo_guardia}
+                          onValueChange={(value) => setBaremoForm(prev => ({ ...prev, tipo_guardia: value as any }))}
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fisica">Física</SelectItem>
+                            <SelectItem value="localizable">Localizable</SelectItem>
+                            <SelectItem value="administrativa">Administrativa</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="tipo_dia">Tipo de Día *</Label>
+                        <Select
+                          value={baremoForm.tipo_dia}
+                          onValueChange={(value) => setBaremoForm(prev => ({ ...prev, tipo_dia: value as any }))}
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ordinario">Ordinario</SelectItem>
+                            <SelectItem value="fin_semana">Fin de Semana</SelectItem>
+                            <SelectItem value="festivo">Festivo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="valor">Valor Base (XAF) *</Label>
                         <Input
-                          id="concepto"
-                          value={baremoForm.concepto}
-                          onChange={(e) => setBaremoForm(prev => ({ ...prev, concepto: e.target.value }))}
-                          placeholder="Ej: Guardia Médico General"
+                          id="valor"
+                          type="number"
+                          step="0.01"
+                          value={baremoForm.valor}
+                          onChange={(e) => setBaremoForm(prev => ({ ...prev, valor: parseFloat(e.target.value) || 0 }))}
                           required
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor="tarifa_base">Tarifa Base (€) *</Label>
-                        <Input
-                          id="tarifa_base"
-                          type="number"
-                          step="0.01"
-                          value={baremoForm.tarifa_base}
-                          onChange={(e) => setBaremoForm(prev => ({ ...prev, tarifa_base: parseFloat(e.target.value) || 0 }))}
-                          required
-                        />
+                        <Label htmlFor="fuente">Fuente</Label>
+                        <Select
+                          value={baremoForm.fuente}
+                          onValueChange={(value) => setBaremoForm(prev => ({ ...prev, fuente: value as any }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar fuente" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="protocol">Protocol</SelectItem>
+                            <SelectItem value="excel">Excel</SelectItem>
+                            <SelectItem value="manual">Manual</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="multiplicador_nocturno">Multiplicador Nocturno</Label>
+                        <Label htmlFor="porcentaje_localizable">% Localizable</Label>
                         <Input
-                          id="multiplicador_nocturno"
+                          id="porcentaje_localizable"
                           type="number"
-                          step="0.1"
-                          value={baremoForm.multiplicador_nocturno}
-                          onChange={(e) => setBaremoForm(prev => ({ ...prev, multiplicador_nocturno: parseFloat(e.target.value) || 1 }))}
+                          step="0.01"
+                          value={baremoForm.porcentaje_localizable}
+                          onChange={(e) => setBaremoForm(prev => ({ ...prev, porcentaje_localizable: parseFloat(e.target.value) || 0 }))}
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor="multiplicador_festivo">Multiplicador Festivo</Label>
+                        <Label htmlFor="porcentaje_llamada">% Llamada</Label>
                         <Input
-                          id="multiplicador_festivo"
+                          id="porcentaje_llamada"
                           type="number"
-                          step="0.1"
-                          value={baremoForm.multiplicador_festivo}
-                          onChange={(e) => setBaremoForm(prev => ({ ...prev, multiplicador_festivo: parseFloat(e.target.value) || 1 }))}
+                          step="0.01"
+                          value={baremoForm.porcentaje_llamada}
+                          onChange={(e) => setBaremoForm(prev => ({ ...prev, porcentaje_llamada: parseFloat(e.target.value) || 0 }))}
                         />
                       </div>
                     </div>
@@ -569,29 +648,29 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="font-semibold text-lg">{baremo.concepto}</h3>
+                          <h3 className="font-semibold text-lg">{baremo.categoria} - {baremo.tipo_guardia} - {baremo.tipo_dia}</h3>
                           <Badge variant={baremo.activo ? "default" : "secondary"}>
                             {baremo.activo ? 'Activo' : 'Inactivo'}
                           </Badge>
                           <Badge variant="outline">{baremo.fuente}</Badge>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600 mb-3">
                           <div>
-                            <span className="font-medium">Tarifa Base:</span>
-                            <p className="text-lg font-bold text-green-600">{formatCurrency(baremo.tarifa_base)}</p>
+                            <span className="font-medium">Valor Base:</span>
+                            <p className="text-lg font-bold text-green-600">{formatCurrency(baremo.valor)}</p>
                           </div>
                           <div>
-                            <span className="font-medium">Multiplicador Nocturno:</span>
-                            <p className="text-lg font-bold text-blue-600">{baremo.multiplicador_nocturno}x</p>
+                            <span className="font-medium">% Localizable:</span>
+                            <p className="text-lg font-bold text-blue-600">{baremo.porcentaje_localizable}%</p>
                           </div>
                           <div>
-                            <span className="font-medium">Multiplicador Festivo:</span>
-                            <p className="text-lg font-bold text-orange-600">{baremo.multiplicador_festivo}x</p>
+                            <span className="font-medium">% Llamada:</span>
+                            <p className="text-lg font-bold text-orange-600">{baremo.porcentaje_llamada}%</p>
                           </div>
                           <div>
-                            <span className="font-medium">Última Actualización:</span>
-                            <p className="text-sm">{new Date(baremo.updated_at).toLocaleDateString('es-ES')}</p>
+                            <span className="font-medium">Vigente Desde:</span>
+                            <p className="text-sm">{baremo.vigente_desde ? new Date(baremo.vigente_desde).toLocaleDateString('es-ES') : 'N/A'}</p>
                           </div>
                         </div>
 
@@ -878,7 +957,7 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="PORCENTAJE">Porcentaje (%)</SelectItem>
-                            <SelectItem value="MONTO_FIJO">Monto Fijo (€)</SelectItem>
+                            <SelectItem value="MONTO_FIJO">Monto Fijo (XAF)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -887,7 +966,7 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="valor_ajuste">
-                          Valor del Ajuste {ajusteForm.tipo_ajuste === 'PORCENTAJE' ? '(%)' : '(€)'}
+                          Valor del Ajuste {ajusteForm.tipo_ajuste === 'PORCENTAJE' ? '(%)' : '(XAF)'}
                         </Label>
                         <Input
                           id="valor_ajuste"

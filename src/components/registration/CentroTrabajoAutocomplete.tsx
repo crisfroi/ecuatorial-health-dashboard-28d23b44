@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -46,12 +45,19 @@ export const CentroTrabajoAutocomplete = ({ form, watchedValues }: CentroTrabajo
 
   const seleccionarCentro = (centro: any) => {
     form.setValue('nombre_centro', centro.nombre);
+    form.setValue('centro_salud_id', centro.id); // Establecer el ID del centro
     setBusqueda(centro.nombre);
     setMostrarSugerencias(false);
-    
+
     // Auto-rellenar otros campos si están disponibles
     if (centro.sector && !watchedValues.tipo_sector) {
       form.setValue('tipo_sector', centro.sector);
+    }
+
+    // Auto-determinar si es función pública basado en el sector
+    if (centro.sector) {
+      const esFuncionPublica = centro.sector.toLowerCase().includes('público');
+      form.setValue('funcion_publica', esFuncionPublica);
     }
   };
 

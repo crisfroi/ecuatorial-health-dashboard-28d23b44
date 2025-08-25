@@ -201,10 +201,10 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({
 
     const pathGenerator = d3.geoPath().projection(projection);
 
-    // Create main group
+    // Create main group with viewBox for responsive scaling
     const mapGroup = svg
-      .attr("width", width)
-      .attr("height", height)
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .attr("preserveAspectRatio", "xMidYMid meet")
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 

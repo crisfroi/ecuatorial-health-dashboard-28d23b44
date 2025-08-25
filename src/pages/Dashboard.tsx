@@ -65,6 +65,8 @@ import { OfflineNotification } from "@/components/ui/offline-notification";
 import { DatabaseDiagnostic } from "@/components/dashboard/DatabaseDiagnostic";
 import { GuardiasDashboard } from "@/components/guardias/GuardiasDashboard";
 import { GuardiasStatsWidget } from "@/components/guardias/GuardiasStatsWidget";
+import { FuncionariosStatsWidget } from "@/components/dashboard/FuncionariosStatsWidget";
+import ResizeObserverTestIndicator from "@/components/dashboard/ResizeObserverTestIndicator";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -184,6 +186,15 @@ const Dashboard = () => {
     }
   };
 
+  const handleNavigateToFuncionarios = () => {
+    console.log("Dashboard: Navegando a funcionarios públicos");
+    setActiveTab("professionals");
+    setAppliedFilters({
+      estado_solicitud: "Aprobado",
+      funcion_publica: "true"
+    });
+  };
+
   useEffect(() => {
     console.log(
       "Dashboard: useEffect activado. Sincronizando appliedFilters con dashboardFilters.",
@@ -254,8 +265,7 @@ const Dashboard = () => {
         return;
       }
 
-      // Limpiar datos locales si es necesario
-      localStorage.removeItem('supabase.auth.token');
+      // Auth state is handled automatically by Supabase client
 
       toast({
         title: "Sesión cerrada",
@@ -621,10 +631,14 @@ const Dashboard = () => {
               <div className="lg:col-span-2">
                 <DashboardCharts onChartClick={handleChartClick} />
               </div>
-              <div>
+              <div className="space-y-6">
                 <GuardiasStatsWidget
                   userRole={userRole}
                   onNavigateToGuardias={() => setActiveTab("guardias")}
+                />
+                <FuncionariosStatsWidget
+                  userRole={userRole}
+                  onNavigateToFuncionarios={handleNavigateToFuncionarios}
                 />
               </div>
             </div>
@@ -723,6 +737,9 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* ResizeObserver test indicator - only shown during development */}
+      {import.meta.env.DEV && <ResizeObserverTestIndicator />}
     </div>
   );
 };

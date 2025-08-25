@@ -14,8 +14,35 @@ export function useEstadisticasAvanzadas() {
         // Check if offline mode is enabled
         const offlineMode = localStorage.getItem("app-offline-mode") === "true";
         if (offlineMode) {
-          console.log("Offline mode detected, skipping database queries");
-          throw new Error("Offline mode active - using fallback data");
+          console.log("Offline mode detected, returning fallback data");
+          return {
+            total: 0,
+            aprobados: 0,
+            recibidos: 0,
+            rechazados: 0,
+            revisando: 0,
+            vencimientosProximos: 0,
+            carnetVencidos: 0,
+            porArea: {},
+            porProvincia: {},
+            generoMasculino: 0,
+            generoFemenino: 0,
+            porGenero: {},
+            porTipoSector: {},
+            porDistrito: {},
+            porAnoGraduacion: {},
+            tendenciasMensuales: [],
+            tasaAprobacion: "0.0",
+            tasaRechazo: "0.0",
+            datosGraficoEstados: [
+              { estado: "Aprobado", cantidad: 0, color: "#22c55e" },
+              { estado: "Recibido", cantidad: 0, color: "#f59e0b" },
+              { estado: "Rechazado", cantidad: 0, color: "#ef4444" },
+              { estado: "Revisando", cantidad: 0, color: "#3b82f6" },
+            ],
+            datosGraficoAreas: [],
+            datosGraficoProvincias: [],
+          };
         }
 
         // Retry logic for health check

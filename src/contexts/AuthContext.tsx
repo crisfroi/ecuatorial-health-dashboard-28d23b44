@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserRole, hasPermission, canAccessTab, getRoleRestrictions, ROLE_DEFINITIONS } from '@/types/roles';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { AuthErrorHandler } from '@/utils/authErrorHandler';
 
 interface UserProfile extends User {
   role: UserRole;
@@ -95,6 +96,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
       } catch (error) {
         console.error('❌ Error inicializando auth:', error);
+
+        // Handle refresh token errors
+        if (AuthErrorHandler.isRefreshTokenError(error)) {
+          await AuthErrorHandler.handleRefreshTokenError();
+          return;
+        }
+
         setUser(null);
         setUserRole(null);
       } finally {
@@ -110,45 +118,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       async (event, session) => {
         console.log('🔄 Auth state change:', event);
 
+        if (!mounted) return;
+
         if (event === 'SIGNED_IN' && session?.user) {
           console.log('✅ Usuario autenticado en state change');
-          // No llamar initializeAuth() aquí para evitar loops
-          // Solo procesar el usuario directamente
-          if (mounted) {
-            const email = session.user.email?.toLowerCase() || '';
-            let role: UserRole = 'SUPER_ADMINISTRADOR';
-            let fullName = 'Beltran Ebiole';
 
-            if (email === 'chamibeny@gmail.com') {
-              role = 'SUPER_ADMINISTRADOR';
-              fullName = 'Beltran Ebiole';
-            } else if (email === 'juan.froilan@ministeriosanidad.gq') {
-              role = 'SUPER_ADMINISTRADOR';
-              fullName = 'Juan Froilan Ramos Nabama';
-            } else {
-              role = 'OBSERVADOR';
-              fullName = session.user.email?.split('@')[0] || 'Usuario';
-            }
+          const email = session.user.email?.toLowerCase() || '';
+          let role: UserRole = 'SUPER_ADMINISTRADOR';
+          let fullName = 'Beltran Ebiole';
 
-            const userProfile: UserProfile = {
-              ...session.user,
-              role,
-              full_name: fullName,
-              department: 'Ministerio de Sanidad y Bienestar Social'
-            };
-
-            setUser(userProfile);
-            setUserRole(role);
-            setIsLoading(false);
-            console.log('✅ Usuario configurado desde state change');
+          if (email === 'chamibeny@gmail.com') {
+            role = 'SUPER_ADMINISTRADOR';
+            fullName = 'Beltran Ebiole';
+          } else if (email === 'juan.froilan@ministeriosanidad.gq') {
+            role = 'SUPER_ADMINISTRADOR';
+            fullName = 'Juan Froilan Ramos Nabama';
+          } else {
+            role = 'OBSERVADOR';
+            fullName = session.user.email?.split('@')[0] || 'Usuario';
           }
+
+          const userProfile: UserProfile = {
+            ...session.user,
+            role,
+            full_name: fullName,
+            department: 'Ministerio de Sanidad y Bienestar Social'
+          };
+
+          setUser(userProfile);
+          setUserRole(role);
+          setIsLoading(false);
+          console.log('✅ Usuario configurado desde state change');
         } else if (event === 'SIGNED_OUT') {
           console.log('👋 Usuario desconectado');
-          if (mounted) {
-            setUser(null);
-            setUserRole(null);
-            setIsLoading(false);
-          }
+          setUser(null);
+          setUserRole(null);
+          setIsLoading(false);
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('🔄 Token refreshed successfully');
+        } else if (event === 'TOKEN_REFRESH_FAILED') {
+          console.error('❌ Token refresh failed - logging out user');
+          setUser(null);
+          setUserRole(null);
+          setIsLoading(false);
         }
       }
     );
@@ -195,6 +207,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       return { success: false, error: 'No se pudo obtener información del usuario' };
     } catch (error: any) {
       console.error('❌ Error de conexión en login:', error);
+
+      // Handle refresh token errors
+      if (AuthErrorHandler.isRefreshTokenError(error)) {
+        await AuthErrorHandler.handleRefreshTokenError();
+        return { success: false, error: 'Sesión expirada. Intente iniciar sesión nuevamente.' };
+      }
+
       return { success: false, error: 'Error de conexión. Intente nuevamente.' };
     } finally {
       console.log('🔄 AuthContext: Setting isLoading(false) in finally block');

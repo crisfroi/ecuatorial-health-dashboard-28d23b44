@@ -74,6 +74,13 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     }
   }, [selectedMonth, selectedYear, selectedCenter]);
 
+  // Update formData when selectedCenter changes
+  useEffect(() => {
+    if (selectedCenter && selectedCenter !== formData.centro_salud_id) {
+      setFormData(prev => ({ ...prev, centro_salud_id: selectedCenter }));
+    }
+  }, [selectedCenter]);
+
   // Validate duration when dates change
   useEffect(() => {
     if (formData.fecha_inicio && formData.fecha_fin) {

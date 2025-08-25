@@ -50,12 +50,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGuardia, setEditingGuardia] = useState<any>(null);
   const [formData, setFormData] = useState({
-    profesional_ids: [] as string[],
-    centro_salud_id: selectedCenter || '',
-    fecha_inicio: '',
-    fecha_fin: '',
-    tipo: 'fisica' as 'fisica' | 'localizable' | 'administrativa',
-    tipo_dia: 'ordinario' as 'ordinario' | 'fin_semana' | 'festivo',
+
     observaciones: ''
   });
 
@@ -74,29 +69,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     }
   }, [selectedMonth, selectedYear, selectedCenter]);
 
-  // Update formData when selectedCenter changes
-  useEffect(() => {
-    if (selectedCenter && selectedCenter !== formData.centro_salud_id) {
-      setFormData(prev => ({ ...prev, centro_salud_id: selectedCenter }));
-    }
-  }, [selectedCenter]);
 
-  // Validate duration when dates change
-  useEffect(() => {
-    if (formData.fecha_inicio && formData.fecha_fin) {
-      const validation = validateGuardiaDuration(formData.fecha_inicio, formData.fecha_fin);
-      setDurationValidation(validation);
-    } else {
-      setDurationValidation({ isValid: true, hours: 0 });
-    }
-  }, [formData.fecha_inicio, formData.fecha_fin]);
-
-  const handleDurationSelect = (hours: number) => {
-    if (formData.fecha_inicio) {
-      const calculatedEnd = calculateEndTime(formData.fecha_inicio, hours);
-      setFormData(prev => ({ ...prev, fecha_fin: calculatedEnd }));
-    }
-  };
 
   const filteredGuardias = guardias.filter(guardia =>
     guardia.profesional?.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -139,36 +112,28 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     }
 
     try {
+      const payload = {
+        profesional_id: formData.profesional_id,
+        centro_salud_id: formData.centro_id || selectedCenter || '',
+        fecha: formData.fecha,
+        turno: formData.turno,
+        tipo_guardia: formData.tipo_guardia,
+        horas_inicio: formData.horas_inicio,
+        horas_fin: formData.horas_fin,
+        observaciones: formData.observaciones,
+      };
+
       if (editingGuardia) {
-        // En modo edición, actualizar con datos correctos del esquema
-        const updateData = {
-          profesional_guardia_id: formData.profesional_ids[0],
-          centro_salud_id: formData.centro_salud_id,
-          fecha_inicio: formData.fecha_inicio,
-          fecha_fin: formData.fecha_fin,
-          tipo: formData.tipo,
-          tipo_dia: formData.tipo_dia,
-          observaciones: formData.observaciones
-        };
-        await updateGuardia(editingGuardia.id, updateData);
+
         toast({
           title: "Guardia actualizada",
           description: "La guardia ha sido actualizada correctamente.",
         });
       } else {
-        // Crear guardias usando el nuevo método del store que maneja profesional_ids
-        await createGuardia({
-          profesional_ids: formData.profesional_ids,
-          centro_salud_id: formData.centro_salud_id,
-          fecha_inicio: formData.fecha_inicio,
-          fecha_fin: formData.fecha_fin,
-          tipo: formData.tipo,
-          tipo_dia: formData.tipo_dia,
-          observaciones: formData.observaciones
-        });
+
         toast({
-          title: "Guardias registradas",
-          description: `Se han registrado ${formData.profesional_ids.length} guardias correctamente.`,
+          title: "Guardia registrada",
+          description: `Se ha registrado la guardia correctamente.`,
         });
       }
 
@@ -191,12 +156,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     setEditingGuardia(guardia);
 
     setFormData({
-      profesional_ids: [guardia.profesional_guardia_id],
-      centro_salud_id: guardia.centro_salud_id,
-      fecha_inicio: guardia.fecha_inicio,
-      fecha_fin: guardia.fecha_fin,
-      tipo: guardia.tipo || 'fisica',
-      tipo_dia: guardia.tipo_dia || 'ordinario',
+
       observaciones: guardia.observaciones || ''
     });
     setIsDialogOpen(true);
@@ -223,12 +183,7 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
 
   const resetForm = () => {
     setFormData({
-      profesional_ids: [],
-      centro_salud_id: selectedCenter || '',
-      fecha_inicio: '',
-      fecha_fin: '',
-      tipo: 'fisica',
-      tipo_dia: 'ordinario',
+
       observaciones: ''
     });
   };

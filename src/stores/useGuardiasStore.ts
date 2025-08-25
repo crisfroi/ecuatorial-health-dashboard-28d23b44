@@ -597,48 +597,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         set({ loading: true, error: null });
 
         try {
-          await retryWithBackoff(async () => {
-            let query = supabase
-              .from('guardias')
-              .select(`
-                id,
-                profesional_guardia_id,
-                centro_salud_id,
-                tipo,
-                fecha_inicio,
-                fecha_fin,
-                horas,
-                tipo_dia,
-                estado,
-                validacion_estado,
-                observaciones,
-                localizable_activada,
-                hora_llamada,
-                hora_llegada,
-                servicio_atendido,
-                caso_atendido,
-                created_at,
-                updated_at,
-                created_by,
-                approved_by,
-                approved_at
-              `)
-              .order('fecha_inicio', { ascending: false });
 
-            // Filtrar por mes y año
-            const startDate = new Date(ano, mes - 1, 1);
-            const endDate = new Date(ano, mes, 0, 23, 59, 59);
-            console.log('📅 Date range:', { startDate: startDate.toISOString(), endDate: endDate.toISOString() });
-
-            query = query
-              .gte('fecha_inicio', startDate.toISOString())
-              .lte('fecha_inicio', endDate.toISOString());
-
-            // Filtrar por centro si se especifica
-            if (centroId) {
-              console.log('🏥 Filtering by center:', centroId);
-              query = query.eq('centro_salud_id', centroId);
-            }
 
             const { data, error } = await query;
 
@@ -647,10 +606,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               throw error;
             }
 
-            console.log('✅ Guardias fetched successfully:', data?.length || 0, 'records');
-            console.log('📊 Sample guardia data:', data?.[0]);
-            set({ guardias: data || [], loading: false });
-          });
+
         } catch (error: any) {
           console.error('💥 Exception in fetchGuardias:', error);
           const errorMessage = formatSupabaseError(error);
@@ -662,10 +618,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         console.log('��� Creating guardia with data:', data);
         set({ loading: true, error: null });
         try {
-          // Cargar días festivos si no están cargados
-          if (get().diasFestivos.length === 0) {
-            await get().fetchDiasFestivos();
-          }
+
 
           // Si tiene profesional_ids múltiples (multiselección)
           if (data.profesional_ids && Array.isArray(data.profesional_ids)) {
@@ -961,9 +914,20 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       updateGuardia: async (id, data) => {
         set({ loading: true });
         try {
+          const updateData: any = {
+            profesional_id: (data as any).profesional_id,
+            centro_salud_id: (data as any).centro_salud_id || (data as any).centro_id,
+            fecha: (data as any).fecha,
+            turno: (data as any).turno,
+            tipo_guardia: (data as any).tipo_guardia,
+            horas_inicio: (data as any).horas_inicio,
+            horas_fin: (data as any).horas_fin,
+            observaciones: (data as any).observaciones,
+          };
+
           const { error } = await supabase
             .from('guardias')
-            .update(data)
+            .update(updateData)
             .eq('id', id);
 
           if (error) throw error;

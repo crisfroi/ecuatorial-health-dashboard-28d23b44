@@ -187,7 +187,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudieron procesar los pagos masivos.",
+        description: "No se pudieron confirmar los pagos masivos.",
         variant: "destructive",
       });
     }

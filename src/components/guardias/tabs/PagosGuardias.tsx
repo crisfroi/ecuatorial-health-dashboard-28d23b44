@@ -238,6 +238,15 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
 
   const getMetodoPagoBadge = (metodo: string) => {
     switch (metodo) {
+      case 'transfer_trabajador':
+        return <Badge variant="outline">Transferencia al Trabajador</Badge>;
+      case 'transfer_hospital':
+        return <Badge variant="outline">Transferencia al Hospital</Badge>;
+      case 'efectivo':
+        return <Badge variant="outline">Efectivo</Badge>;
+      case 'cheque':
+        return <Badge variant="outline">Cheque</Badge>;
+      // Backwards compatibility for old values
       case 'TRANSFERENCIA':
         return <Badge variant="outline">Transferencia</Badge>;
       case 'CHEQUE':

@@ -2406,33 +2406,36 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       fetchDiasFestivos: async () => {
         console.log('🎆 Fetching días festivos...');
         set({ loading: true, error: null });
+
         try {
-          const { data, error } = await supabase
-            .from('dias_festivos')
-            .select('*')
-            .eq('activo', true)
-            .order('fecha');
+          await retryWithBackoff(async () => {
+            const { data, error } = await supabase
+              .from('dias_festivos')
+              .select('*')
+              .eq('activo', true)
+              .order('fecha');
 
-          if (error) {
-            console.error('❌ Supabase error in fetchDiasFestivos:', error);
-            throw error;
-          }
+            if (error) {
+              console.error('❌ Supabase error in fetchDiasFestivos:', error);
+              throw error;
+            }
 
-          console.log('📊 Raw dias festivos data:', data?.length || 0, 'records');
+            console.log('📊 Raw dias festivos data:', data?.length || 0, 'records');
 
-          // Convertir al formato esperado
-          const diasFestivos: DiaFestivo[] = (data || []).map(item => ({
-            id: item.id,
-            nombre: item.nombre,
-            fecha: item.fecha,
-            tipo: 'NACIONAL', // Valor por defecto
-            recurrente: false, // Valor por defecto
-            activo: item.activo,
-            observaciones: item.descripcion
-          }));
+            // Convertir al formato esperado
+            const diasFestivos: DiaFestivo[] = (data || []).map(item => ({
+              id: item.id,
+              nombre: item.nombre,
+              fecha: item.fecha,
+              tipo: 'NACIONAL', // Valor por defecto
+              recurrente: false, // Valor por defecto
+              activo: item.activo,
+              observaciones: item.descripcion
+            }));
 
-          console.log('✅ Dias festivos processed successfully:', diasFestivos.length);
-          set({ diasFestivos, loading: false });
+            console.log('✅ Dias festivos processed successfully:', diasFestivos.length);
+            set({ diasFestivos, loading: false });
+          });
         } catch (error: any) {
           console.error('💥 Exception in fetchDiasFestivos:', error);
           const errorMessage = formatSupabaseError(error);

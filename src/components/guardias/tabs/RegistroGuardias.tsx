@@ -50,7 +50,12 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGuardia, setEditingGuardia] = useState<any>(null);
   const [formData, setFormData] = useState({
-
+    profesional_ids: [] as string[],
+    centro_salud_id: selectedCenter || '',
+    fecha_inicio: '',
+    fecha_fin: '',
+    tipo: 'fisica' as 'fisica' | 'localizable' | 'administrativa',
+    tipo_dia: 'ordinario' as 'ordinario' | 'fin_semana' | 'festivo',
     observaciones: ''
   });
 

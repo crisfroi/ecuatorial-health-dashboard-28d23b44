@@ -28,10 +28,10 @@ const wait = (ms: number): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-// Enhanced retry function with exponential backoff
+// Enhanced retry function with exponential backoff and better network error handling
 const retryWithBackoff = async <T>(
   fn: () => Promise<T>,
-  maxRetries: number = 3,
+  maxRetries: number = 5,
   baseDelay: number = 1000
 ): Promise<T> => {
   let lastError: any;
@@ -39,22 +39,35 @@ const retryWithBackoff = async <T>(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
-    } catch (error) {
+    } catch (error: any) {
       lastError = error;
 
+      // Enhanced network error detection
+      const isNetworkIssue = isNetworkError(error) ||
+                            error.message?.includes('Failed to fetch') ||
+                            error.message?.includes('TypeError: Failed to fetch') ||
+                            error.code === 'NETWORK_ERROR' ||
+                            (error.name === 'TypeError' && error.message?.includes('fetch'));
+
       // If it's not a network error, don't retry
-      if (!isNetworkError(error)) {
+      if (!isNetworkIssue) {
+        console.log(`❌ Non-network error, not retrying:`, error.message);
         throw error;
       }
 
       // If this was the last attempt, throw the error
       if (attempt === maxRetries) {
+        console.log(`❌ Max retries (${maxRetries}) reached for network error`);
         throw error;
       }
 
-      // Calculate delay with exponential backoff
-      const delay = baseDelay * Math.pow(2, attempt);
-      console.log(`🔄 Network error detected, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+      // Calculate delay with exponential backoff + jitter
+      const jitter = Math.random() * 500; // Add randomness to prevent thundering herd
+      const delay = (baseDelay * Math.pow(2, attempt)) + jitter;
+
+      console.log(`🔄 Network error detected, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+      console.log(`🌐 Error details:`, error.message);
+
       await wait(delay);
     }
   }

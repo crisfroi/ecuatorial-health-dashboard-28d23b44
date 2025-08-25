@@ -81,7 +81,7 @@ const formatSupabaseError = (error: any): string => {
   // Handle HTTP status errors first
   if (error.status || error.statusCode) {
     const status = error.status || error.statusCode;
-    console.log('🌐 HTTP Status found:', status);
+    console.log('��� HTTP Status found:', status);
 
     switch (status) {
       case 400:
@@ -242,6 +242,8 @@ export interface Profesional {
   especialidad: string;
   centro_id?: string;
   activo: boolean;
+  funcion_publica?: boolean; // Nueva categorización para pagos
+  tipo_sector?: string;
 }
 
 export interface ProfesionalGuardia {
@@ -1304,7 +1306,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
           const { data: profesionalesData, error: profError } = await profesionalesQuery;
           if (profError) throw profError;
 
-          console.log('👥 Found professionals:', profesionalesData?.length || 0);
+          console.log('��� Found professionals:', profesionalesData?.length || 0);
 
           if (!profesionalesData || profesionalesData.length === 0) {
             throw new Error('No hay profesionales disponibles para generar el cuadrante');

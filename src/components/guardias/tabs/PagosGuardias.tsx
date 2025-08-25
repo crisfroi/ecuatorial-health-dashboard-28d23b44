@@ -179,8 +179,8 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
     try {
       await procesarPagoMasivo(selectedPagos);
       toast({
-        title: "Pagos procesados",
-        description: `Se han procesado ${selectedPagos.length} pagos exitosamente.`,
+        title: "Pagos confirmados",
+        description: `Se han confirmado ${selectedPagos.length} pagos exitosamente.`,
       });
       setSelectedPagos([]);
       fetchPagos(selectedMonth, selectedYear, selectedCenter);

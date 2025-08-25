@@ -68,9 +68,13 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
   const [formData, setFormData] = useState({
     nomina_id: '',
     profesional_guardia_id: '',
+    profesional_id: '',
     importe: 0,
+    monto: 0,
     forma_pago: 'TRANSFERENCIA' as string,
+    metodo_pago: 'TRANSFERENCIA' as string,
     comprobante_url: '',
+    referencia_pago: '',
     observaciones: ''
   });
 

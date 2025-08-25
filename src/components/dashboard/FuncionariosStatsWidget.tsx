@@ -41,6 +41,20 @@ export const FuncionariosStatsWidget: React.FC<FuncionariosStatsWidgetProps> = (
     funcion_publica: f.funcion_publica
   })));
 
+  // Obtener todos los profesionales para comparar (solo para depuración)
+  const { data: todosProfesionales = [] } = useProfesionales({});
+  const aprobados = todosProfesionales.filter(p => p.estado_solicitud === 'Aprobado');
+  const funcionariosPublicos = aprobados.filter(p => p.funcion_publica === true);
+
+  console.log('DEBUG - Todos los profesionales:', todosProfesionales.length);
+  console.log('DEBUG - Profesionales aprobados:', aprobados.length);
+  console.log('DEBUG - Funcionarios públicos (manual filter):', funcionariosPublicos.length);
+  console.log('DEBUG - Muestra de funcionarios públicos:', funcionariosPublicos.slice(0, 3).map(f => ({
+    nombre: f.nombre_completo,
+    funcion_publica: f.funcion_publica,
+    estado: f.estado_solicitud
+  })));
+
   // Cálculos estadísticos
   const totalFuncionarios = funcionarios.length;
   

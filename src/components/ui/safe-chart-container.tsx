@@ -95,16 +95,20 @@ export const SafeChartContainer: React.FC<SafeChartContainerProps> = ({
   }, [debouncedUpdateDimensions]);
 
   return (
-    <div 
-      ref={containerRef} 
+    <div
+      ref={containerRef}
       className={className}
       style={{ width, height }}
     >
-      {dimensions.width > 0 && dimensions.height > 0 && (
-        <ResponsiveContainer width="100%" height="100%">
+      {/* Render with fallback dimensions if measured dimensions are zero */}
+      {(dimensions.width > 0 && dimensions.height > 0) || typeof height === 'number' ? (
+        <ResponsiveContainer
+          width="100%"
+          height={dimensions.height > 0 ? "100%" : typeof height === 'number' ? height : 300}
+        >
           {children}
         </ResponsiveContainer>
-      )}
+      ) : null}
     </div>
   );
 };

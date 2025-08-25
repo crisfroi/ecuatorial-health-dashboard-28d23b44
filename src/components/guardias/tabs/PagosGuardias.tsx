@@ -198,7 +198,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
     setFormData({
       nomina_id: pago.nomina_id || '',
       profesional_guardia_id: pago.profesional_guardia_id || '',
-      profesional_id: pago.profesional_id || pago.profesional_guardia_id || '',
+      profesional_id: pago.profesional_guardia_id || '', // Use profesional_guardia_id as primary
       importe: pago.importe || 0,
       monto: pago.monto || pago.importe || 0,
       forma_pago: pago.forma_pago || 'transfer_trabajador',
@@ -763,7 +763,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
                   <p className="text-lg font-bold text-green-600">{formatCurrency(selectedPago.monto)}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Método</h4>
+                  <h4 className="font-medium text-gray-900 mb-2">M��todo</h4>
                   {getMetodoPagoBadge(selectedPago.metodo_pago)}
                 </div>
               </div>

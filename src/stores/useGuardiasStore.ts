@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, executeSupabaseQuery } from '@/integrations/supabase/client';
 
 // Helper function to detect network connectivity issues
 const isNetworkError = (error: any): boolean => {
@@ -2849,7 +2849,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             set({ ajustesBaremos: data || [], loading: false });
           });
         } catch (error: any) {
-          console.error('💥 Exception in fetchAjustesBaremos:', error);
+          console.error('��� Exception in fetchAjustesBaremos:', error);
           const errorMessage = formatSupabaseError(error);
           set({ error: 'Error al cargar ajustes de baremos: ' + errorMessage, loading: false });
         }

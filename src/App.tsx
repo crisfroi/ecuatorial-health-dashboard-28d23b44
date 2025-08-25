@@ -12,6 +12,7 @@ import PublicSearch from "./pages/PublicSearch";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import "./utils/authErrorHandler"; // Initialize global auth error handling
+import "./utils/storageCleanup"; // Initialize storage cleanup
 
 const queryClient = new QueryClient({
   defaultOptions: {

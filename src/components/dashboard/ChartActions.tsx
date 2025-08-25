@@ -43,7 +43,12 @@ const ChartActions = ({ title, children, onDownload }: ChartActionsProps) => {
                 <DialogTitle>{title}</DialogTitle>
               </DialogHeader>
               <div className="w-full min-h-[400px] h-96">
-                {children}
+                {/* Force re-render when dialog opens to ensure proper measurements */}
+                {isExpanded && (
+                  <div key="expanded-chart">
+                    {children}
+                  </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>

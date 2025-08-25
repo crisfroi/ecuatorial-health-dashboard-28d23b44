@@ -11,6 +11,7 @@ import ProfessionalRegistration from "./pages/ProfessionalRegistration";
 import PublicSearch from "./pages/PublicSearch";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import "./utils/authErrorHandler"; // Initialize global auth error handling
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,7 +47,14 @@ const queryClient = new QueryClient({
       // Manejo de errores
       onError: (error: any) => {
         console.error('Query error:', error);
-        
+
+        // Handle authentication errors
+        const errorMessage = error?.message?.toLowerCase() || '';
+        if (errorMessage.includes('refresh token') || errorMessage.includes('invalid token')) {
+          console.log('Auth error detected in query, will be handled by global handler');
+          return;
+        }
+
         // Si es un error de red, no mostrar errores en consola
         if (error?.message?.includes('fetch') || error?.message?.includes('network')) {
           console.log('Network error detected, using fallback data');

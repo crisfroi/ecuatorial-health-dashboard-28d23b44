@@ -74,6 +74,7 @@ export interface NavigationFilters {
   año_graduacion?: number;
   categoria_titulacion?: string;
   categoria_centro?: string;
+  funcion_publica?: boolean; // Filtro para funcionarios públicos
   fecha_solicitud_gte?: string;
   fecha_solicitud_lte?: string;
 }

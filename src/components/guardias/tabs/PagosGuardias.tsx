@@ -84,8 +84,9 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
   }, [selectedMonth, selectedYear, selectedCenter]);
 
   const pagosPendientes = pagos.filter(p => p.estado === 'pendiente');
-  const pagosAprobados = pagos.filter(p => p.estado === 'aprobado');
-  const pagosProcesados = pagos.filter(p => p.estado === 'procesado');
+  const pagosRealizados = pagos.filter(p => p.estado === 'realizado');
+  const pagosConfirmados = pagos.filter(p => p.estado === 'confirmado');
+  // Note: 'rechazado' is not in DB constraints, but keeping for backwards compatibility
   const pagosRechazados = pagos.filter(p => p.estado === 'rechazado');
 
   const pagosFiltrados = pagos.filter(pago => {

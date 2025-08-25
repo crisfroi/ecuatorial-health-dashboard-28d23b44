@@ -120,7 +120,9 @@ export const RegistroGuardias: React.FC<RegistroGuardiasProps> = ({
     if (!formData.centro_salud_id || formData.centro_salud_id.trim() === '') {
       toast({
         title: "Centro de salud requerido",
-        description: "Debe seleccionar un centro de salud para registrar la guardia",
+        description: selectedCenter
+          ? "No se ha podido determinar el centro de salud. Seleccione uno desde el dashboard."
+          : "Debe seleccionar un centro de salud del formulario para registrar la guardia",
         variant: "destructive",
       });
       return;

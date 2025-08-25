@@ -1237,22 +1237,30 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       // Operaciones CRUD - Centros
-      fetchCentros: async () => {
-        console.log('🏥 Fetching centros de salud...');
+      fetchCentros: async (publicOnly = false) => {
+        console.log('🏥 Fetching centros de salud...', publicOnly ? '(Solo públicos)' : '(Todos)');
         set({ loading: true, error: null });
 
         try {
           await retryWithBackoff(async () => {
-            const { data, error } = await supabase
+            let query = supabase
               .from('centros_salud')
               .select(`
                 id,
                 nombre,
                 categoria,
                 provincia,
-                estado
+                estado,
+                sector
               `)
-              .eq('estado', 'Activo')
+              .eq('estado', 'Activo');
+
+            // Filtrar solo centros públicos si se solicita (para guardias)
+            if (publicOnly) {
+              query = query.eq('sector', 'Público');
+            }
+
+            const { data, error } = await query
               .order('nombre');
 
             if (error) {

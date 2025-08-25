@@ -65,6 +65,7 @@ import { OfflineNotification } from "@/components/ui/offline-notification";
 import { DatabaseDiagnostic } from "@/components/dashboard/DatabaseDiagnostic";
 import { GuardiasDashboard } from "@/components/guardias/GuardiasDashboard";
 import { GuardiasStatsWidget } from "@/components/guardias/GuardiasStatsWidget";
+import ResizeObserverTestIndicator from "@/components/dashboard/ResizeObserverTestIndicator";
 
 import type { Tables } from "@/integrations/supabase/types";
 

@@ -597,7 +597,65 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         set({ loading: true, error: null });
 
         try {
+          await retryWithBackoff(async () => {
+            // Calcular rango de fechas para el mes/año solicitado
+            const startDate = new Date(ano, mes - 1, 1);
+            const endDate = new Date(ano, mes, 0, 23, 59, 59);
 
+            console.log('📅 Date range:', {
+              start: startDate.toISOString(),
+              end: endDate.toISOString()
+            });
+
+            // Construir query base
+            let query = supabase
+              .from('guardias')
+              .select(`
+                id,
+                profesional_guardia_id,
+                centro_salud_id,
+                tipo,
+                fecha_inicio,
+                fecha_fin,
+                horas,
+                tipo_dia,
+                estado,
+                validacion_estado,
+                observaciones,
+                localizable_activada,
+                hora_llamada,
+                hora_llegada,
+                servicio_atendido,
+                caso_atendido,
+                created_at,
+                updated_at,
+                created_by,
+                approved_by,
+                approved_at,
+                profesionales_guardias!inner(
+                  id,
+                  categoria,
+                  unidad_servicio,
+                  profesionales_sanitarios!inner(
+                    id,
+                    nombre_completo,
+                    area_profesional
+                  )
+                ),
+                centros_salud!inner(
+                  id,
+                  nombre
+                )
+              `)
+              .gte('fecha_inicio', startDate.toISOString())
+              .lte('fecha_inicio', endDate.toISOString())
+              .order('fecha_inicio', { ascending: true });
+
+            // Aplicar filtro por centro si se especifica
+            if (centroId) {
+              console.log('🏥 Filtering by center:', centroId);
+              query = query.eq('centro_salud_id', centroId);
+            }
 
             const { data, error } = await query;
 
@@ -606,7 +664,46 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               throw error;
             }
 
+            console.log('📊 Raw guardias data:', data?.length || 0, 'records');
 
+            // Procesar y formatear los datos
+            const guardias: Guardia[] = (data || []).map(guardia => ({
+              id: guardia.id,
+              profesional_guardia_id: guardia.profesional_guardia_id,
+              centro_salud_id: guardia.centro_salud_id,
+              tipo: guardia.tipo,
+              fecha_inicio: guardia.fecha_inicio,
+              fecha_fin: guardia.fecha_fin,
+              horas: guardia.horas,
+              tipo_dia: guardia.tipo_dia,
+              estado: guardia.estado,
+              validacion_estado: guardia.validacion_estado,
+              observaciones: guardia.observaciones,
+              localizable_activada: guardia.localizable_activada,
+              hora_llamada: guardia.hora_llamada,
+              hora_llegada: guardia.hora_llegada,
+              servicio_atendido: guardia.servicio_atendido,
+              caso_atendido: guardia.caso_atendido,
+              created_at: guardia.created_at,
+              updated_at: guardia.updated_at,
+              created_by: guardia.created_by,
+              approved_by: guardia.approved_by,
+              approved_at: guardia.approved_at,
+              // Datos relacionados para facilitar el uso en frontend
+              profesional: guardia.profesionales_guardias?.profesionales_sanitarios ? {
+                id: guardia.profesionales_guardias.profesionales_sanitarios.id,
+                nombre_completo: guardia.profesionales_guardias.profesionales_sanitarios.nombre_completo,
+                especialidad: guardia.profesionales_guardias.profesionales_sanitarios.area_profesional || 'No especificada'
+              } : undefined,
+              centro: guardia.centros_salud ? {
+                id: guardia.centros_salud.id,
+                nombre: guardia.centros_salud.nombre
+              } : undefined
+            }));
+
+            console.log('✅ Guardias processed successfully:', guardias.length);
+            set({ guardias, loading: false });
+          });
         } catch (error: any) {
           console.error('💥 Exception in fetchGuardias:', error);
           const errorMessage = formatSupabaseError(error);

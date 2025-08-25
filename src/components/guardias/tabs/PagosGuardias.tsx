@@ -463,7 +463,7 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
                       <label className="text-sm font-medium">Método de Pago</label>
                       <Select
                         value={formData.metodo_pago}
-                        onValueChange={(value: 'TRANSFERENCIA' | 'CHEQUE' | 'EFECTIVO') => 
+                        onValueChange={(value: 'transfer_trabajador' | 'transfer_hospital' | 'efectivo' | 'cheque') =>
                           setFormData(prev => ({ ...prev, metodo_pago: value }))
                         }
                       >
@@ -471,9 +471,10 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="TRANSFERENCIA">Transferencia Bancaria</SelectItem>
-                          <SelectItem value="CHEQUE">Cheque</SelectItem>
-                          <SelectItem value="EFECTIVO">Efectivo</SelectItem>
+                          <SelectItem value="transfer_trabajador">Transferencia al Trabajador</SelectItem>
+                          <SelectItem value="transfer_hospital">Transferencia al Hospital</SelectItem>
+                          <SelectItem value="efectivo">Efectivo</SelectItem>
+                          <SelectItem value="cheque">Cheque</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

@@ -27,7 +27,7 @@ export const FuncionariosStatsWidget: React.FC<FuncionariosStatsWidgetProps> = (
   // Filtros para obtener solo funcionarios aprobados
   const { data: funcionarios = [], isLoading, error } = useProfesionales({
     estado_solicitud: 'Aprobado',
-    funcion_publica: 'true' // Solo funcionarios públicos
+    funcion_publica: true // Solo funcionarios públicos (boolean)
   });
 
   // Cálculos estadísticos

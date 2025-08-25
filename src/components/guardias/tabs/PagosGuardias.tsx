@@ -613,9 +613,10 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los métodos</SelectItem>
-                <SelectItem value="TRANSFERENCIA">Transferencia</SelectItem>
-                <SelectItem value="CHEQUE">Cheque</SelectItem>
-                <SelectItem value="EFECTIVO">Efectivo</SelectItem>
+                <SelectItem value="transfer_trabajador">Transferencia al Trabajador</SelectItem>
+                <SelectItem value="transfer_hospital">Transferencia al Hospital</SelectItem>
+                <SelectItem value="efectivo">Efectivo</SelectItem>
+                <SelectItem value="cheque">Cheque</SelectItem>
               </SelectContent>
             </Select>
           </div>

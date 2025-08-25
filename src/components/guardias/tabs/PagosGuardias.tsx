@@ -551,20 +551,20 @@ export const PagosGuardias: React.FC<PagosGuardiasProps> = ({
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Aprobados</p>
-                <p className="text-2xl font-bold text-blue-600">{pagosAprobados.length}</p>
+                <p className="text-sm font-medium text-gray-600">Realizados</p>
+                <p className="text-2xl font-bold text-blue-600">{pagosRealizados.length}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Procesados</p>
-                <p className="text-2xl font-bold text-green-600">{pagosProcesados.length}</p>
+                <p className="text-sm font-medium text-gray-600">Confirmados</p>
+                <p className="text-2xl font-bold text-green-600">{pagosConfirmados.length}</p>
               </div>
               <CreditCard className="w-8 h-8 text-green-600" />
             </div>

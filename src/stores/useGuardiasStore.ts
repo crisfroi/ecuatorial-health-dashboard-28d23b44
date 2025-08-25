@@ -670,7 +670,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               const fechaFin = new Date(data.fecha_fin);
 
               if (isNaN(fechaInicio.getTime())) {
-                throw new Error(`Fecha de inicio inválida: ${data.fecha_inicio}`);
+                throw new Error(`Fecha de inicio inv��lida: ${data.fecha_inicio}`);
               }
 
               if (isNaN(fechaFin.getTime())) {
@@ -994,44 +994,47 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       fetchProfesionales: async (centroId) => {
         console.log('👨‍⚕️ Fetching profesionales for center:', centroId);
         set({ loading: true, error: null });
+
         try {
-          let query = supabase
-            .from('profesionales_sanitarios')
-            .select(`
-              id,
-              nombre_completo,
-              area_profesional,
-              especialidad,
-              centro_salud_id,
-              estado_solicitud
-            `)
-            .eq('estado_solicitud', 'Aprobado')
-            .order('nombre_completo');
+          await retryWithBackoff(async () => {
+            let query = supabase
+              .from('profesionales_sanitarios')
+              .select(`
+                id,
+                nombre_completo,
+                area_profesional,
+                especialidad,
+                centro_salud_id,
+                estado_solicitud
+              `)
+              .eq('estado_solicitud', 'Aprobado')
+              .order('nombre_completo');
 
-          if (centroId) {
-            console.log('🏥 Filtering profesionales by center:', centroId);
-            query = query.eq('centro_salud_id', centroId);
-          }
+            if (centroId) {
+              console.log('🏥 Filtering profesionales by center:', centroId);
+              query = query.eq('centro_salud_id', centroId);
+            }
 
-          const { data, error } = await query;
+            const { data, error } = await query;
 
-          if (error) {
-            console.error('❌ Supabase error in fetchProfesionales:', error);
-            throw error;
-          }
+            if (error) {
+              console.error('❌ Supabase error in fetchProfesionales:', error);
+              throw error;
+            }
 
-          console.log('📊 Raw profesionales data:', data?.length || 0, 'records');
+            console.log('📊 Raw profesionales data:', data?.length || 0, 'records');
 
-          const profesionales: Profesional[] = (data || []).map(prof => ({
-            id: prof.id,
-            nombre_completo: prof.nombre_completo,
-            especialidad: prof.area_profesional || prof.especialidad || 'No especificado',
-            centro_id: prof.centro_salud_id || undefined,
-            activo: prof.estado_solicitud === 'Aprobado'
-          }));
+            const profesionales: Profesional[] = (data || []).map(prof => ({
+              id: prof.id,
+              nombre_completo: prof.nombre_completo,
+              especialidad: prof.area_profesional || prof.especialidad || 'No especificado',
+              centro_id: prof.centro_salud_id || undefined,
+              activo: prof.estado_solicitud === 'Aprobado'
+            }));
 
-          console.log('✅ Profesionales processed successfully:', profesionales.length);
-          set({ profesionales, loading: false });
+            console.log('✅ Profesionales processed successfully:', profesionales.length);
+            set({ profesionales, loading: false });
+          });
         } catch (error: any) {
           console.error('💥 Exception in fetchProfesionales:', error);
           const errorMessage = formatSupabaseError(error);
@@ -1091,7 +1094,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             email_guardias: pg.email_guardias
           }));
 
-          console.log('✅ Profesionales guardias processed successfully:', profesionalesGuardias.length);
+          console.log('��� Profesionales guardias processed successfully:', profesionalesGuardias.length);
           set({ profesionalesGuardias, loading: false });
         } catch (error: any) {
           console.error('💥 Exception in fetchProfesionalesGuardias:', error);
@@ -2317,34 +2320,37 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
 
       fetchBaremos: async () => {
         set({ loading: true });
+
         try {
-          const { data, error } = await supabase
-            .from('ajustes_baremos')
-            .select('*')
-            .eq('activo', true)
-            .order('created_at', { ascending: false });
+          await retryWithBackoff(async () => {
+            const { data, error } = await supabase
+              .from('ajustes_baremos')
+              .select('*')
+              .eq('activo', true)
+              .order('created_at', { ascending: false });
 
-          if (error) throw error;
+            if (error) throw error;
 
-          // Usar los datos directamente del esquema de la BD
-          const baremos: Baremo[] = (data || []).map(item => ({
-            id: item.id,
-            fuente: item.fuente,
-            categoria: item.categoria,
-            tipo_guardia: item.tipo_guardia,
-            tipo_dia: item.tipo_dia,
-            valor: Number(item.valor),
-            porcentaje_localizable: Number(item.porcentaje_localizable || 10),
-            porcentaje_llamada: Number(item.porcentaje_llamada || 20),
-            vigente_desde: item.vigente_desde,
-            vigente_hasta: item.vigente_hasta,
-            activo: item.activo,
-            observaciones: item.observaciones,
-            created_at: item.created_at,
-            updated_at: item.updated_at
-          }));
+            // Usar los datos directamente del esquema de la BD
+            const baremos: Baremo[] = (data || []).map(item => ({
+              id: item.id,
+              fuente: item.fuente,
+              categoria: item.categoria,
+              tipo_guardia: item.tipo_guardia,
+              tipo_dia: item.tipo_dia,
+              valor: Number(item.valor),
+              porcentaje_localizable: Number(item.porcentaje_localizable || 10),
+              porcentaje_llamada: Number(item.porcentaje_llamada || 20),
+              vigente_desde: item.vigente_desde,
+              vigente_hasta: item.vigente_hasta,
+              activo: item.activo,
+              observaciones: item.observaciones,
+              created_at: item.created_at,
+              updated_at: item.updated_at
+            }));
 
-          set({ baremos, loading: false });
+            set({ baremos, loading: false });
+          });
         } catch (error: any) {
           set({ error: 'Error al cargar baremos: ' + error.message, loading: false });
         }

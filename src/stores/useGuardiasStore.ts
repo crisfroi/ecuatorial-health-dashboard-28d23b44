@@ -1172,11 +1172,11 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               // Asegurar que existe en profesionales_guardias
               const profesionalGuardiaId = await get().ensureProfesionalGuardia(profesional.id);
 
-              // Crear guardias para diferentes turnos
+              // Crear guardias para diferentes turnos (12-24 horas para cumplir constraint)
               const turnos = [
-                { inicio: 8, fin: 16, tipo: 'fisica' },  // Mañana
-                { inicio: 16, fin: 24, tipo: 'fisica' }, // Tarde
-                { inicio: 0, fin: 8, tipo: 'localizable' } // Noche/Localizable
+                { inicio: 8, fin: 20, tipo: 'fisica' },  // Diurna: 8AM-8PM (12 horas)
+                { inicio: 20, fin: 8, tipo: 'localizable', overnight: true }, // Nocturna: 8PM-8AM (12 horas)
+                { inicio: 8, fin: 8, tipo: 'fisica', fullDay: true } // Completa: 8AM-8AM siguiente día (24 horas)
               ];
 
               for (const turno of turnos) {
@@ -1184,12 +1184,36 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
                 fechaInicio.setHours(turno.inicio, 0, 0, 0);
 
                 const fechaFin = new Date(fecha);
-                if (turno.fin === 24) {
+                if (turno.fullDay) {
+                  // Guardia completa de 24 horas
                   fechaFin.setDate(fechaFin.getDate() + 1);
-                  fechaFin.setHours(0, 0, 0, 0);
+                  fechaFin.setHours(turno.fin, 0, 0, 0);
+                } else if (turno.overnight || turno.fin < turno.inicio) {
+                  // Guardia nocturna que cruza la medianoche
+                  fechaFin.setDate(fechaFin.getDate() + 1);
+                  fechaFin.setHours(turno.fin, 0, 0, 0);
                 } else {
+                  // Guardia del mismo día
                   fechaFin.setHours(turno.fin, 0, 0, 0);
                 }
+
+                // Validar duración antes de crear la guardia
+                const durationHours = (fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60);
+
+                if (durationHours < 12 || durationHours > 24) {
+                  console.warn(`⚠️ Skipping invalid guardia: ${durationHours.toFixed(1)}h duration. Required: 12-24h`, {
+                    turno: turno,
+                    fechaInicio: fechaInicio.toISOString(),
+                    fechaFin: fechaFin.toISOString()
+                  });
+                  continue; // Skip this invalid guardia
+                }
+
+                console.log(`✅ Creating valid guardia: ${durationHours.toFixed(1)}h duration`, {
+                  tipo: turno.tipo,
+                  inicio: fechaInicio.toLocaleString(),
+                  fin: fechaFin.toLocaleString()
+                });
 
                 guardiasToCreate.push({
                   profesional_guardia_id: profesionalGuardiaId,
@@ -1203,8 +1227,23 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               }
             }
 
+            // Validación final antes de inserción en lotes
+            console.log('📅 Validation summary:', {
+              totalGuardias: guardiasToCreate.length,
+              avgDuration: guardiasToCreate.length > 0 ?
+                (guardiasToCreate.reduce((sum, g) => {
+                  const start = new Date(g.fecha_inicio);
+                  const end = new Date(g.fecha_fin);
+                  return sum + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+                }, 0) / guardiasToCreate.length).toFixed(1) + ' hours' : 'N/A'
+            });
+
+            if (guardiasToCreate.length === 0) {
+              throw new Error('No se generaron guardias válidas. Verifique la configuración de turnos.');
+            }
+
             // Insertar guardias en lotes para mejor rendimiento
-            console.log('📅 Creating', guardiasToCreate.length, 'guardias...');
+            console.log('📅 Creating', guardiasToCreate.length, 'validated guardias...');
             const batchSize = 50;
             for (let i = 0; i < guardiasToCreate.length; i += batchSize) {
               const batch = guardiasToCreate.slice(i, i + batchSize);
@@ -1213,8 +1252,31 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
                 .insert(batch);
 
               if (guardiaError) {
-                console.error('Error inserting guardias batch:', guardiaError);
-                throw guardiaError;
+                console.error('❌ Error inserting guardias batch:', guardiaError);
+                console.error('❌ Batch details:', {
+                  batchNumber: Math.floor(i / batchSize) + 1,
+                  batchSize: batch.length,
+                  startIndex: i,
+                  endIndex: i + batch.length - 1
+                });
+
+                // Log some sample guardias for debugging
+                if (batch.length > 0) {
+                  console.error('❌ Sample batch guardias:', batch.slice(0, 3).map(g => {
+                    const start = new Date(g.fecha_inicio);
+                    const end = new Date(g.fecha_fin);
+                    const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+                    return {
+                      tipo: g.tipo,
+                      duration: duration.toFixed(1) + 'h',
+                      start: start.toLocaleString(),
+                      end: end.toLocaleString()
+                    };
+                  }));
+                }
+
+                const formattedError = formatSupabaseError(guardiaError);
+                throw new Error(`Error en lote ${Math.floor(i / batchSize) + 1}: ${formattedError}`);
               }
             }
           }

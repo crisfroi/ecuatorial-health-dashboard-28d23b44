@@ -6,6 +6,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useGuardiasStore } from "@/stores/useGuardiasStore";
+import {
+  mapWorkflowToEtapa,
+  mapEtapaToWorkflow,
+  getWorkflowDisplayName,
+  EtapaWorkflow,
+  isValidWorkflowStage
+} from "@/utils/validacionHelpers";
 import { 
   CheckCircle, 
   XCircle, 
@@ -59,7 +66,7 @@ export const ValidacionGuardias: React.FC<ValidacionGuardiasProps> = ({
   
   const [formData, setFormData] = useState({
     guardia_id: '',
-    etapa: 'revision_inicial' as 'revision_inicial' | 'supervision_tecnica' | 'aprobacion_final',
+    etapa: 'revision_inicial' as EtapaWorkflow,
     resultado: '',
     comentario: '',
     firma: ''
@@ -70,10 +77,10 @@ export const ValidacionGuardias: React.FC<ValidacionGuardiasProps> = ({
     fetchGuardias(selectedMonth, selectedYear, selectedCenter);
   }, [selectedMonth, selectedYear, selectedCenter]);
 
-  // Agrupar validaciones por etapa
-  const validacionesRevisionInicial = validaciones.filter(v => v.etapa === 'revision_inicial');
-  const validacionesSupervisionTecnica = validaciones.filter(v => v.etapa === 'supervision_tecnica');
-  const validacionesAprobacionFinal = validaciones.filter(v => v.etapa === 'aprobacion_final');
+  // Agrupar validaciones por etapa (mapear de DB a workflow)
+  const validacionesRevisionInicial = validaciones.filter(v => mapEtapaToWorkflow(v.etapa) === 'revision_inicial');
+  const validacionesSupervisionTecnica = validaciones.filter(v => mapEtapaToWorkflow(v.etapa) === 'supervision_tecnica');
+  const validacionesAprobacionFinal = validaciones.filter(v => mapEtapaToWorkflow(v.etapa) === 'aprobacion_final');
 
   // Filtrar por resultado si es necesario
   const getValidacionesFiltradas = (validacionesEtapa: any[]) => {
@@ -105,9 +112,13 @@ export const ValidacionGuardias: React.FC<ValidacionGuardiasProps> = ({
           description: "La validación ha sido actualizada correctamente.",
         });
       } else {
+        // Map frontend workflow stage to database etapa value
+        const mappedEtapa = mapWorkflowToEtapa(formData.etapa);
+        console.log('🔄 Creating validation with mapped etapa:', formData.etapa, '→', mappedEtapa);
+
         await createValidacion({
           guardia_id: formData.guardia_id,
-          etapa: formData.etapa,
+          etapa: mappedEtapa,
           resultado: formData.resultado,
           comentario: formData.comentario,
           firma: formData.firma
@@ -191,7 +202,7 @@ export const ValidacionGuardias: React.FC<ValidacionGuardiasProps> = ({
   const resetForm = () => {
     setFormData({
       guardia_id: '',
-      etapa: 'revision_inicial',
+      etapa: 'revision_inicial' as EtapaWorkflow,
       resultado: '',
       comentario: '',
       firma: ''

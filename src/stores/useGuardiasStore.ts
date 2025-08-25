@@ -77,6 +77,14 @@ const formatSupabaseError = (error: any): string => {
       case '22007':
         return 'Formato de fecha/hora inválido';
       case '22P02':
+        // Special handling for enum errors
+        if (error.message && error.message.includes('invalid input value for enum')) {
+          const enumMatch = error.message.match(/invalid input value for enum (\w+): "([^"]+)"/);
+          if (enumMatch) {
+            const [, enumType, invalidValue] = enumMatch;
+            return `Valor "${invalidValue}" no válido para el tipo ${enumType}. Valores permitidos: dir_medica, dir_admin, dir_enfermeria, jefe_rrhh, admin_hospital, dir_gerente, dg_coordinacion`;
+          }
+        }
         return 'Valor inválido para el tipo de dato';
       default:
         const codeMsg = error.message || error.details || 'Error de base de datos';
@@ -184,10 +192,16 @@ export interface Cuadrante {
   considerar_preferencias: boolean;
 }
 
+// Database enum values for etapa_validacion
+export type EtapaValidacion = 'dir_medica' | 'dir_admin' | 'dir_enfermeria' | 'jefe_rrhh' | 'admin_hospital' | 'dir_gerente' | 'dg_coordinacion';
+
+// Frontend workflow stages (for UI)
+export type EtapaWorkflow = 'revision_inicial' | 'supervision_tecnica' | 'aprobacion_final';
+
 export interface Validacion {
   id: string;
   guardia_id?: string;
-  etapa: 'revision_inicial' | 'supervision_tecnica' | 'aprobacion_final';
+  etapa: EtapaValidacion;
   usuario_id?: string;
   fecha?: string;
   resultado?: string;
@@ -1402,9 +1416,22 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         console.log('✅ Creating validacion with data:', data);
         set({ loading: true, error: null });
         try {
+          // Map frontend workflow stages to database enum values
+          const workflowToEtapaMap: Record<EtapaWorkflow, EtapaValidacion> = {
+            'revision_inicial': 'dir_medica',
+            'supervision_tecnica': 'jefe_rrhh',
+            'aprobacion_final': 'dir_gerente'
+          };
+
+          // Map the etapa value or use default
+          const frontendEtapa = (data.etapa as EtapaWorkflow) || 'revision_inicial';
+          const mappedEtapa = workflowToEtapaMap[frontendEtapa] || 'dir_medica';
+
+          console.log('🔄 Mapping frontend etapa:', frontendEtapa, '→ database etapa:', mappedEtapa);
+
           const validacionData = {
             guardia_id: data.guardia_id,
-            etapa: data.etapa || 'revision_inicial',
+            etapa: mappedEtapa,
             usuario_id: data.usuario_id,
             resultado: data.resultado,
             comentario: data.comentario,

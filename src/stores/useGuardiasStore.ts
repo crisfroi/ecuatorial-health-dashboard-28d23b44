@@ -576,6 +576,18 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
                 throw new Error(`La fecha de fin (${data.fecha_fin}) debe ser posterior a la fecha de inicio (${data.fecha_inicio})`);
               }
 
+              // Validate duration (must be between 12 and 24 hours)
+              const durationHours = (fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60);
+              console.log('⏱️ Calculated duration:', durationHours, 'hours');
+
+              if (durationHours < 12) {
+                throw new Error(`La duración de la guardia debe ser de al menos 12 horas. Duración actual: ${durationHours.toFixed(1)} horas`);
+              }
+
+              if (durationHours > 24) {
+                throw new Error(`La duración de la guardia no puede exceder 24 horas. Duración actual: ${durationHours.toFixed(1)} horas`);
+              }
+
               // Validate centro_salud_id exists
               if (!data.centro_salud_id) {
                 throw new Error('Centro de salud es requerido');
@@ -1949,7 +1961,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
       },
 
       rechazarPago: async (id) => {
-        console.log('❌ Rejecting pago:', id);
+        console.log('��� Rejecting pago:', id);
         try {
           await get().updatePago(id, { estado: 'rechazado' });
 

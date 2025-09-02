@@ -303,7 +303,7 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
           {/* Chat */}
           <Card className="flex-1 flex flex-col">
             <CardContent className="flex-1 p-0">
-              <ScrollArea className="h-[400px] p-4">
+              <ScrollArea className="h-[520px] p-4">
                 <div className="space-y-4">
                   {messages.map((message) => (
                     <div
@@ -439,4 +439,4 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
   );
 };
 
-export default AIAdvancedAnalyticsChat; 
+export default AIAdvancedAnalyticsChat;

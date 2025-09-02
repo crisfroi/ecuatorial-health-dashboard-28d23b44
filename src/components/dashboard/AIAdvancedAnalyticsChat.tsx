@@ -139,11 +139,12 @@ Ejemplos:
         description: userMessage.content
       });
 
+      const backendText = (result as any)?.data?.response || (result as any)?.data?.text
       const resultMessage: Message = {
         id: (Date.now() + 2).toString(),
         type: "bot",
         content: result.success
-          ? `✅ Consulta completada. Revisa los resultados a la derecha.`
+          ? (backendText || `Consulta completada.`)
           : `❌ Error: ${result.error}`,
         timestamp: new Date()
       };

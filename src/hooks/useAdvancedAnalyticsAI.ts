@@ -364,8 +364,8 @@ export function useAdvancedAnalyticsAI() {
       }
     }
 
-    // Fallback: análisis completo
-    return { query: 'comprehensive', description: original }
+    // Fallback: no ejecutar análisis si no hay intención clara
+    return null
   }, []);
 
   return {

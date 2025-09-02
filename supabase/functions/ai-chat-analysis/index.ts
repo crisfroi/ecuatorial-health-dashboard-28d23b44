@@ -378,6 +378,33 @@ serve(async (req) => {
       });
     }
 
+    if (
+      questionLower.includes("incidencia") ||
+      questionLower.includes("incidente") ||
+      questionLower.includes("reporte")
+    ) {
+      navigationSuggestions.push({
+        type: "navigate",
+        tab: "incidents",
+        filters: {},
+        label: "Ver Incidencias",
+      });
+    }
+
+    if (
+      questionLower.includes("solicitud") ||
+      questionLower.includes("aprob") ||
+      questionLower.includes("rechaz") ||
+      questionLower.includes("pendiente")
+    ) {
+      navigationSuggestions.push({
+        type: "navigate",
+        tab: "requests",
+        filters: {},
+        label: "Ver Solicitudes",
+      });
+    }
+
     return new Response(
       JSON.stringify({
         response: aiResponse,

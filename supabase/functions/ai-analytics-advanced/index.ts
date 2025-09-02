@@ -42,18 +42,25 @@ serve(async (req) => {
         }
       }
 
+      // Recolectar cláusulas OR para aplicarlas en un solo grupo
+      const orClauses: string[] = []
+
       // Institución (coincidencia en institucion_1 o institucion_2)
       if (filters.institucion) {
         const inst = String(filters.institucion).trim()
         const pattern = `%${inst}%`
-        qb = qb.or(`institucion_1.ilike.${pattern},institucion_2.ilike.${pattern}`)
+        orClauses.push(`institucion_1.ilike.${pattern}`, `institucion_2.ilike.${pattern}`)
       }
 
       // País de formación (en cualquiera de los dos campos)
       if (filters.pais_formacion) {
         const pais = String(filters.pais_formacion).trim()
         const pattern = `%${pais}%`
-        qb = qb.or(`pais_formacion_1.ilike.${pattern},pais_formacion_2.ilike.${pattern}`)
+        orClauses.push(`pais_formacion_1.ilike.${pattern}`, `pais_formacion_2.ilike.${pattern}`)
+      }
+
+      if (orClauses.length > 0) {
+        qb = qb.or(orClauses.join(','))
       }
 
       // Año de graduación exacto o rango

@@ -13,6 +13,7 @@ export interface NavigationFilters {
   categoria_titulacion?: string;
   categoria_centro?: string;
   pais_formacion?: string;
+  institucion?: string;
 }
 
 export interface DashboardNavigationProps {
@@ -46,6 +47,16 @@ export const useDashboardNavigation = (
     (centro: string) => {
       onNavigateToTab("professionals", {
         lugar_trabajo: centro,
+        estado_solicitud: "Aprobado",
+      });
+    },
+    [onNavigateToTab],
+  );
+
+  const navigateToInstitution = useCallback(
+    (institution: string) => {
+      onNavigateToTab("professionals", {
+        institucion: institution,
         estado_solicitud: "Aprobado",
       });
     },
@@ -142,6 +153,7 @@ export const useDashboardNavigation = (
     navigateToArea,
     navigateToDistrict,
     navigateToCenter,
+    navigateToInstitution,
     navigateToAgeRange,
     navigateToGraduationYear,
     navigateToCountry,

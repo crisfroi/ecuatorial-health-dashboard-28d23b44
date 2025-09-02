@@ -182,6 +182,14 @@ export function useProfesionales(filtros: Filtros = {}) {
       }
       // --- FIN FILTROS DE FECHA ---
 
+      // Búsqueda libre (server-side) por nombre, área, ID único, lugar de trabajo
+      if (filtros.search && filtros.search.trim()) {
+        const term = filtros.search.trim();
+        query = query.or(
+          `nombre_completo.ilike.%${term}%,area_profesional.ilike.%${term}%,id_profesional_unico.ilike.%${term}%,lugar_trabajo.ilike.%${term}%`
+        );
+      }
+
       // Filtro para funcionarios públicos
       if (filtros.funcion_publica !== undefined) {
         query = query.eq("funcion_publica", filtros.funcion_publica);

@@ -1212,6 +1212,46 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
           </Card>
         </TabsContent>
 
+        {/* Segmented Summary for Education selections */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PieChartIcon className="w-5 h-5 text-teal-600" />
+              Resumen segmentado {selectedCountry ? `- País: ${selectedCountry}` : selectedInstitution ? `- Institución: ${selectedInstitution}` : "(selecciona un país o institución)"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!(selectedCountry || selectedInstitution) ? (
+              <div className="text-sm text-gray-500">Selecciona un país o una institución para ver el detalle.</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold mb-2">Áreas Profesionales</h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {segmentation?.areas.slice(0, 10).map((a) => (
+                      <div key={a.nombre} className="flex items-center justify-between p-2 border rounded">
+                        <span className="text-sm">{a.nombre}</span>
+                        <span className="text-xs text-gray-600">{a.total} ({a.porcentaje.toFixed(1)}%)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Categorías de Titulación</h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {segmentation?.titulaciones.slice(0, 10).map((t) => (
+                      <div key={t.nombre} className="flex items-center justify-between p-2 border rounded">
+                        <span className="text-sm">{t.nombre}</span>
+                        <span className="text-xs text-gray-600">{t.total} ({t.porcentaje.toFixed(1)}%)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Trends Tab */}
         <TabsContent value="trends" className="space-y-6">
           <Card>

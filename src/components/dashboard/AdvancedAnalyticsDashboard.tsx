@@ -67,6 +67,8 @@ import {
   useDashboardNavigation,
   type NavigationFilters,
 } from "@/hooks/useDashboardNavigation";
+import { useAllCountryStats, useAllInstitutionStats } from "@/hooks/useAllFormationStats";
+import { useFormationSegmentation } from "@/hooks/useFormationSegmentation";
 
 // Color palettes for charts
 const COLORS = [

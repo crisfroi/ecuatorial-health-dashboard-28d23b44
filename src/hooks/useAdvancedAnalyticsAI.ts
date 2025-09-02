@@ -157,7 +157,8 @@ export function useAdvancedAnalyticsAI() {
       const { data, error: functionError } = await supabase.functions.invoke('ai-analytics-advanced', {
         body: {
           query: query.query,
-          filters: query.filters || {}
+          filters: query.filters || {},
+          message: query.description || ''
         }
       });
 

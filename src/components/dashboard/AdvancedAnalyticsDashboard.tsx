@@ -395,7 +395,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
             className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
           >
             <Users className="w-4 h-4" />
-            Demograf��a
+            Demografía
           </TabsTrigger>
           <TabsTrigger
             value="education"
@@ -1210,11 +1210,33 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <PieChartIcon className="w-5 h-5 text-teal-600" />
                 Resumen segmentado {selectedCountry ? `- País: ${selectedCountry}` : selectedInstitution ? `- Institución: ${selectedInstitution}` : "(selecciona un país o institución)"}
               </CardTitle>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  disabled={!(selectedCountry || selectedInstitution)}
+                  onClick={() => {
+                    if (selectedCountry) navigateToCountry(selectedCountry);
+                    if (selectedInstitution) navigateToInstitution(selectedInstitution);
+                  }}
+                >
+                  Ver profesionales
+                </Button>
+                <Button
+                  variant="ghost"
+                  disabled={!(selectedCountry || selectedInstitution)}
+                  onClick={() => {
+                    setSelectedCountry(null);
+                    setSelectedInstitution(null);
+                  }}
+                >
+                  Limpiar selección
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {!(selectedCountry || selectedInstitution) ? (

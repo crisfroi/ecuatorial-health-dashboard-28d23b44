@@ -126,7 +126,7 @@ serve(async (req) => {
     // Create comprehensive context for AI
     const dataContext = `
     SISTEMA SANITARIO DE GUINEA ECUATORIAL - DATOS COMPLETOS:
-    
+
     RESUMEN GENERAL:
     - Total de profesionales: ${analytics.summary?.totalProfessionals || 0}
     - Profesionales aprobados: ${analytics.summary?.totalApproved || 0}
@@ -134,34 +134,39 @@ serve(async (req) => {
     - Distritos sanitarios: ${analytics.summary?.totalDistricts || 0}
     - Países de formación: ${analytics.summary?.totalCountries || 0}
     - Instituciones de formación: ${analytics.summary?.totalInstitutions || 0}
-    
+    - Incidencias abiertas: ${analytics.summary?.incidentsOpen || 0} de ${analytics.summary?.totalIncidents || 0}
+    - Carnets generados: ${analytics.carnetStats?.generados || 0}; en cola: ${analytics.carnetStats?.en_cola || 0}
+
     TOP CENTROS DE SALUD (por profesionales):
     ${analytics.topCenters
       ?.slice(0, 10)
       .map(
         (center: any) =>
-          `- ${center.nombre} (${center.categoria}): ${center.total_profesionales} profesionales`,
+          `- ${center.nombre} (${center.categoria || ''}): ${center.total_profesionales} profesionales`,
       )
       .join("\n")}
-    
+
     ÁREAS PROFESIONALES:
-    ${analytics.areaStats?.map((area: any) => `- ${area.area_profesional}: ${area.total} total (${area.aprobados} aprobados, ${area.pendientes} pendientes)`).join("\n")}
-    
+    ${analytics.areaStats?.map((area: any) => `- ${area.area_profesional}: ${area.total}${area.aprobados !== undefined ? ` total (${area.aprobados} aprobados, ${area.pendientes || 0} pendientes)` : ''}`).join("\n")}
+
     DISTRITOS SANITARIOS:
-    ${analytics.districtStats?.map((district: any) => `- ${district.distrito_sanitario}: ${district.total_profesionales} profesionales, ${district.total_centros} centros`).join("\n")}
-    
+    ${analytics.districtStats?.map((district: any) => `- ${district.distrito_sanitario}: ${district.total_profesionales} profesionales, ${district.total_centros || 0} centros`).join("\n")}
+
+    CATEGORÍAS DE CENTROS:
+    ${analytics.centerCategoryStats?.map((cat: any) => `- ${cat.categoria}: ${cat.total_centros} centros`).join("\n")}
+
     DISTRIBUCIÓN POR EDADES:
-    ${analytics.ageRangeStats?.map((age: any) => `- ${age.rango_edad}: ${age.cantidad} profesionales (${age.porcentaje.toFixed(1)}%)`).join("\n")}
-    
+    ${analytics.ageRangeStats?.map((age: any) => `- ${age.rango_edad}: ${age.cantidad} profesionales${age.porcentaje ? ` (${age.porcentaje.toFixed(1)}%)` : ''}`).join("\n")}
+
     PAÍSES DE FORMACIÓN:
     ${analytics.countryStats
       ?.slice(0, 10)
       .map(
         (country: any) =>
-          `- ${country.pais_formacion}: ${country.cantidad} profesionales (${country.porcentaje.toFixed(1)}%)`,
+          `- ${country.pais_formacion}: ${country.cantidad} profesionales${country.porcentaje ? ` (${country.porcentaje.toFixed(1)}%)` : ''}`,
       )
       .join("\n")}
-    
+
     INSTITUCIONES DE FORMACIÓN:
     ${analytics.institutionStats
       ?.slice(0, 10)
@@ -169,12 +174,9 @@ serve(async (req) => {
         (inst: any) => `- ${inst.institucion}: ${inst.cantidad} profesionales`,
       )
       .join("\n")}
-    
-    CATEGORÍAS DE CENTROS:
-    ${analytics.categoryStats?.map((cat: any) => `- ${cat.categoria}: ${cat.total_centros} centros, ${cat.total_profesionales} profesionales`).join("\n")}
-    
+
     CATEGORÍAS DE TITULACIÓN:
-    ${analytics.titulacionStats?.map((tit: any) => `- ${tit.categoria_titulacion}: ${tit.total} total (${tit.aprobados} aprobados)`).join("\n")}
+    ${analytics.titulacionStats?.map((tit: any) => `- ${tit.categoria_titulacion}: ${tit.total} total${tit.aprobados !== undefined ? ` (${tit.aprobados} aprobados)` : ''}`).join("\n")}
     `;
 
     const systemPrompt = `Eres un asistente especializado en análisis de datos del sistema sanitario de Guinea Ecuatorial. 

@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -17,7 +19,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { query, filters } = await req.json()
+    const { query, filters, message } = await req.json()
 
     // Utilidad para aplicar filtros sobre profesionales_sanitarios
     const applyProfessionalFilters = (builder: any, filters: Record<string, any>) => {
@@ -104,6 +106,69 @@ serve(async (req) => {
       }
 
       return qb
+    }
+
+    // Utilidad: invocar OpenAI para extraer intención y filtros
+    const parseWithLLM = async (text: string) => {
+      if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY no configurada')
+
+      const schema = {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['count_professionals'] },
+          filters: {
+            type: 'object',
+            properties: {
+              expira_en_dias: { type: 'number' },
+              carnet_vencido: { type: 'boolean' },
+              vencimiento_proximo: { type: 'boolean' },
+              area_profesional: { type: 'string' },
+              estado_solicitud: { type: 'string' },
+              provincia: { type: 'string' },
+              genero: { type: 'string' },
+              tipo_sector: { type: 'string' },
+              distrito_sanitario: { type: 'string' },
+              institucion: { type: 'string' },
+              pais_formacion: { type: 'string' },
+              ano_graduacion: { type: 'number' },
+              rango_ano_graduacion: { type: 'array', items: { type: 'number' }, minItems: 2, maxItems: 2 }
+            }
+          }
+        },
+        required: ['action']
+      }
+
+      const system = `Eres un parser estricto. Devuelve solo JSON válido (sin texto extra) que cumpla este esquema. Interpreta consultas en español sobre profesionales sanitarios.`
+      const user = `Texto: ${text}\n\nDevuelve un JSON con { action: 'count_professionals', filters?: {...} }.
+- expira_en_dias: número si piden vencen en N días
+- carnet_vencido: true si piden ya vencidos
+- distrito_sanitario, provincia, genero, area_profesional según aparezcan
+- institucion: ej. 'UNGE' si mencionan UNGE
+- pais_formacion si mencionan país de formación
+- ano_graduacion o rango_ano_graduacion si se pide año o rango`
+
+      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          temperature: 0,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: user }
+          ],
+          response_format: { type: 'json_schema', json_schema: { name: 'query_schema', schema, strict: true } }
+        })
+      })
+
+      if (!resp.ok) throw new Error(`OpenAI status ${resp.status}`)
+      const data = await resp.json()
+      const content = data.choices?.[0]?.message?.content
+      const parsed = JSON.parse(content)
+      return parsed
     }
 
     // Función para obtener estadísticas avanzadas
@@ -445,6 +510,31 @@ serve(async (req) => {
       }
 
       return result
+    }
+
+    // Ruta NL-first: si llega message, usar LLM para extraer filtros y contar
+    if (message && typeof message === 'string' && message.trim().length > 0) {
+      try {
+        const intent = await parseWithLLM(message)
+        if (intent?.action === 'count_professionals') {
+          let qb = supabaseClient
+            .from('profesionales_sanitarios')
+            .select('id', { count: 'exact', head: true })
+
+          const combinedFilters = { ...(filters || {}), ...(intent.filters || {}) }
+          qb = applyProfessionalFilters(qb, combinedFilters)
+          const { count, error } = await qb
+          if (error) throw error
+
+          return new Response(
+            JSON.stringify({ success: true, data: { total: count || 0, filtros_aplicados: combinedFilters }, text: `Total encontrados: ${count || 0}` }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          )
+        }
+      } catch (e) {
+        // Continuar al flujo clásico
+        console.error('NL parsing fallback:', e)
+      }
     }
 
     const stats = await getAdvancedStats(query, filters)

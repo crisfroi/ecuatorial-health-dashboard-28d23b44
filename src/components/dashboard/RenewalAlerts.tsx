@@ -264,7 +264,7 @@ const RenewalAlerts = ({
           : "manual_proximo";
       // Llama a la función pasada por prop
       onSendSmsNotification(
-        professional.id_profesional_unico,
+        professional.id,
         professional.telefono,
         professional.nombre_completo,
         professional.fecha_caducidad,

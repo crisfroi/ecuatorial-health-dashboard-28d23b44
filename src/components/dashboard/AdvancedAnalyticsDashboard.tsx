@@ -1097,11 +1097,35 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     <Bar
                       dataKey="cantidad"
                       fill="#0088FE"
-                      onClick={(data) => navigateToCountry(data.pais_formacion)}
+                      onClick={(data) => {
+                        setSelectedCountry(data.pais_formacion);
+                        setSelectedInstitution(null);
+                        navigateToCountry(data.pais_formacion);
+                      }}
                       className="cursor-pointer hover:opacity-80"
                     />
                   </BarChart>
                 </ResponsiveContainer>
+                <div className="mt-4">
+                  <Select
+                    onValueChange={(value) => {
+                      setSelectedCountry(value);
+                      setSelectedInstitution(null);
+                      navigateToCountry(value);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Ver país de formación (todas las opciones)" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      {allCountries.map((c) => (
+                        <SelectItem key={c.pais_formacion} value={c.pais_formacion}>
+                          {c.pais_formacion} ({c.cantidad})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardContent>
             </Card>
 

@@ -14,12 +14,25 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+    const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const envDiagnostics = {
+      openai_key_present: !!OPENAI_API_KEY,
+      supabase_url_present: !!SUPABASE_URL,
+      service_role_present: !!SERVICE_ROLE,
+    }
+    if (!SUPABASE_URL || !SERVICE_ROLE) {
+      console.error('ai-analytics-advanced env missing:', envDiagnostics)
+      return new Response(
+        JSON.stringify({ success: false, error: 'Variables de entorno faltantes', diagnostics: envDiagnostics }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
 
-    const { query, filters, message } = await req.json()
+    const supabaseClient = createClient(SUPABASE_URL, SERVICE_ROLE)
+
+    const { query, filters, message, debug } = await req.json()
+    console.log('ai-analytics-advanced request:', { hasMessage: !!message, query, hasFilters: !!filters })
 
     // Utilidad para aplicar filtros sobre profesionales_sanitarios
     const applyProfessionalFilters = (builder: any, filters: Record<string, any>) => {
@@ -551,7 +564,7 @@ serve(async (req) => {
           } catch (_) {}
 
           return new Response(
-            JSON.stringify({ success: true, data: { total: count || 0, filtros_aplicados: combinedFilters }, response: responseText }),
+            JSON.stringify({ success: true, data: { total: count || 0, filtros_aplicados: combinedFilters }, response: responseText, intent, diagnostics: envDiagnostics }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
           )
         }
@@ -564,7 +577,7 @@ serve(async (req) => {
     const stats = await getAdvancedStats(query, filters)
 
     return new Response(
-      JSON.stringify({ success: true, data: stats }),
+      JSON.stringify({ success: true, data: stats, diagnostics: envDiagnostics }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -572,6 +585,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    console.error('ai-analytics-advanced error:', error)
     return new Response(
       JSON.stringify({ success: false, error: (error as Error).message }),
       {

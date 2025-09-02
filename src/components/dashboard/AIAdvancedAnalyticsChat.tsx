@@ -121,78 +121,48 @@ Ejemplos:
       return;
     }
 
-    // Procesar la consulta
-    const parsedQuery = parseNaturalLanguage(userMessage.content);
-    if (parsedQuery) {
-      try {
-        const suggestions = getSuggestions(inputMessage);
-        
-        // Mensaje de procesamiento
-        const processingMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          type: "bot",
-          content: `🔍 **Procesando consulta...**\n\nAnalizando: "${parsedQuery.description}"\nCategoría: ${categories.find(cat => cat.queries.includes(parsedQuery.query))?.name || 'Análisis General'}`,
-          timestamp: new Date(),
-          query: parsedQuery,
-          suggestions
-        };
-
-        setMessages(prev => [...prev, processingMessage]);
-
-        // Ejecutar la consulta
-        const result = await queryStats(parsedQuery);
-
-        // Mensaje de resultado
-        const resultMessage: Message = {
-          id: (Date.now() + 2).toString(),
-          type: "bot",
-          content: result.success 
-            ? `✅ **Análisis completado exitosamente**\n\nHe encontrado datos relevantes para tu consulta. Los resultados se muestran a continuación.`
-            : `❌ **Error en el análisis**\n\nNo pude procesar tu consulta: ${result.error}`,
-          timestamp: new Date(),
-          query: parsedQuery
-        };
-
-        setMessages(prev => [...prev, resultMessage]);
-
-        if (result.success) {
-          toast({
-            title: "Análisis completado",
-            description: "Los resultados están listos para revisar",
-          });
-        } else {
-          toast({
-            title: "Error en el análisis",
-            description: result.error || "Error desconocido",
-            variant: "destructive"
-          });
-        }
-
-      } catch (error) {
-        const errorMessage: Message = {
-          id: (Date.now() + 2).toString(),
-          type: "bot",
-          content: `❌ **Error inesperado**\n\nOcurrió un error al procesar tu consulta. Por favor, intenta de nuevo.`,
-          timestamp: new Date()
-        };
-
-        setMessages(prev => [...prev, errorMessage]);
-        
-        toast({
-          title: "Error",
-          description: "Error inesperado al procesar la consulta",
-          variant: "destructive"
-        });
-      }
-    } else {
-      const promptHelp: Message = {
+    try {
+      const suggestions = getSuggestions(userMessage.content);
+      const processingMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: "bot",
-        content: `No entendí la intención. Intenta algo como:\n• ¿Cuántos carnets vencen en menos de 90 días?\n• ¿Cuántos graduados UNGE trabajan en Litoral?\n• ¿Cuántas enfermeras aprobadas hay en Bioko Norte?`,
+        content: `🔍 Procesando consulta en el servidor...`,
+        timestamp: new Date(),
+        suggestions
+      };
+      setMessages(prev => [...prev, processingMessage]);
+
+      // Enviar siempre el texto al backend para parseo NL y conteo
+      const result = await queryStats({
+        query: 'query_professionals',
+        filters: {},
+        description: userMessage.content
+      });
+
+      const resultMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        type: "bot",
+        content: result.success
+          ? `✅ Consulta completada. Revisa los resultados a la derecha.`
+          : `❌ Error: ${result.error}`,
         timestamp: new Date()
       };
+      setMessages(prev => [...prev, resultMessage]);
 
-      setMessages(prev => [...prev, promptHelp]);
+      if (result.success) {
+        toast({ title: "Análisis completado", description: "Resultados listos." });
+      } else {
+        toast({ title: "Error en el análisis", description: result.error || "Error desconocido", variant: "destructive" });
+      }
+    } catch (error) {
+      const errorMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        type: "bot",
+        content: `❌ Error inesperado. Intenta de nuevo.`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      toast({ title: "Error", description: "Fallo al procesar la consulta", variant: "destructive" });
     }
   };
 

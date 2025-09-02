@@ -42,6 +42,7 @@ interface DashboardFilters {
   categoria_centro?: string;
   funcion_publica?: boolean;
   pais_formacion?: string;
+  institucion?: string;
   vencimiento_proximo?: boolean;
   carnet_vencido?: boolean;
   prioridad_renovacion?: "alta" | "media" | "baja" | "vencido" | "all";
@@ -247,6 +248,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     if (dashboardFilters?.categoria_centro) filters.categoria_centro = dashboardFilters.categoria_centro;
     if (dashboardFilters?.funcion_publica !== undefined) filters.funcion_publica = dashboardFilters.funcion_publica;
     if (dashboardFilters?.pais_formacion) filters.pais_formacion = dashboardFilters.pais_formacion;
+    if (dashboardFilters?.institucion) filters.institucion = dashboardFilters.institucion;
     console.log(
       "ProfessionalsTable: Final combinedQueryFilters passed to useProfesionales (from useMemo):",
       filters,

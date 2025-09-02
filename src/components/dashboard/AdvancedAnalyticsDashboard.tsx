@@ -56,6 +56,7 @@ import {
   useTitulacionCategoryStats,
 } from "@/hooks/useAdvancedAnalytics";
 import { useQueryClient } from "@tanstack/react-query";
+import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
 import DistrictAnalytics from "./DistrictAnalytics";
 import InteractiveCharts from "./InteractiveCharts";
 import AnalyticsSummary from "./AnalyticsSummary";
@@ -138,6 +139,11 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     useAreaProfessionalStats();
   const { data: districtStats = [], isLoading: loadingDistricts } =
     useDistrictStats();
+  const { data: allDistrictRows = [] } = useDistritosSanitarios();
+  const allDistrictNames = (allDistrictRows || [])
+    .map((d: any) => d.nombre_distrito)
+    .filter((n: any) => !!n)
+    .sort();
   const { data: ageRangeStats = [], isLoading: loadingAges } =
     useAgeRangeStats();
   const { data: graduationStats = [], isLoading: loadingGraduation } =
@@ -836,12 +842,9 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                 <SelectItem value="all">
                   Todos los distritos (Vista General)
                 </SelectItem>
-                {districtStats.map((district) => (
-                  <SelectItem
-                    key={district.distrito_sanitario}
-                    value={district.distrito_sanitario}
-                  >
-                    {district.distrito_sanitario}
+                {allDistrictNames.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -875,11 +878,15 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                         dataKey="total_profesionales"
                         fill="#8884d8"
                         name="Profesionales"
+                        onClick={(data) => navigateToDistrict(data.distrito_sanitario)}
+                        className="cursor-pointer hover:opacity-80"
                       />
                       <Bar
                         dataKey="total_centros"
                         fill="#82ca9d"
                         name="Centros"
+                        onClick={(data) => navigateToDistrict(data.distrito_sanitario)}
+                        className="cursor-pointer hover:opacity-80"
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -950,9 +957,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
             <DistrictAnalytics
               selectedDistrict={selectedDistrict}
               onDistrictChange={setSelectedDistrict}
-              availableDistricts={districtStats.map(
-                (d) => d.distrito_sanitario,
-              )}
+              availableDistricts={allDistrictNames}
+              onNavigateToTab={onNavigateToTab}
             />
           )}
         </TabsContent>

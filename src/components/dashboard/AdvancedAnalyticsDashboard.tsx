@@ -106,6 +106,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
 }) => {
   const [selectedView, setSelectedView] = useState("overview");
   const [selectedDistrict, setSelectedDistrict] = useState("all");
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedInstitution, setSelectedInstitution] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // Auto-refresh data every 30 seconds for real-time updates
@@ -156,6 +158,13 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     useCountryStats();
   const { data: institutionStats = [], isLoading: loadingInstitutions } =
     useInstitutionStats();
+  const { data: allCountries = [] } = useAllCountryStats();
+  const { data: allInstitutions = [] } = useAllInstitutionStats();
+
+  const { data: segmentation } = useFormationSegmentation({
+    country: selectedCountry || undefined,
+    institution: selectedInstitution || undefined,
+  });
   const { data: categoryStats = [], isLoading: loadingCategories } =
     useCenterCategoryStats();
   const { data: titulacionStats = [], isLoading: loadingTitulacion } =

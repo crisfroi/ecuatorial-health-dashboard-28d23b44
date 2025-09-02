@@ -84,6 +84,8 @@ interface Filtros {
   vencimiento_proximo?: boolean;
   carnet_vencido?: boolean;
   prioridad_renovacion?: "alta" | "media" | "baja" | "vencido" | "all";
+  pais_formacion?: string;
+  institucion?: string;
 }
 
 const Dashboard = () => {

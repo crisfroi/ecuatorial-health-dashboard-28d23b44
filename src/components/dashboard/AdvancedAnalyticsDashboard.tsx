@@ -395,7 +395,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
             className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
           >
             <Users className="w-4 h-4" />
-            Demografía
+            Demograf��a
           </TabsTrigger>
           <TabsTrigger
             value="education"
@@ -1102,7 +1102,6 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       onClick={(data) => {
                         setSelectedCountry(data.pais_formacion);
                         setSelectedInstitution(null);
-                        navigateToCountry(data.pais_formacion);
                       }}
                       className="cursor-pointer hover:opacity-80"
                     />
@@ -1113,7 +1112,6 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     onValueChange={(value) => {
                       setSelectedCountry(value);
                       setSelectedInstitution(null);
-                      navigateToCountry(value);
                     }}
                   >
                     <SelectTrigger>
@@ -1147,7 +1145,6 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       onClick={() => {
                         setSelectedInstitution(inst.institucion);
                         setSelectedCountry(null);
-                        navigateToInstitution(inst.institucion);
                       }}
                     >
                       <div className="flex-1">
@@ -1169,7 +1166,6 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     onValueChange={(value) => {
                       setSelectedInstitution(value);
                       setSelectedCountry(null);
-                      navigateToInstitution(value);
                     }}
                   >
                     <SelectTrigger>

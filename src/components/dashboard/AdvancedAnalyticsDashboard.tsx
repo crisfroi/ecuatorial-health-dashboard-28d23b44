@@ -119,6 +119,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
       queryClient.invalidateQueries({ queryKey: ["ageRangeStats"] });
       queryClient.invalidateQueries({ queryKey: ["countryStats"] });
       queryClient.invalidateQueries({ queryKey: ["institutionStats"] });
+      queryClient.invalidateQueries({ queryKey: ["allCountryStats"] });
+      queryClient.invalidateQueries({ queryKey: ["allInstitutionStats"] });
       queryClient.invalidateQueries({ queryKey: ["centerCategoryStats"] });
       queryClient.invalidateQueries({ queryKey: ["titulacionCategoryStats"] });
     }, 30000); // Refresh every 30 seconds

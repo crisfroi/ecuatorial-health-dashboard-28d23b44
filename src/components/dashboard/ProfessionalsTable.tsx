@@ -214,6 +214,8 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
 
   const combinedQueryFilters = useMemo(() => {
     const filters: any = {
+      // Búsqueda de texto enviada al servidor
+      search: searchTerm.trim() || undefined,
       // Género: Ahora siempre se lee de localFilters
       genero: localFilters.genero === "todos" ? "" : localFilters.genero,
 

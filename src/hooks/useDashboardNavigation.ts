@@ -1,4 +1,3 @@
-
 import { useCallback } from "react";
 
 export interface NavigationFilters {
@@ -13,6 +12,7 @@ export interface NavigationFilters {
   año_graduacion?: number;
   categoria_titulacion?: string;
   categoria_centro?: string;
+  pais_formacion?: string;
 }
 
 export interface DashboardNavigationProps {
@@ -104,7 +104,7 @@ export const useDashboardNavigation = (
     (country: string) => {
       onNavigateToTab("professionals", {
         estado_solicitud: "Aprobado",
-        // We'll need to add country filter support to the professionals table
+        pais_formacion: country,
       });
     },
     [onNavigateToTab],

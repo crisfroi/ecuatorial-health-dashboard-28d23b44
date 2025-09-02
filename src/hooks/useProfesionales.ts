@@ -52,6 +52,7 @@ interface Filtros {
   categoria_titulacion?: string;
   categoria_centro?: string;
   funcion_publica?: boolean; // Filtro para funcionarios públicos
+  pais_formacion?: string; // País de formación (1 o 2)
   // Filtros de fecha
   fecha_solicitud_gte?: string;
   fecha_solicitud_lte?: string;
@@ -77,6 +78,7 @@ export interface NavigationFilters {
   funcion_publica?: boolean; // Filtro para funcionarios públicos
   fecha_solicitud_gte?: string;
   fecha_solicitud_lte?: string;
+  pais_formacion?: string;
 }
 
 export function useProfesionales(filtros: Filtros = {}) {
@@ -145,6 +147,14 @@ export function useProfesionales(filtros: Filtros = {}) {
 
       if (filtros.categoria_centro && filtros.categoria_centro !== "todos") {
         query = query.eq("categoria_centro", filtros.categoria_centro);
+      }
+
+      if (filtros.pais_formacion && filtros.pais_formacion !== "todos") {
+        // Buscar por país de formación en cualquiera de las columnas pais_formacion_1 o pais_formacion_2
+        // Nota: Si el valor contiene comas, puede requerir ajuste adicional en el patrón OR
+        query = query.or(
+          `pais_formacion_1.eq.${filtros.pais_formacion},pais_formacion_2.eq.${filtros.pais_formacion}`
+        );
       }
 
       // --- APLICAR FILTROS DE FECHA ---

@@ -222,7 +222,7 @@ serve(async (req) => {
     Tienes acceso a datos actualizados del registro nacional de profesionales sanitarios (RENAPROSA).
     
     Tu función es analizar y responder preguntas sobre:
-    - Estad��sticas de profesionales sanitarios y centros de salud
+    - Estadísticas de profesionales sanitarios y centros de salud
     - Distribución geográfica de profesionales por distritos sanitarios
     - Estados de solicitudes y procesos de acreditación
     - Tendencias y patrones en los datos
@@ -444,6 +444,22 @@ serve(async (req) => {
       });
     }
 
+    const diagnostics: any = {
+      hasServiceRole: !!SERVICE_ROLE,
+      hasSupabaseUrl: !!SUPABASE_URL,
+      hasOpenAI: !!openAIApiKey,
+      detectedFilters: structured?.filters || null,
+      dbCount: dbCount ?? null,
+      usedServerAnalytics: true,
+    }
+
+    if (typeof analytics?.summary?.totalProfessionals === 'number') diagnostics.totalProfessionals = analytics.summary.totalProfessionals
+    if (typeof analytics?.summary?.totalCenters === 'number') diagnostics.totalCenters = analytics.summary.totalCenters
+    if (typeof analytics?.summary?.totalIncidents === 'number') diagnostics.totalIncidents = analytics.summary.totalIncidents
+
+    // Add error traces if present
+    if (!SERVICE_ROLE) diagnostics.reason = 'Missing SUPABASE_SERVICE_ROLE_KEY in Edge function environment'
+
     return new Response(
       JSON.stringify({
         response: aiResponse,
@@ -454,14 +470,7 @@ serve(async (req) => {
           topCentersCount: analytics.topCenters?.length || 0,
           districtsCount: analytics.districtStats?.length || 0,
         } : null,
-        diagnostics: {
-          hasServiceRole: !!SERVICE_ROLE,
-          hasSupabaseUrl: !!SUPABASE_URL,
-          hasOpenAI: !!openAIApiKey,
-          usedServerAnalytics: !analyticsInput && !!analytics,
-          detectedFilters: structured?.filters || null,
-          dbCount
-        }
+        diagnostics
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

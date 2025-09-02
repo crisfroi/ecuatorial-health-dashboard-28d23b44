@@ -52,6 +52,8 @@ interface Filtros {
   categoria_titulacion?: string;
   categoria_centro?: string;
   funcion_publica?: boolean; // Filtro para funcionarios públicos
+  pais_formacion?: string; // País de formación (1 o 2)
+  institucion?: string; // Institución de formación (1 o 2)
   // Filtros de fecha
   fecha_solicitud_gte?: string;
   fecha_solicitud_lte?: string;
@@ -77,6 +79,8 @@ export interface NavigationFilters {
   funcion_publica?: boolean; // Filtro para funcionarios públicos
   fecha_solicitud_gte?: string;
   fecha_solicitud_lte?: string;
+  pais_formacion?: string;
+  institucion?: string;
 }
 
 export function useProfesionales(filtros: Filtros = {}) {
@@ -147,6 +151,20 @@ export function useProfesionales(filtros: Filtros = {}) {
         query = query.eq("categoria_centro", filtros.categoria_centro);
       }
 
+      if (filtros.pais_formacion && filtros.pais_formacion !== "todos") {
+        // Buscar por país de formación en cualquiera de las columnas pais_formacion_1 o pais_formacion_2
+        query = query.or(
+          `pais_formacion_1.eq.${filtros.pais_formacion},pais_formacion_2.eq.${filtros.pais_formacion}`
+        );
+      }
+
+      if (filtros.institucion && filtros.institucion !== "todos") {
+        // Buscar por institución en cualquiera de las columnas institucion_1 o institucion_2
+        query = query.or(
+          `institucion_1.eq.${filtros.institucion},institucion_2.eq.${filtros.institucion}`
+        );
+      }
+
       // --- APLICAR FILTROS DE FECHA ---
       // Asumimos que la columna para la fecha de solicitud es 'created_at' en tu tabla
       if (filtros.fecha_solicitud_gte) {
@@ -163,6 +181,14 @@ export function useProfesionales(filtros: Filtros = {}) {
         // query = query.lte('created_at', filtros.fecha_solicitud_lte + 'T23:59:59.999Z');
       }
       // --- FIN FILTROS DE FECHA ---
+
+      // Búsqueda libre (server-side) por nombre, área, ID único, lugar de trabajo
+      if (filtros.search && filtros.search.trim()) {
+        const term = filtros.search.trim();
+        query = query.or(
+          `nombre_completo.ilike.%${term}%,area_profesional.ilike.%${term}%,id_profesional_unico.ilike.%${term}%,lugar_trabajo.ilike.%${term}%`
+        );
+      }
 
       // Filtro para funcionarios públicos
       if (filtros.funcion_publica !== undefined) {

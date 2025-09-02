@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -145,7 +144,20 @@ export const PersonalInfoStep = ({ form, nacionalidades, watchedValues }: Person
           <FormItem>
             <FormLabel>Teléfono *</FormLabel>
             <FormControl>
-              <Input placeholder="Ej: +240123456789" {...field} />
+              <Input
+                placeholder="Ej: +240XXXXXXXX"
+                inputMode="tel"
+                value={field.value}
+                onChange={(e) => {
+                  let v = e.target.value.replace(/\s|-/g, "");
+                  if (v && !v.startsWith("+240")) {
+                    if (v.startsWith("00240")) v = "+" + v.slice(2);
+                    else if (v.startsWith("240")) v = "+" + v;
+                    else if (!v.startsWith("+")) v = "+240" + v.replace(/^0+/, "");
+                  }
+                  field.onChange(v);
+                }}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>

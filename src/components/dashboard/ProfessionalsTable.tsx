@@ -32,6 +32,17 @@ interface DashboardFilters {
   provincia?: string;
   genero?: string;
   tipo_sector?: string;
+  distrito?: string;
+  distrito_sanitario?: string;
+  lugar_trabajo?: string;
+  edad_minima?: number;
+  edad_maxima?: number;
+  año_graduacion?: number;
+  categoria_titulacion?: string;
+  categoria_centro?: string;
+  funcion_publica?: boolean;
+  pais_formacion?: string;
+  institucion?: string;
   vencimiento_proximo?: boolean;
   carnet_vencido?: boolean;
   prioridad_renovacion?: "alta" | "media" | "baja" | "vencido" | "all";
@@ -202,41 +213,50 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   }, [dashboardFilters]);
 
   const combinedQueryFilters = useMemo(() => {
-    const filters = {
+    const filters: any = {
+      // Búsqueda de texto enviada al servidor
+      search: searchTerm.trim() || undefined,
       // Género: Ahora siempre se lee de localFilters
-      genero: localFilters.genero === "todos" ? "" : localFilters.genero, // <<< CAMBIO CLAVE 3: Leer de localFilters
+      genero: localFilters.genero === "todos" ? "" : localFilters.genero,
 
       estado_solicitud:
         localFilters.estado_solicitud === "todos" ||
         localFilters.estado_solicitud === "Aprobado"
-          ? "Aprobado" // Siempre 'Aprobado' si es 'todos' o 'Aprobado' en localFilters
+          ? "Aprobado"
           : localFilters.estado_solicitud,
 
       area_profesional:
-        localFilters.area_profesional === "todos"
-          ? ""
-          : localFilters.area_profesional,
-      provincia:
-        localFilters.provincia === "todos" ? "" : localFilters.provincia,
-      tipo_sector:
-        localFilters.tipo_sector === "todos" ? "" : localFilters.tipo_sector,
+        localFilters.area_profesional === "todos" ? "" : localFilters.area_profesional,
+      provincia: localFilters.provincia === "todos" ? "" : localFilters.provincia,
+      tipo_sector: localFilters.tipo_sector === "todos" ? "" : localFilters.tipo_sector,
 
-      // Los filtros específicos del dashboard (vencimiento_proximo, carnet_vencido, prioridad_renovacion)
-      // se siguen tomando directamente de dashboardFilters, ya que no son parte de los selectores locales.
+      // Filtros especiales provenientes del dashboard
       vencimiento_proximo: dashboardFilters?.vencimiento_proximo || undefined,
       carnet_vencido: dashboardFilters?.carnet_vencido || undefined,
       prioridad_renovacion:
-        dashboardFilters?.prioridad_renovacion &&
-        dashboardFilters.prioridad_renovacion !== "all"
+        dashboardFilters?.prioridad_renovacion && dashboardFilters.prioridad_renovacion !== "all"
           ? dashboardFilters.prioridad_renovacion
           : undefined,
     };
+
+    // Pasar directamente otros filtros provenientes de analytics
+    if (dashboardFilters?.distrito_sanitario) filters.distrito_sanitario = dashboardFilters.distrito_sanitario;
+    if (dashboardFilters?.distrito) filters.distrito = dashboardFilters.distrito;
+    if (dashboardFilters?.lugar_trabajo) filters.lugar_trabajo = dashboardFilters.lugar_trabajo;
+    if (dashboardFilters?.edad_minima !== undefined) filters.edad_minima = dashboardFilters.edad_minima;
+    if (dashboardFilters?.edad_maxima !== undefined) filters.edad_maxima = dashboardFilters.edad_maxima;
+    if (dashboardFilters?.año_graduacion !== undefined) filters.año_graduacion = dashboardFilters.año_graduacion;
+    if (dashboardFilters?.categoria_titulacion) filters.categoria_titulacion = dashboardFilters.categoria_titulacion;
+    if (dashboardFilters?.categoria_centro) filters.categoria_centro = dashboardFilters.categoria_centro;
+    if (dashboardFilters?.funcion_publica !== undefined) filters.funcion_publica = dashboardFilters.funcion_publica;
+    if (dashboardFilters?.pais_formacion) filters.pais_formacion = dashboardFilters.pais_formacion;
+    if (dashboardFilters?.institucion) filters.institucion = dashboardFilters.institucion;
     console.log(
       "ProfessionalsTable: Final combinedQueryFilters passed to useProfesionales (from useMemo):",
       filters,
     );
     return filters;
-  }, [dashboardFilters, localFilters]); // Mantenemos ambas dependencias por los filtros específicos del dashboard
+  }, [dashboardFilters, localFilters]);
 
   const {
     data: profesionales = [],

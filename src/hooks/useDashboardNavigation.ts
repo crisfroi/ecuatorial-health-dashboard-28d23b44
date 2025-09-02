@@ -1,4 +1,3 @@
-
 import { useCallback } from "react";
 
 export interface NavigationFilters {
@@ -13,6 +12,8 @@ export interface NavigationFilters {
   año_graduacion?: number;
   categoria_titulacion?: string;
   categoria_centro?: string;
+  pais_formacion?: string;
+  institucion?: string;
 }
 
 export interface DashboardNavigationProps {
@@ -46,6 +47,16 @@ export const useDashboardNavigation = (
     (centro: string) => {
       onNavigateToTab("professionals", {
         lugar_trabajo: centro,
+        estado_solicitud: "Aprobado",
+      });
+    },
+    [onNavigateToTab],
+  );
+
+  const navigateToInstitution = useCallback(
+    (institution: string) => {
+      onNavigateToTab("professionals", {
+        institucion: institution,
         estado_solicitud: "Aprobado",
       });
     },
@@ -104,7 +115,7 @@ export const useDashboardNavigation = (
     (country: string) => {
       onNavigateToTab("professionals", {
         estado_solicitud: "Aprobado",
-        // We'll need to add country filter support to the professionals table
+        pais_formacion: country,
       });
     },
     [onNavigateToTab],
@@ -142,6 +153,7 @@ export const useDashboardNavigation = (
     navigateToArea,
     navigateToDistrict,
     navigateToCenter,
+    navigateToInstitution,
     navigateToAgeRange,
     navigateToGraduationYear,
     navigateToCountry,

@@ -25,6 +25,18 @@ export interface AnalyticsCategory {
 
 export const ANALYTICS_CATEGORIES: AnalyticsCategory[] = [
   {
+    id: 'query_professionals',
+    name: 'Consultas Específicas',
+    description: 'Búsquedas dirigidas con filtros (cuentas exactas)',
+    queries: ['query_professionals'],
+    examples: [
+      '¿Cuántos profesionales tendrán el carnet vencido en menos de 90 días?',
+      '¿Cuántos graduados en la UNGE trabajan en el distrito sanitario de Litoral?',
+      '¿Cuántas enfermeras aprobadas hay en Bioko Norte?',
+      '¿Cuántos profesionales con carnet vencido hay actualmente?'
+    ]
+  },
+  {
     id: 'demographics',
     name: 'Demografía',
     description: 'Estadísticas demográficas de los profesionales',
@@ -145,7 +157,8 @@ export function useAdvancedAnalyticsAI() {
       const { data, error: functionError } = await supabase.functions.invoke('ai-analytics-advanced', {
         body: {
           query: query.query,
-          filters: query.filters || {}
+          filters: query.filters || {},
+          message: query.description || ''
         }
       });
 
@@ -226,71 +239,134 @@ export function useAdvancedAnalyticsAI() {
   }, []);
 
   const parseNaturalLanguage = useCallback((userInput: string): AdvancedStatsQuery | null => {
-    const input = userInput.toLowerCase();
-    
-    // Mapeo de palabras clave a consultas
+    const original = userInput.trim()
+    const input = original.toLowerCase()
+
+    // 1) Detectar consultas de conteo específicas (query_professionals)
+    const wantsCount = /(cuant[ao]s|n[uú]mero|total|cu[aá]ntos)/i.test(original)
+
+    // a) Vencimientos en N días
+    const vencKeywords = /(vencid|vence|caduc|pr[oó]xim[oa]s? a vencer|pr[oó]xim[oa]s)/i
+    const daysMatch = input.match(/(menos\s+de\s+|en\s+los\s+pr[oó]ximos\s+|en\s+)?(\d{1,4})\s*d[ií]as/)
+
+    if (vencKeywords.test(input) && daysMatch) {
+      const days = parseInt(daysMatch[2], 10)
+      return {
+        query: 'query_professionals',
+        description: original,
+        filters: { expira_en_dias: isNaN(days) ? 30 : days }
+      }
+    }
+
+    // b) Carnets vencidos actualmente
+    if (/(carnet|acreditaci[oó]n).*(vencid[oa]s?|caducad[oa]s?)/i.test(original)) {
+      return {
+        query: 'query_professionals',
+        description: original,
+        filters: { carnet_vencido: true }
+      }
+    }
+
+    // c) Graduados en UNGE + distrito sanitario
+    const unge = /(unge|universidad\s+nacional\s+de\s+guinea\s+ecuatorial)/i.test(input)
+    const distritoMatch = input.match(/distrito\s+sanitario\s+de\s+([a-zA-Z\u00C0-\u017F\s]+)/)
+    if (unge || distritoMatch) {
+      const filters: Record<string, any> = {}
+      if (unge) filters.institucion = 'UNGE'
+      if (distritoMatch) filters.distrito_sanitario = distritoMatch[1].trim()
+      return {
+        query: 'query_professionals',
+        description: original,
+        filters
+      }
+    }
+
+    // d) Área profesional, provincia, género (búsquedas simples)
+    const areaMatch = input.match(/(área|area)\s+profesional\s+de\s+([a-zA-Z\u00C0-\u017F\s]+)/)
+    if (wantsCount && areaMatch) {
+      return { query: 'query_professionals', description: original, filters: { area_profesional: areaMatch[2].trim() } }
+    }
+
+    const provinciaMatch = input.match(/provincia\s+de\s+([a-zA-Z\u00C0-\u017F\s]+)/)
+    if (wantsCount && provinciaMatch) {
+      return { query: 'query_professionals', description: original, filters: { provincia: provinciaMatch[1].trim() } }
+    }
+
+    const generoMatch = input.match(/(hombres|mujeres|masculino|femenino)/)
+    if (wantsCount && generoMatch) {
+      const gen = generoMatch[1]
+      const genero = /hombres|masculino/.test(gen) ? 'Masculino' : 'Femenino'
+      return { query: 'query_professionals', description: original, filters: { genero } }
+    }
+
+    // 2) Mapeo de palabras clave a consultas agregadas
     const keywordMappings: Record<string, string> = {
       'demografía': 'demographics',
       'demografico': 'demographics',
+      'género': 'demographics',
       'genero': 'demographics',
       'edad': 'demographics',
       'nacionalidad': 'demographics',
       'provincia': 'demographics',
-      
+
+      'área': 'professional_areas',
       'area': 'professional_areas',
       'especialidad': 'professional_areas',
       'profesional': 'professional_areas',
+      'categoría': 'professional_areas',
       'categoria': 'professional_areas',
-      
+
+      'formación': 'education',
       'formacion': 'education',
+      'educación': 'education',
       'educacion': 'education',
+      'graduación': 'education',
       'graduacion': 'education',
+      'institución': 'education',
       'institucion': 'education',
       'universidad': 'education',
+      'país': 'education',
       'pais': 'education',
-      
+
       'centro': 'work_centers',
       'trabajo': 'work_centers',
       'distrito': 'work_centers',
       'sector': 'work_centers',
+      'situación': 'work_centers',
       'situacion': 'work_centers',
-      
+
       'solicitud': 'application_status',
       'estado': 'application_status',
+      'aprobación': 'application_status',
       'aprobacion': 'application_status',
       'rechazo': 'application_status',
       'urgencia': 'application_status',
-      
+
       'carnet': 'carnet_generation',
+      'generación': 'carnet_generation',
       'generacion': 'carnet_generation',
       'cola': 'carnet_generation',
-      
+
       'temporal': 'temporal_analysis',
       'tiempo': 'temporal_analysis',
+      'evolución': 'temporal_analysis',
       'evolucion': 'temporal_analysis',
       'tendencia': 'temporal_analysis',
-      
+
       'completo': 'comprehensive',
       'comprehensive': 'comprehensive',
       'todo': 'comprehensive',
       'resumen': 'comprehensive'
-    };
+    }
 
-    // Buscar la consulta más apropiada
     for (const [keyword, query] of Object.entries(keywordMappings)) {
       if (input.includes(keyword)) {
-        return {
-          query,
-          description: userInput
-        };
+        return { query, description: original }
       }
     }
 
-    // Si no se encuentra una coincidencia específica, devolver análisis comprehensivo
-    return {
-      query: 'comprehensive',
-      description: userInput
-    };
+    // Fallback: no ejecutar análisis si no hay intención clara
+    return null
   }, []);
 
   return {
@@ -305,4 +381,4 @@ export function useAdvancedAnalyticsAI() {
     parseNaturalLanguage,
     categories: ANALYTICS_CATEGORIES
   };
-} 
+}

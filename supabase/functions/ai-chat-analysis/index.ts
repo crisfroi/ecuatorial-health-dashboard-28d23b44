@@ -1,7 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,14 +18,75 @@ serve(async (req) => {
   }
 
   try {
-    const { message, analytics } = await req.json();
+    const { message, analytics: analyticsInput } = await req.json();
     const question = message;
 
-    console.log("Received question:", question);
-    console.log("Received analytics data:", analytics ? "Yes" : "No");
+    if (!openAIApiKey) {
+      return new Response(JSON.stringify({ error: 'OPENAI_API_KEY missing' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }})
+    }
+
+    console.log("ai-chat-analysis | question:", question);
+
+    const supabase = (SUPABASE_URL && SERVICE_ROLE)
+      ? createClient(SUPABASE_URL, SERVICE_ROLE)
+      : null
+
+    // If frontend did not send analytics, compute a broad snapshot from DB
+    let analytics = analyticsInput
+    if (!analytics && supabase) {
+      console.log('ai-chat-analysis | computing analytics snapshot server-side')
+      // Fetch needed columns in one pass to reduce roundtrips
+      const { data: pros, error: prosErr } = await supabase
+        .from('profesionales_sanitarios')
+        .select('id, estado_solicitud, area_profesional, provincia, distrito_sanitario, nombre_centro, categoria_centro, pais_formacion_1, pais_formacion_2, institucion_1, institucion_2, año_graduacion, fecha_caducidad')
+        .limit(20000)
+
+      if (prosErr) {
+        console.error('analytics snapshot error:', prosErr)
+      }
+
+      const totalProfessionals = pros?.length || 0
+      const totalApproved = pros?.filter(p => p.estado_solicitud === 'Aprobado').length || 0
+
+      const countBy = (arr: any[], key: string) => arr?.reduce((acc: any, it: any) => {
+        const k = it?.[key]
+        if (k) acc[k] = (acc[k] || 0) + 1
+        return acc
+      }, {}) || {}
+
+      const areaStats = Object.entries(countBy(pros || [], 'area_profesional')).map(([area_profesional, total]) => ({ area_profesional, total }))
+      const districtStats = Object.entries(countBy(pros || [], 'distrito_sanitario')).map(([distrito_sanitario, total_profesionales]) => ({ distrito_sanitario, total_profesionales, total_centros: 0 }))
+      const countryStatsRaw = countBy((pros || []).flatMap(p => [p.pais_formacion_1, p.pais_formacion_2].filter(Boolean).map((pais: string) => ({ pais_formacion: pais }))), 'pais_formacion')
+      const countryStats = Object.entries(countryStatsRaw).map(([pais_formacion, cantidad]) => ({ pais_formacion, cantidad, porcentaje: 0 }))
+      const institutionStatsRaw = countBy((pros || []).flatMap(p => [p.institucion_1, p.institucion_2].filter(Boolean).map((i: string) => ({ institucion: i }))), 'institucion')
+      const institutionStats = Object.entries(institutionStatsRaw).map(([institucion, cantidad]) => ({ institucion, cantidad }))
+      const categoryStats = Object.entries(countBy(pros || [], 'categoria_centro')).map(([categoria, total_centros]) => ({ categoria, total_centros, total_profesionales: 0 }))
+
+      analytics = {
+        summary: {
+          totalProfessionals,
+          totalApproved,
+          totalCenters: Object.keys(countBy(pros || [], 'nombre_centro')).length,
+          totalDistricts: Object.keys(countBy(pros || [], 'distrito_sanitario')).length,
+          totalCountries: Object.keys(countryStatsRaw).length,
+          totalInstitutions: Object.keys(institutionStatsRaw).length,
+        },
+        topCenters: Object.entries(countBy(pros || [], 'nombre_centro'))
+          .sort((a: any, b: any) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([nombre, total_profesionales]: any) => ({ nombre, categoria: '', total_profesionales })),
+        areaStats,
+        districtStats,
+        ageRangeStats: [],
+        countryStats,
+        institutionStats,
+        categoryStats,
+        titulacionStats: [],
+      }
+    }
 
     if (!analytics) {
-      throw new Error("No analytics data provided");
+      console.warn('ai-chat-analysis | no analytics available (frontend and server)')
     }
 
     // Create comprehensive context for AI
@@ -110,6 +174,42 @@ serve(async (req) => {
     Datos disponibles:
     ${dataContext}`;
 
+    // Optional: extract intent and filters with OpenAI to query DB for exact results
+    let structured: any = null
+    try {
+      const intentPrompt = `Devuelve SOLO JSON con la forma { action: 'count_professionals', filters?: { expira_en_dias?, carnet_vencido?, area_profesional?, provincia?, genero?, distrito_sanitario?, institucion?, pais_formacion?, ano_graduacion? } } interpretando: "${question}".`
+      const intentRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST', headers: { Authorization: `Bearer ${openAIApiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'gpt-4o-mini', temperature: 0, messages: [ { role: 'system', content: 'Eres un parser estricto. Responde solo JSON.' }, { role: 'user', content: intentPrompt } ] })
+      })
+      const intentJson = await intentRes.json()
+      const content = intentJson?.choices?.[0]?.message?.content
+      try { structured = JSON.parse(content) } catch { structured = null }
+    } catch (_) {}
+
+    let dbCount: number | null = null
+    if (supabase && structured?.action === 'count_professionals') {
+      let qb: any = supabase.from('profesionales_sanitarios').select('id', { count: 'exact', head: true })
+      const f = structured.filters || {}
+      if (f.area_profesional) qb = qb.eq('area_profesional', f.area_profesional)
+      if (f.provincia) qb = qb.eq('provincia', f.provincia)
+      if (f.genero) qb = qb.eq('genero', f.genero)
+      if (f.distrito_sanitario) qb = qb.eq('distrito_sanitario', f.distrito_sanitario)
+      if (f.institucion) qb = qb.or(`institucion_1.ilike.%${f.institucion}%,institucion_2.ilike.%${f.institucion}%`)
+      if (f.pais_formacion) qb = qb.or(`pais_formacion_1.ilike.%${f.pais_formacion}%,pais_formacion_2.ilike.%${f.pais_formacion}%`)
+      if (typeof f.ano_graduacion === 'number') qb = qb.eq('año_graduacion', f.ano_graduacion)
+      if (typeof f.expira_en_dias === 'number' && f.expira_en_dias > 0) {
+        const now = new Date(); const limit = new Date(); limit.setDate(now.getDate() + f.expira_en_dias)
+        qb = qb.eq('estado_solicitud', 'Aprobado').gte('fecha_caducidad', now.toISOString()).lte('fecha_caducidad', limit.toISOString())
+      }
+      if (f.carnet_vencido === true) {
+        const nowIso = new Date().toISOString()
+        qb = qb.eq('estado_solicitud', 'Aprobado').lte('fecha_caducidad', nowIso)
+      }
+      const { count, error } = await qb
+      if (!error) dbCount = count || 0
+    }
+
     console.log("Calling OpenAI API...");
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -134,7 +234,27 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    let aiResponse = data.choices[0].message.content;
+
+    // If we computed a DB count, rewrite answer to be precise
+    if (dbCount !== null) {
+      const precise = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${openAIApiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          temperature: 0.2,
+          messages: [
+            { role: "system", content: "Eres un asistente que contesta con cifras exactas de la base de datos, en español, de forma breve y clara." },
+            { role: "user", content: `Pregunta: ${question}\nResultado exacto: ${dbCount}\nSi hay filtros detectados: ${JSON.stringify(structured?.filters || {})}\nResponde en una sola o dos frases como máximo.` }
+          ]
+        })
+      })
+      if (precise.ok) {
+        const pj = await precise.json()
+        aiResponse = pj.choices?.[0]?.message?.content || aiResponse
+      }
+    }
 
     console.log("AI response generated successfully");
 
@@ -226,12 +346,20 @@ serve(async (req) => {
       JSON.stringify({
         response: aiResponse,
         navigationSuggestions,
-        dataContext: {
+        dataContext: analytics ? {
           summary: analytics.summary,
           topAreasCount: analytics.areaStats?.length || 0,
           topCentersCount: analytics.topCenters?.length || 0,
           districtsCount: analytics.districtStats?.length || 0,
-        },
+        } : null,
+        diagnostics: {
+          hasServiceRole: !!SERVICE_ROLE,
+          hasSupabaseUrl: !!SUPABASE_URL,
+          hasOpenAI: !!openAIApiKey,
+          usedServerAnalytics: !analyticsInput && !!analytics,
+          detectedFilters: structured?.filters || null,
+          dbCount
+        }
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -6,18 +6,183 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+    const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const envDiagnostics = {
+      openai_key_present: !!OPENAI_API_KEY,
+      supabase_url_present: !!SUPABASE_URL,
+      service_role_present: !!SERVICE_ROLE,
+    }
+    if (!SUPABASE_URL || !SERVICE_ROLE) {
+      console.error('ai-analytics-advanced env missing:', envDiagnostics)
+      return new Response(
+        JSON.stringify({ success: false, error: 'Variables de entorno faltantes', diagnostics: envDiagnostics }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
 
-    const { query, filters } = await req.json()
+    const supabaseClient = createClient(SUPABASE_URL, SERVICE_ROLE)
+
+    const { query, filters, message, debug } = await req.json()
+    console.log('ai-analytics-advanced request:', { hasMessage: !!message, query, hasFilters: !!filters })
+
+    // Utilidad para aplicar filtros sobre profesionales_sanitarios
+    const applyProfessionalFilters = (builder: any, filters: Record<string, any>) => {
+      let qb = builder
+
+      if (!filters) return qb
+
+      // Filtros directos por igualdad
+      const eqFields = [
+        'area_profesional',
+        'estado_solicitud',
+        'provincia',
+        'genero',
+        'tipo_sector',
+        'distrito_sanitario',
+      ] as const
+
+      for (const field of eqFields) {
+        const value = (filters as any)[field]
+        if (value !== undefined && value !== null && value !== '') {
+          qb = qb.eq(field, value)
+        }
+      }
+
+      // Recolectar cláusulas OR para aplicarlas en un solo grupo
+      const orClauses: string[] = []
+
+      // Institución (coincidencia en institucion_1 o institucion_2)
+      if (filters.institucion) {
+        const inst = String(filters.institucion).trim()
+        const pattern = `%${inst}%`
+        orClauses.push(`institucion_1.ilike.${pattern}`, `institucion_2.ilike.${pattern}`)
+      }
+
+      // País de formación (en cualquiera de los dos campos)
+      if (filters.pais_formacion) {
+        const pais = String(filters.pais_formacion).trim()
+        const pattern = `%${pais}%`
+        orClauses.push(`pais_formacion_1.ilike.${pattern}`, `pais_formacion_2.ilike.${pattern}`)
+      }
+
+      if (orClauses.length > 0) {
+        qb = qb.or(orClauses.join(','))
+      }
+
+      // Año de graduación exacto o rango
+      if (filters.ano_graduacion) {
+        qb = qb.eq('año_graduacion', filters.ano_graduacion)
+      }
+      if (filters.rango_ano_graduacion && Array.isArray(filters.rango_ano_graduacion) && filters.rango_ano_graduacion.length === 2) {
+        const [from, to] = filters.rango_ano_graduacion
+        if (from) qb = qb.gte('año_graduacion', from)
+        if (to) qb = qb.lte('año_graduacion', to)
+      }
+
+      // Vencimiento de carnet en próximos N días
+      if (typeof filters.expira_en_dias === 'number' && filters.expira_en_dias > 0) {
+        const now = new Date()
+        const limit = new Date()
+        limit.setDate(now.getDate() + filters.expira_en_dias)
+        qb = qb
+          .eq('estado_solicitud', 'Aprobado')
+          .gte('fecha_caducidad', now.toISOString())
+          .lte('fecha_caducidad', limit.toISOString())
+      }
+
+      // Carnet ya vencido
+      if (filters.carnet_vencido === true) {
+        const now = new Date().toISOString()
+        qb = qb
+          .eq('estado_solicitud', 'Aprobado')
+          .lte('fecha_caducidad', now)
+      }
+
+      // Próximo vencimiento booleano (30 días por defecto)
+      if (filters.vencimiento_proximo === true && !filters.expira_en_dias) {
+        const now = new Date()
+        const limit = new Date()
+        limit.setDate(now.getDate() + 30)
+        qb = qb
+          .eq('estado_solicitud', 'Aprobado')
+          .gte('fecha_caducidad', now.toISOString())
+          .lte('fecha_caducidad', limit.toISOString())
+      }
+
+      return qb
+    }
+
+    // Utilidad: invocar OpenAI para extraer intención y filtros
+    const parseWithLLM = async (text: string) => {
+      if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY no configurada')
+
+      const schema = {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['count_professionals'] },
+          filters: {
+            type: 'object',
+            properties: {
+              expira_en_dias: { type: 'number' },
+              carnet_vencido: { type: 'boolean' },
+              vencimiento_proximo: { type: 'boolean' },
+              area_profesional: { type: 'string' },
+              estado_solicitud: { type: 'string' },
+              provincia: { type: 'string' },
+              genero: { type: 'string' },
+              tipo_sector: { type: 'string' },
+              distrito_sanitario: { type: 'string' },
+              institucion: { type: 'string' },
+              pais_formacion: { type: 'string' },
+              ano_graduacion: { type: 'number' },
+              rango_ano_graduacion: { type: 'array', items: { type: 'number' }, minItems: 2, maxItems: 2 }
+            }
+          }
+        },
+        required: ['action']
+      }
+
+      const system = `Eres un parser estricto. Devuelve solo JSON válido (sin texto extra) que cumpla este esquema. Interpreta consultas en español sobre profesionales sanitarios.`
+      const user = `Texto: ${text}\n\nDevuelve un JSON con { action: 'count_professionals', filters?: {...} }.
+- expira_en_dias: número si piden vencen en N días
+- carnet_vencido: true si piden ya vencidos
+- distrito_sanitario, provincia, genero, area_profesional según aparezcan
+- institucion: ej. 'UNGE' si mencionan UNGE
+- pais_formacion si mencionan país de formación
+- ano_graduacion o rango_ano_graduacion si se pide año o rango`
+
+      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          temperature: 0,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: user }
+          ],
+          response_format: { type: 'json_schema', json_schema: { name: 'query_schema', schema, strict: true } }
+        })
+      })
+
+      if (!resp.ok) throw new Error(`OpenAI status ${resp.status}`)
+      const data = await resp.json()
+      const content = data.choices?.[0]?.message?.content
+      const parsed = JSON.parse(content)
+      return parsed
+    }
 
     // Función para obtener estadísticas avanzadas
     const getAdvancedStats = async (query: string, filters: any = {}) => {
@@ -332,6 +497,27 @@ serve(async (req) => {
           }
           break
 
+        case 'query_professionals':
+          // Conteo dinámico según filtros aplicados sobre profesionales_sanitarios
+          {
+            let qb = supabaseClient
+              .from('profesionales_sanitarios')
+              .select('id', { count: 'exact', head: true })
+
+            qb = applyProfessionalFilters(qb, filters || {})
+
+            const { count, error } = await qb
+            if (error) {
+              result = { error: error.message }
+            } else {
+              result = {
+                total: count || 0,
+                filtros_aplicados: filters || {}
+              }
+            }
+          }
+          break
+
         default:
           result = { error: 'Consulta no reconocida' }
       }
@@ -339,10 +525,59 @@ serve(async (req) => {
       return result
     }
 
+    // Ruta NL-first: si llega message, usar LLM para extraer filtros y contar
+    if (message && typeof message === 'string' && message.trim().length > 0) {
+      try {
+        const intent = await parseWithLLM(message)
+        if (intent?.action === 'count_professionals') {
+          let qb = supabaseClient
+            .from('profesionales_sanitarios')
+            .select('id', { count: 'exact', head: true })
+
+          const combinedFilters = { ...(filters || {}), ...(intent.filters || {}) }
+          qb = applyProfessionalFilters(qb, combinedFilters)
+          const { count, error } = await qb
+          if (error) throw error
+
+          // Redactar respuesta en lenguaje natural con OpenAI
+          let responseText = `Total encontrados: ${count || 0}`
+          try {
+            if (OPENAI_API_KEY) {
+              const prompt = `Usuario: ${message}\n\nDatos obtenidos de la base de datos: total=${count || 0}, filtros=${JSON.stringify(combinedFilters)}.\nRedacta una respuesta breve, clara y específica en español, solo con estos datos.`
+              const ai = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  model: 'gpt-4o-mini',
+                  temperature: 0.2,
+                  messages: [
+                    { role: 'system', content: 'Eres un asistente que responde con datos exactos de la base de datos. Sé conciso y directo.' },
+                    { role: 'user', content: prompt }
+                  ]
+                })
+              })
+              if (ai.ok) {
+                const aj = await ai.json()
+                responseText = aj.choices?.[0]?.message?.content || responseText
+              }
+            }
+          } catch (_) {}
+
+          return new Response(
+            JSON.stringify({ success: true, data: { total: count || 0, filtros_aplicados: combinedFilters }, response: responseText, intent, diagnostics: envDiagnostics }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          )
+        }
+      } catch (e) {
+        // Continuar al flujo clásico
+        console.error('NL parsing fallback:', e)
+      }
+    }
+
     const stats = await getAdvancedStats(query, filters)
 
     return new Response(
-      JSON.stringify({ success: true, data: stats }),
+      JSON.stringify({ success: true, data: stats, diagnostics: envDiagnostics }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -350,12 +585,13 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    console.error('ai-analytics-advanced error:', error)
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: (error as Error).message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
   }
-}) 
+})

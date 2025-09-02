@@ -199,12 +199,14 @@ interface DistrictAnalyticsProps {
   selectedDistrict: string;
   onDistrictChange: (district: string) => void;
   availableDistricts: string[];
+  onNavigateToTab?: (tab: string, filters?: any) => void;
 }
 
 const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
   selectedDistrict,
   onDistrictChange,
   availableDistricts,
+  onNavigateToTab,
 }) => {
   const {
     data: stats,
@@ -329,7 +331,7 @@ const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="cursor-pointer hover:shadow" onClick={() => onNavigateToTab && onNavigateToTab("professionals", { distrito_sanitario: selectedDistrict, estado_solicitud: "Aprobado" })}>
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
               <div className="p-2 rounded-lg bg-blue-100">
@@ -347,7 +349,7 @@ const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow" onClick={() => onNavigateToTab && onNavigateToTab("health-centers") }>
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
               <div className="p-2 rounded-lg bg-green-100">
@@ -420,6 +422,8 @@ const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
                   fill="#8884d8"
                   dataKey="cantidad"
                   label={(entry) => `${entry.area} (${entry.cantidad})`}
+                  onClick={(data: any) => onNavigateToTab && onNavigateToTab("professionals", { area_profesional: data.area, distrito_sanitario: selectedDistrict, estado_solicitud: "Aprobado" })}
+                  className="cursor-pointer hover:opacity-80"
                 >
                   {stats.profesionales_por_area
                     .slice(0, 6)
@@ -447,7 +451,7 @@ const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
                 <XAxis dataKey="categoria" fontSize={10} />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="cantidad" fill="#00C49F" />
+                <Bar dataKey="cantidad" fill="#00C49F" onClick={(data: any) => onNavigateToTab && onNavigateToTab("professionals", { categoria_centro: data.categoria, distrito_sanitario: selectedDistrict, estado_solicitud: "Aprobado" })} className="cursor-pointer hover:opacity-80" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -464,7 +468,21 @@ const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
                 <XAxis dataKey="rango_edad" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="cantidad" fill="#8884D8" />
+                <Bar dataKey="cantidad" fill="#8884D8" onClick={(data: any) => {
+                  const range = data.rango_edad as string;
+                  let edad_minima: number | undefined;
+                  let edad_maxima: number | undefined;
+                  if (range.includes("<")) {
+                    edad_maxima = parseInt(range.replace(/[^0-9]/g, ""), 10) - 1;
+                  } else if (range.includes("+")) {
+                    edad_minima = parseInt(range.replace(/[^0-9]/g, ""), 10);
+                  } else if (range.includes("-")) {
+                    const [min, max] = range.split("-").map(v => parseInt(v.replace(/[^0-9]/g, ""), 10));
+                    edad_minima = min;
+                    edad_maxima = max;
+                  }
+                  onNavigateToTab && onNavigateToTab("professionals", { distrito_sanitario: selectedDistrict, estado_solicitud: "Aprobado", edad_minima, edad_maxima });
+                }} className="cursor-pointer hover:opacity-80" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -480,7 +498,8 @@ const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
                 {stats.formacion_internacional.map((country, index) => (
                   <div
                     key={country.pais}
-                    className="flex items-center justify-between"
+                    className="flex items-center justify-between cursor-pointer hover:opacity-80"
+                    onClick={() => onNavigateToTab && onNavigateToTab("professionals", { pais_formacion: country.pais, distrito_sanitario: selectedDistrict, estado_solicitud: "Aprobado" })}
                   >
                     <span className="text-sm font-medium">{country.pais}</span>
                     <Badge variant="outline">{country.cantidad}</Badge>

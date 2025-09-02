@@ -2,6 +2,40 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getErrorMessage, logError } from "@/utils/errorHandler";
 
+const getEmptyStats = () => ({
+  total: 0,
+  aprobados: 0,
+  recibidos: 0,
+  rechazados: 0,
+  revisando: 0,
+  vencimientosProximos: 0,
+  carnetVencidos: 0,
+  porArea: {},
+  porProvincia: {},
+  porGenero: {},
+  porTipoSector: {},
+  porDistrito: {},
+  porAnoGraduacion: {},
+  totalPorGenero: {},
+  totalPorDistrito: {},
+  totalPorTipoSector: {},
+  totalPorNacionalidad: {},
+  totalPorAreaProfesional: {},
+  totalPorEstadoSolicitud: {},
+  totalPorDistritoSanitario: {},
+  tendenciasMensuales: [],
+  tasaAprobacion: "0.0",
+  tasaRechazo: "0.0",
+  datosGraficoEstados: [
+    { estado: "Aprobado", cantidad: 0, color: "#22c55e" },
+    { estado: "Recibido", cantidad: 0, color: "#f59e0b" },
+    { estado: "Rechazado", cantidad: 0, color: "#ef4444" },
+    { estado: "Revisando", cantidad: 0, color: "#3b82f6" },
+  ],
+  datosGraficoAreas: [],
+  datosGraficoProvincias: [],
+});
+
 export function useEstadisticasAvanzadas() {
   return useQuery({
     queryKey: ["estadisticas-avanzadas"], // Mantenemos la queryKey original
@@ -105,20 +139,27 @@ export function useEstadisticasAvanzadas() {
           logError("Health check failed", healthError);
           const errorMessage = getErrorMessage(healthError);
 
-          // If it's a fetch error, enable offline mode automatically
-          if (
-            errorMessage.includes("fetch") ||
-            errorMessage.includes("Failed to fetch")
-          ) {
-            console.log("Fetch error detected, enabling offline mode");
+          const em = (errorMessage || "").toLowerCase();
+          const isNetworkLike =
+            em.includes("fetch") ||
+            em.includes("failed to fetch") ||
+            em.includes("typeerror") ||
+            em.includes("network") ||
+            em.includes("conexión") ||
+            em.includes("conexion") ||
+            em.includes("no se pudo conectar");
+
+          if (isNetworkLike) {
+            console.log("Network-like error detected, enabling offline mode");
             localStorage.setItem("app-offline-mode", "true");
             localStorage.setItem(
               "app-offline-reason",
-              "Automatic - fetch failure detected",
+              "Automatic - health check network failure",
             );
           }
 
-          throw new Error(`Database connection failed: ${errorMessage}`);
+          // Return fallback stats instead of throwing to keep UI responsive
+          return getEmptyStats();
         }
 
         // Retry logic for main query
@@ -194,30 +235,7 @@ export function useEstadisticasAvanzadas() {
 
           // En lugar de lanzar el error, devolvemos datos vacíos
           console.log("⚠️ Returning empty stats due to database error");
-          return {
-            total: 0,
-            aprobados: 0,
-            recibidos: 0,
-            rechazados: 0,
-            revisando: 0,
-            vencimientosProximos: 0,
-            carnetVencidos: 0,
-            porArea: {},
-            porProvincia: {},
-            generoMasculino: 0,
-            generoFemenino: 0,
-            totalPorGenero: {},
-            totalPorDistrito: {},
-            totalPorTipoSector: {},
-            totalPorNacionalidad: {},
-            totalPorAreaProfesional: {},
-            totalPorEstadoSolicitud: {},
-            totalPorDistritoSanitario: {},
-            datosGraficoProvincias: [],
-            tendenciasMensuales: [],
-            tasaAprobacion: "0.0",
-            tasaRechazo: "0.0"
-          };
+          return getEmptyStats();
         }
 
         profesionales = data || [];
@@ -230,30 +248,7 @@ export function useEstadisticasAvanzadas() {
 
         // En lugar de lanzar errores, devolvemos datos vacíos
         console.log("⚠️ Returning empty stats due to network/fetch error");
-        return {
-          total: 0,
-          aprobados: 0,
-          recibidos: 0,
-          rechazados: 0,
-          revisando: 0,
-          vencimientosProximos: 0,
-          carnetVencidos: 0,
-          porArea: {},
-          porProvincia: {},
-          generoMasculino: 0,
-          generoFemenino: 0,
-          totalPorGenero: {},
-          totalPorDistrito: {},
-          totalPorTipoSector: {},
-          totalPorNacionalidad: {},
-          totalPorAreaProfesional: {},
-          totalPorEstadoSolicitud: {},
-          totalPorDistritoSanitario: {},
-          datosGraficoProvincias: [],
-          tendenciasMensuales: [],
-          tasaAprobacion: "0.0",
-          tasaRechazo: "0.0"
-        };
+        return getEmptyStats();
       }
 
       // 1. FILTRAR PROFESIONALES APROBADOS PARA TODAS LAS ESTADÍSTICAS PRINCIPALES

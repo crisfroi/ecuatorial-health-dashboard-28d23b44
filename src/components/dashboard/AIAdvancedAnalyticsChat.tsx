@@ -73,28 +73,18 @@ const AIAdvancedAnalyticsChat: React.FC<AIAdvancedAnalyticsChatProps> = ({ onNav
     const welcomeMessage: Message = {
       id: "welcome",
       type: "system",
-      content: `¡Hola! Soy tu asistente de IA especializado en análisis avanzado de estadísticas del sistema de profesionales sanitarios de Guinea Ecuatorial. 
+      content: `¡Hola! Soy tu asistente de IA para consultas del sistema RENAPROSA.
 
-Como usuario con rol "${userRole}", tengo acceso completo a todos los datos del sistema para proporcionarte análisis detallados.
-
-**¿Qué puedo analizar por ti?**
-
-📊 **Categorías de Análisis Disponibles:**
-${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
-
-**Ejemplos de consultas:**
-• "¿Cuántos profesionales hay por género?"
-• "¿Cuáles son las áreas profesionales más comunes?"
-• "¿En qué países se formaron más profesionales?"
-• "¿Qué centros tienen más profesionales?"
-• "Dame un análisis completo de todos los datos"
-
-¡Pregúntame cualquier cosa sobre los datos del sistema!`,
+Escríbeme en lenguaje natural y te daré respuestas exactas basadas en la base de datos.
+Ejemplos:
+• ¿Cuántos profesionales tendrán el carnet vencido en menos de 90 días?
+• ¿Cuántos graduados en la UNGE trabajan en el distrito sanitario de Litoral?
+• ¿Cuántos profesionales aprobados hay en Bioko Norte?`,
       timestamp: new Date()
     };
 
     setMessages([welcomeMessage]);
-  }, [userRole, categories]);
+  }, [userRole]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -118,78 +108,62 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
     setInputMessage("");
     setShowSuggestions(false);
 
-    // Procesar la consulta
-    const parsedQuery = parseNaturalLanguage(inputMessage);
-    if (parsedQuery) {
-      try {
-        const suggestions = getSuggestions(inputMessage);
-        
-        // Mensaje de procesamiento
-        const processingMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          type: "bot",
-          content: `🔍 **Procesando consulta...**\n\nAnalizando: "${parsedQuery.description}"\nCategoría: ${categories.find(cat => cat.queries.includes(parsedQuery.query))?.name || 'Análisis General'}`,
-          timestamp: new Date(),
-          query: parsedQuery,
-          suggestions
-        };
-
-        setMessages(prev => [...prev, processingMessage]);
-
-        // Ejecutar la consulta
-        const result = await queryStats(parsedQuery);
-
-        // Mensaje de resultado
-        const resultMessage: Message = {
-          id: (Date.now() + 2).toString(),
-          type: "bot",
-          content: result.success 
-            ? `✅ **Análisis completado exitosamente**\n\nHe encontrado datos relevantes para tu consulta. Los resultados se muestran a continuación.`
-            : `❌ **Error en el análisis**\n\nNo pude procesar tu consulta: ${result.error}`,
-          timestamp: new Date(),
-          query: parsedQuery
-        };
-
-        setMessages(prev => [...prev, resultMessage]);
-
-        if (result.success) {
-          toast({
-            title: "Análisis completado",
-            description: "Los resultados están listos para revisar",
-          });
-        } else {
-          toast({
-            title: "Error en el análisis",
-            description: result.error || "Error desconocido",
-            variant: "destructive"
-          });
-        }
-
-      } catch (error) {
-        const errorMessage: Message = {
-          id: (Date.now() + 2).toString(),
-          type: "bot",
-          content: `❌ **Error inesperado**\n\nOcurrió un error al procesar tu consulta. Por favor, intenta de nuevo.`,
-          timestamp: new Date()
-        };
-
-        setMessages(prev => [...prev, errorMessage]);
-        
-        toast({
-          title: "Error",
-          description: "Error inesperado al procesar la consulta",
-          variant: "destructive"
-        });
-      }
-    } else {
-      const errorMessage: Message = {
+    // Responder saludos sin ejecutar análisis
+    const isGreeting = /^(hola|buenas|buenos dias|buenas tardes|buenas noches|hello|hi|saludos)[.!\s]*$/i.test(userMessage.content.trim());
+    if (isGreeting) {
+      const greetingReply: Message = {
         id: (Date.now() + 1).toString(),
         type: "bot",
-        content: `🤔 **No pude entender tu consulta**\n\nPor favor, reformula tu pregunta o usa una de estas categorías:\n\n${categories.map(cat => `• **${cat.name}**: ${cat.examples[0]}`).join('\n')}`,
+        content: "¡Hola! Dime qué necesitas saber y lo buscaré en la base de datos. Ejemplos: ‘¿vencen carnets en menos de 90 días?’ o ‘graduados UNGE en Litoral’.",
         timestamp: new Date()
       };
+      setMessages(prev => [...prev, greetingReply]);
+      return;
+    }
 
+    try {
+      const suggestions = getSuggestions(userMessage.content);
+      const processingMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: "bot",
+        content: `🔍 Procesando consulta en el servidor...`,
+        timestamp: new Date(),
+        suggestions
+      };
+      setMessages(prev => [...prev, processingMessage]);
+
+      // Enviar siempre el texto al backend para parseo NL y conteo
+      const result = await queryStats({
+        query: 'query_professionals',
+        filters: {},
+        description: userMessage.content
+      });
+
+      const backendText = (result as any)?.data?.response || (result as any)?.data?.text
+      const resultMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        type: "bot",
+        content: result.success
+          ? (backendText || `Consulta completada.`)
+          : `❌ Error: ${result.error}`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, resultMessage]);
+
+      if (result.success) {
+        toast({ title: "Análisis completado", description: "Resultados listos." });
+      } else {
+        toast({ title: "Error en el análisis", description: result.error || "Error desconocido", variant: "destructive" });
+      }
+    } catch (error) {
+      const errorMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        type: "bot",
+        content: `❌ Error inesperado. Intenta de nuevo.`,
+        timestamp: new Date()
+      };
       setMessages(prev => [...prev, errorMessage]);
+      toast({ title: "Error", description: "Fallo al procesar la consulta", variant: "destructive" });
     }
   };
 
@@ -303,7 +277,7 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
           {/* Chat */}
           <Card className="flex-1 flex flex-col">
             <CardContent className="flex-1 p-0">
-              <ScrollArea className="h-[400px] p-4">
+              <ScrollArea className="h-[520px] p-4">
                 <div className="space-y-4">
                   {messages.map((message) => (
                     <div
@@ -439,4 +413,4 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
   );
 };
 
-export default AIAdvancedAnalyticsChat; 
+export default AIAdvancedAnalyticsChat;

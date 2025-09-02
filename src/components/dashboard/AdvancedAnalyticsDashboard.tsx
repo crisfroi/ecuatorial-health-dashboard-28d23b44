@@ -56,6 +56,7 @@ import {
   useTitulacionCategoryStats,
 } from "@/hooks/useAdvancedAnalytics";
 import { useQueryClient } from "@tanstack/react-query";
+import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
 import DistrictAnalytics from "./DistrictAnalytics";
 import InteractiveCharts from "./InteractiveCharts";
 import AnalyticsSummary from "./AnalyticsSummary";
@@ -66,6 +67,8 @@ import {
   useDashboardNavigation,
   type NavigationFilters,
 } from "@/hooks/useDashboardNavigation";
+import { useAllCountryStats, useAllInstitutionStats } from "@/hooks/useAllFormationStats";
+import { useFormationSegmentation } from "@/hooks/useFormationSegmentation";
 
 // Color palettes for charts
 const COLORS = [
@@ -103,6 +106,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
 }) => {
   const [selectedView, setSelectedView] = useState("overview");
   const [selectedDistrict, setSelectedDistrict] = useState("all");
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedInstitution, setSelectedInstitution] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // Auto-refresh data every 30 seconds for real-time updates
@@ -114,6 +119,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
       queryClient.invalidateQueries({ queryKey: ["ageRangeStats"] });
       queryClient.invalidateQueries({ queryKey: ["countryStats"] });
       queryClient.invalidateQueries({ queryKey: ["institutionStats"] });
+      queryClient.invalidateQueries({ queryKey: ["allCountryStats"] });
+      queryClient.invalidateQueries({ queryKey: ["allInstitutionStats"] });
       queryClient.invalidateQueries({ queryKey: ["centerCategoryStats"] });
       queryClient.invalidateQueries({ queryKey: ["titulacionCategoryStats"] });
     }, 30000); // Refresh every 30 seconds
@@ -126,8 +133,10 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     navigateToArea,
     navigateToDistrict,
     navigateToCenter,
+    navigateToInstitution,
     navigateToAgeRange,
     navigateToGraduationYear,
+    navigateToCountry,
     navigateToRenewals,
     navigateToProvince,
   } = useDashboardNavigation(onNavigateToTab || (() => {}));
@@ -138,6 +147,11 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     useAreaProfessionalStats();
   const { data: districtStats = [], isLoading: loadingDistricts } =
     useDistrictStats();
+  const { data: allDistrictRows = [] } = useDistritosSanitarios();
+  const allDistrictNames = (allDistrictRows || [])
+    .map((d: any) => d.nombre_distrito)
+    .filter((n: any) => !!n)
+    .sort();
   const { data: ageRangeStats = [], isLoading: loadingAges } =
     useAgeRangeStats();
   const { data: graduationStats = [], isLoading: loadingGraduation } =
@@ -146,6 +160,13 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     useCountryStats();
   const { data: institutionStats = [], isLoading: loadingInstitutions } =
     useInstitutionStats();
+  const { data: allCountries = [] } = useAllCountryStats();
+  const { data: allInstitutions = [] } = useAllInstitutionStats();
+
+  const { data: segmentation } = useFormationSegmentation({
+    country: selectedCountry || undefined,
+    institution: selectedInstitution || undefined,
+  });
   const { data: categoryStats = [], isLoading: loadingCategories } =
     useCenterCategoryStats();
   const { data: titulacionStats = [], isLoading: loadingTitulacion } =
@@ -836,12 +857,9 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                 <SelectItem value="all">
                   Todos los distritos (Vista General)
                 </SelectItem>
-                {districtStats.map((district) => (
-                  <SelectItem
-                    key={district.distrito_sanitario}
-                    value={district.distrito_sanitario}
-                  >
-                    {district.distrito_sanitario}
+                {allDistrictNames.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -875,11 +893,15 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                         dataKey="total_profesionales"
                         fill="#8884d8"
                         name="Profesionales"
+                        onClick={(data) => navigateToDistrict(data.distrito_sanitario)}
+                        className="cursor-pointer hover:opacity-80"
                       />
                       <Bar
                         dataKey="total_centros"
                         fill="#82ca9d"
                         name="Centros"
+                        onClick={(data) => navigateToDistrict(data.distrito_sanitario)}
+                        className="cursor-pointer hover:opacity-80"
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -950,9 +972,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
             <DistrictAnalytics
               selectedDistrict={selectedDistrict}
               onDistrictChange={setSelectedDistrict}
-              availableDistricts={districtStats.map(
-                (d) => d.distrito_sanitario,
-              )}
+              availableDistricts={allDistrictNames}
+              onNavigateToTab={onNavigateToTab}
             />
           )}
         </TabsContent>
@@ -1078,11 +1099,33 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     <Bar
                       dataKey="cantidad"
                       fill="#0088FE"
-                      onClick={(data) => navigateToCountry(data.pais_formacion)}
+                      onClick={(data) => {
+                        setSelectedCountry(data.pais_formacion);
+                        setSelectedInstitution(null);
+                      }}
                       className="cursor-pointer hover:opacity-80"
                     />
                   </BarChart>
                 </ResponsiveContainer>
+                <div className="mt-4">
+                  <Select
+                    onValueChange={(value) => {
+                      setSelectedCountry(value);
+                      setSelectedInstitution(null);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Ver país de formación (todas las opciones)" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      {allCountries.map((c) => (
+                        <SelectItem key={c.pais_formacion} value={c.pais_formacion}>
+                          {c.pais_formacion} ({c.cantidad})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardContent>
             </Card>
 
@@ -1098,7 +1141,11 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                   {institutionStats.slice(0, 10).map((inst, index) => (
                     <div
                       key={inst.institucion}
-                      className="flex items-center justify-between p-3 border rounded-lg"
+                      className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                      onClick={() => {
+                        setSelectedInstitution(inst.institucion);
+                        setSelectedCountry(null);
+                      }}
                     >
                       <div className="flex-1">
                         <div className="font-medium text-sm">
@@ -1113,6 +1160,25 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       <Badge variant="outline">{inst.cantidad}</Badge>
                     </div>
                   ))}
+                </div>
+                <div className="mt-4">
+                  <Select
+                    onValueChange={(value) => {
+                      setSelectedInstitution(value);
+                      setSelectedCountry(null);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Ver institución (todas las opciones)" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      {allInstitutions.map((i) => (
+                        <SelectItem key={i.institucion} value={i.institucion}>
+                          {i.institucion} ({i.cantidad})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
@@ -1140,6 +1206,67 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                   />
                 </LineChart>
               </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <PieChartIcon className="w-5 h-5 text-teal-600" />
+                Resumen segmentado {selectedCountry ? `- País: ${selectedCountry}` : selectedInstitution ? `- Institución: ${selectedInstitution}` : "(selecciona un país o institución)"}
+              </CardTitle>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  disabled={!(selectedCountry || selectedInstitution)}
+                  onClick={() => {
+                    if (selectedCountry) navigateToCountry(selectedCountry);
+                    if (selectedInstitution) navigateToInstitution(selectedInstitution);
+                  }}
+                >
+                  Ver profesionales
+                </Button>
+                <Button
+                  variant="ghost"
+                  disabled={!(selectedCountry || selectedInstitution)}
+                  onClick={() => {
+                    setSelectedCountry(null);
+                    setSelectedInstitution(null);
+                  }}
+                >
+                  Limpiar selección
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!(selectedCountry || selectedInstitution) ? (
+                <div className="text-sm text-gray-500">Selecciona un país o una institución para ver el detalle.</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-semibold mb-2">Áreas Profesionales</h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {segmentation?.areas.slice(0, 10).map((a) => (
+                        <div key={a.nombre} className="flex items-center justify-between p-2 border rounded">
+                          <span className="text-sm">{a.nombre}</span>
+                          <span className="text-xs text-gray-600">{a.total} ({a.porcentaje.toFixed(1)}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">Categorías de Titulación</h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {segmentation?.titulaciones.slice(0, 10).map((t) => (
+                        <div key={t.nombre} className="flex items-center justify-between p-2 border rounded">
+                          <span className="text-sm">{t.nombre}</span>
+                          <span className="text-xs text-gray-600">{t.total} ({t.porcentaje.toFixed(1)}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -52,7 +52,7 @@ import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import RequestsPanel from "@/components/dashboard/RequestsPanel";
 import RenewalAlerts from "@/components/dashboard/RenewalAlerts";
-import AIAdvancedAnalyticsChat from "@/components/dashboard/AIAdvancedAnalyticsChat";
+import AIChat from "@/components/dashboard/AIChat";
 import MinisterialPanel from "@/components/dashboard/MinisterialPanel";
 import IncidentManagement from "@/components/dashboard/IncidentManagement";
 import HealthCenters from "@/components/dashboard/HealthCenters";
@@ -84,6 +84,8 @@ interface Filtros {
   vencimiento_proximo?: boolean;
   carnet_vencido?: boolean;
   prioridad_renovacion?: "alta" | "media" | "baja" | "vencido" | "all";
+  pais_formacion?: string;
+  institucion?: string;
 }
 
 const Dashboard = () => {
@@ -309,6 +311,16 @@ const Dashboard = () => {
       });
       return;
     }
+    // Validación de formato E.164
+    const e164 = /^\+[1-9]\d{6,14}$/;
+    if (!e164.test(telefono)) {
+      toast({
+        title: "Teléfono inválido",
+        description: "Use formato internacional E.164 (ej.: +240XXXXXXXX)",
+        variant: "destructive",
+      });
+      return;
+    }
     console.log("Teléfono recibido:", telefono);
 
     const formattedDate = fechaValidezCarnet
@@ -331,10 +343,10 @@ const Dashboard = () => {
         "send-sms-notification",
         {
           body: JSON.stringify({
-            to: telefono,
-            body: messageBody,
-            profesionalId: profesionalId,
-            notificationType: tipoNotificacion,
+            profesionalId,
+            telefono,
+            tipoNotificacion,
+            mensaje: messageBody,
           }),
           method: "POST",
         },
@@ -342,22 +354,25 @@ const Dashboard = () => {
 
       if (error) {
         console.error("Error al invocar Edge Function para SMS:", error);
+        const contextBody = (error as any)?.context?.body;
+        const serverDetail = typeof contextBody === 'string' ? contextBody : (contextBody?.error || contextBody?.message);
         toast({
           title: "Error al Enviar SMS",
-          description: `No se pudo enviar el SMS a ${nombreCompleto}. Detalles: ${error.message}`,
+          description: `No se pudo enviar el SMS a ${nombreCompleto}. ${serverDetail || error.message}`,
           variant: "destructive",
         });
       } else {
         console.log("Respuesta de Edge Function para SMS:", data);
-        if (data && data.success) {
+        if (data && (data as any).success) {
           toast({
             title: "SMS Enviado Exitosamente",
             description: `Se ha enviado un SMS a ${nombreCompleto}.`,
           });
         } else {
+          const errMsg = (data as any)?.error || (data as any)?.message || "Error desconocido";
           toast({
             title: "Error al Enviar SMS",
-            description: `Hubo un problema al enviar el SMS a ${nombreCompleto}: ${data?.message || "Error desconocido"}`,
+            description: `Hubo un problema al enviar el SMS a ${nombreCompleto}: ${errMsg}`,
             variant: "destructive",
           });
         }
@@ -704,12 +719,10 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="ai-chat" className="space-y-6">
-            <AIAdvancedAnalyticsChat
+            <AIChat
               onNavigateToTab={(tab, filters) => {
                 setActiveTab(tab);
-                if (filters) {
-                  setAppliedFilters(filters);
-                }
+                if (filters) setAppliedFilters(filters);
               }}
             />
           </TabsContent>

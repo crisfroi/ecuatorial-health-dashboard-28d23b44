@@ -127,6 +127,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     navigateToArea,
     navigateToDistrict,
     navigateToCenter,
+    navigateToInstitution,
     navigateToAgeRange,
     navigateToGraduationYear,
     navigateToCountry,

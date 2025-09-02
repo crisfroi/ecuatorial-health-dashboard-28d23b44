@@ -135,42 +135,19 @@ const AIChat: React.FC<AIChatProps> = ({ onNavigateToTab }) => {
         },
       };
 
-      // Prefer server-side full access via openai-chat (uses Service Role)
-      let data: any | null = null;
-      let error: any | null = null;
-      try {
-        const res = await supabase.functions.invoke("openai-chat", {
-          body: {
-            messages: [
-              { role: "user", content: message }
-            ],
-          },
-        });
-        data = res.data;
-        error = res.error;
-      } catch (e) {
-        error = e;
-      }
-
-      // Fallback to ai-chat-analysis with client-provided analytics snapshot
-      if (error || !data) {
-        const res2 = await supabase.functions.invoke("ai-chat-analysis", {
-          body: {
-            message: message,
-            analytics: comprehensiveData,
-          },
-        });
-        data = res2.data;
-        error = res2.error;
-      }
+      // Usar exclusivamente la función Edge ai-chat-analysis
+      const { data, error } = await supabase.functions.invoke("ai-chat-analysis", {
+        body: {
+          message: message,
+          analytics: comprehensiveData,
+        },
+      });
 
       if (error) throw error;
 
-      // Parse navigation actions from response (if present)
+      // Parse navigation actions from response (si existen)
       let navigationActions: NavigationAction[] = [];
-      let content =
-        data.response ||
-        "Lo siento, no pude procesar tu solicitud en este momento.";
+      let content = data.response || "Lo siento, no pude procesar tu solicitud en este momento.";
 
       if (data.navigationSuggestions) {
         navigationActions = data.navigationSuggestions;

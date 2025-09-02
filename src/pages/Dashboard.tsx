@@ -331,10 +331,10 @@ const Dashboard = () => {
         "send-sms-notification",
         {
           body: JSON.stringify({
-            to: telefono,
-            body: messageBody,
-            profesionalId: profesionalId,
-            notificationType: tipoNotificacion,
+            profesionalId,
+            telefono,
+            tipoNotificacion,
+            mensaje: messageBody,
           }),
           method: "POST",
         },
@@ -349,15 +349,16 @@ const Dashboard = () => {
         });
       } else {
         console.log("Respuesta de Edge Function para SMS:", data);
-        if (data && data.success) {
+        if (data && (data as any).success) {
           toast({
             title: "SMS Enviado Exitosamente",
             description: `Se ha enviado un SMS a ${nombreCompleto}.`,
           });
         } else {
+          const errMsg = (data as any)?.error || (data as any)?.message || "Error desconocido";
           toast({
             title: "Error al Enviar SMS",
-            description: `Hubo un problema al enviar el SMS a ${nombreCompleto}: ${data?.message || "Error desconocido"}`,
+            description: `Hubo un problema al enviar el SMS a ${nombreCompleto}: ${errMsg}`,
             variant: "destructive",
           });
         }

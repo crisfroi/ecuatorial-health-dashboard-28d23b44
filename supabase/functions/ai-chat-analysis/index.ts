@@ -36,14 +36,34 @@ serve(async (req) => {
     if (!analytics && supabase) {
       console.log('ai-chat-analysis | computing analytics snapshot server-side')
       // Fetch needed columns in one pass to reduce roundtrips
-      const { data: pros, error: prosErr } = await supabase
-        .from('profesionales_sanitarios')
-        .select('id, estado_solicitud, area_profesional, provincia, distrito_sanitario, nombre_centro, categoria_centro, pais_formacion_1, pais_formacion_2, institucion_1, institucion_2, año_graduacion, fecha_caducidad')
-        .limit(20000)
+      const [{ data: pros, error: prosErr }, { data: centers, error: centersErr }, { data: incidents, error: incidentsErr }, { data: carnets, error: carnetsErr }, { data: cola, error: colaErr }] = await Promise.all([
+        supabase
+          .from('profesionales_sanitarios')
+          .select('id, estado_solicitud, area_profesional, provincia, distrito_sanitario, nombre_centro, categoria_centro, pais_formacion_1, pais_formacion_2, institucion_1, institucion_2, año_graduacion, fecha_caducidad')
+          .limit(20000),
+        supabase
+          .from('centros_salud')
+          .select('id, nombre, categoria, provincia, distrito_sanitario')
+          .limit(20000),
+        supabase
+          .from('incidencias_hospitalarias')
+          .select('estado')
+          .limit(20000),
+        supabase
+          .from('carnets_generados')
+          .select('*')
+          .limit(20000),
+        supabase
+          .from('cola_generacion_carnets')
+          .select('estado')
+          .limit(20000)
+      ])
 
-      if (prosErr) {
-        console.error('analytics snapshot error:', prosErr)
-      }
+      if (prosErr) console.error('analytics snapshot error [pros]:', prosErr)
+      if (centersErr) console.error('analytics snapshot error [centers]:', centersErr)
+      if (incidentsErr) console.error('analytics snapshot error [incidents]:', incidentsErr)
+      if (carnetsErr) console.error('analytics snapshot error [carnets]:', carnetsErr)
+      if (colaErr) console.error('analytics snapshot error [cola]:', colaErr)
 
       const totalProfessionals = pros?.length || 0
       const totalApproved = pros?.filter(p => p.estado_solicitud === 'Aprobado').length || 0
@@ -62,14 +82,26 @@ serve(async (req) => {
       const institutionStats = Object.entries(institutionStatsRaw).map(([institucion, cantidad]) => ({ institucion, cantidad }))
       const categoryStats = Object.entries(countBy(pros || [], 'categoria_centro')).map(([categoria, total_centros]) => ({ categoria, total_centros, total_profesionales: 0 }))
 
+      const centerCategoryStats = Object.entries(countBy(centers || [], 'categoria')).map(([categoria, total_centros]) => ({ categoria, total_centros }))
+      const incidentsOpen = (incidents || []).filter((i: any) => i.estado === 'Abierta' || i.estado === 'En Progreso').length
+      const incidentsTotal = incidents?.length || 0
+
+      const carnetStats = {
+        generados: carnets?.length || 0,
+        en_cola: (cola || []).length,
+        cola_por_estado: Object.entries(countBy(cola || [], 'estado')).map(([estado, total]) => ({ estado, total }))
+      }
+
       analytics = {
         summary: {
           totalProfessionals,
           totalApproved,
-          totalCenters: Object.keys(countBy(pros || [], 'nombre_centro')).length,
+          totalCenters: centers?.length || Object.keys(countBy(pros || [], 'nombre_centro')).length,
           totalDistricts: Object.keys(countBy(pros || [], 'distrito_sanitario')).length,
           totalCountries: Object.keys(countryStatsRaw).length,
           totalInstitutions: Object.keys(institutionStatsRaw).length,
+          totalIncidents: incidentsTotal,
+          incidentsOpen
         },
         topCenters: Object.entries(countBy(pros || [], 'nombre_centro'))
           .sort((a: any, b: any) => b[1] - a[1])
@@ -81,6 +113,8 @@ serve(async (req) => {
         countryStats,
         institutionStats,
         categoryStats,
+        centerCategoryStats,
+        carnetStats,
         titulacionStats: [],
       }
     }

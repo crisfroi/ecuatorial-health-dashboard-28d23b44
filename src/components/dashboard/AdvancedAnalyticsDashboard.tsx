@@ -1141,7 +1141,12 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                   {institutionStats.slice(0, 10).map((inst, index) => (
                     <div
                       key={inst.institucion}
-                      className="flex items-center justify-between p-3 border rounded-lg"
+                      className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                      onClick={() => {
+                        setSelectedInstitution(inst.institucion);
+                        setSelectedCountry(null);
+                        navigateToInstitution(inst.institucion);
+                      }}
                     >
                       <div className="flex-1">
                         <div className="font-medium text-sm">
@@ -1156,6 +1161,26 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                       <Badge variant="outline">{inst.cantidad}</Badge>
                     </div>
                   ))}
+                </div>
+                <div className="mt-4">
+                  <Select
+                    onValueChange={(value) => {
+                      setSelectedInstitution(value);
+                      setSelectedCountry(null);
+                      navigateToInstitution(value);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Ver institución (todas las opciones)" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      {allInstitutions.map((i) => (
+                        <SelectItem key={i.institucion} value={i.institucion}>
+                          {i.institucion} ({i.cantidad})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>

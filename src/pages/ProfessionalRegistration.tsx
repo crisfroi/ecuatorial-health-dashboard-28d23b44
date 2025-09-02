@@ -269,6 +269,18 @@ const ProfessionalRegistration = () => {
     form.setValue("foto_carnet", undefined); // Sincroniza con react-hook-form
   };
 
+  // Normalización de número de teléfono a formato E.164 para Guinea Ecuatorial
+  const normalizeTelefono = (tel: string): string => {
+    if (!tel) return "";
+    let v = tel.replace(/\s|-/g, "");
+    if (v.startsWith("+240")) return v;
+    if (v.startsWith("00240")) return "+" + v.slice(2);
+    if (v.startsWith("240")) return "+" + v;
+    if (v.startsWith("+")) return v;
+    v = v.replace(/^0+/, "");
+    return "+240" + v;
+  };
+
   // Función principal de envío del formulario
   const onSubmit = async (data: FormData) => {
     console.log("onSubmit llamado con datos:", data);
@@ -371,7 +383,7 @@ const ProfessionalRegistration = () => {
         nacionalidad: data.nacionalidad,
         numero_dip: data.numero_dip || null,
         numero_pasaporte: data.numero_pasaporte || null,
-        telefono: data.telefono,
+        telefono: normalizeTelefono(data.telefono),
         domicilio: data.domicilio,
         provincia: data.provincia,
         distrito: data.distrito,

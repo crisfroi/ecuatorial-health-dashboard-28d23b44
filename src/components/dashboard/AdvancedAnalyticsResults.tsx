@@ -307,6 +307,31 @@ const renderSpecificResults = (data: any, query: string) => {
         </div>
       );
 
+    case 'query_professionals':
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {renderStatsCard('Total que cumplen los filtros', data.total, 'count')}
+          <Card className="col-span-1 md:col-span-2">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Filtros aplicados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {data.filtros_aplicados && Object.keys(data.filtros_aplicados).length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(data.filtros_aplicados).map(([k, v]) => (
+                    <Badge key={k} variant="secondary" className="text-xs">
+                      {k}: {String(v)}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Sin filtros</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      );
+
     default:
       return (
         <Card>
@@ -383,4 +408,4 @@ export function AdvancedAnalyticsResults({ results, categories }: AdvancedAnalyt
       })}
     </div>
   );
-} 
+}

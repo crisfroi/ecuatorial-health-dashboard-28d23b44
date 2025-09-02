@@ -153,6 +153,10 @@ const AIChat: React.FC<AIChatProps> = ({ onNavigateToTab }) => {
         navigationActions = data.navigationSuggestions;
       }
 
+      if (data.diagnostics) {
+        console.log('ai-chat-analysis diagnostics:', data.diagnostics);
+      }
+
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: "bot",

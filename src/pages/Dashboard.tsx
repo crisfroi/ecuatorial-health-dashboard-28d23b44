@@ -342,9 +342,11 @@ const Dashboard = () => {
 
       if (error) {
         console.error("Error al invocar Edge Function para SMS:", error);
+        const contextBody = (error as any)?.context?.body;
+        const serverDetail = typeof contextBody === 'string' ? contextBody : (contextBody?.error || contextBody?.message);
         toast({
           title: "Error al Enviar SMS",
-          description: `No se pudo enviar el SMS a ${nombreCompleto}. Detalles: ${error.message}`,
+          description: `No se pudo enviar el SMS a ${nombreCompleto}. ${serverDetail || error.message}`,
           variant: "destructive",
         });
       } else {

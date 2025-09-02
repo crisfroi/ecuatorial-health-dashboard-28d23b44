@@ -19,6 +19,86 @@ serve(async (req) => {
 
     const { query, filters } = await req.json()
 
+    // Utilidad para aplicar filtros sobre profesionales_sanitarios
+    const applyProfessionalFilters = (builder: any, filters: Record<string, any>) => {
+      let qb = builder
+
+      if (!filters) return qb
+
+      // Filtros directos por igualdad
+      const eqFields = [
+        'area_profesional',
+        'estado_solicitud',
+        'provincia',
+        'genero',
+        'tipo_sector',
+        'distrito_sanitario',
+      ] as const
+
+      for (const field of eqFields) {
+        const value = (filters as any)[field]
+        if (value !== undefined && value !== null && value !== '') {
+          qb = qb.eq(field, value)
+        }
+      }
+
+      // Institución (coincidencia en institucion_1 o institucion_2)
+      if (filters.institucion) {
+        const inst = String(filters.institucion).trim()
+        const pattern = `%${inst}%`
+        qb = qb.or(`institucion_1.ilike.${pattern},institucion_2.ilike.${pattern}`)
+      }
+
+      // País de formación (en cualquiera de los dos campos)
+      if (filters.pais_formacion) {
+        const pais = String(filters.pais_formacion).trim()
+        const pattern = `%${pais}%`
+        qb = qb.or(`pais_formacion_1.ilike.${pattern},pais_formacion_2.ilike.${pattern}`)
+      }
+
+      // Año de graduación exacto o rango
+      if (filters.ano_graduacion) {
+        qb = qb.eq('año_graduacion', filters.ano_graduacion)
+      }
+      if (filters.rango_ano_graduacion && Array.isArray(filters.rango_ano_graduacion) && filters.rango_ano_graduacion.length === 2) {
+        const [from, to] = filters.rango_ano_graduacion
+        if (from) qb = qb.gte('año_graduacion', from)
+        if (to) qb = qb.lte('año_graduacion', to)
+      }
+
+      // Vencimiento de carnet en próximos N días
+      if (typeof filters.expira_en_dias === 'number' && filters.expira_en_dias > 0) {
+        const now = new Date()
+        const limit = new Date()
+        limit.setDate(now.getDate() + filters.expira_en_dias)
+        qb = qb
+          .eq('estado_solicitud', 'Aprobado')
+          .gte('fecha_caducidad', now.toISOString())
+          .lte('fecha_caducidad', limit.toISOString())
+      }
+
+      // Carnet ya vencido
+      if (filters.carnet_vencido === true) {
+        const now = new Date().toISOString()
+        qb = qb
+          .eq('estado_solicitud', 'Aprobado')
+          .lte('fecha_caducidad', now)
+      }
+
+      // Próximo vencimiento booleano (30 días por defecto)
+      if (filters.vencimiento_proximo === true && !filters.expira_en_dias) {
+        const now = new Date()
+        const limit = new Date()
+        limit.setDate(now.getDate() + 30)
+        qb = qb
+          .eq('estado_solicitud', 'Aprobado')
+          .gte('fecha_caducidad', now.toISOString())
+          .lte('fecha_caducidad', limit.toISOString())
+      }
+
+      return qb
+    }
+
     // Función para obtener estadísticas avanzadas
     const getAdvancedStats = async (query: string, filters: any = {}) => {
       let result: any = {}
@@ -332,6 +412,27 @@ serve(async (req) => {
           }
           break
 
+        case 'query_professionals':
+          // Conteo dinámico según filtros aplicados sobre profesionales_sanitarios
+          {
+            let qb = supabaseClient
+              .from('profesionales_sanitarios')
+              .select('id', { count: 'exact', head: true })
+
+            qb = applyProfessionalFilters(qb, filters || {})
+
+            const { count, error } = await qb
+            if (error) {
+              result = { error: error.message }
+            } else {
+              result = {
+                total: count || 0,
+                filtros_aplicados: filters || {}
+              }
+            }
+          }
+          break
+
         default:
           result = { error: 'Consulta no reconocida' }
       }
@@ -351,11 +452,11 @@ serve(async (req) => {
 
   } catch (error) {
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: (error as Error).message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
   }
-}) 
+})

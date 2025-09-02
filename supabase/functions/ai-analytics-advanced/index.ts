@@ -526,8 +526,32 @@ serve(async (req) => {
           const { count, error } = await qb
           if (error) throw error
 
+          // Redactar respuesta en lenguaje natural con OpenAI
+          let responseText = `Total encontrados: ${count || 0}`
+          try {
+            if (OPENAI_API_KEY) {
+              const prompt = `Usuario: ${message}\n\nDatos obtenidos de la base de datos: total=${count || 0}, filtros=${JSON.stringify(combinedFilters)}.\nRedacta una respuesta breve, clara y específica en español, solo con estos datos.`
+              const ai = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  model: 'gpt-4o-mini',
+                  temperature: 0.2,
+                  messages: [
+                    { role: 'system', content: 'Eres un asistente que responde con datos exactos de la base de datos. Sé conciso y directo.' },
+                    { role: 'user', content: prompt }
+                  ]
+                })
+              })
+              if (ai.ok) {
+                const aj = await ai.json()
+                responseText = aj.choices?.[0]?.message?.content || responseText
+              }
+            }
+          } catch (_) {}
+
           return new Response(
-            JSON.stringify({ success: true, data: { total: count || 0, filtros_aplicados: combinedFilters }, text: `Total encontrados: ${count || 0}` }),
+            JSON.stringify({ success: true, data: { total: count || 0, filtros_aplicados: combinedFilters }, response: responseText }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
           )
         }

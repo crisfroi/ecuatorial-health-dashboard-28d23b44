@@ -73,28 +73,18 @@ const AIAdvancedAnalyticsChat: React.FC<AIAdvancedAnalyticsChatProps> = ({ onNav
     const welcomeMessage: Message = {
       id: "welcome",
       type: "system",
-      content: `¡Hola! Soy tu asistente de IA especializado en análisis avanzado de estadísticas del sistema de profesionales sanitarios de Guinea Ecuatorial. 
+      content: `¡Hola! Soy tu asistente de IA para consultas del sistema RENAPROSA.
 
-Como usuario con rol "${userRole}", tengo acceso completo a todos los datos del sistema para proporcionarte análisis detallados.
-
-**¿Qué puedo analizar por ti?**
-
-📊 **Categorías de Análisis Disponibles:**
-${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
-
-**Ejemplos de consultas:**
-• "¿Cuántos profesionales hay por género?"
-• "¿Cuáles son las áreas profesionales más comunes?"
-• "¿En qué países se formaron más profesionales?"
-• "¿Qué centros tienen más profesionales?"
-• "Dame un análisis completo de todos los datos"
-
-¡Pregúntame cualquier cosa sobre los datos del sistema!`,
+Escríbeme en lenguaje natural y te daré respuestas exactas basadas en la base de datos.
+Ejemplos:
+• ¿Cuántos profesionales tendrán el carnet vencido en menos de 90 días?
+• ¿Cuántos graduados en la UNGE trabajan en el distrito sanitario de Litoral?
+• ¿Cuántos profesionales aprobados hay en Bioko Norte?`,
       timestamp: new Date()
     };
 
     setMessages([welcomeMessage]);
-  }, [userRole, categories]);
+  }, [userRole]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -118,8 +108,21 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
     setInputMessage("");
     setShowSuggestions(false);
 
+    // Responder saludos sin ejecutar análisis
+    const isGreeting = /^(hola|buenas|buenos dias|buenas tardes|buenas noches|hello|hi|saludos)[.!\s]*$/i.test(userMessage.content.trim());
+    if (isGreeting) {
+      const greetingReply: Message = {
+        id: (Date.now() + 1).toString(),
+        type: "bot",
+        content: "¡Hola! Dime qué necesitas saber y lo buscaré en la base de datos. Ejemplos: ‘¿vencen carnets en menos de 90 días?’ o ‘graduados UNGE en Litoral’.",
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, greetingReply]);
+      return;
+    }
+
     // Procesar la consulta
-    const parsedQuery = parseNaturalLanguage(inputMessage);
+    const parsedQuery = parseNaturalLanguage(userMessage.content);
     if (parsedQuery) {
       try {
         const suggestions = getSuggestions(inputMessage);
@@ -182,14 +185,14 @@ ${categories.map(cat => `• **${cat.name}**: ${cat.description}`).join('\n')}
         });
       }
     } else {
-      const errorMessage: Message = {
+      const promptHelp: Message = {
         id: (Date.now() + 1).toString(),
         type: "bot",
-        content: `🤔 **No pude entender tu consulta**\n\nPor favor, reformula tu pregunta o usa una de estas categorías:\n\n${categories.map(cat => `• **${cat.name}**: ${cat.examples[0]}`).join('\n')}`,
+        content: `No entendí la intención. Intenta algo como:\n• ¿Cuántos carnets vencen en menos de 90 días?\n• ¿Cuántos graduados UNGE trabajan en Litoral?\n• ¿Cuántas enfermeras aprobadas hay en Bioko Norte?`,
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, promptHelp]);
     }
   };
 

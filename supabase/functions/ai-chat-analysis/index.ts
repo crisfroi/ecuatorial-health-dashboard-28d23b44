@@ -117,7 +117,58 @@ serve(async (req) => {
         mergedCenterCounts.push({ nombre: (c as any).nombre, categoria: (c as any).categoria || '', total_profesionales: byName + byId })
       }
 
-      const topCenters = mergedCenterCounts.sort((a, b) => b.total_profesionales - a.total_profesionales).slice(0, 20)
+      // Alternativa robusta: contar por centro replicando lógica del frontend
+      let topCenters = mergedCenterCounts
+      let perCenterDiagnostics: any[] = []
+      try {
+        if (centers && centers.length > 0) {
+          const counts = await Promise.all(
+            centers.map(async (c: any) => {
+              const name = c.nombre
+              const id = c.id
+              let c1 = 0, c2 = 0, c3 = 0
+              let e1: any = null, e2: any = null, e3: any = null
+
+              // nombre_centro
+              try {
+                const { count, error } = await supabase
+                  .from('profesionales_sanitarios')
+                  .select('id', { count: 'exact', head: true })
+                  .eq('estado_solicitud', 'Aprobado')
+                  .eq('nombre_centro', name)
+                if (!error) c1 = count || 0; else e1 = error
+              } catch (err) { e1 = String(err) }
+
+              // lugar_trabajo
+              try {
+                const { count, error } = await supabase
+                  .from('profesionales_sanitarios')
+                  .select('id', { count: 'exact', head: true })
+                  .eq('estado_solicitud', 'Aprobado')
+                  .eq('lugar_trabajo', name)
+                if (!error) c2 = count || 0; else e2 = error
+              } catch (err) { e2 = String(err) }
+
+              // centro_salud_id
+              try {
+                const { count, error } = await supabase
+                  .from('profesionales_sanitarios')
+                  .select('id', { count: 'exact', head: true })
+                  .eq('estado_solicitud', 'Aprobado')
+                  .eq('centro_salud_id', id)
+                if (!error) c3 = count || 0; else e3 = error
+              } catch (err) { e3 = String(err) }
+
+              const total_profesionales = Math.max(c1, c2, c3)
+              perCenterDiagnostics.push({ nombre: name, c1, c2, c3, total_profesionales, e1: e1?.message || e1 || null, e2: e2?.message || e2 || null, e3: e3?.message || e3 || null })
+              return { nombre: name, categoria: c.categoria || '', total_profesionales }
+            })
+          )
+          topCenters = counts.sort((a, b) => b.total_profesionales - a.total_profesionales).slice(0, 20)
+        }
+      } catch (err) {
+        console.error('per-center counting failed:', err)
+      }
 
       analyticsFromServer = {
         summary: {
@@ -140,6 +191,7 @@ serve(async (req) => {
         centerCategoryStats,
         carnetStats,
         titulacionStats: [],
+        _diagnostics: { perCenter: perCenterDiagnostics.slice(0, 10) }
       }
     }
 

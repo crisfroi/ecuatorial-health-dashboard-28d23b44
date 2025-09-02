@@ -31,15 +31,14 @@ serve(async (req) => {
       ? createClient(SUPABASE_URL, SERVICE_ROLE)
       : null
 
-    // If frontend did not send analytics, compute a broad snapshot from DB
-    let analytics = analyticsInput
-    if (!analytics && supabase) {
+    // Siempre que exista SERVICE_ROLE, calcular snapshot en servidor
+    let analyticsFromServer: any = null
+    if (supabase) {
       console.log('ai-chat-analysis | computing analytics snapshot server-side')
-      // Fetch needed columns in one pass to reduce roundtrips
       const [{ data: pros, error: prosErr }, { data: centers, error: centersErr }, { data: incidents, error: incidentsErr }, { data: carnets, error: carnetsErr }, { data: cola, error: colaErr }] = await Promise.all([
         supabase
           .from('profesionales_sanitarios')
-          .select('id, estado_solicitud, area_profesional, provincia, distrito_sanitario, nombre_centro, categoria_centro, pais_formacion_1, pais_formacion_2, institucion_1, institucion_2, año_graduacion, fecha_caducidad')
+          .select('id, estado_solicitud, area_profesional, provincia, distrito_sanitario, nombre_centro, lugar_trabajo, centro_salud_id, categoria_centro, pais_formacion_1, pais_formacion_2, institucion_1, institucion_2, año_graduacion, fecha_caducidad')
           .limit(20000),
         supabase
           .from('centros_salud')
@@ -92,21 +91,46 @@ serve(async (req) => {
         cola_por_estado: Object.entries(countBy(cola || [], 'estado')).map(([estado, total]) => ({ estado, total }))
       }
 
-      analytics = {
+      // Conteo robusto de profesionales por centro (nombre_centro, lugar_trabajo y centro_salud_id)
+      const nameCount: Record<string, number> = {}
+      const idCount: Record<string, number> = {}
+      for (const p of pros || []) {
+        const n1 = (p as any).nombre_centro?.trim()
+        const n2 = (p as any).lugar_trabajo?.trim()
+        const cid = (p as any).centro_salud_id
+        if (n1) nameCount[n1] = (nameCount[n1] || 0) + 1
+        if (n2) nameCount[n2] = (nameCount[n2] || 0) + 1
+        if (cid) idCount[cid] = (idCount[cid] || 0) + 1
+      }
+
+      const centersById: Record<string, any> = {}
+      const centersByName: Record<string, any> = {}
+      for (const c of centers || []) {
+        centersById[(c as any).id] = c
+        centersByName[(c as any).nombre] = c
+      }
+
+      const mergedCenterCounts: { nombre: string; categoria: string; total_profesionales: number }[] = []
+      for (const c of centers || []) {
+        const byName = nameCount[(c as any).nombre] || 0
+        const byId = idCount[(c as any).id] || 0
+        mergedCenterCounts.push({ nombre: (c as any).nombre, categoria: (c as any).categoria || '', total_profesionales: byName + byId })
+      }
+
+      const topCenters = mergedCenterCounts.sort((a, b) => b.total_profesionales - a.total_profesionales).slice(0, 20)
+
+      analyticsFromServer = {
         summary: {
           totalProfessionals,
           totalApproved,
-          totalCenters: centers?.length || Object.keys(countBy(pros || [], 'nombre_centro')).length,
+          totalCenters: centers?.length || 0,
           totalDistricts: Object.keys(countBy(pros || [], 'distrito_sanitario')).length,
           totalCountries: Object.keys(countryStatsRaw).length,
           totalInstitutions: Object.keys(institutionStatsRaw).length,
           totalIncidents: incidentsTotal,
           incidentsOpen
         },
-        topCenters: Object.entries(countBy(pros || [], 'nombre_centro'))
-          .sort((a: any, b: any) => b[1] - a[1])
-          .slice(0, 10)
-          .map(([nombre, total_profesionales]: any) => ({ nombre, categoria: '', total_profesionales })),
+        topCenters,
         areaStats,
         districtStats,
         ageRangeStats: [],
@@ -116,6 +140,21 @@ serve(async (req) => {
         centerCategoryStats,
         carnetStats,
         titulacionStats: [],
+      }
+    }
+
+    // Fusionar: priorizar datos del servidor para evitar zeros por RLS del cliente
+    let analytics = analyticsFromServer || analyticsInput || null
+    if (analyticsFromServer && analyticsInput) {
+      analytics = {
+        ...analyticsInput,
+        ...analyticsFromServer,
+        summary: { ...(analyticsInput.summary || {}), ...(analyticsFromServer.summary || {}) },
+        topCenters: analyticsFromServer.topCenters || analyticsInput.topCenters,
+        areaStats: analyticsFromServer.areaStats || analyticsInput.areaStats,
+        districtStats: analyticsFromServer.districtStats || analyticsInput.districtStats,
+        centerCategoryStats: analyticsFromServer.centerCategoryStats || analyticsInput.centerCategoryStats,
+        carnetStats: analyticsFromServer.carnetStats || analyticsInput.carnetStats,
       }
     }
 
@@ -183,7 +222,7 @@ serve(async (req) => {
     Tienes acceso a datos actualizados del registro nacional de profesionales sanitarios (RENAPROSA).
     
     Tu función es analizar y responder preguntas sobre:
-    - Estadísticas de profesionales sanitarios y centros de salud
+    - Estad��sticas de profesionales sanitarios y centros de salud
     - Distribución geográfica de profesionales por distritos sanitarios
     - Estados de solicitudes y procesos de acreditación
     - Tendencias y patrones en los datos

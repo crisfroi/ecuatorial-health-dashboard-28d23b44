@@ -309,6 +309,16 @@ const Dashboard = () => {
       });
       return;
     }
+    // Validación de formato E.164
+    const e164 = /^\+[1-9]\d{6,14}$/;
+    if (!e164.test(telefono)) {
+      toast({
+        title: "Teléfono inválido",
+        description: "Use formato internacional E.164 (ej.: +240XXXXXXXX)",
+        variant: "destructive",
+      });
+      return;
+    }
     console.log("Teléfono recibido:", telefono);
 
     const formattedDate = fechaValidezCarnet

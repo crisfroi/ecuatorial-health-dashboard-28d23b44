@@ -52,7 +52,7 @@ import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import RequestsPanel from "@/components/dashboard/RequestsPanel";
 import RenewalAlerts from "@/components/dashboard/RenewalAlerts";
-import AIAdvancedAnalyticsChat from "@/components/dashboard/AIAdvancedAnalyticsChat";
+import AIChat from "@/components/dashboard/AIChat";
 import MinisterialPanel from "@/components/dashboard/MinisterialPanel";
 import IncidentManagement from "@/components/dashboard/IncidentManagement";
 import HealthCenters from "@/components/dashboard/HealthCenters";
@@ -315,7 +315,7 @@ const Dashboard = () => {
     const e164 = /^\+[1-9]\d{6,14}$/;
     if (!e164.test(telefono)) {
       toast({
-        title: "Teléfono inválido",
+        title: "Teléfono inv��lido",
         description: "Use formato internacional E.164 (ej.: +240XXXXXXXX)",
         variant: "destructive",
       });
@@ -719,7 +719,7 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="ai-chat" className="space-y-6">
-            <AIAdvancedAnalyticsChat
+            <AIChat
               onNavigateToTab={(tab, filters) => {
                 setActiveTab(tab);
                 if (filters) setAppliedFilters(filters);

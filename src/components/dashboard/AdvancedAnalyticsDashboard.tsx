@@ -129,6 +129,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     navigateToCenter,
     navigateToAgeRange,
     navigateToGraduationYear,
+    navigateToCountry,
     navigateToRenewals,
     navigateToProvince,
   } = useDashboardNavigation(onNavigateToTab || (() => {}));

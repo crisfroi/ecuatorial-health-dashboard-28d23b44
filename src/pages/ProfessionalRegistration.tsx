@@ -217,6 +217,7 @@ const ProfessionalRegistration = () => {
       acepta_politicas: false,
       situacion_laboral: "Activo",
       nacionalidad: "Ecuatoguineana",
+      telefono: "+240",
     },
   });
 

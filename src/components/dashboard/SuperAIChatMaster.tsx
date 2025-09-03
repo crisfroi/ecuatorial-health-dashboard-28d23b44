@@ -47,7 +47,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content: '🚀 **¡SISTEMA DE IA SUPERINTELIGENTE ACTIVADO!** \n\nSoy tu asistente avanzado con acceso completo a toda la base de datos del Sistema de Salud de Guinea Ecuatorial.\n\n**Mis súper capacidades incluyen:**\n\n✅ **26 tablas** con datos completos\n✅ **Análisis cross-table** con relaciones complejas\n��� **Estadísticas demográficas, geográficas y temporales**\n✅ **Filtros relacionales múltiples**\n✅ **Respuestas con datos precisos en tiempo real**\n\n**Pregúntame cualquier cosa sobre:**\n- 👥 Profesionales sanitarios por cualquier criterio\n- 🏥 Centros de salud y distribución\n- 📊 Estadísticas demográficas avanzadas\n- 🌍 Análisis geográficos por distrito/provincia\n- 🎓 Formación académica y países de origen\n- 🆔 Estado de carnets y vencimientos\n- ⏰ Análisis temporales y tendencias\n- 🔗 Correlaciones entre variables\n\n**Ejemplos de consultas avanzadas:**\n- *"Profesionales de UNGE graduados entre 2015-2020 que trabajan en hospitales públicos de Bata"*\n- *"Distribución por género de enfermeros en centros rurales del distrito Litoral"*\n- *"¿Cuántos carnets van a vencer en 30 días por provincia y área profesional?"*\n- *"Análisis temporal de solicitudes aprobadas por distrito sanitario"*\n\n¡Pregúntame lo que necesites saber! 🎯',
+      content: '🚀 **¡SISTEMA DE IA SUPERINTELIGENTE ACTIVADO!** \n\nSoy tu asistente avanzado con acceso completo a toda la base de datos del Sistema de Salud de Guinea Ecuatorial.\n\n**Mis súper capacidades incluyen:**\n\n✅ **26 tablas** con datos completos\n✅ **Análisis cross-table** con relaciones complejas\n✅ **Estadísticas demográficas, geográficas y temporales**\n✅ **Filtros relacionales múltiples**\n✅ **Respuestas con datos precisos en tiempo real**\n\n**Pregúntame cualquier cosa sobre:**\n- 👥 Profesionales sanitarios por cualquier criterio\n- 🏥 Centros de salud y distribución\n- 📊 Estadísticas demográficas avanzadas\n- 🌍 Análisis geográficos por distrito/provincia\n- 🎓 Formación académica y países de origen\n- 🆔 Estado de carnets y vencimientos\n- ⏰ Análisis temporales y tendencias\n- 🔗 Correlaciones entre variables\n\n**Ejemplos de consultas avanzadas:**\n- *"Profesionales de UNGE graduados entre 2015-2020 que trabajan en hospitales públicos de Bata"*\n- *"Distribución por género de enfermeros en centros rurales del distrito Litoral"*\n- *"¿Cuántos carnets van a vencer en 30 días por provincia y área profesional?"*\n- *"Análisis temporal de solicitudes aprobadas por distrito sanitario"*\n\n¡Pregúntame lo que necesites saber! 🎯',
       timestamp: new Date().toISOString()
     }
   ]);
@@ -84,7 +84,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       });
 
       if (error) {
-        console.error('Health check error:', error);
+        console.warn('Health check warning:', (error as any)?.message || error);
       }
 
       if (data?.needsOpenAI) {

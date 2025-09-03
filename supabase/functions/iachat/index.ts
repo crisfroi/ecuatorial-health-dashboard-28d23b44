@@ -22,6 +22,7 @@ function applyFilters(q: any, f: Record<string, any>) {
   if (f.estado_trabajo) qb = qb.eq("estado_trabajo", f.estado_trabajo);
   if (f.funcion_publica !== undefined) qb = qb.eq("funcion_publica", !!f.funcion_publica);
   if (f.provincia) qb = qb.eq("provincia", f.provincia);
+  if (f.provincia_like) qb = qb.ilike("provincia", `%${f.provincia_like}%`);
   if (f.genero) qb = qb.eq("genero", f.genero);
   if (f.genero_like) qb = qb.ilike("genero", `%${f.genero_like}%`);
   if (f.nacionalidad) qb = qb.eq("nacionalidad", f.nacionalidad);
@@ -448,6 +449,7 @@ Debes INVOCAR al menos una herramienta de datos antes de responder. Elige la her
 Reglas de extracción de filtros y tolerancia a variaciones:
 - Si se menciona un centro ("hospital", "clínica", "centro"), usa nombre_centro o nombre_centro_like.
 - Si se menciona un área con variaciones ("enfermeras"/"enfermería", "psicólogas"/"psicología"), usa area_profesional_like con la raíz (enfermer, psicol, medic, odont, farmac, etc.).
+- Si se menciona una provincia ("provincia de X"), usa provincia o provincia_like.
 - Si se menciona un distrito ("distrito sanitario de X"), usa distrito_sanitario o distrito_sanitario_like (admite también "distrito") y si aparece "ds"/"d.s.", interprétalo como distrito_sanitario_like.
 - Para género en lenguaje natural (mujeres/hombres), usa genero_like ('fem' / 'masc') salvo que especifiquen el valor exacto del campo.
 - Para preguntas del tipo "¿cuántas mujeres/hombres...?" NO uses get_gender_stats; usa SOLO get_professionals_count con los filtros combinados. Si hay varios resultados numéricos, prioriza get_professionals_count y no mezcles cifras.

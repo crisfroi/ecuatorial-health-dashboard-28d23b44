@@ -38,7 +38,7 @@ serve(async (req) => {
       const [{ data: pros, error: prosErr }, { data: centers, error: centersErr }, { data: incidents, error: incidentsErr }, { data: carnets, error: carnetsErr }, { data: cola, error: colaErr }] = await Promise.all([
         supabase
           .from('profesionales_sanitarios')
-          .select('id, estado_solicitud, area_profesional, provincia, distrito_sanitario, nombre_centro, lugar_trabajo, centro_salud_id, categoria_centro, pais_formacion_1, pais_formacion_2, institucion_1, institucion_2, año_graduacion, fecha_caducidad')
+          .select('id, estado_solicitud, area_profesional, provincia, distrito_sanitario, nombre_centro, centro_salud_id, categoria_centro, pais_formacion_1, pais_formacion_2, institucion_1, institucion_2, año_graduacion, fecha_caducidad')
           .limit(20000),
         supabase
           .from('centros_salud')
@@ -106,15 +106,13 @@ serve(async (req) => {
         cola_por_estado: Object.entries(countBy(cola || [], 'estado')).map(([estado, total]) => ({ estado, total }))
       }
 
-      // Conteo robusto de profesionales por centro (nombre_centro, lugar_trabajo y centro_salud_id)
+      // Conteo robusto de profesionales por centro (nombre_centro y centro_salud_id)
       const nameCount: Record<string, number> = {}
       const idCount: Record<string, number> = {}
       for (const p of pros || []) {
         const n1 = (p as any).nombre_centro?.trim()
-        const n2 = (p as any).lugar_trabajo?.trim()
         const cid = (p as any).centro_salud_id
         if (n1) nameCount[n1] = (nameCount[n1] || 0) + 1
-        if (n2) nameCount[n2] = (nameCount[n2] || 0) + 1
         if (cid) idCount[cid] = (idCount[cid] || 0) + 1
       }
 

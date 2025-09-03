@@ -604,7 +604,7 @@ const Dashboard = () => {
         {showFilters && (
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-lg">Filtros de Búsqueda</CardTitle>
+              <CardTitle className="text-lg">Filtros de B��squeda</CardTitle>
               <CardDescription>
                 Filtra los datos del dashboard según tus criterios
               </CardDescription>
@@ -720,6 +720,7 @@ const Dashboard = () => {
 
           <TabsContent value="iachat" className="space-y-6">
             <IAChatOrchestrator
+              filters={dashboardFilters}
               onNavigateToTab={(tab, filters) => {
                 setActiveTab(tab);
                 if (filters) setAppliedFilters(filters);

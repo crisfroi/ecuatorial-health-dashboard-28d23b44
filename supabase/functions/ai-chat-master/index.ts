@@ -380,7 +380,7 @@ Ejemplo de capacidades:
           
         } catch (error) {
           console.error(`❌ Error ejecutando ${toolName}:`, error)
-          toolResults[toolName] = { error: error.message }
+          toolResults[toolName] = { error: (error as Error).message }
         }
       }
     }
@@ -427,7 +427,7 @@ Ejemplo de capacidades:
       toolResults,
       navigationSuggestions,
       diagnostics: {
-        toolsUsed: assistantMessage.tool_calls?.map(tc => tc.function.name) || [],
+        toolsUsed: assistantMessage.tool_calls?.map((tc: any) => tc.function.name) || [],
         dataPoints: Object.keys(toolResults).length,
         timestamp: new Date().toISOString()
       }
@@ -465,7 +465,7 @@ async function getProfessionalsAnalytics(supabase: any, args: any) {
         query = query.gte('año_graduacion', value[0]).lte('año_graduacion', value[1])
       } else if (key === 'dias_vencimiento') {
         const futureDate = new Date()
-        futureDate.setDate(futureDate.getDate() + value)
+        futureDate.setDate(futureDate.getDate() + (value as number))
         query = query.gte('fecha_caducidad', new Date().toISOString())
                    .lte('fecha_caducidad', futureDate.toISOString())
       } else if (key === 'carnet_vencido' && value === true) {
@@ -483,35 +483,35 @@ async function getProfessionalsAnalytics(supabase: any, args: any) {
   if (error) throw error
   
   // Análisis según tipo
-  let analysis = {}
+  let analysis: any = {}
   
   switch (analysis_type) {
     case 'demographics':
       analysis = {
         total: data?.length || 0,
-        por_genero: data?.reduce((acc, p) => {
+        por_genero: data?.reduce((acc: any, p: any) => {
           acc[p.genero || 'No especificado'] = (acc[p.genero || 'No especificado'] || 0) + 1
           return acc
         }, {}),
-        por_edad: data?.reduce((acc, p) => {
+        por_edad: data?.reduce((acc: any, p: any) => {
           if (p.edad) {
             const group = p.edad < 30 ? '<30' : p.edad < 40 ? '30-40' : p.edad < 50 ? '40-50' : p.edad < 60 ? '50-60' : '60+'
             acc[group] = (acc[group] || 0) + 1
           }
           return acc
         }, {}),
-        edad_promedio: data?.filter(p => p.edad).reduce((sum, p) => sum + p.edad, 0) / data?.filter(p => p.edad).length || 0
+        edad_promedio: data?.filter((p: any) => p.edad).reduce((sum: number, p: any) => sum + p.edad, 0) / (data?.filter((p: any) => p.edad).length || 1)
       }
       break
       
     case 'geographic':
       analysis = {
         total: data?.length || 0,
-        por_provincia: data?.reduce((acc, p) => {
+        por_provincia: data?.reduce((acc: any, p: any) => {
           acc[p.provincia || 'No especificada'] = (acc[p.provincia || 'No especificada'] || 0) + 1
           return acc
         }, {}),
-        por_distrito: data?.reduce((acc, p) => {
+        por_distrito: data?.reduce((acc: any, p: any) => {
           acc[p.distrito_sanitario || 'No especificado'] = (acc[p.distrito_sanitario || 'No especificado'] || 0) + 1
           return acc
         }, {})
@@ -521,12 +521,12 @@ async function getProfessionalsAnalytics(supabase: any, args: any) {
     case 'education':
       analysis = {
         total: data?.length || 0,
-        por_pais_formacion: data?.reduce((acc, p) => {
+        por_pais_formacion: data?.reduce((acc: any, p: any) => {
           if (p.pais_formacion_1) acc[p.pais_formacion_1] = (acc[p.pais_formacion_1] || 0) + 1
           if (p.pais_formacion_2) acc[p.pais_formacion_2] = (acc[p.pais_formacion_2] || 0) + 1
           return acc
         }, {}),
-        por_institucion: data?.reduce((acc, p) => {
+        por_institucion: data?.reduce((acc: any, p: any) => {
           if (p.institucion_1) acc[p.institucion_1] = (acc[p.institucion_1] || 0) + 1
           if (p.institucion_2) acc[p.institucion_2] = (acc[p.institucion_2] || 0) + 1
           return acc
@@ -537,18 +537,18 @@ async function getProfessionalsAnalytics(supabase: any, args: any) {
     default: // 'summary'
       analysis = {
         total: data?.length || 0,
-        por_estado: data?.reduce((acc, p) => {
+        por_estado: data?.reduce((acc: any, p: any) => {
           acc[p.estado_solicitud || 'Sin estado'] = (acc[p.estado_solicitud || 'Sin estado'] || 0) + 1
           return acc
         }, {}),
-        por_area: data?.reduce((acc, p) => {
+        por_area: data?.reduce((acc: any, p: any) => {
           acc[p.area_profesional || 'No especificada'] = (acc[p.area_profesional || 'No especificada'] || 0) + 1
           return acc
         }, {}),
-        top_areas: Object.entries(data?.reduce((acc, p) => {
+        top_areas: Object.entries(data?.reduce((acc: any, p: any) => {
           acc[p.area_profesional || 'No especificada'] = (acc[p.area_profesional || 'No especificada'] || 0) + 1
           return acc
-        }, {}) || {}).sort(([,a], [,b]) => b - a).slice(0, 5)
+        }, {}) || {}).sort(([,a], [,b]) => (b as number) - (a as number)).slice(0, 5)
       }
   }
   
@@ -571,17 +571,17 @@ async function getCentersAnalytics(supabase: any, args: any) {
   const { data: centers, error } = await query
   if (error) throw error
   
-  let analysis = {
+  let analysis: any = {
     total_centros: centers?.length || 0,
-    por_categoria: centers?.reduce((acc, c) => {
+    por_categoria: centers?.reduce((acc: any, c: any) => {
       acc[c.categoria] = (acc[c.categoria] || 0) + 1
       return acc
     }, {}),
-    por_provincia: centers?.reduce((acc, c) => {
+    por_provincia: centers?.reduce((acc: any, c: any) => {
       acc[c.provincia] = (acc[c.provincia] || 0) + 1
       return acc
     }, {}),
-    por_sector: centers?.reduce((acc, c) => {
+    por_sector: centers?.reduce((acc: any, c: any) => {
       acc[c.sector] = (acc[c.sector] || 0) + 1
       return acc
     }, {})
@@ -594,14 +594,14 @@ async function getCentersAnalytics(supabase: any, args: any) {
       .select('centro_salud_id, nombre_centro')
       .eq('estado_solicitud', 'Aprobado')
     
-    const profesionalesPorCentro = professionals?.reduce((acc, p) => {
+    const profesionalesPorCentro = professionals?.reduce((acc: any, p: any) => {
       const key = p.centro_salud_id || p.nombre_centro || 'Sin centro'
       acc[key] = (acc[key] || 0) + 1
       return acc
     }, {}) || {}
     
     analysis.profesionales_por_centro = profesionalesPorCentro
-    analysis.centros_sin_profesionales = centers?.filter(c => 
+    analysis.centros_sin_profesionales = centers?.filter((c: any) => 
       !profesionalesPorCentro[c.id] && !profesionalesPorCentro[c.nombre]
     ).length || 0
   }
@@ -618,11 +618,11 @@ async function getDemographicAnalysis(supabase: any, args: any) {
   const { data, error } = await query
   if (error) throw error
   
-  let analysis = {}
+  let analysis: any = {}
   
   switch (dimension) {
     case 'age':
-      analysis = data?.reduce((acc, p) => {
+      analysis = data?.reduce((acc: any, p: any) => {
         if (p.edad) {
           const group = p.edad < 25 ? '<25' : p.edad < 35 ? '25-34' : p.edad < 45 ? '35-44' : 
                       p.edad < 55 ? '45-54' : p.edad < 65 ? '55-64' : '65+'
@@ -633,14 +633,14 @@ async function getDemographicAnalysis(supabase: any, args: any) {
       break
       
     case 'gender':
-      analysis = data?.reduce((acc, p) => {
+      analysis = data?.reduce((acc: any, p: any) => {
         acc[p.genero || 'No especificado'] = (acc[p.genero || 'No especificado'] || 0) + 1
         return acc
       }, {})
       break
       
     case 'nationality':
-      analysis = data?.reduce((acc, p) => {
+      analysis = data?.reduce((acc: any, p: any) => {
         acc[p.nacionalidad || 'No especificada'] = (acc[p.nacionalidad || 'No especificada'] || 0) + 1
         return acc
       }, {})
@@ -680,7 +680,7 @@ async function getTemporalAnalysis(supabase: any, args: any) {
   }
   
   let dateField = 'fecha_solicitud'
-  let filterValue = null
+  let filterValue: string | null = null
   
   switch (metric) {
     case 'approvals':
@@ -706,7 +706,7 @@ async function getTemporalAnalysis(supabase: any, args: any) {
   if (error) throw error
   
   // Agrupar por período
-  const grouped = data?.reduce((acc, item) => {
+  const grouped = data?.reduce((acc: any, item: any) => {
     const date = new Date(item[dateField])
     let key = ''
     
@@ -751,42 +751,42 @@ async function getEducationAnalysis(supabase: any, args: any) {
   
   if (error) throw error
   
-  let analysis = {}
+  let analysis: any = {}
   
   switch (focus) {
     case 'countries':
-      const countries = {}
-      data?.forEach(p => {
+      const countries: any = {}
+      data?.forEach((p: any) => {
         if (p.pais_formacion_1) countries[p.pais_formacion_1] = (countries[p.pais_formacion_1] || 0) + 1
         if (p.pais_formacion_2) countries[p.pais_formacion_2] = (countries[p.pais_formacion_2] || 0) + 1
       })
       analysis = Object.entries(countries)
-        .sort(([,a], [,b]) => b - a)
+        .sort(([,a], [,b]) => (b as number) - (a as number))
         .slice(0, top_n)
-        .reduce((acc, [country, count]) => {
-          acc[country] = count
+        .reduce((acc: any, [country, count]) => {
+          acc[country as string] = count
           return acc
         }, {})
       break
       
     case 'institutions':
-      const institutions = {}
-      data?.forEach(p => {
+      const institutions: any = {}
+      data?.forEach((p: any) => {
         if (p.institucion_1) institutions[p.institucion_1] = (institutions[p.institucion_1] || 0) + 1
         if (p.institucion_2) institutions[p.institucion_2] = (institutions[p.institucion_2] || 0) + 1
       })
       analysis = Object.entries(institutions)
-        .sort(([,a], [,b]) => b - a)
+        .sort(([,a], [,b]) => (b as number) - (a as number))
         .slice(0, top_n)
-        .reduce((acc, [inst, count]) => {
-          acc[inst] = count
+        .reduce((acc: any, [inst, count]) => {
+          acc[inst as string] = count
           return acc
         }, {})
       break
       
     case 'graduation_years':
-      analysis = data?.reduce((acc, p) => {
-        if (p.a��o_graduacion && p.año_graduacion >= 1990) {
+      analysis = data?.reduce((acc: any, p: any) => {
+        if (p.año_graduacion && p.año_graduacion >= 1990) {
           acc[p.año_graduacion] = (acc[p.año_graduacion] || 0) + 1
         }
         return acc
@@ -805,7 +805,7 @@ async function getCarnetStatusAnalysis(supabase: any, args: any) {
   
   const { focus, days_threshold = 30 } = args
   
-  let analysis = {}
+  let analysis: any = {}
   
   switch (focus) {
     case 'expiring_soon':
@@ -821,11 +821,11 @@ async function getCarnetStatusAnalysis(supabase: any, args: any) {
       
       analysis = {
         total_expiring: expiring?.length || 0,
-        by_province: expiring?.reduce((acc, p) => {
+        by_province: expiring?.reduce((acc: any, p: any) => {
           acc[p.provincia || 'No especificada'] = (acc[p.provincia || 'No especificada'] || 0) + 1
           return acc
         }, {}),
-        by_area: expiring?.reduce((acc, p) => {
+        by_area: expiring?.reduce((acc: any, p: any) => {
           acc[p.area_profesional || 'No especificada'] = (acc[p.area_profesional || 'No especificada'] || 0) + 1
           return acc
         }, {})
@@ -841,11 +841,11 @@ async function getCarnetStatusAnalysis(supabase: any, args: any) {
       
       analysis = {
         total_expired: expired?.length || 0,
-        by_province: expired?.reduce((acc, p) => {
+        by_province: expired?.reduce((acc: any, p: any) => {
           acc[p.provincia || 'No especificada'] = (acc[p.provincia || 'No especificada'] || 0) + 1
           return acc
         }, {}),
-        urgency_classification: expired?.reduce((acc, p) => {
+        urgency_classification: expired?.reduce((acc: any, p: any) => {
           const daysSinceExpired = Math.floor((new Date().getTime() - new Date(p.fecha_caducidad).getTime()) / (1000 * 60 * 60 * 24))
           const urgency = daysSinceExpired > 365 ? 'Muy urgente (>1 año)' : 
                          daysSinceExpired > 90 ? 'Urgente (>3 meses)' : 'Reciente (<3 meses)'
@@ -859,11 +859,11 @@ async function getCarnetStatusAnalysis(supabase: any, args: any) {
       const { data: queue } = await supabase.from('cola_generacion_carnets').select('*')
       analysis = {
         total_in_queue: queue?.length || 0,
-        by_status: queue?.reduce((acc, item) => {
+        by_status: queue?.reduce((acc: any, item: any) => {
           acc[item.estado] = (acc[item.estado] || 0) + 1
           return acc
         }, {}),
-        failed_attempts: queue?.filter(item => item.intentos > 0).length || 0
+        failed_attempts: queue?.filter((item: any) => item.intentos > 0).length || 0
       }
       break
       
@@ -879,18 +879,18 @@ async function getGuardiasAnalytics(supabase: any, args: any) {
   
   const { analysis_type, time_range } = args
   
-  let analysis = {}
+  let analysis: any = {}
   
   switch (analysis_type) {
     case 'guardias_overview':
       const { data: guardias } = await supabase.from('guardias').select('*')
       analysis = {
         total_guardias: guardias?.length || 0,
-        by_state: guardias?.reduce((acc, g) => {
+        by_state: guardias?.reduce((acc: any, g: any) => {
           acc[g.estado] = (acc[g.estado] || 0) + 1
           return acc
         }, {}),
-        by_type: guardias?.reduce((acc, g) => {
+        by_type: guardias?.reduce((acc: any, g: any) => {
           acc[g.tipo] = (acc[g.tipo] || 0) + 1
           return acc
         }, {})
@@ -901,16 +901,16 @@ async function getGuardiasAnalytics(supabase: any, args: any) {
       const { data: nominas } = await supabase.from('nominas_guardias').select('*')
       analysis = {
         total_nominas: nominas?.length || 0,
-        by_state: nominas?.reduce((acc, n) => {
+        by_state: nominas?.reduce((acc: any, n: any) => {
           acc[n.estado] = (acc[n.estado] || 0) + 1
           return acc
         }, {}),
-        total_amount: nominas?.reduce((sum, n) => sum + (n.total_importe || 0), 0) || 0
+        total_amount: nominas?.reduce((sum: number, n: any) => sum + (n.total_importe || 0), 0) || 0
       }
       break
       
     default:
-      analysis = { error: 'Tipo de análisis no soportado' }
+        analysis = { error: 'Tipo de análisis no soportado' }
   }
   
   return analysis

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, Send, Compass } from "lucide-react";
+import { MessageSquare, Send, Compass, ArrowRight } from "lucide-react";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -32,6 +32,7 @@ const IAChatOrchestrator: React.FC<IAChatOrchestratorProps> = ({ onNavigateToTab
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<NavigationSuggestion[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const canSend = useMemo(() => input.trim().length > 0 && !loading, [input, loading]);
@@ -59,9 +60,11 @@ const IAChatOrchestrator: React.FC<IAChatOrchestratorProps> = ({ onNavigateToTab
         return;
       }
       const answer = (data as any)?.answer as string;
-      const suggestions = ((data as any)?.navigationSuggestions || []) as NavigationSuggestion[];
+      const suggestionsResp = ((data as any)?.navigationSuggestions || []) as NavigationSuggestion[];
       const toolResults = (data as any)?.toolResults || null;
       const diagnostics = (data as any)?.diagnostics || null;
+
+      setSuggestions(suggestionsResp || []);
 
       const append: ChatMessage[] = [
         { role: "assistant", content: answer || "No obtuve respuesta." },
@@ -136,10 +139,21 @@ const IAChatOrchestrator: React.FC<IAChatOrchestratorProps> = ({ onNavigateToTab
       </Card>
 
       {/* Acciones rápidas sugeridas por la IA (renderizadas a partir del último mensaje) */}
-      {(() => {
-        const last = messages[messages.length - 1]?.content || "";
-        return null;
-      })()}
+      {suggestions.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {suggestions.map((s, idx) => (
+            <Button
+              key={idx}
+              variant="secondary"
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={() => onNavigateToTab && onNavigateToTab(s.tab, s.filters || {})}
+            >
+              <ArrowRight className="w-4 h-4" /> {s.label}
+            </Button>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {onNavigateToTab && (

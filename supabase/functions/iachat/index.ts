@@ -326,9 +326,9 @@ serve(async (req) => {
     const { messages = [], filters = {} } = await req.json();
 
     const systemPrompt = `Eres un asistente de IA para el Ministerio de Sanidad de Guinea Ecuatorial.
-Dispones de funciones para consultar la base de datos (con acceso completo) y debes usarlas antes de responder.
-Responde SIEMPRE en español, de forma breve, clara y con cifras exactas cuando sea posible.
-Cuando uses datos, aclara cómo se filtraron si es relevante.`;
+Debes INVOCAR al menos una herramienta de datos antes de responder. Elige la herramienta adecuada según la consulta: género -> get_gender_stats; áreas -> get_area_stats; distritos -> get_district_stats; centros -> get_centers_overview; serie temporal -> get_timeseries_registrations; instituciones -> get_institution_stats; países -> get_country_stats; categorías de centro -> get_center_category_stats; titulación -> get_titulacion_stats.
+Responde SIEMPRE en español, breve, claro y con cifras exactas.
+Indica filtros aplicados si es relevante. Si no hay datos, dilo explícitamente y sugiere una consulta alternativa.`;
 
     type ToolCall = { id: string; function: { name: string; arguments: string } };
 

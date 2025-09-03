@@ -169,21 +169,28 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       }
 
     } catch (error: any) {
-      console.error('Error completo:', error);
-      
+      const isFunctionsHttpError = typeof error?.message === 'string' && error.message.includes('Edge Function returned a non-2xx')
+      if (isFunctionsHttpError) {
+        console.warn('AI function non-2xx handled gracefully')
+      } else {
+        console.warn('AI error:', (error as any)?.message || error)
+      }
+
+      const friendly = needsOpenAI
+        ? 'Se requiere configurar la API key de OpenAI en Supabase Edge Functions.'
+        : (isFunctionsHttpError ? 'El servicio de IA no está disponible temporalmente. Intenta de nuevo en unos minutos.' : error.message)
+
       const errorMessage: ChatMessage = {
-        role: 'assistant', 
-        content: `❌ **Error:** ${error.message}\n\n${needsOpenAI ? 
-          '⚙️ **Acción requerida:** Configura la API key de OpenAI en la configuración de Supabase Edge Functions.' : 
-          '🔄 Por favor intenta de nuevo o reformula tu pregunta.'}`,
+        role: 'assistant',
+        content: `❌ ${friendly}`,
         timestamp: new Date().toISOString()
       };
-      
+
       setMessages(prev => [...prev, errorMessage]);
-      
+
       toast({
         title: "Error del Sistema IA",
-        description: error.message,
+        description: friendly,
         variant: "destructive"
       });
     } finally {

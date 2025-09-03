@@ -106,7 +106,7 @@ async function getGenderStats(supabase: any, filters: Record<string, any> = {}) 
   const f = { ...(filters || {}) } as any;
   if (f && typeof f === 'object' && 'genero' in f) delete f.genero;
   const { data, error } = await applyFilters(
-    createClient(SUPABASE_URL, SERVICE_ROLE).from('profesionales_sanitarios').select('genero').not('genero','is', null),
+    supabase.from('profesionales_sanitarios').select('genero').not('genero','is', null),
     f
   );
   if (error) throw error;

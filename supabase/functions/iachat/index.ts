@@ -14,11 +14,20 @@ function applyFilters(q: any, f: Record<string, any>) {
   let qb = q;
   if (!f) return qb;
   if (f.area_profesional) qb = qb.eq("area_profesional", f.area_profesional);
+  if (f.especialidad) qb = qb.eq("especialidad", f.especialidad);
   if (f.estado_solicitud) qb = qb.eq("estado_solicitud", f.estado_solicitud);
+  if (f.estado_trabajo) qb = qb.eq("estado_trabajo", f.estado_trabajo);
   if (f.provincia) qb = qb.eq("provincia", f.provincia);
   if (f.genero) qb = qb.eq("genero", f.genero);
+  if (f.nacionalidad) qb = qb.eq("nacionalidad", f.nacionalidad);
   if (f.distrito || f.distrito_sanitario) qb = qb.eq("distrito_sanitario", f.distrito || f.distrito_sanitario);
   if (f.tipo_sector) qb = qb.eq("tipo_sector", f.tipo_sector);
+  if (f.categoria_centro) qb = qb.eq("categoria_centro", f.categoria_centro);
+  if (f.categoria_titulacion) qb = qb.eq("categoria_titulacion", f.categoria_titulacion);
+  if (f.centro_salud_id) qb = qb.eq("centro_salud_id", f.centro_salud_id);
+  if (f.nombre_centro) qb = qb.eq("nombre_centro", f.nombre_centro);
+  if (f.nombre_centro_like) qb = qb.ilike("nombre_centro", `%${f.nombre_centro_like}%`);
+  if (f.nombre_completo) qb = qb.ilike("nombre_completo", `%${f.nombre_completo}%`);
   if (typeof f.anoGraduacion === "number") qb = qb.eq("año_graduacion", f.anoGraduacion);
   if (f.pais_formacion) qb = qb.or(`pais_formacion_1.ilike.%${f.pais_formacion}%,pais_formacion_2.ilike.%${f.pais_formacion}%`);
   if (f.institucion) qb = qb.or(`institucion_1.ilike.%${f.institucion}%,institucion_2.ilike.%${f.institucion}%`);
@@ -32,6 +41,19 @@ function applyFilters(q: any, f: Record<string, any>) {
     const nowIso = new Date().toISOString();
     qb = qb.eq('estado_solicitud', 'Aprobado').lte('fecha_caducidad', nowIso);
   }
+  if (typeof f.limit === 'number') qb = qb.limit(Math.max(1, Math.min(1000, f.limit)));
+  if (typeof f.offset === 'number') qb = qb.range(f.offset, (f.offset || 0) + (f.limit || 50) - 1);
+  return qb;
+}
+
+function applyCenterFilters(q: any, f: Record<string, any>) {
+  let qb = q;
+  if (!f) return qb;
+  if (f.nombre) qb = qb.ilike('nombre', `%${f.nombre}%`);
+  if (f.categoria) qb = qb.eq('categoria', f.categoria);
+  if (f.provincia) qb = qb.eq('provincia', f.provincia);
+  if (f.distrito_sanitario || f.distrito) qb = qb.eq('distrito_sanitario', f.distrito_sanitario || f.distrito);
+  if (f.sector || f.tipo_sector) qb = qb.eq('sector', f.sector || f.tipo_sector);
   return qb;
 }
 
@@ -65,6 +87,39 @@ async function getProfessionalsByCenter(supabase: any, args: { nombre_centro?: s
   else if (centro_salud_id) qb = qb.eq('centro_salud_id', centro_salud_id);
   const { count = 0 } = await qb;
   return { total_profesionales: count || 0 };
+}
+
+async function getProfessionalsList(supabase: any, args: { filters?: Record<string, any>; limit?: number; aprobadosOnly?: boolean }) {
+  const { filters = {}, limit = 50, aprobadosOnly = false } = args || {} as any;
+  let qb = supabase
+    .from('profesionales_sanitarios')
+    .select('id, nombre_completo, area_profesional, especialidad, estado_solicitud, nombre_centro, centro_salud_id')
+    .order('nombre_completo');
+  if (aprobadosOnly) {
+    qb = qb.eq('estado_solicitud', 'Aprobado');
+  }
+  qb = applyFilters(qb, { ...filters, limit });
+  const { data, error } = await qb;
+  if (error) throw error;
+  return { total: data?.length || 0, profesionales: data || [] };
+}
+
+async function getCentersCount(supabase: any, filters: Record<string, any> = {}) {
+  let qb = applyCenterFilters(supabase.from('centros_salud').select('id', { count: 'exact', head: true }), filters);
+  const { count = 0 } = await qb;
+  return { count: count || 0 };
+}
+
+async function getCentersList(supabase: any, args: { filters?: Record<string, any>; limit?: number }) {
+  const { filters = {}, limit = 50 } = args || {} as any;
+  let qb = applyCenterFilters(
+    supabase.from('centros_salud').select('id, nombre, categoria, provincia, distrito_sanitario, sector').order('nombre'),
+    filters
+  );
+  qb = qb.limit(Math.max(1, Math.min(200, limit)));
+  const { data, error } = await qb;
+  if (error) throw error;
+  return { total: data?.length || 0, centros: data || [] };
 }
 
 async function getCentersOverview(supabase: any) {
@@ -300,10 +355,13 @@ async function getTitulacionStats(supabase: any) {
 
 const tools = [
   { type: 'function', function: { name: 'get_summary_stats', description: 'Resumen global', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
-  { type: 'function', function: { name: 'get_gender_stats', description: 'Distribución por género (aplica filtros excepto g��nero)', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
+  { type: 'function', function: { name: 'get_gender_stats', description: 'Distribución por género (aplica filtros excepto género)', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
   { type: 'function', function: { name: 'get_professionals_count', description: 'Cuenta profesionales con filtros', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
-  { type: 'function', function: { name: 'get_professionals_by_center', description: 'Profesionales por centro', parameters: { type: 'object', properties: { nombre_centro: { type: 'string' }, centro_salud_id: { type: 'string' } } } } },
+  { type: 'function', function: { name: 'get_professionals_list', description: 'Lista de profesionales (nombre, especialidad, área, centro)', parameters: { type: 'object', properties: { filters: { type: 'object' }, limit: { type: 'number' }, aprobadosOnly: { type: 'boolean' } } } } },
+  { type: 'function', function: { name: 'get_professionals_by_center', description: 'Profesionales por centro (conteo)', parameters: { type: 'object', properties: { nombre_centro: { type: 'string' }, centro_salud_id: { type: 'string' } } } } },
   { type: 'function', function: { name: 'get_centers_overview', description: 'Top centros por profesionales', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'get_centers_count', description: 'Cuenta centros por filtros', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
+  { type: 'function', function: { name: 'get_centers_list', description: 'Lista de centros con filtros', parameters: { type: 'object', properties: { filters: { type: 'object' }, limit: { type: 'number' } } } } },
   { type: 'function', function: { name: 'get_timeseries_registrations', description: 'Serie temporal de registros', parameters: { type: 'object', properties: { months: { type: 'number' } } } } },
   { type: 'function', function: { name: 'get_schema_overview', description: 'Esquema de la base de datos', parameters: { type: 'object', properties: {} } } },
   { type: 'function', function: { name: 'get_area_stats', description: 'Estadísticas por área profesional', parameters: { type: 'object', properties: {} } } },
@@ -326,7 +384,11 @@ serve(async (req) => {
     const { messages = [], filters = {} } = await req.json();
 
     const systemPrompt = `Eres un asistente de IA para el Ministerio de Sanidad de Guinea Ecuatorial.
-Debes INVOCAR al menos una herramienta de datos antes de responder. Elige la herramienta adecuada según la consulta: conteos exactos o preguntas de "¿cuántos...?" -> get_professionals_count (aplica filtros como area_profesional, provincia, distrito, etc.); género -> get_gender_stats; áreas -> get_area_stats; distritos -> get_district_stats; centros -> get_centers_overview; serie temporal -> get_timeseries_registrations; instituciones -> get_institution_stats; países -> get_country_stats; categorías de centro -> get_center_category_stats; titulación -> get_titulacion_stats.
+Debes INVOCAR al menos una herramienta de datos antes de responder. Elige la herramienta adecuada según la consulta:
+- Conteos exactos de profesionales -> get_professionals_count (aplica filtros: area_profesional, especialidad, provincia, distrito_sanitario, genero, centro_salud_id, nombre_centro, funcion_publica, etc.)
+- Listado de profesionales (nombres y especialidades) -> get_professionals_list (usa aprobadosOnly si piden aprobados)
+- Centros (conteo/listado con filtros: nombre, categoria, provincia, distrito_sanitario, sector) -> get_centers_count / get_centers_list
+- Género -> get_gender_stats; Áreas -> get_area_stats; Distritos -> get_district_stats; Centros destacados -> get_centers_overview; Serie temporal -> get_timeseries_registrations; Instituciones -> get_institution_stats; Países -> get_country_stats; Categorías de centro -> get_center_category_stats; Titulación -> get_titulacion_stats.
 Responde SIEMPRE en español, breve, claro y con cifras exactas.
 Indica filtros aplicados si es relevante y respeta los filtros recibidos en 'filters'. Si no hay datos, dilo explícitamente y sugiere una consulta alternativa.`;
 
@@ -342,6 +404,12 @@ Indica filtros aplicados si es relevante y respeta los filtros recibidos en 'fil
           return await getGenderStats(supabase, args?.filters || {});
         case 'get_professionals_by_center':
           return await getProfessionalsByCenter(supabase, args || {});
+        case 'get_professionals_list':
+          return await getProfessionalsList(supabase, args || {});
+        case 'get_centers_count':
+          return await getCentersCount(supabase, args?.filters || {});
+        case 'get_centers_list':
+          return await getCentersList(supabase, args || {});
         case 'get_centers_overview':
           return await getCentersOverview(supabase);
         case 'get_timeseries_registrations':

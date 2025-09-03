@@ -64,6 +64,7 @@ function applyCenterFilters(q: any, f: Record<string, any>) {
   if (f.categoria) qb = qb.eq('categoria', f.categoria);
   if (f.provincia) qb = qb.eq('provincia', f.provincia);
   if (f.distrito_sanitario || f.distrito) qb = qb.eq('distrito_sanitario', f.distrito_sanitario || f.distrito);
+  if (f.distrito_like || f.distrito_sanitario_like) qb = qb.ilike('distrito_sanitario', `%${f.distrito_like || f.distrito_sanitario_like}%`);
   if (f.sector || f.tipo_sector) qb = qb.eq('sector', f.sector || f.tipo_sector);
   return qb;
 }

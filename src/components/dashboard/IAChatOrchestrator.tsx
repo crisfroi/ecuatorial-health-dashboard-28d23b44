@@ -70,11 +70,19 @@ const IAChatOrchestrator: React.FC<IAChatOrchestratorProps> = ({ onNavigateToTab
         { role: "assistant", content: answer || "No obtuve respuesta." },
       ];
 
-      if (toolResults && (toolResults.summary || toolResults.stats)) {
-        append.push({
-          role: "assistant",
-          content: `Resumen de datos: ${JSON.stringify(toolResults.summary || toolResults.stats)}`,
-        });
+      if (toolResults) {
+        if (toolResults.get_gender_stats && (toolResults.get_gender_stats as any).por_genero) {
+          const g = (toolResults.get_gender_stats as any).por_genero;
+          const total = (toolResults.get_gender_stats as any).total;
+          append.push({ role: "assistant", content: `Distribución por género (total ${total}): ${Object.entries(g).map(([k,v])=>`${k}: ${v}`).join(", ")}` });
+        }
+        if (toolResults.get_professionals_count && (toolResults.get_professionals_count as any).count !== undefined) {
+          append.push({ role: "assistant", content: `Coincidencias exactas: ${(toolResults.get_professionals_count as any).count}` });
+        }
+        if (toolResults.get_centers_overview && Array.isArray(toolResults.get_centers_overview)) {
+          const list = (toolResults.get_centers_overview as any[]).slice(0,3).map(c=>`${c.nombre}: ${c.total_profesionales}`).join("; ");
+          append.push({ role: "assistant", content: `Top centros: ${list}` });
+        }
       }
 
       if (diagnostics?.notes) {

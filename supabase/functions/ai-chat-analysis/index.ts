@@ -74,7 +74,22 @@ serve(async (req) => {
       }, {}) || {}
 
       const areaStats = Object.entries(countBy(pros || [], 'area_profesional')).map(([area_profesional, total]) => ({ area_profesional, total }))
-      const districtStats = Object.entries(countBy(pros || [], 'distrito_sanitario')).map(([distrito_sanitario, total_profesionales]) => ({ distrito_sanitario, total_profesionales, total_centros: 0 }))
+
+      // Districts: use profesionales.distrito_sanitario OR profesionales.distrito, plus centers.distrito_sanitario
+      const prosDistrictsArr = (pros || [])
+        .map((p: any) => (p.distrito_sanitario || p.distrito) as string | null)
+        .filter((d: any) => d && String(d).trim()) as string[]
+      const prosDistrictsCount = prosDistrictsArr.reduce((acc: any, d: string) => { acc[d] = (acc[d] || 0) + 1; return acc }, {})
+      const centersDistrictsCount = (centers || []).reduce((acc: any, c: any) => {
+        const d = c.distrito_sanitario; if (d) acc[d] = (acc[d] || 0) + 0; return acc
+      }, {})
+      const districtNames = Array.from(new Set([ ...Object.keys(prosDistrictsCount), ...Object.keys(centersDistrictsCount) ]))
+      const districtStats = districtNames.map(dn => ({
+        distrito_sanitario: dn,
+        total_profesionales: prosDistrictsCount[dn] || 0,
+        total_centros: (centers || []).filter((c: any) => c.distrito_sanitario === dn).length
+      }))
+
       const countryStatsRaw = countBy((pros || []).flatMap(p => [p.pais_formacion_1, p.pais_formacion_2].filter(Boolean).map((pais: string) => ({ pais_formacion: pais }))), 'pais_formacion')
       const countryStats = Object.entries(countryStatsRaw).map(([pais_formacion, cantidad]) => ({ pais_formacion, cantidad, porcentaje: 0 }))
       const institutionStatsRaw = countBy((pros || []).flatMap(p => [p.institucion_1, p.institucion_2].filter(Boolean).map((i: string) => ({ institucion: i }))), 'institucion')

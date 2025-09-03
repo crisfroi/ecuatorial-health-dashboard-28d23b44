@@ -143,14 +143,14 @@ serve(async (req) => {
               let total_profesionales = 0
               let errMain: any = null
 
-              // Replicar lógica del frontend: OR por nombre_centro y lugar_trabajo, y agregar centro_salud_id
+              // Replicar lógica del frontend: OR por nombre_centro y centro_salud_id
               try {
                 // Nota: eq con nombres puede fallar por tildes/casos; si devuelve 0, intentamos ilike
                 const { count, error } = await supabase
                   .from('profesionales_sanitarios')
                   .select('id', { count: 'exact', head: true })
                   .eq('estado_solicitud', 'Aprobado')
-                  .or(`nombre_centro.eq.${name},lugar_trabajo.eq.${name},centro_salud_id.eq.${id}`)
+                  .or(`nombre_centro.eq.${name},centro_salud_id.eq.${id}`)
                 if (!error) total_profesionales = count || 0; else errMain = error
 
                 if (total_profesionales === 0) {
@@ -158,7 +158,7 @@ serve(async (req) => {
                     .from('profesionales_sanitarios')
                     .select('id', { count: 'exact', head: true })
                     .eq('estado_solicitud', 'Aprobado')
-                    .or(`nombre_centro.ilike.%${name}%,lugar_trabajo.ilike.%${name}%,centro_salud_id.eq.${id}`)
+                    .or(`nombre_centro.ilike.%${name}%,centro_salud_id.eq.${id}`)
                   if (!errIlike) total_profesionales = countIlike || 0
                 }
               } catch (err) {

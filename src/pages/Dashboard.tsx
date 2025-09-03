@@ -52,7 +52,7 @@ import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import RequestsPanel from "@/components/dashboard/RequestsPanel";
 import RenewalAlerts from "@/components/dashboard/RenewalAlerts";
-import AIChat from "@/components/dashboard/AIChat";
+import IAChatOrchestrator from "@/components/dashboard/IAChatOrchestrator";
 import MinisterialPanel from "@/components/dashboard/MinisterialPanel";
 import IncidentManagement from "@/components/dashboard/IncidentManagement";
 import HealthCenters from "@/components/dashboard/HealthCenters";
@@ -315,7 +315,7 @@ const Dashboard = () => {
     const e164 = /^\+[1-9]\d{6,14}$/;
     if (!e164.test(telefono)) {
       toast({
-        title: "Teléfono inválido",
+        title: "Teléfono inv��lido",
         description: "Use formato internacional E.164 (ej.: +240XXXXXXXX)",
         variant: "destructive",
       });
@@ -464,7 +464,7 @@ const Dashboard = () => {
     ...(userRole && canAccessTab("renewals") ? [{ id: "renewals", label: "Renovaciones", icon: Calendar }] : []),
     ...(userRole && canAccessTab("guardias") ? [{ id: "guardias", label: "Guardias", icon: Clock }] : []),
     ...(userRole && canAccessTab("analytics") ? [{ id: "analytics", label: "Analíticas", icon: TrendingUp }] : []),
-    ...(userRole && canAccessTab("ai-chat") ? [{ id: "ai-chat", label: "IA Chat", icon: MessageSquare }] : []),
+    ...(userRole && canAccessTab("iachat") ? [{ id: "iachat", label: "IA Chat", icon: MessageSquare }] : []),
     ...(userRole && canAccessTab("ministerial") ? [{ id: "ministerial", label: "Ministerial", icon: Settings }] : []),
     ...(userRole && canAccessTab("incidents") ? [{ id: "incidents", label: "Incidencias", icon: Activity }] : []),
     ...(userRole && canAccessTab("health-centers") ? [{ id: "health-centers", label: "Centros", icon: MapPin }] : []),
@@ -604,7 +604,7 @@ const Dashboard = () => {
         {showFilters && (
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-lg">Filtros de Búsqueda</CardTitle>
+              <CardTitle className="text-lg">Filtros de B��squeda</CardTitle>
               <CardDescription>
                 Filtra los datos del dashboard según tus criterios
               </CardDescription>
@@ -718,8 +718,9 @@ const Dashboard = () => {
             />
           </TabsContent>
 
-          <TabsContent value="ai-chat" className="space-y-6">
-            <AIChat
+          <TabsContent value="iachat" className="space-y-6">
+            <IAChatOrchestrator
+              filters={dashboardFilters}
               onNavigateToTab={(tab, filters) => {
                 setActiveTab(tab);
                 if (filters) setAppliedFilters(filters);

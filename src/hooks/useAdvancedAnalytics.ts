@@ -86,16 +86,14 @@ export const useTopCenters = () => {
 
       if (error) throw error;
 
-      // Get professionals count for each center using both nombre_centro and lugar_trabajo fields
+      // Get professionals count for each center using nombre_centro and centro_salud_id fields
       const centersWithCounts = await Promise.all(
         data.map(async (center) => {
           const { count } = await supabase
             .from("profesionales_sanitarios")
-            .select("*", { count: "exact", head: true })
-            .or(
-              `nombre_centro.eq.${center.nombre},lugar_trabajo.eq.${center.nombre}`,
-            )
-            .eq("estado_solicitud", "Aprobado");
+            .select("id", { count: "exact", head: true })
+            .eq("estado_solicitud", "Aprobado")
+            .or(`nombre_centro.eq.${center.nombre},centro_salud_id.eq.${center.id}`);
 
           return {
             ...center,
@@ -408,37 +406,38 @@ export const useCenterCategoryStats = () => {
     queryFn: async (): Promise<CenterCategoryStats[]> => {
       const { data: centers, error } = await supabase
         .from("centros_salud")
-        .select("categoria, nombre");
+        .select("categoria, nombre, id");
 
       if (error) throw error;
 
       const categoryGroups = centers.reduce(
         (acc, center) => {
           if (!acc[center.categoria]) {
-            acc[center.categoria] = [];
+            acc[center.categoria] = { names: [], ids: [] };
           }
-          acc[center.categoria].push(center.nombre);
+          acc[center.categoria].names.push(center.nombre);
+          acc[center.categoria].ids.push(center.id);
           return acc;
         },
-        {} as Record<string, string[]>,
+        {} as Record<string, { names: string[]; ids: string[] }>,
       );
 
       const statsPromises = Object.entries(categoryGroups).map(
-        async ([categoria, centerNames]) => {
+        async ([categoria, group]) => {
+          const namesList = group.names.map((name) => `"${name}"`).join(",");
+          const idsList = group.ids.map((id) => `"${id}"`).join(",");
           const { count } = await supabase
             .from("profesionales_sanitarios")
-            .select("*", { count: "exact", head: true })
-            .or(
-              `nombre_centro.in.(${centerNames.map((name) => `"${name}"`).join(",")}),lugar_trabajo.in.(${centerNames.map((name) => `"${name}"`).join(",")})`,
-            )
-            .eq("estado_solicitud", "Aprobado");
+            .select("id", { count: "exact", head: true })
+            .eq("estado_solicitud", "Aprobado")
+            .or(`nombre_centro.in.(${namesList}),centro_salud_id.in.(${idsList})`);
 
           return {
             categoria,
-            total_centros: centerNames.length,
+            total_centros: group.names.length,
             total_profesionales: count || 0,
             promedio_profesionales_por_centro:
-              (count || 0) / centerNames.length,
+              (count || 0) / group.names.length,
           };
         },
       );

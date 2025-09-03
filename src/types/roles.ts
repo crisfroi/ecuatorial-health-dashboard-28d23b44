@@ -110,7 +110,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'analytics',
       'health-centers',
       'incidents',
-      'ai-chat',
+      'iachat',
       'admin',
       'ministerial'
     ]
@@ -153,7 +153,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'analytics',
       'health-centers',
       'incidents',
-      'ai-chat'
+      'iachat'
     ]
   },
 
@@ -191,7 +191,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'guardias',
       'professionals',
       'health-centers',
-      'ai-chat'
+      'iachat'
     ],
     restrictions: {
       // Solo puede ver datos agregados, no detalles individuales sensibles
@@ -221,7 +221,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'professionals',
       'analytics',
       'health-centers',
-      'ai-chat'
+      'iachat'
     ],
     restrictions: {
       dataFilters: {
@@ -257,7 +257,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'guardias',
       'health-centers',
       'incidents',
-      'ai-chat'
+      'iachat'
     ],
     restrictions: {
       dataFilters: {

@@ -61,7 +61,7 @@ const RoleBasedDashboard: React.FC<RoleBasedDashboardProps> = ({
     { id: 'health-centers', label: 'Centros', icon: Building2 },
     { id: 'incidents', label: 'Incidencias', icon: AlertTriangle },
     { id: 'renewals', label: 'Renovaciones', icon: Shield },
-    { id: 'ai-chat', label: 'AI Chat', icon: Users },
+    { id: 'iachat', label: 'IA Chat', icon: Users },
     { id: 'admin', label: 'Admin', icon: Settings },
     { id: 'ministerial', label: 'Ministerial', icon: Crown }
   ].filter(tab => canAccessTab(tab.id));

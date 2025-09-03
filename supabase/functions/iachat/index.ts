@@ -97,9 +97,13 @@ async function getProfessionalsCount(supabase: any, filters: Record<string, any>
 async function getProfessionalsByCenter(supabase: any, args: { nombre_centro?: string; centro_salud_id?: string }) {
   const { nombre_centro, centro_salud_id } = args || {} as any;
   let qb = supabase.from('profesionales_sanitarios').select('id', { count: 'exact', head: true }).eq('estado_solicitud', 'Aprobado');
-  if (nombre_centro && centro_salud_id) qb = qb.or(`nombre_centro.eq.${nombre_centro},centro_salud_id.eq.${centro_salud_id}`);
-  else if (nombre_centro) qb = qb.eq('nombre_centro', nombre_centro);
-  else if (centro_salud_id) qb = qb.eq('centro_salud_id', centro_salud_id);
+  if (nombre_centro && centro_salud_id) {
+    qb = qb.or(`nombre_centro.ilike.%${nombre_centro}%,centro_salud_id.eq.${centro_salud_id}`);
+  } else if (nombre_centro) {
+    qb = qb.ilike('nombre_centro', `%${nombre_centro}%`);
+  } else if (centro_salud_id) {
+    qb = qb.eq('centro_salud_id', centro_salud_id);
+  }
   const { count = 0 } = await qb;
   return { total_profesionales: count || 0 };
 }
@@ -509,6 +513,7 @@ Indica filtros aplicados si es relevante y respeta los filtros recibidos en 'fil
     let answerText = '';
     let toolResults: Record<string, unknown> = {};
 
+    let anyToolUsed = false;
     for (let step = 0; step < 4; step++) {
       const resp = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -519,9 +524,15 @@ Indica filtros aplicados si es relevante y respeta los filtros recibidos en 'fil
       const choice = body?.choices?.[0]?.message;
       const toolCalls: ToolCall[] = choice?.tool_calls || [];
       if (toolCalls.length === 0) {
+        // No aceptamos respuesta sin datos. Intentamos una pista extra para forzar tool-calls.
+        if (step === 0) {
+          loopMessages = [...loopMessages, { role: 'system', content: 'Debes invocar al menos una herramienta antes de responder. Extrae filtros y llama a la herramienta adecuada.' }];
+          continue;
+        }
         answerText = choice?.content || '';
         break;
       }
+      anyToolUsed = true;
       // Append assistant tool call message, then execute tools and append results
       loopMessages = [...loopMessages, { role: 'assistant', content: choice?.content || '', tool_calls: toolCalls } as any];
       for (const call of toolCalls) {
@@ -534,6 +545,11 @@ Indica filtros aplicados si es relevante y respeta los filtros recibidos en 'fil
     }
 
     if (!answerText) {
+      // If no tools were used, do not allow hallucinated numbers
+      if (!anyToolUsed) {
+        const msg = 'No dispongo de datos suficientes para responder con precisión. Aclara el nombre exacto del centro o ajusta los filtros.';
+        return new Response(JSON.stringify({ answer: msg, toolResults, navigationSuggestions, diagnostics: { hasServiceRole: !!SERVICE_ROLE, hasOpenAI: !!OPENAI_API_KEY } }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       // Finalize with results included; force a concise Spanish answer using gathered data
       const toolJson = JSON.stringify(toolResults);
       const finalResp = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -554,20 +570,24 @@ Indica filtros aplicados si es relevante y respeta los filtros recibidos en 'fil
       if (!answerText) {
         // Deterministic textual summary from toolResults as last resort
         try {
-          const summary = toolResults['get_summary_stats'] as any;
-          if (summary && typeof summary === 'object') {
-            const t = summary as { totalProfessionals?: number; totalApproved?: number; totalCenters?: number; incidentsOpen?: number; totalIncidents?: number };
-            const parts: string[] = [];
-            if (typeof t.totalProfessionals === 'number') parts.push(`Profesionales totales: ${t.totalProfessionals}.`);
-            if (typeof t.totalApproved === 'number') parts.push(`Aprobados: ${t.totalApproved}.`);
-            if (typeof t.totalCenters === 'number') parts.push(`Centros: ${t.totalCenters}.`);
-            if (typeof t.totalIncidents === 'number') parts.push(`Incidencias: ${t.incidentsOpen ?? 0}/${t.totalIncidents} abiertas/total.`);
-            answerText = parts.length ? parts.join(' ') : 'No se encontraron datos para esa consulta específica.';
+          if (!toolResults || Object.keys(toolResults).length === 0) {
+            answerText = 'No se encontraron datos que coincidan con la consulta.';
           } else {
-            answerText = 'No se encontraron datos para esa consulta específica.';
+            const summary = toolResults['get_summary_stats'] as any;
+            if (summary && typeof summary === 'object') {
+              const t = summary as { totalProfessionals?: number; totalApproved?: number; totalCenters?: number; incidentsOpen?: number; totalIncidents?: number };
+              const parts: string[] = [];
+              if (typeof t.totalProfessionals === 'number') parts.push(`Profesionales totales: ${t.totalProfessionals}.`);
+              if (typeof t.totalApproved === 'number') parts.push(`Aprobados: ${t.totalApproved}.`);
+              if (typeof t.totalCenters === 'number') parts.push(`Centros: ${t.totalCenters}.`);
+              if (typeof t.totalIncidents === 'number') parts.push(`Incidencias: ${t.incidentsOpen ?? 0}/${t.totalIncidents} abiertas/total.`);
+              answerText = parts.length ? parts.join(' ') : 'No se encontraron datos que coincidan con la consulta.';
+            } else {
+              answerText = 'No se encontraron datos que coincidan con la consulta.';
+            }
           }
         } catch (_) {
-          answerText = 'No se encontraron datos para esa consulta específica.';
+          answerText = 'No se encontraron datos que coincidan con la consulta.';
         }
       }
     }

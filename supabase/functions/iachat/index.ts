@@ -14,9 +14,13 @@ function applyFilters(q: any, f: Record<string, any>) {
   let qb = q;
   if (!f) return qb;
   if (f.area_profesional) qb = qb.eq("area_profesional", f.area_profesional);
+  if (f.area_profesional_like) qb = qb.ilike("area_profesional", `%${f.area_profesional_like}%`);
   if (f.especialidad) qb = qb.eq("especialidad", f.especialidad);
+  if (f.especialidad_like) qb = qb.ilike("especialidad", `%${f.especialidad_like}%`);
   if (f.estado_solicitud) qb = qb.eq("estado_solicitud", f.estado_solicitud);
+  if (f.estado) qb = qb.eq("estado_solicitud", f.estado);
   if (f.estado_trabajo) qb = qb.eq("estado_trabajo", f.estado_trabajo);
+  if (f.funcion_publica !== undefined) qb = qb.eq("funcion_publica", !!f.funcion_publica);
   if (f.provincia) qb = qb.eq("provincia", f.provincia);
   if (f.genero) qb = qb.eq("genero", f.genero);
   if (f.nacionalidad) qb = qb.eq("nacionalidad", f.nacionalidad);

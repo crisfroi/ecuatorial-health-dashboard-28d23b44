@@ -524,6 +524,7 @@ serve(async (req) => {
     if (typeof analytics?.summary?.totalProfessionals === 'number') diagnostics.totalProfessionals = analytics.summary.totalProfessionals
     if (typeof analytics?.summary?.totalCenters === 'number') diagnostics.totalCenters = analytics.summary.totalCenters
     if (typeof analytics?.summary?.totalIncidents === 'number') diagnostics.totalIncidents = analytics.summary.totalIncidents
+    if (Array.isArray(analytics?.districtStats)) diagnostics.districtsComputed = analytics.districtStats.length
 
     // Add error traces if present
     if (!SERVICE_ROLE) diagnostics.reason = 'Missing SUPABASE_SERVICE_ROLE_KEY in Edge function environment'

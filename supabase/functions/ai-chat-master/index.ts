@@ -18,8 +18,27 @@ serve(async (req) => {
 
   try {
     console.log('🚀 AI Chat Master - Inicializando sistema superinteligente')
-    
-    // Verificar variables de entorno
+
+    // Parse body safely
+    let body: any = {}
+    try {
+      body = await req.json()
+    } catch (_) {
+      body = {}
+    }
+
+    const { messages = [], filters = {}, healthCheck = false } = body
+
+    // Health check: do not call OpenAI, just report readiness
+    if (healthCheck) {
+      const needsOpenAI = !OPENAI_API_KEY
+      return new Response(
+        JSON.stringify({ ok: true, needsOpenAI }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+
+    // Verify env vars; avoid 5xx to prevent FunctionsHttpError surfacing to UI
     if (!OPENAI_API_KEY || !SUPABASE_URL || !SERVICE_ROLE) {
       console.error('❌ Variables de entorno faltantes:', {
         openai: !!OPENAI_API_KEY,
@@ -27,17 +46,17 @@ serve(async (req) => {
         service_role: !!SERVICE_ROLE
       })
       return new Response(
-        JSON.stringify({ 
-          error: 'Variables de entorno faltantes. Por favor configura OPENAI_API_KEY.',
+        JSON.stringify({
+          error: 'Falta configuración del servidor de IA. Configura OPENAI_API_KEY y claves de Supabase.',
+          needsOpenAI: !OPENAI_API_KEY,
           needsSetup: true
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE)
-    const { messages, filters = {} } = await req.json()
-    
+
     if (!messages || !Array.isArray(messages)) {
       return new Response(
         JSON.stringify({ error: 'Formato de mensajes inválido' }),
@@ -46,7 +65,7 @@ serve(async (req) => {
     }
 
     console.log('🔍 Obteniendo schema completo de la base de datos...')
-    
+
     // **SISTEMA DE HERRAMIENTAS SUPERINTELIGENTE**
     const tools = [
       {
@@ -275,7 +294,7 @@ Ejemplo de capacidades:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages
@@ -288,7 +307,15 @@ Ejemplo de capacidades:
     })
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`)
+      const msg = `OpenAI API error: ${response.status}`
+      console.error(msg)
+      return new Response(JSON.stringify({
+        answer: 'No se pudo generar respuesta automática en este momento.',
+        toolResults: {},
+        navigationSuggestions: [],
+        diagnostics: { openaiError: msg, timestamp: new Date().toISOString() },
+        needsOpenAI: false
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 })
     }
 
     const aiResponse = await response.json()
@@ -372,7 +399,7 @@ Ejemplo de capacidades:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-5',
+          model: 'gpt-4o-mini',
           messages: [
             { role: 'system', content: systemPrompt + "\n\nGenera una respuesta natural e informativa basada en los datos obtenidos." },
             ...messages,
@@ -387,6 +414,9 @@ Ejemplo de capacidades:
       if (finalResponse.ok) {
         const finalData = await finalResponse.json()
         finalAnswer = finalData.choices[0].message.content
+      }
+      else {
+        console.warn('OpenAI final response not ok:', finalResponse.status)
       }
     }
 
@@ -407,11 +437,11 @@ Ejemplo de capacidades:
 
   } catch (error) {
     console.error('❌ Error en AI Chat Master:', error)
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      needsOpenAI: !OPENAI_API_KEY 
+    return new Response(JSON.stringify({
+      error: (error as Error)?.message || 'Error desconocido',
+      needsOpenAI: !OPENAI_API_KEY
     }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
@@ -756,7 +786,7 @@ async function getEducationAnalysis(supabase: any, args: any) {
       
     case 'graduation_years':
       analysis = data?.reduce((acc, p) => {
-        if (p.año_graduacion && p.año_graduacion >= 1990) {
+        if (p.a��o_graduacion && p.año_graduacion >= 1990) {
           acc[p.año_graduacion] = (acc[p.año_graduacion] || 0) + 1
         }
         return acc

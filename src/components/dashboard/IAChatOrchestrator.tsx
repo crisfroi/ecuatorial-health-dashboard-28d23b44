@@ -85,9 +85,6 @@ const IAChatOrchestrator: React.FC<IAChatOrchestratorProps> = ({ onNavigateToTab
         }
       }
 
-      if (diagnostics?.notes) {
-        append.push({ role: "assistant", content: `Nota: ${diagnostics.notes}` });
-      }
 
       setMessages((prev) => [...prev, ...append]);
 

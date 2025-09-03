@@ -182,7 +182,7 @@ serve(async (req) => {
           totalProfessionals,
           totalApproved,
           totalCenters: centers?.length || 0,
-          totalDistricts: Object.keys(countBy(pros || [], 'distrito_sanitario')).length,
+          totalDistricts: districtNames.length,
           totalCountries: Object.keys(countryStatsRaw).length,
           totalInstitutions: Object.keys(institutionStatsRaw).length,
           totalIncidents: incidentsTotal,

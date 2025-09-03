@@ -24,7 +24,14 @@ function applyFilters(q: any, f: Record<string, any>) {
   if (f.provincia) qb = qb.eq("provincia", f.provincia);
   if (f.genero) qb = qb.eq("genero", f.genero);
   if (f.nacionalidad) qb = qb.eq("nacionalidad", f.nacionalidad);
-  if (f.distrito || f.distrito_sanitario) qb = qb.eq("distrito_sanitario", f.distrito || f.distrito_sanitario);
+  if (f.distrito || f.distrito_sanitario) {
+    const val = f.distrito || f.distrito_sanitario;
+    qb = qb.or(`distrito_sanitario.eq.${val},distrito.eq.${val}`);
+  }
+  if (f.distrito_like || f.distrito_sanitario_like) {
+    const val = f.distrito_like || f.distrito_sanitario_like;
+    qb = qb.or(`distrito_sanitario.ilike.%${val}%,distrito.ilike.%${val}%`);
+  }
   if (f.tipo_sector) qb = qb.eq("tipo_sector", f.tipo_sector);
   if (f.categoria_centro) qb = qb.eq("categoria_centro", f.categoria_centro);
   if (f.categoria_titulacion) qb = qb.eq("categoria_titulacion", f.categoria_titulacion);

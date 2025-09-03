@@ -23,6 +23,7 @@ function applyFilters(q: any, f: Record<string, any>) {
   if (f.funcion_publica !== undefined) qb = qb.eq("funcion_publica", !!f.funcion_publica);
   if (f.provincia) qb = qb.eq("provincia", f.provincia);
   if (f.genero) qb = qb.eq("genero", f.genero);
+  if (f.genero_like) qb = qb.ilike("genero", `%${f.genero_like}%`);
   if (f.nacionalidad) qb = qb.eq("nacionalidad", f.nacionalidad);
   if (f.distrito || f.distrito_sanitario) {
     const val = f.distrito || f.distrito_sanitario;
@@ -435,7 +436,7 @@ serve(async (req) => {
 
     const systemPrompt = `Eres un asistente de IA para el Ministerio de Sanidad de Guinea Ecuatorial.
 Debes INVOCAR al menos una herramienta de datos antes de responder. Elige la herramienta adecuada según la consulta:
-- Conteos exactos de profesionales -> get_professionals_count (aplica múltiples filtros combinados: area_profesional/especialidad, provincia, distrito_sanitario (o distrito), genero, centro_salud_id/nombre_centro, funcion_publica, etc.)
+- Conteos exactos de profesionales -> get_professionals_count (aplica m��ltiples filtros combinados: area_profesional/especialidad, provincia, distrito_sanitario (o distrito), genero, centro_salud_id/nombre_centro, funcion_publica, etc.)
 - Listado de profesionales (nombres y especialidades) -> get_professionals_list (combina todos los filtros relevantes; usa aprobadosOnly si lo piden explícitamente)
 - Centros (conteo/listado con filtros: nombre, categoria, provincia, distrito_sanitario, sector) -> get_centers_count / get_centers_list
 - Género -> get_gender_stats; Áreas -> get_area_stats; Distritos -> get_district_stats; Centros destacados -> get_centers_overview; Serie temporal -> get_timeseries_registrations; Instituciones -> get_institution_stats; Países -> get_country_stats; Categorías de centro -> get_center_category_stats; Titulación -> get_titulacion_stats.

@@ -105,10 +105,10 @@ async function getTimeseriesRegistrations(supabase: any, args: { months?: number
 async function getGenderStats(supabase: any, filters: Record<string, any> = {}) {
   const f = { ...(filters || {}) } as any;
   if (f && typeof f === 'object' && 'genero' in f) delete f.genero;
-  const { data, error } = await applyFilters(
-    supabase.from('profesionales_sanitarios').select('genero').not('genero','is', null),
-    f
-  );
+  let qb = supabase.from('profesionales_sanitarios');
+  qb = applyFilters(qb, f);
+  qb = qb.select('genero').not('genero','is', null);
+  const { data, error } = await qb;
   if (error) throw error;
   const counts: Record<string, number> = {};
   for (const r of data || []) {
@@ -445,7 +445,7 @@ Indica filtros aplicados si es relevante. Si no hay datos, dilo explícitamente 
     if (lastUser.includes('renov') || lastUser.includes('vencim') || lastUser.includes('carnet')) navigationSuggestions.push({ type: 'navigate', tab: 'renewals', label: 'Ver Renovaciones' });
     if (lastUser.includes('distrito') || lastUser.includes('tendenc') || lastUser.includes('serie')) navigationSuggestions.push({ type: 'navigate', tab: 'analytics', label: 'Ver Analíticas' });
 
-    const diagnostics = { hasServiceRole: !!SERVICE_ROLE, hasOpenAI: !!OPENAI_API_KEY, notes: 'Orquestador con tool-calling activo' };
+    const diagnostics = { hasServiceRole: !!SERVICE_ROLE, hasOpenAI: !!OPENAI_API_KEY };
 
     return new Response(JSON.stringify({ answer: answerText, toolResults, navigationSuggestions, diagnostics }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e: any) {

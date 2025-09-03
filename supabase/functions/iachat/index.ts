@@ -300,6 +300,7 @@ async function getTitulacionStats(supabase: any) {
 
 const tools = [
   { type: 'function', function: { name: 'get_summary_stats', description: 'Resumen global', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
+  { type: 'function', function: { name: 'get_gender_stats', description: 'Distribución por género (aplica filtros excepto género)', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
   { type: 'function', function: { name: 'get_professionals_count', description: 'Cuenta profesionales con filtros', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
   { type: 'function', function: { name: 'get_professionals_by_center', description: 'Profesionales por centro', parameters: { type: 'object', properties: { nombre_centro: { type: 'string' }, centro_salud_id: { type: 'string' } } } } },
   { type: 'function', function: { name: 'get_centers_overview', description: 'Top centros por profesionales', parameters: { type: 'object', properties: {} } } },

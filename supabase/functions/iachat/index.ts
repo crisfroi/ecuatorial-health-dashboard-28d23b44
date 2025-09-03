@@ -237,19 +237,47 @@ Cuando uses datos, aclara cómo se filtraron si es relevante.`;
         try { parsedArgs = call.function.arguments ? JSON.parse(call.function.arguments) : {}; } catch { parsedArgs = {}; }
         const result = await executeTool(call.function.name, parsedArgs);
         toolResults[call.function.name] = result;
-        loopMessages = [...loopMessages, { role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) } as any];
+        loopMessages = [...loopMessages, { role: 'tool', tool_call_id: call.id, name: call.function.name, content: JSON.stringify(result) } as any];
       }
     }
 
     if (!answerText) {
-      // Finalize with results included
+      // Finalize with results included; force a concise Spanish answer using gathered data
+      const toolJson = JSON.stringify(toolResults);
       const finalResp = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.2, messages: [...loopMessages, { role: 'user', content: 'Resume los resultados anteriores de forma breve, concreta y con números.' }] })
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          temperature: 0.2,
+          messages: [
+            { role: 'system', content: 'Eres un asistente que responde en español con cifras exactas, breve y claro.' },
+            ...loopMessages,
+            { role: 'user', content: `Con base en estos resultados JSON de herramientas, responde en 2-3 frases máximo, con números y contexto: ${toolJson}` }
+          ]
+        })
       });
       const finalBody = await finalResp.json();
-      answerText = finalBody?.choices?.[0]?.message?.content || 'He obtenido los datos solicitados.';
+      answerText = (finalBody?.choices?.[0]?.message?.content || '').trim();
+      if (!answerText) {
+        // Deterministic textual summary from toolResults as last resort
+        try {
+          const summary = toolResults['get_summary_stats'] as any;
+          if (summary && typeof summary === 'object') {
+            const t = summary as { totalProfessionals?: number; totalApproved?: number; totalCenters?: number; incidentsOpen?: number; totalIncidents?: number };
+            const parts: string[] = [];
+            if (typeof t.totalProfessionals === 'number') parts.push(`Profesionales totales: ${t.totalProfessionals}.`);
+            if (typeof t.totalApproved === 'number') parts.push(`Aprobados: ${t.totalApproved}.`);
+            if (typeof t.totalCenters === 'number') parts.push(`Centros: ${t.totalCenters}.`);
+            if (typeof t.totalIncidents === 'number') parts.push(`Incidencias: ${t.incidentsOpen ?? 0}/${t.totalIncidents} abiertas/total.`);
+            answerText = parts.length ? parts.join(' ') : 'Resultados obtenidos.';
+          } else {
+            answerText = 'Resultados obtenidos.';
+          }
+        } catch (_) {
+          answerText = 'Resultados obtenidos.';
+        }
+      }
     }
 
     // Basic navigation suggestions by intent keywords

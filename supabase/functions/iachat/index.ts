@@ -427,12 +427,12 @@ Indica filtros aplicados si es relevante. Si no hay datos, dilo explícitamente 
             if (typeof t.totalApproved === 'number') parts.push(`Aprobados: ${t.totalApproved}.`);
             if (typeof t.totalCenters === 'number') parts.push(`Centros: ${t.totalCenters}.`);
             if (typeof t.totalIncidents === 'number') parts.push(`Incidencias: ${t.incidentsOpen ?? 0}/${t.totalIncidents} abiertas/total.`);
-            answerText = parts.length ? parts.join(' ') : 'Resultados obtenidos.';
+            answerText = parts.length ? parts.join(' ') : 'No se encontraron datos para esa consulta específica.';
           } else {
-            answerText = 'Resultados obtenidos.';
+            answerText = 'No se encontraron datos para esa consulta específica.';
           }
         } catch (_) {
-          answerText = 'Resultados obtenidos.';
+          answerText = 'No se encontraron datos para esa consulta específica.';
         }
       }
     }

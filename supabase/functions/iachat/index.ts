@@ -221,7 +221,7 @@ Cuando uses datos, aclara cómo se filtraron si es relevante.`;
       const resp = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gpt-4o-mini', messages: loopMessages, tools, temperature: 0.2, max_tokens: 1200 })
+        body: JSON.stringify({ model: 'gpt-4o-mini', messages: loopMessages, tools, tool_choice: 'auto', temperature: 0.2, max_tokens: 1200 })
       });
       const body = await resp.json();
       const choice = body?.choices?.[0]?.message;
@@ -230,7 +230,8 @@ Cuando uses datos, aclara cómo se filtraron si es relevante.`;
         answerText = choice?.content || '';
         break;
       }
-      // Execute all tool calls and append
+      // Append assistant tool call message, then execute tools and append results
+      loopMessages = [...loopMessages, { role: 'assistant', content: choice?.content || '', tool_calls: toolCalls } as any];
       for (const call of toolCalls) {
         let parsedArgs: any = {};
         try { parsedArgs = call.function.arguments ? JSON.parse(call.function.arguments) : {}; } catch { parsedArgs = {}; }

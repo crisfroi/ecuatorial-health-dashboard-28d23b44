@@ -338,6 +338,8 @@ Cuando uses datos, aclara cómo se filtraron si es relevante.`;
           return await getSummaryStats(supabase, args?.filters || {});
         case 'get_professionals_count':
           return await getProfessionalsCount(supabase, args?.filters || {});
+        case 'get_gender_stats':
+          return await getGenderStats(supabase, args?.filters || {});
         case 'get_professionals_by_center':
           return await getProfessionalsByCenter(supabase, args || {});
         case 'get_centers_overview':

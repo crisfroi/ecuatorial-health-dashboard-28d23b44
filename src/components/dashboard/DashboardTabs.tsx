@@ -14,7 +14,7 @@ const DashboardTabs = ({ activeTab, onTabChange, userRole }: DashboardTabsProps)
     { id: 'professionals', label: 'Profesionales', icon: Users },
     { id: 'health-centers', label: 'Centros de Salud', icon: Building2 },
     { id: 'stats', label: 'Estadísticas', icon: TrendingUp },
-    { id: 'ai-chat', label: 'Análisis IA', icon: MessageCircle },
+    { id: 'iachat', label: 'Análisis IA', icon: MessageCircle },
     { id: 'incidents', label: 'Incidencias', icon: AlertTriangle },
     ...(userRole === 'administrador' ? [
       { id: 'user-management', label: 'Usuarios', icon: Settings }

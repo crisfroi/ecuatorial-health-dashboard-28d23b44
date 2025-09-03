@@ -1,4 +1,3 @@
-
 import { 
   Sidebar, 
   SidebarContent, 
@@ -24,7 +23,7 @@ const DashboardSidebar = ({ activeTab, onTabChange, userRole }: DashboardSidebar
     { id: 'requests', label: 'Solicitudes', icon: FileText },
     { id: 'professionals', label: 'Profesionales', icon: Users },
     { id: 'stats', label: 'Estadísticas', icon: TrendingUp },
-    { id: 'ai-chat', label: 'Análisis IA', icon: MessageCircle },
+    { id: 'iachat', label: 'Análisis IA', icon: MessageCircle },
     { id: 'incidents', label: 'Incidencias', icon: AlertTriangle },
     ...(userRole === 'administrador' ? [
       { id: 'user-management', label: 'Usuarios', icon: Settings }

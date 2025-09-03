@@ -39,6 +39,8 @@ function applyFilters(q: any, f: Record<string, any>) {
   if (f.nombre_centro) qb = qb.eq("nombre_centro", f.nombre_centro);
   if (f.nombre_centro_like) qb = qb.ilike("nombre_centro", `%${f.nombre_centro_like}%`);
   if (f.nombre_completo) qb = qb.ilike("nombre_completo", `%${f.nombre_completo}%`);
+  if (typeof f.edad_min === 'number') qb = qb.gte('edad', f.edad_min);
+  if (typeof f.edad_max === 'number') qb = qb.lte('edad', f.edad_max);
   if (typeof f.anoGraduacion === "number") qb = qb.eq("año_graduacion", f.anoGraduacion);
   if (f.pais_formacion) qb = qb.or(`pais_formacion_1.ilike.%${f.pais_formacion}%,pais_formacion_2.ilike.%${f.pais_formacion}%`);
   if (f.institucion) qb = qb.or(`institucion_1.ilike.%${f.institucion}%,institucion_2.ilike.%${f.institucion}%`);
@@ -433,11 +435,16 @@ serve(async (req) => {
 
     const systemPrompt = `Eres un asistente de IA para el Ministerio de Sanidad de Guinea Ecuatorial.
 Debes INVOCAR al menos una herramienta de datos antes de responder. Elige la herramienta adecuada según la consulta:
-- Conteos exactos de profesionales -> get_professionals_count (aplica múltiples filtros combinados: area_profesional/especialidad, provincia, distrito_sanitario, genero, centro_salud_id/nombre_centro, funcion_publica, etc.)
+- Conteos exactos de profesionales -> get_professionals_count (aplica múltiples filtros combinados: area_profesional/especialidad, provincia, distrito_sanitario (o distrito), genero, centro_salud_id/nombre_centro, funcion_publica, etc.)
 - Listado de profesionales (nombres y especialidades) -> get_professionals_list (combina todos los filtros relevantes; usa aprobadosOnly si lo piden explícitamente)
 - Centros (conteo/listado con filtros: nombre, categoria, provincia, distrito_sanitario, sector) -> get_centers_count / get_centers_list
 - Género -> get_gender_stats; Áreas -> get_area_stats; Distritos -> get_district_stats; Centros destacados -> get_centers_overview; Serie temporal -> get_timeseries_registrations; Instituciones -> get_institution_stats; Países -> get_country_stats; Categorías de centro -> get_center_category_stats; Titulación -> get_titulacion_stats.
-Al extraer filtros del texto, si se menciona un centro ("hospital", "clínica", "centro"), usa nombre_centro o nombre_centro_like. Si se menciona "enfermería/enfermeros", usa area_profesional o area_profesional_like. Combina todos los filtros en 'filters'.
+Reglas de extracción de filtros:
+- Si se menciona un centro ("hospital", "clínica", "centro"), usa nombre_centro o nombre_centro_like.
+- Si se menciona "enfermería/enfermeros", usa area_profesional o area_profesional_like.
+- Si se menciona un distrito ("distrito sanitario de X"), usa distrito_sanitario o distrito_sanitario_like.
+- Si se mencionan edades: "menores de N" -> edad_max = N-1; "mayores de N" -> edad_min = N+1; "entre X e Y" -> edad_min = X y edad_max = Y.
+- En preguntas de seguimiento como "¿quiénes son?", vuelve a invocar get_professionals_list reutilizando TODOS los filtros del turno previo y añadiendo los de edad si aplican.
 Responde SIEMPRE en español, breve, claro y con cifras exactas.
 Indica filtros aplicados si es relevante y respeta los filtros recibidos en 'filters'. Si no hay datos, dilo explícitamente y sugiere una consulta alternativa.`;
 

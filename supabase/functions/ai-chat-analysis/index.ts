@@ -497,6 +497,15 @@ serve(async (req) => {
       usedServerAnalytics: true,
     }
 
+    try {
+      if (supabase) {
+        const { count: prosCount } = await supabase
+          .from('profesionales_sanitarios')
+          .select('id', { count: 'exact', head: true })
+        diagnostics.profesionalesCount = prosCount ?? null
+      }
+    } catch (_) {}
+
     if (typeof analytics?.summary?.totalProfessionals === 'number') diagnostics.totalProfessionals = analytics.summary.totalProfessionals
     if (typeof analytics?.summary?.totalCenters === 'number') diagnostics.totalCenters = analytics.summary.totalCenters
     if (typeof analytics?.summary?.totalIncidents === 'number') diagnostics.totalIncidents = analytics.summary.totalIncidents

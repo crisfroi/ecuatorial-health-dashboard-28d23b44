@@ -102,6 +102,24 @@ async function getTimeseriesRegistrations(supabase: any, args: { months?: number
   return Object.entries(buckets).sort(([a],[b]) => a.localeCompare(b)).map(([period, cantidad]) => ({ period, cantidad }));
 }
 
+async function getGenderStats(supabase: any, filters: Record<string, any> = {}) {
+  const f = { ...(filters || {}) } as any;
+  if (f && typeof f === 'object' && 'genero' in f) delete f.genero;
+  const { data, error } = await applyFilters(
+    createClient(SUPABASE_URL, SERVICE_ROLE).from('profesionales_sanitarios').select('genero').not('genero','is', null),
+    f
+  );
+  if (error) throw error;
+  const counts: Record<string, number> = {};
+  for (const r of data || []) {
+    const g = String((r as any).genero || '').trim();
+    if (!g) continue;
+    counts[g] = (counts[g] || 0) + 1;
+  }
+  const total = Object.values(counts).reduce((s,c)=>s+c,0) || 0;
+  return { total, por_genero: counts };
+}
+
 async function getSchemaOverview(supabase: any) {
   const sql = `select table_name, column_name, data_type from information_schema.columns where table_schema = 'public' order by table_name, ordinal_position`;
   const { data, error } = await supabase.rpc('exec_sql', { sql_query: sql });

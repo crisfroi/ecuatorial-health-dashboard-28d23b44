@@ -79,9 +79,23 @@ const IAChatOrchestrator: React.FC<IAChatOrchestratorProps> = ({ onNavigateToTab
         if (toolResults.get_professionals_count && (toolResults.get_professionals_count as any).count !== undefined) {
           append.push({ role: "assistant", content: `Coincidencias exactas: ${(toolResults.get_professionals_count as any).count}` });
         }
+        if (toolResults.get_professionals_list && Array.isArray((toolResults.get_professionals_list as any).profesionales)) {
+          const list = ((toolResults.get_professionals_list as any).profesionales as any[])
+            .slice(0, 10)
+            .map(p => `${p.nombre_completo}${p.especialidad ? ` (${p.especialidad})` : p.area_profesional ? ` (${p.area_profesional})` : ''}`)
+            .join("; ");
+          append.push({ role: "assistant", content: `Listado: ${list}${((toolResults.get_professionals_list as any).total || 0) > 10 ? '…' : ''}` });
+        }
         if (toolResults.get_centers_overview && Array.isArray(toolResults.get_centers_overview)) {
           const list = (toolResults.get_centers_overview as any[]).slice(0,3).map(c=>`${c.nombre}: ${c.total_profesionales}`).join("; ");
           append.push({ role: "assistant", content: `Top centros: ${list}` });
+        }
+        if (toolResults.get_centers_list && Array.isArray((toolResults.get_centers_list as any).centros)) {
+          const list = ((toolResults.get_centers_list as any).centros as any[])
+            .slice(0, 5)
+            .map(c => `${c.nombre} (${c.categoria}, ${c.provincia || c.distrito_sanitario || 's/d'})`)
+            .join("; ");
+          append.push({ role: "assistant", content: `Centros: ${list}${((toolResults.get_centers_list as any).total || 0) > 5 ? '…' : ''}` });
         }
       }
 

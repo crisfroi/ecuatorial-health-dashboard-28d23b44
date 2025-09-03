@@ -106,7 +106,6 @@ async function getSchemaOverview(supabase: any) {
   const sql = `select table_name, column_name, data_type from information_schema.columns where table_schema = 'public' order by table_name, ordinal_position`;
   const { data, error } = await supabase.rpc('exec_sql', { sql_query: sql });
   if (error) {
-    // Fallback: fetch known tables with client selects if rpc not available
     const tables = ['profesionales_sanitarios','centros_salud','incidencias_hospitalarias','carnets_generados'];
     const schema: Record<string, string[]> = {};
     for (const t of tables) {
@@ -123,55 +122,178 @@ async function getSchemaOverview(supabase: any) {
   return { schema: Object.values(grouped) };
 }
 
+async function getAreaStats(supabase: any, filters: Record<string, any> = {}) {
+  const { data, error } = await supabase
+    .from('profesionales_sanitarios')
+    .select('area_profesional, estado_solicitud')
+    .not('area_profesional','is', null);
+  if (error) throw error;
+  const acc: Record<string, { total: number; aprobados: number; pendientes: number }> = {};
+  for (const p of data || []) {
+    const area = (p as any).area_profesional as string | null;
+    if (!area) continue;
+    if (!acc[area]) acc[area] = { total: 0, aprobados: 0, pendientes: 0 };
+    acc[area].total++;
+    if ((p as any).estado_solicitud === 'Aprobado') acc[area].aprobados++; else acc[area].pendientes++;
+  }
+  const total = Object.values(acc).reduce((s,v) => s + v.total, 0) || 1;
+  return Object.entries(acc)
+    .map(([area_profesional, v]) => ({ area_profesional, total: v.total, aprobados: v.aprobados, pendientes: v.pendientes, porcentaje: (v.total/total)*100 }))
+    .sort((a,b) => b.total - a.total);
+}
+
+async function getDistrictStats(supabase: any) {
+  const { data: profData, error: profErr } = await supabase
+    .from('profesionales_sanitarios')
+    .select('distrito_sanitario, area_profesional')
+    .eq('estado_solicitud','Aprobado')
+    .not('distrito_sanitario','is', null);
+  if (profErr) throw profErr;
+  const { data: centerData, error: centerErr } = await supabase
+    .from('centros_salud')
+    .select('distrito_sanitario')
+    .not('distrito_sanitario','is', null);
+  if (centerErr) throw centerErr;
+  const profCount: Record<string, number> = {};
+  for (const p of profData || []) {
+    const d = (p as any).distrito_sanitario as string; if (!d) continue;
+    profCount[d] = (profCount[d] || 0) + 1;
+  }
+  const centerCount: Record<string, number> = {};
+  for (const c of centerData || []) {
+    const d = (c as any).distrito_sanitario as string; if (!d) continue;
+    centerCount[d] = (centerCount[d] || 0) + 1;
+  }
+  const districts = Array.from(new Set([ ...Object.keys(profCount), ...Object.keys(centerCount) ]));
+  return districts.map(d => ({ distrito_sanitario: d, total_profesionales: profCount[d] || 0, total_centros: centerCount[d] || 0 }))
+    .sort((a,b) => b.total_profesionales - a.total_profesionales);
+}
+
+async function getAgeStats(supabase: any) {
+  const { data, error } = await supabase
+    .from('profesionales_sanitarios')
+    .select('edad')
+    .eq('estado_solicitud','Aprobado')
+    .not('edad','is', null);
+  if (error) throw error;
+  const buckets: Record<string, number> = {};
+  const push = (label: string) => { buckets[label] = (buckets[label] || 0) + 1; };
+  for (const r of data || []) {
+    const e = (r as any).edad as number; if (e == null) continue;
+    if (e < 25) push('< 25 años');
+    else if (e < 35) push('25-34 años');
+    else if (e < 45) push('35-44 años');
+    else if (e < 55) push('45-54 años');
+    else if (e < 65) push('55-64 años');
+    else push('65+ años');
+  }
+  const total = Object.values(buckets).reduce((s,c)=>s+c,0) || 1;
+  return Object.entries(buckets).map(([rango_edad, cantidad]) => ({ rango_edad, cantidad, porcentaje: (cantidad as number)/total*100 }))
+    .sort((a,b) => {
+      const order = ['< 25 años','25-34 años','35-44 años','45-54 años','55-64 años','65+ años'];
+      return order.indexOf(a.rango_edad) - order.indexOf(b.rango_edad);
+    });
+}
+
+async function getCountryStats(supabase: any) {
+  const { data, error } = await supabase
+    .from('profesionales_sanitarios')
+    .select('pais_formacion_1, pais_formacion_2')
+    .eq('estado_solicitud','Aprobado');
+  if (error) throw error;
+  const counts: Record<string, number> = {};
+  for (const r of data || []) {
+    const p1 = (r as any).pais_formacion_1; const p2 = (r as any).pais_formacion_2;
+    if (p1 && String(p1).trim()) counts[p1] = (counts[p1] || 0) + 1;
+    if (p2 && String(p2).trim()) counts[p2] = (counts[p2] || 0) + 1;
+  }
+  const total = Object.values(counts).reduce((s,c)=>s+c,0) || 1;
+  return Object.entries(counts).map(([pais_formacion, cantidad]) => ({ pais_formacion, cantidad, porcentaje: (cantidad/total)*100 }))
+    .sort((a,b) => b.cantidad - a.cantidad);
+}
+
+async function getInstitutionStats(supabase: any) {
+  const { data, error } = await supabase
+    .from('profesionales_sanitarios')
+    .select('institucion_1, institucion_2, pais_formacion_1, pais_formacion_2')
+    .eq('estado_solicitud','Aprobado');
+  if (error) throw error;
+  const map: Record<string, { cantidad: number; pais: string | null }> = {};
+  for (const r of data || []) {
+    const pairs = [
+      { inst: (r as any).institucion_1, pais: (r as any).pais_formacion_1 },
+      { inst: (r as any).institucion_2, pais: (r as any).pais_formacion_2 },
+    ];
+    for (const { inst, pais } of pairs) {
+      if (inst && String(inst).trim()) {
+        if (!map[inst]) map[inst] = { cantidad: 0, pais: pais || null };
+        map[inst].cantidad++;
+      }
+    }
+  }
+  return Object.entries(map).map(([institucion, v]) => ({ institucion, cantidad: v.cantidad, pais: v.pais }))
+    .sort((a,b) => b.cantidad - a.cantidad);
+}
+
+async function getCenterCategoryStats(supabase: any) {
+  const { data: centers, error } = await supabase
+    .from('centros_salud')
+    .select('categoria, nombre, id');
+  if (error) throw error;
+  const groups: Record<string, { names: string[]; ids: string[] }> = {};
+  for (const c of centers || []) {
+    const cat = (c as any).categoria || 'SIN_CATEGORIA';
+    if (!groups[cat]) groups[cat] = { names: [], ids: [] };
+    groups[cat].names.push((c as any).nombre);
+    groups[cat].ids.push((c as any).id);
+  }
+  const results = [] as { categoria: string; total_centros: number; total_profesionales: number; promedio_profesionales_por_centro: number }[];
+  for (const [categoria, g] of Object.entries(groups)) {
+    const namesList = g.names.map(n => `"${n}"`).join(',');
+    const idsList = g.ids.map(id => `"${id}"`).join(',');
+    const { count = 0 } = await supabase
+      .from('profesionales_sanitarios')
+      .select('id', { count: 'exact', head: true })
+      .eq('estado_solicitud','Aprobado')
+      .or(`nombre_centro.in.(${namesList}),centro_salud_id.in.(${idsList})`);
+    const total_centros = g.names.length;
+    results.push({ categoria, total_centros, total_profesionales: count || 0, promedio_profesionales_por_centro: (count || 0)/Math.max(1,total_centros) });
+  }
+  return results.sort((a,b)=> b.total_profesionales - a.total_profesionales);
+}
+
+async function getTitulacionStats(supabase: any) {
+  const { data, error } = await supabase
+    .from('profesionales_sanitarios')
+    .select('categoria_titulacion, estado_solicitud')
+    .not('categoria_titulacion','is', null);
+  if (error) throw error;
+  const map: Record<string, { total: number; aprobados: number; pendientes: number }> = {};
+  for (const r of data || []) {
+    const cat = (r as any).categoria_titulacion as string | null; if (!cat) continue;
+    if (!map[cat]) map[cat] = { total: 0, aprobados: 0, pendientes: 0 };
+    map[cat].total++;
+    if ((r as any).estado_solicitud === 'Aprobado') map[cat].aprobados++; else map[cat].pendientes++;
+  }
+  const total = Object.values(map).reduce((s,v)=>s+v.total,0) || 1;
+  return Object.entries(map).map(([categoria_titulacion, v]) => ({ categoria_titulacion, total: v.total, aprobados: v.aprobados, pendientes: v.pendientes, porcentaje: (v.total/total)*100 }))
+    .sort((a,b) => b.total - a.total);
+}
+
 const tools = [
-  {
-    type: 'function',
-    function: {
-      name: 'get_summary_stats',
-      description: 'Devuelve resumen global: totales de profesionales, aprobados, centros e incidencias',
-      parameters: { type: 'object', properties: { filters: { type: 'object' } } },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'get_professionals_count',
-      description: 'Cuenta profesionales con filtros (área, provincia, género, estado, etc.)',
-      parameters: { type: 'object', properties: { filters: { type: 'object' } } },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'get_professionals_by_center',
-      description: 'Cuenta profesionales por centro indicado por nombre o id',
-      parameters: { type: 'object', properties: { nombre_centro: { type: 'string' }, centro_salud_id: { type: 'string' } } },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'get_centers_overview',
-      description: 'Lista top centros con total de profesionales asignados',
-      parameters: { type: 'object', properties: {} },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'get_timeseries_registrations',
-      description: 'Registros por mes en los últimos N meses',
-      parameters: { type: 'object', properties: { months: { type: 'number' } } },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'get_schema_overview',
-      description: 'Obtiene descripción de tablas y columnas del esquema público',
-      parameters: { type: 'object', properties: {} },
-    },
-  },
+  { type: 'function', function: { name: 'get_summary_stats', description: 'Resumen global', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
+  { type: 'function', function: { name: 'get_professionals_count', description: 'Cuenta profesionales con filtros', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
+  { type: 'function', function: { name: 'get_professionals_by_center', description: 'Profesionales por centro', parameters: { type: 'object', properties: { nombre_centro: { type: 'string' }, centro_salud_id: { type: 'string' } } } } },
+  { type: 'function', function: { name: 'get_centers_overview', description: 'Top centros por profesionales', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'get_timeseries_registrations', description: 'Serie temporal de registros', parameters: { type: 'object', properties: { months: { type: 'number' } } } } },
+  { type: 'function', function: { name: 'get_schema_overview', description: 'Esquema de la base de datos', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'get_area_stats', description: 'Estadísticas por área profesional', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'get_district_stats', description: 'Estadísticas por distrito sanitario', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'get_age_stats', description: 'Distribución por rangos de edad', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'get_country_stats', description: 'Países de formación', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'get_institution_stats', description: 'Instituciones de formación', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'get_center_category_stats', description: 'Categorías de centros', parameters: { type: 'object', properties: {} } } },
+  { type: 'function', function: { name: 'get_titulacion_stats', description: 'Categorías de titulación', parameters: { type: 'object', properties: {} } } },
 ];
 
 serve(async (req) => {
@@ -205,6 +327,20 @@ Cuando uses datos, aclara cómo se filtraron si es relevante.`;
           return await getTimeseriesRegistrations(supabase, args || {});
         case 'get_schema_overview':
           return await getSchemaOverview(supabase);
+        case 'get_area_stats':
+          return await getAreaStats(supabase);
+        case 'get_district_stats':
+          return await getDistrictStats(supabase);
+        case 'get_age_stats':
+          return await getAgeStats(supabase);
+        case 'get_country_stats':
+          return await getCountryStats(supabase);
+        case 'get_institution_stats':
+          return await getInstitutionStats(supabase);
+        case 'get_center_category_stats':
+          return await getCenterCategoryStats(supabase);
+        case 'get_titulacion_stats':
+          return await getTitulacionStats(supabase);
         default:
           return { error: `Herramienta desconocida: ${name}` };
       }

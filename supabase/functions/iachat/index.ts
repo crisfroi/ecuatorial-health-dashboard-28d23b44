@@ -300,7 +300,7 @@ async function getTitulacionStats(supabase: any) {
 
 const tools = [
   { type: 'function', function: { name: 'get_summary_stats', description: 'Resumen global', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
-  { type: 'function', function: { name: 'get_gender_stats', description: 'Distribución por género (aplica filtros excepto género)', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
+  { type: 'function', function: { name: 'get_gender_stats', description: 'Distribución por género (aplica filtros excepto g��nero)', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
   { type: 'function', function: { name: 'get_professionals_count', description: 'Cuenta profesionales con filtros', parameters: { type: 'object', properties: { filters: { type: 'object' } } } } },
   { type: 'function', function: { name: 'get_professionals_by_center', description: 'Profesionales por centro', parameters: { type: 'object', properties: { nombre_centro: { type: 'string' }, centro_salud_id: { type: 'string' } } } } },
   { type: 'function', function: { name: 'get_centers_overview', description: 'Top centros por profesionales', parameters: { type: 'object', properties: {} } } },
@@ -326,9 +326,9 @@ serve(async (req) => {
     const { messages = [], filters = {} } = await req.json();
 
     const systemPrompt = `Eres un asistente de IA para el Ministerio de Sanidad de Guinea Ecuatorial.
-Debes INVOCAR al menos una herramienta de datos antes de responder. Elige la herramienta adecuada según la consulta: género -> get_gender_stats; áreas -> get_area_stats; distritos -> get_district_stats; centros -> get_centers_overview; serie temporal -> get_timeseries_registrations; instituciones -> get_institution_stats; países -> get_country_stats; categorías de centro -> get_center_category_stats; titulación -> get_titulacion_stats.
+Debes INVOCAR al menos una herramienta de datos antes de responder. Elige la herramienta adecuada según la consulta: conteos exactos o preguntas de "¿cuántos...?" -> get_professionals_count (aplica filtros como area_profesional, provincia, distrito, etc.); género -> get_gender_stats; áreas -> get_area_stats; distritos -> get_district_stats; centros -> get_centers_overview; serie temporal -> get_timeseries_registrations; instituciones -> get_institution_stats; países -> get_country_stats; categorías de centro -> get_center_category_stats; titulación -> get_titulacion_stats.
 Responde SIEMPRE en español, breve, claro y con cifras exactas.
-Indica filtros aplicados si es relevante. Si no hay datos, dilo explícitamente y sugiere una consulta alternativa.`;
+Indica filtros aplicados si es relevante y respeta los filtros recibidos en 'filters'. Si no hay datos, dilo explícitamente y sugiere una consulta alternativa.`;
 
     type ToolCall = { id: string; function: { name: string; arguments: string } };
 

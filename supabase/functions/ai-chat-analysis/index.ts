@@ -126,41 +126,33 @@ serve(async (req) => {
             centers.map(async (c: any) => {
               const name = c.nombre
               const id = c.id
-              let c1 = 0, c2 = 0, c3 = 0
-              let e1: any = null, e2: any = null, e3: any = null
 
-              // nombre_centro
+              let total_profesionales = 0
+              let errMain: any = null
+
+              // Replicar lógica del frontend: OR por nombre_centro y lugar_trabajo, y agregar centro_salud_id
               try {
+                // Nota: eq con nombres puede fallar por tildes/casos; si devuelve 0, intentamos ilike
                 const { count, error } = await supabase
                   .from('profesionales_sanitarios')
                   .select('id', { count: 'exact', head: true })
                   .eq('estado_solicitud', 'Aprobado')
-                  .eq('nombre_centro', name)
-                if (!error) c1 = count || 0; else e1 = error
-              } catch (err) { e1 = String(err) }
+                  .or(`nombre_centro.eq.${name},lugar_trabajo.eq.${name},centro_salud_id.eq.${id}`)
+                if (!error) total_profesionales = count || 0; else errMain = error
 
-              // lugar_trabajo
-              try {
-                const { count, error } = await supabase
-                  .from('profesionales_sanitarios')
-                  .select('id', { count: 'exact', head: true })
-                  .eq('estado_solicitud', 'Aprobado')
-                  .eq('lugar_trabajo', name)
-                if (!error) c2 = count || 0; else e2 = error
-              } catch (err) { e2 = String(err) }
+                if (total_profesionales === 0) {
+                  const { count: countIlike, error: errIlike } = await supabase
+                    .from('profesionales_sanitarios')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('estado_solicitud', 'Aprobado')
+                    .or(`nombre_centro.ilike.%${name}%,lugar_trabajo.ilike.%${name}%,centro_salud_id.eq.${id}`)
+                  if (!errIlike) total_profesionales = countIlike || 0
+                }
+              } catch (err) {
+                errMain = String(err)
+              }
 
-              // centro_salud_id
-              try {
-                const { count, error } = await supabase
-                  .from('profesionales_sanitarios')
-                  .select('id', { count: 'exact', head: true })
-                  .eq('estado_solicitud', 'Aprobado')
-                  .eq('centro_salud_id', id)
-                if (!error) c3 = count || 0; else e3 = error
-              } catch (err) { e3 = String(err) }
-
-              const total_profesionales = Math.max(c1, c2, c3)
-              perCenterDiagnostics.push({ nombre: name, c1, c2, c3, total_profesionales, e1: e1?.message || e1 || null, e2: e2?.message || e2 || null, e3: e3?.message || e3 || null })
+              perCenterDiagnostics.push({ nombre: name, total_profesionales, err: errMain?.message || errMain || null })
               return { nombre: name, categoria: c.categoria || '', total_profesionales }
             })
           )

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Filter, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { PROVINCIAS_EG } from '@/utils/geo';
 
 interface Filtros {
   area_profesional?: string;
@@ -64,7 +65,7 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
       results.forEach(({ col, values }) => {
         if (col === 'area_profesional') setAreas(values);
         if (col === 'estado_solicitud') setEstados(values);
-        if (col === 'provincia') setProvincias(values);
+        if (col === 'provincia') setProvincias(Array.from(new Set([...(PROVINCIAS_EG as string[]), ...values])));
         if (col === 'distrito_sanitario') setDistritosSanitarios(values);
         if (col === 'genero') setGeneros(values);
         if (col === 'tipo_sector') setSectores(values);

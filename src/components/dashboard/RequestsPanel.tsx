@@ -140,6 +140,17 @@ const RequestsPanel = ({
       const ws = XLSX.utils.aoa_to_sheet(worksheetData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Solicitudes');
+
+      const meta = [
+        ["Generado en", new Date().toLocaleString('es-ES')],
+        ["Estado", statusFilter],
+        ["Fecha inicio", startDate || ""],
+        ["Fecha fin", endDate || ""],
+        ["Total exportado", String(filteredRequests.length)],
+      ];
+      const wsMeta = XLSX.utils.aoa_to_sheet([["Clave","Valor"], ...meta]);
+      XLSX.utils.book_append_sheet(wb, wsMeta, 'Metadatos');
+
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
       const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

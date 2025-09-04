@@ -28,6 +28,7 @@ import { DataRestrictionIndicator } from "@/components/ui/data-restriction-indic
 import { supabase } from '@/integrations/supabase/client';
 import { PROVINCIAS_EG } from '@/utils/geo';
 import * as XLSX from 'xlsx';
+import { Copy } from 'lucide-react';
 
 interface DashboardFilters {
   area_profesional?: string;
@@ -113,22 +114,20 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   // Excel export functionality
   const exportProfessionalsToExcel = () => {
     try {
-      const header = [
-        [
-          "ID",
-          "Nombre Completo",
-          "Profesión",
-          "ID Profesional",
-          "Estado Solicitud",
-          "Provincia",
-          "Género",
-          "Teléfono",
-          "Email",
-          "Fecha Registro",
-          "Fecha Graduación",
-          "Lugar de Trabajo",
-        ],
-      ];
+      const header = [[
+        "ID",
+        "Nombre Completo",
+        "Profesión",
+        "ID Profesional",
+        "Estado Solicitud",
+        "Provincia",
+        "Género",
+        "Teléfono",
+        "Email",
+        "Fecha Registro",
+        "Fecha Graduación",
+        "Lugar de Trabajo",
+      ]];
 
       const rows = sortedFilteredProfesionales.map((profesional) => [
         profesional.id || "",
@@ -149,6 +148,20 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
       const ws = XLSX.utils.aoa_to_sheet(worksheetData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Profesionales');
+
+      const metadata = [
+        ["Generado en", new Date().toLocaleString('es-ES')],
+        ["Búsqueda", searchTerm || ""],
+        ["Área Profesional", localFilters.area_profesional],
+        ["Provincia", localFilters.provincia],
+        ["Género", localFilters.genero],
+        ["Tipo Sector", localFilters.tipo_sector],
+        ["Estado Solicitud", localFilters.estado_solicitud],
+        ["Total exportado", String(sortedFilteredProfesionales.length)],
+      ];
+      const wsMeta = XLSX.utils.aoa_to_sheet([["Clave","Valor"], ...metadata]);
+      XLSX.utils.book_append_sheet(wb, wsMeta, 'Metadatos');
+
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
       const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -192,6 +205,17 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
       sessionStorage.setItem('professionals.filters', JSON.stringify(localFilters))
     } catch {}
   }, [localFilters])
+
+  // Leer filtros desde la URL si existen (enlace compartido)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'professionals' && params.get('filters')) {
+        const parsed = JSON.parse(decodeURIComponent(params.get('filters') || ''));
+        setLocalFilters((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {}
+  }, [])
 
   // Aplicar filtros del dashboard solo si vienen definidos, sin resetear los locales
   useEffect(() => {
@@ -565,6 +589,21 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
               >
                 <Download className="w-4 h-4" />
                 Exportar Excel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('tab', 'professionals');
+                  url.searchParams.set('filters', encodeURIComponent(JSON.stringify(localFilters)));
+                  navigator.clipboard.writeText(url.toString());
+                  toast({ title: 'Enlace copiado', description: 'Filtros listos para compartir.' });
+                }}
+                className="flex items-center gap-2"
+              >
+                <Copy className="w-4 h-4" />
+                Compartir filtros
               </Button>
 
               <div className="flex gap-2">

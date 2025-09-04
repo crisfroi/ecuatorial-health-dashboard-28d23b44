@@ -59,6 +59,7 @@ import HealthCenters from "@/components/dashboard/HealthCenters";
 import AdminPanel from "@/components/dashboard/AdminPanel";
 import AdvancedAnalyticsDashboard from "@/components/dashboard/AdvancedAnalyticsDashboard";
 import ProfessionalSearch from "@/components/dashboard/ProfessionalSearch";
+import GlobalSearch from "@/components/dashboard/GlobalSearch";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import ConnectionDebugPanel from "@/components/dashboard/ConnectionDebugPanel";
 import { OfflineNotification } from "@/components/ui/offline-notification";
@@ -291,7 +292,7 @@ const Dashboard = () => {
       console.error("Error inesperado al cerrar sesión:", error);
       toast({
         title: "Error inesperado",
-        description: "Ocurrió un error al cerrar sesión.",
+        description: "Ocurrió un error al cerrar sesi��n.",
         variant: "destructive",
       });
     }

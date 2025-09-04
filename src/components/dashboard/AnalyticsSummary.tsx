@@ -255,7 +255,7 @@ const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
                   dataKey="aprobados"
                   fill="#00C49F"
                   name="Aprobados"
-                  onClick={(data) =>
+                  onClick={(data: any) =>
                     onNavigateToArea && onNavigateToArea(data.area_profesional)
                   }
                   style={{ cursor: "pointer" }}
@@ -264,7 +264,7 @@ const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
                   dataKey="pendientes"
                   fill="#FFBB28"
                   name="Pendientes"
-                  onClick={(data) =>
+                  onClick={(data: any) =>
                     onNavigateToArea && onNavigateToArea(data.area_profesional)
                   }
                   style={{ cursor: "pointer" }}
@@ -332,7 +332,7 @@ const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
                   dataKey="total_profesionales"
                   fill="#8884d8"
                   name="Profesionales"
-                  onClick={(data) =>
+                  onClick={(data: any) =>
                     onNavigateToDistrict &&
                     onNavigateToDistrict(data.distrito_sanitario)
                   }

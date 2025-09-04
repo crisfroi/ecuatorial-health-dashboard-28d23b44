@@ -214,8 +214,8 @@ const AdvancedStats = ({ onNavigateToProfessionals }: AdvancedStatsProps) => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={provinceData} onClick={(data) => {
-                const payload = data.activePayload?.[0]?.payload;
+              <BarChart data={provinceData} onClick={(data: any) => {
+                const payload = data?.payload || data;
                 if (payload) {
                   handleChartClick(payload, 'provincia');
                   handleNavigateToProfessionals(payload, 'provincia');
@@ -251,8 +251,8 @@ const AdvancedStats = ({ onNavigateToProfessionals }: AdvancedStatsProps) => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={districtData} onClick={(data) => {
-                const payload = data.activePayload?.[0]?.payload;
+              <BarChart data={districtData} onClick={(data: any) => {
+                const payload = data?.payload || data;
                 if (payload) {
                   handleChartClick(payload, 'distrito');
                   handleNavigateToProfessionals(payload, 'distrito');
@@ -287,8 +287,8 @@ const AdvancedStats = ({ onNavigateToProfessionals }: AdvancedStatsProps) => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={ageData} onClick={(data) => {
-                const payload = data.activePayload?.[0]?.payload;
+              <BarChart data={ageData} onClick={(data: any) => {
+                const payload = data?.payload || data;
                 if (payload) {
                   handleChartClick(payload, 'edad');
                   handleNavigateToProfessionals(payload, 'edad');
@@ -323,8 +323,8 @@ const AdvancedStats = ({ onNavigateToProfessionals }: AdvancedStatsProps) => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={specialtyData} onClick={(data) => {
-                const payload = data.activePayload?.[0]?.payload;
+              <BarChart data={specialtyData} onClick={(data: any) => {
+                const payload = data?.payload || data;
                 if (payload) {
                   handleChartClick(payload, 'especialidad');
                   handleNavigateToProfessionals(payload, 'especialidad');

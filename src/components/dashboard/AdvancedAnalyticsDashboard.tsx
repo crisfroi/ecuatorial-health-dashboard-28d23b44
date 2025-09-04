@@ -752,7 +752,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     <Bar
                       dataKey="total_profesionales"
                       fill="#0088FE"
-                      onClick={(data) => navigateToCenter(data.nombre)}
+                      onClick={(data: any) => navigateToCenter(data.nombre)}
                       className="cursor-pointer hover:opacity-80"
                     />
                   </BarChart>
@@ -819,14 +819,14 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     dataKey="total_centros"
                     fill="#8884d8"
                     name="Total Centros"
-                    onClick={(data) => onNavigateToTab && onNavigateToTab("professionals", { categoria_centro: data.categoria })}
+                    onClick={(data: any) => onNavigateToTab && onNavigateToTab("professionals", { categoria_centro: data.categoria })}
                     className="cursor-pointer hover:opacity-80"
                   />
                   <Bar
                     dataKey="total_profesionales"
                     fill="#82ca9d"
                     name="Total Profesionales"
-                    onClick={(data) => onNavigateToTab && onNavigateToTab("professionals", { categoria_centro: data.categoria })}
+                    onClick={(data: any) => onNavigateToTab && onNavigateToTab("professionals", { categoria_centro: data.categoria })}
                     className="cursor-pointer hover:opacity-80"
                   />
                 </BarChart>
@@ -893,14 +893,14 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                         dataKey="total_profesionales"
                         fill="#8884d8"
                         name="Profesionales"
-                        onClick={(data) => navigateToDistrict(data.distrito_sanitario)}
+                        onClick={(data: any) => navigateToDistrict(data.distrito_sanitario)}
                         className="cursor-pointer hover:opacity-80"
                       />
                       <Bar
                         dataKey="total_centros"
                         fill="#82ca9d"
                         name="Centros"
-                        onClick={(data) => navigateToDistrict(data.distrito_sanitario)}
+                        onClick={(data: any) => navigateToDistrict(data.distrito_sanitario)}
                         className="cursor-pointer hover:opacity-80"
                       />
                     </BarChart>
@@ -998,7 +998,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     <Bar
                       dataKey="cantidad"
                       fill="#8884d8"
-                      onClick={(data) => navigateToAgeRange(data.rango_edad)}
+                      onClick={(data: any) => navigateToAgeRange(data.rango_edad)}
                       className="cursor-pointer hover:opacity-80"
                     />
                   </BarChart>
@@ -1099,7 +1099,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                     <Bar
                       dataKey="cantidad"
                       fill="#0088FE"
-                      onClick={(data) => {
+                      onClick={(data: any) => {
                         setSelectedCountry(data.pais_formacion);
                         setSelectedInstitution(null);
                       }}

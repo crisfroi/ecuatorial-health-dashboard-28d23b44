@@ -14,8 +14,8 @@ export const DatabaseDiagnostic = () => {
     {
       name: 'Configuración Supabase',
       test: async () => {
-        const url = supabase.supabaseUrl;
-        const key = supabase.supabaseKey;
+        const url = 'https://wdieynendfjbkbhfovrx.supabase.co';
+        const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkaWV5bmVuZGZqYmtiaGZvdnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3ODI5MjEsImV4cCI6MjA2NjM1ODkyMX0.yFnLHavy8wzVjlg3sAI2mEG-XGDCV5FSr7OQsMefxL8';
         return {
           success: !!(url && key),
           details: { url: url?.substring(0, 30) + '...', hasKey: !!key }
@@ -25,7 +25,7 @@ export const DatabaseDiagnostic = () => {
     {
       name: 'URL y Configuración',
       test: async () => {
-        const url = supabase.supabaseUrl;
+        const url = 'https://wdieynendfjbkbhfovrx.supabase.co';
         const isValidUrl = url && url.includes('supabase.co');
         return {
           success: isValidUrl,

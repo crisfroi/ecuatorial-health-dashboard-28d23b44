@@ -30,57 +30,60 @@ export const FuncionariosStatsWidget: React.FC<FuncionariosStatsWidgetProps> = (
     funcion_publica: true // Solo funcionarios públicos (boolean)
   });
 
-  // Cálculos estadísticos
-  const totalFuncionarios = funcionarios.length;
+  // Cálculos estadísticos con validación de tipos
+  const funcionariosArray = Array.isArray(funcionarios) ? funcionarios : [];
+  const totalFuncionarios = funcionariosArray.length;
   
-  const funcionariosPorArea = funcionarios.reduce((acc, func) => {
-    const area = func.area_profesional || 'No especificada';
+  const funcionariosPorArea = funcionariosArray.reduce((acc: Record<string, number>, func: any) => {
+    const area = func?.area_profesional || 'No especificada';
     acc[area] = (acc[area] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>);
+  }, {});
 
-  const funcionariosPorProvincia = funcionarios.reduce((acc, func) => {
-    const provincia = func.provincia || 'No especificada';
+  const funcionariosPorProvincia = funcionariosArray.reduce((acc: Record<string, number>, func: any) => {
+    const provincia = func?.provincia || 'No especificada';
     acc[provincia] = (acc[provincia] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>);
+  }, {});
 
-  const funcionariosPorCentro = funcionarios.reduce((acc, func) => {
-    const centro = func.nombre_centro || 'No asignado';
+  const funcionariosPorCentro = funcionariosArray.reduce((acc: Record<string, number>, func: any) => {
+    const centro = func?.nombre_centro || 'No asignado';
     acc[centro] = (acc[centro] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>);
+  }, {});
 
-  const funcionariosPorGenero = funcionarios.reduce((acc, func) => {
-    const genero = func.genero || 'No especificado';
+  const funcionariosPorGenero = funcionariosArray.reduce((acc: Record<string, number>, func: any) => {
+    const genero = func?.genero || 'No especificado';
     acc[genero] = (acc[genero] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>);
+  }, {});
 
   // Funcionarios con renovación próxima (30 días)
   const fechaLimite = new Date();
   fechaLimite.setDate(fechaLimite.getDate() + 30);
   
-  const renovacionProxima = funcionarios.filter(func => {
-    if (!func.fecha_validez_carnet) return false;
+  const renovacionProxima = funcionariosArray.filter((func: any) => {
+    if (!func?.fecha_validez_carnet) return false;
     const fechaValidez = new Date(func.fecha_validez_carnet);
     return fechaValidez <= fechaLimite && fechaValidez >= new Date();
   }).length;
 
   // Funcionarios con carnet vencido
-  const carnetVencidos = funcionarios.filter(func => {
-    if (!func.fecha_validez_carnet) return false;
+  const carnetVencidos = funcionariosArray.filter((func: any) => {
+    if (!func?.fecha_validez_carnet) return false;
     const fechaValidez = new Date(func.fecha_validez_carnet);
     return fechaValidez < new Date();
   }).length;
 
   // Área profesional más común
-  const areaMasComun = Object.entries(funcionariosPorArea)
-    .sort(([,a], [,b]) => b - a)[0];
+  const areaMasComun = Object.entries(funcionariosPorArea).length > 0
+    ? Object.entries(funcionariosPorArea).sort(([,a], [,b]) => (b as number) - (a as number))[0]
+    : ['Sin datos', 0];
 
   // Provincia con más funcionarios
-  const provinciaMasFuncionarios = Object.entries(funcionariosPorProvincia)
-    .sort(([,a], [,b]) => b - a)[0];
+  const provinciaMasFuncionarios = Object.entries(funcionariosPorProvincia).length > 0
+    ? Object.entries(funcionariosPorProvincia).sort(([,a], [,b]) => (b as number) - (a as number))[0]
+    : ['Sin datos', 0];
 
   if (isLoading) {
     return (
@@ -152,16 +155,16 @@ export const FuncionariosStatsWidget: React.FC<FuncionariosStatsWidgetProps> = (
         </div>
 
         {/* Distribución por área profesional */}
-        {areaMasComun && (
+        {areaMasComun && areaMasComun[0] !== 'Sin datos' && (
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-3">Área Profesional Principal</h4>
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Activity className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-800">{areaMasComun[0]}</span>
+                  <span className="text-sm font-medium text-green-800">{String(areaMasComun[0])}</span>
                 </div>
-                <span className="text-sm font-bold text-green-700">{areaMasComun[1]} funcionarios</span>
+                <span className="text-sm font-bold text-green-700">{String(areaMasComun[1])} funcionarios</span>
               </div>
             </div>
           </div>
@@ -181,7 +184,7 @@ export const FuncionariosStatsWidget: React.FC<FuncionariosStatsWidgetProps> = (
                     }`}></div>
                     <span>{genero}</span>
                   </div>
-                  <span className="font-medium">{cantidad}</span>
+                  <span className="font-medium">{String(cantidad)}</span>
                 </div>
               ))}
             </div>
@@ -189,15 +192,15 @@ export const FuncionariosStatsWidget: React.FC<FuncionariosStatsWidgetProps> = (
         )}
 
         {/* Distribución provincial destacada */}
-        {provinciaMasFuncionarios && (
+        {provinciaMasFuncionarios && provinciaMasFuncionarios[0] !== 'Sin datos' && (
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-3">Provincia con Mayor Presencia</h4>
             <div className="flex items-center justify-between text-sm bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-center space-x-2">
                 <MapPin className="w-4 h-4 text-blue-600" />
-                <span className="font-medium text-blue-800">{provinciaMasFuncionarios[0]}</span>
+                <span className="font-medium text-blue-800">{String(provinciaMasFuncionarios[0])}</span>
               </div>
-              <span className="font-bold text-blue-700">{provinciaMasFuncionarios[1]} funcionarios</span>
+              <span className="font-bold text-blue-700">{String(provinciaMasFuncionarios[1])} funcionarios</span>
             </div>
           </div>
         )}
@@ -229,8 +232,8 @@ export const FuncionariosStatsWidget: React.FC<FuncionariosStatsWidgetProps> = (
             <p>• <span className="font-medium">{totalFuncionarios}</span> funcionarios públicos acreditados</p>
             <p>• Presencia en <span className="font-medium">{Object.keys(funcionariosPorProvincia).length}</span> provincias del país</p>
             <p>• <span className="font-medium">{Object.keys(funcionariosPorArea).length}</span> especialidades médicas cubiertas</p>
-            {areaMasComun && (
-              <p>• Especialidad principal: <span className="font-medium">{areaMasComun[0]}</span></p>
+            {areaMasComun && areaMasComun[0] !== 'Sin datos' && (
+              <p>• Especialidad principal: <span className="font-medium">{String(areaMasComun[0])}</span></p>
             )}
           </div>
         </div>

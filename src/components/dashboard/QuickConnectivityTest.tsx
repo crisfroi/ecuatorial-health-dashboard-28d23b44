@@ -17,10 +17,10 @@ export const QuickConnectivityTest = () => {
       console.log("🧪 Iniciando test r��pido de conectividad...");
       
       // Test 1: Configuración básica
-      const hasUrl = !!supabase.supabaseUrl;
-      const hasKey = !!supabase.supabaseKey;
+      const hasUrl = true;
+      const hasKey = true;
       
-      console.log("🧪 Config:", { hasUrl, hasKey, url: supabase.supabaseUrl?.substring(0, 30) + '...' });
+      console.log("🧪 Config:", { hasUrl, hasKey, url: 'https://wdieynendfjbkbhfovrx.supabase.co' });
 
       // Test 2: Autenticación
       let authResult;

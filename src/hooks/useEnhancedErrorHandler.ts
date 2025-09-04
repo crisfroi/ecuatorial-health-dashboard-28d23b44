@@ -64,10 +64,6 @@ export const useEnhancedErrorHandler = (context: string = 'Application') => {
         title: toastTitle,
         description: errorMessage,
         variant: "destructive",
-        action: retryable ? {
-          altText: "Reintentar",
-          onClick: () => onError?.(error)
-        } : undefined
       });
     }
 

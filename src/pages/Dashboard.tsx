@@ -227,7 +227,7 @@ const Dashboard = () => {
     if (activeTab !== "professionals") {
       try { sessionStorage.removeItem('professionals.filters'); } catch {}
       setAppliedFilters(prev => {
-        const { area_profesional, provincia, genero, tipo_sector, distrito, distrito_sanitario, lugar_trabajo, pais_formacion, institucion, categoria_titulacion, categoria_centro, edad_minima, edad_maxima, año_graduacion, funcion_publica, ...rest } = prev as any;
+        const { area_profesional, provincia, genero, tipo_sector, pais_formacion, institucion, categoria_titulacion, categoria_centro, edad_minima, edad_maxima, año_graduacion, funcion_publica, ...rest } = prev as any;
         return rest as typeof prev;
       });
     }

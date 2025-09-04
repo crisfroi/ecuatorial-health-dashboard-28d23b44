@@ -61,6 +61,7 @@ import {
   X,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import * as XLSX from 'xlsx';
 
 // Import the new hooks
 import {
@@ -267,61 +268,54 @@ const MinisterialPanel = () => {
 
   const exportPendingSignaturesToExcel = () => {
     try {
-      // Create worksheet data
-      const worksheetData = [
-        // Header row
-        [
-          "ID Profesional",
-          "Nombre",
-          "Profesion",
-          "Fecha Solicitud",
-          "Dias Pendiente",
-          "Urgencia",
-          "Telefono",
-          "Email",
-        ],
-        // Data rows
-        ...filteredPendingSignatures.map((professional) => [
-          professional.id_profesional,
-          professional.profesional,
-          professional.profesion,
-          new Date(professional.fecha_solicitud).toLocaleDateString("es-ES"),
-          professional.dias_pendiente,
-          professional.urgencia,
-          professional.telefono || "",
-          professional.email || "",
-        ]),
-      ];
+      const header = [[
+        "ID Profesional",
+        "Nombre",
+        "Profesion",
+        "Fecha Solicitud",
+        "Dias Pendiente",
+        "Urgencia",
+        "Telefono",
+        "Email",
+      ]];
 
-      // Create CSV content
-      const csvContent = worksheetData
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
-        .join("\n");
+      const rows = filteredPendingSignatures.map((professional) => [
+        professional.id_profesional,
+        professional.profesional,
+        professional.profesion,
+        new Date(professional.fecha_solicitud).toLocaleDateString("es-ES"),
+        professional.dias_pendiente,
+        professional.urgencia,
+        professional.telefono || "",
+        professional.email || "",
+      ]);
 
-      // Create and download file
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
+      const worksheetData = [...header, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Pendientes');
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `Profesionales_Pendientes_Firma_${new Date().toISOString().split("T")[0]}.csv`,
-      );
-      link.style.visibility = "hidden";
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Profesionales_Pendientes_Firma_${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast({
-        title: "Exportación exitosa",
+        title: 'Exportación exitosa',
         description: `Se ha descargado la lista de ${filteredPendingSignatures.length} profesionales pendientes.`,
       });
     } catch (error) {
-      console.error("Error exporting to Excel:", error);
+      console.error('Error exporting to Excel:', error);
       toast({
-        title: "Error en la exportación",
-        description: "No se pudo exportar la lista. Intente nuevamente.",
-        variant: "destructive",
+        title: 'Error en la exportación',
+        description: 'No se pudo exportar la lista. Intente nuevamente.',
+        variant: 'destructive',
       });
     }
   };

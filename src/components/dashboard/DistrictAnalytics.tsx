@@ -349,7 +349,7 @@ const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow" onClick={() => onNavigateToTab && onNavigateToTab("health-centers") }>
+        <Card className="cursor-pointer hover:shadow" onClick={() => onNavigateToTab && onNavigateToTab("health-centers", { distrito_sanitario: selectedDistrict }) }>
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
               <div className="p-2 rounded-lg bg-green-100">

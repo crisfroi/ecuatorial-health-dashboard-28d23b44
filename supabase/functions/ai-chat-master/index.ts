@@ -471,6 +471,13 @@ async function getProfessionalsAnalytics(supabase: any, args: any) {
                    .lte('fecha_caducidad', futureDate.toISOString())
       } else if (key === 'carnet_vencido' && value === true) {
         query = query.lte('fecha_caducidad', new Date().toISOString())
+      } else if (key === 'institucion' && typeof value === 'string') {
+        // Mapear filtro genérico a ambas columnas existentes
+        const term = (value as string).replace(/,/g, ' ')
+        query = query.or(`institucion_1.ilike.*${term}*,institucion_2.ilike.*${term}*`)
+      } else if (key === 'pais_formacion' && typeof value === 'string') {
+        const term = (value as string).replace(/,/g, ' ')
+        query = query.or(`pais_formacion_1.ilike.*${term}*,pais_formacion_2.ilike.*${term}*`)
       } else if (typeof value === 'string') {
         query = query.ilike(key, `%${value}%`)
       } else {

@@ -526,22 +526,27 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                         )}
                       </div>
                     </div>
-                    <Badge
-                      variant={
-                        prof.estado_solicitud === "Aprobado"
-                          ? "default"
-                          : prof.estado_solicitud === "Rechazado"
-                          ? "destructive"
-                          : "secondary"
-                      }
-                      className={
-                        prof.estado_solicitud === "Aprobado"
-                          ? "bg-green-600 text-white"
-                          : ""
-                      }
-                    >
-                      {prof.estado_solicitud}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={
+                          prof.estado_solicitud === "Aprobado"
+                            ? "default"
+                            : prof.estado_solicitud === "Rechazado"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                        className={
+                          prof.estado_solicitud === "Aprobado"
+                            ? "bg-green-600 text-white"
+                            : ""
+                        }
+                      >
+                        {prof.estado_solicitud}
+                      </Badge>
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedProfessional(prof as Profesional)}>
+                        <Eye className="w-4 h-4 mr-1" /> Ver
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

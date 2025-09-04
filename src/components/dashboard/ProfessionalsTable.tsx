@@ -185,51 +185,52 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     }
   };
 
+  // Cargar filtros guardados al montar (persistencia)
   useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('professionals.filters')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        setLocalFilters((prev) => ({ ...prev, ...parsed }))
+      }
+    } catch {}
+  }, [])
+
+  // Guardar filtros cuando cambien
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('professionals.filters', JSON.stringify(localFilters))
+    } catch {}
+  }, [localFilters])
+
+  // Aplicar filtros del dashboard solo si vienen definidos, sin resetear los locales
+  useEffect(() => {
+    if (!dashboardFilters || Object.keys(dashboardFilters).length === 0) return
+
     console.log(
-      "ProfessionalsTable: Received dashboardFilters prop in useEffect:",
+      'ProfessionalsTable: Applying dashboardFilters (merge without reset):',
       dashboardFilters,
-    );
+    )
 
-    setSearchTerm("");
-
-    setLocalFilters((prevLocalFilters) => {
-      const newLocalFilters = { ...prevLocalFilters };
-
-      // Se aplican los filtros del dashboard si existen, de lo contrario, se usa 'todos' o el valor por defecto.
-      // Si el dashboard NO proporciona un filtro de género, se mantendrá 'todos' en localFilters
-      // Si el dashboard SÍ proporciona un filtro de género, se actualizará localFilters.genero con ese valor
-      newLocalFilters.area_profesional =
-        dashboardFilters?.area_profesional &&
-        dashboardFilters.area_profesional !== "todos"
-          ? dashboardFilters.area_profesional
-          : "todos";
-      newLocalFilters.provincia =
-        dashboardFilters?.provincia && dashboardFilters.provincia !== "todos"
-          ? dashboardFilters.provincia
-          : "todos";
-      newLocalFilters.genero =
-        dashboardFilters?.genero && dashboardFilters.genero !== "todos"
-          ? dashboardFilters.genero
-          : "todos"; // <<< CAMBIO CLAVE 2: Se sincroniza género desde el dashboard
-      newLocalFilters.tipo_sector =
-        dashboardFilters?.tipo_sector &&
-        dashboardFilters.tipo_sector !== "todos"
-          ? dashboardFilters.tipo_sector
-          : "todos";
-      newLocalFilters.estado_solicitud =
-        dashboardFilters?.estado_solicitud &&
-        dashboardFilters.estado_solicitud !== "todos"
-          ? dashboardFilters.estado_solicitud
-          : "Aprobado";
-
-      console.log(
-        "ProfessionalsTable: Updated localFilters based on dashboardFilters (inside useEffect):",
-        newLocalFilters,
-      );
-      return newLocalFilters;
-    });
-  }, [dashboardFilters]);
+    setLocalFilters((prev) => ({
+      ...prev,
+      ...(dashboardFilters.area_profesional && dashboardFilters.area_profesional !== 'todos'
+        ? { area_profesional: dashboardFilters.area_profesional }
+        : {}),
+      ...(dashboardFilters.provincia && dashboardFilters.provincia !== 'todos'
+        ? { provincia: dashboardFilters.provincia }
+        : {}),
+      ...(dashboardFilters.genero && dashboardFilters.genero !== 'todos'
+        ? { genero: dashboardFilters.genero }
+        : {}),
+      ...(dashboardFilters.tipo_sector && dashboardFilters.tipo_sector !== 'todos'
+        ? { tipo_sector: dashboardFilters.tipo_sector }
+        : {}),
+      ...(dashboardFilters.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos'
+        ? { estado_solicitud: dashboardFilters.estado_solicitud }
+        : {}),
+    }))
+  }, [dashboardFilters])
 
   const combinedQueryFilters = useMemo(() => {
     const filters: any = {

@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import * as XLSX from 'xlsx';
 
 interface DistrictDetailStats {
   distrito_sanitario: string;
@@ -217,22 +218,24 @@ const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
   const exportDistrictData = () => {
     if (!stats) return;
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      "Área Profesional,Cantidad,Porcentaje\n" +
-      stats.profesionales_por_area
-        .map(
-          (area) =>
-            `${area.area},${area.cantidad},${area.porcentaje.toFixed(2)}`,
-        )
-        .join("\n");
+    const header = [["Área Profesional","Cantidad","Porcentaje"]];
+    const rows = stats.profesionales_por_area.map((area) => [
+      area.area,
+      area.cantidad,
+      Number(area.porcentaje.toFixed(2))
+    ]);
 
-    const link = document.createElement("a");
-    link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute(
-      "download",
-      `distrito_${selectedDistrict}_${new Date().toISOString().split("T")[0]}.csv`,
-    );
+    const worksheetData = [...header, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Distrito');
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `distrito_${selectedDistrict}_${new Date().toISOString().split('T')[0]}.xlsx`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

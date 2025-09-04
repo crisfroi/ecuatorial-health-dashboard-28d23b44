@@ -185,6 +185,17 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
       const ws = XLSX.utils.aoa_to_sheet(worksheetData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Centros');
+
+      const meta = [
+        ["Generado en", new Date().toLocaleString('es-ES')],
+        ["Búsqueda", searchTerm || ""],
+        ["Categoría", selectedCategory || ""],
+        ["Distrito Sanitario", selectedDistrito || ""],
+        ["Total exportado", String(roleFilteredCentros.length)],
+      ];
+      const wsMeta = XLSX.utils.aoa_to_sheet([["Clave","Valor"], ...meta]);
+      XLSX.utils.book_append_sheet(wb, wsMeta, 'Metadatos');
+
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
       const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -251,6 +262,17 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
       const ws = XLSX.utils.aoa_to_sheet(worksheetData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Profesionales del Centro');
+
+      const meta = [
+        ["Generado en", new Date().toLocaleString('es-ES')],
+        ["Centro", selectedCenter?.nombre || ""],
+        ["Área filtro", filterArea || ""],
+        ["Estado filtro", filterEstado || ""],
+        ["Total exportado", String(sorted.length)],
+      ];
+      const wsMeta = XLSX.utils.aoa_to_sheet([["Clave","Valor"], ...meta]);
+      XLSX.utils.book_append_sheet(wb, wsMeta, 'Metadatos');
+
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
       const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

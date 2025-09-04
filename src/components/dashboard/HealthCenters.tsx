@@ -154,43 +154,43 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
   // Excel export functionality
   const exportCentersToExcel = () => {
     try {
-      // Create worksheet data
-      const worksheetData = [
-        // Header row
-        [
-          "ID",
-          "Nombre",
-          "Categoría",
-          "Sector",
-          "Distrito Sanitario",
-          "Provincia",
-          "Distrito",
-          "Director",
-          "Teléfono",
-          "Total Profesionales",
-        ],
-        // Data rows
-        ...roleFilteredCentros.map((centro) => [
-          centro.id || "",
-          centro.nombre || "",
-          centro.categoria || "",
-          centro.sector || "",
-          centro.distrito_sanitario || "",
-          centro.provincia || "",
-          centro.distrito || "",
-          centro.director || "",
-          centro.telefono || "",
-          centro.total_profesionales || 0,
-        ]),
+      const csvEscape = (value: unknown) => {
+        const str = value == null ? "" : String(value);
+        return '"' + str.replace(/"/g, '""') + '"';
+      };
+
+      const header = [
+        "ID",
+        "Nombre",
+        "Categoría",
+        "Sector",
+        "Distrito Sanitario",
+        "Provincia",
+        "Distrito",
+        "Director",
+        "Teléfono",
+        "Total Profesionales",
       ];
 
-      // Create CSV content
-      const csvContent = worksheetData
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
-        .join("\n");
+      const rows = roleFilteredCentros.map((centro) => [
+        centro.id || "",
+        centro.nombre || "",
+        centro.categoria || "",
+        centro.sector || "",
+        centro.distrito_sanitario || "",
+        centro.provincia || "",
+        centro.distrito || "",
+        centro.director || "",
+        centro.telefono || "",
+        centro.total_profesionales || 0,
+      ]);
 
-      // Create and download file
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const sepHeader = "sep=;\r\n";
+      const csvBody = [header, ...rows]
+        .map((row) => row.map(csvEscape).join(";"))
+        .join("\r\n");
+
+      const blob = new Blob(["\uFEFF", sepHeader + csvBody], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
@@ -219,39 +219,51 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
 
   const exportCenterProfessionalsToExcel = () => {
     try {
-      const worksheetData = [
-        [
-          "ID",
-          "Nombre Completo",
-          "Área Profesional",
-          "Estado Solicitud",
-          "Provincia",
-          "Distrito",
-          "Distrito Sanitario",
-          "Centro",
-          "Teléfono",
-          "Email",
-          "Fecha Registro",
-          "Fecha Graduación"
-        ],
-        ...profesionalesDelCentro.map((p: any) => [
-          p.id || "",
-          p.nombre_completo || "",
-          p.area_profesional || p.titulacion_especifica_1 || "",
-          p.estado_solicitud || "",
-          p.provincia || "",
-          p.distrito || "",
-          p.distrito_sanitario || "",
-          p.nombre_centro || p.lugar_trabajo || "",
-          p.telefono || "",
-          p.email || "",
-          p.created_at ? new Date(p.created_at).toLocaleDateString("es-ES") : "",
-          p.fecha_graduacion ? new Date(p.fecha_graduacion).toLocaleDateString("es-ES") : ""
-        ])
+      const csvEscape = (value: unknown) => {
+        const str = value == null ? "" : String(value);
+        return '"' + str.replace(/"/g, '""') + '"';
+      };
+
+      const sorted = [...profesionalesDelCentro].sort((a, b) =>
+        (a?.nombre_completo || "").localeCompare(b?.nombre_completo || "", "es", { sensitivity: "base" })
+      );
+
+      const header = [
+        "ID",
+        "Nombre Completo",
+        "Área Profesional",
+        "Estado Solicitud",
+        "Provincia",
+        "Distrito",
+        "Distrito Sanitario",
+        "Centro",
+        "Teléfono",
+        "Email",
+        "Fecha Registro",
+        "Fecha Graduación"
       ];
 
-      const csvContent = worksheetData.map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const rows = sorted.map((p: any) => [
+        p.id || "",
+        p.nombre_completo || "",
+        p.area_profesional || p.titulacion_especifica_1 || "",
+        p.estado_solicitud || "",
+        p.provincia || "",
+        p.distrito || "",
+        p.distrito_sanitario || "",
+        p.nombre_centro || p.lugar_trabajo || "",
+        p.telefono || "",
+        p.email || "",
+        p.created_at ? new Date(p.created_at).toLocaleDateString("es-ES") : "",
+        p.fecha_graduacion ? new Date(p.fecha_graduacion).toLocaleDateString("es-ES") : ""
+      ]);
+
+      const sepHeader = "sep=;\r\n";
+      const csvBody = [header, ...rows]
+        .map(row => row.map(csvEscape).join(";"))
+        .join("\r\n");
+
+      const blob = new Blob(["\uFEFF", sepHeader + csvBody], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
@@ -263,7 +275,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
 
       toast({
         title: "Exportación exitosa",
-        description: `Se ha descargado la lista de ${profesionalesDelCentro.length} profesionales del centro.`,
+        description: `Se ha descargado la lista de ${sorted.length} profesionales del centro.`,
       });
     } catch (error) {
       console.error("Error exporting center professionals:", error);
@@ -499,7 +511,9 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
             </div>
 
             <div className="space-y-3">
-              {profesionalesDelCentro.map((prof) => (
+              {[...profesionalesDelCentro]
+                .sort((a, b) => (a?.nombre_completo || "").localeCompare(b?.nombre_completo || "", "es", { sensitivity: "base" }))
+                .map((prof) => (
                 <div key={prof.id} className={`border rounded-lg p-4 ${prof.estado_solicitud === "Aprobado" ? "border-green-200 bg-green-50" : "border-gray-200"}`}>
                   <div className="flex justify-between items-start">
                     <div className="flex-1">

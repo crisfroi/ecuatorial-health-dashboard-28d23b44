@@ -41,6 +41,7 @@ import { useCenterSync } from "@/hooks/useCenterSync";
 import { useQuery } from "@tanstack/react-query";
 import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
 import type { Profesional } from "@/hooks/useProfesionales";
+import * as XLSX from 'xlsx';
 
 interface HealthCentersProps { dashboardFilters?: { distrito_sanitario?: string } }
 const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
@@ -154,12 +155,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
   // Excel export functionality
   const exportCentersToExcel = () => {
     try {
-      const csvEscape = (value: unknown) => {
-        const str = value == null ? "" : String(value);
-        return '"' + str.replace(/"/g, '""') + '"';
-      };
-
-      const header = [
+      const header = [[
         "ID",
         "Nombre",
         "Categoría",
@@ -170,7 +166,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
         "Director",
         "Teléfono",
         "Total Profesionales",
-      ];
+      ]];
 
       const rows = roleFilteredCentros.map((centro) => [
         centro.id || "",
@@ -185,50 +181,43 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
         centro.total_profesionales || 0,
       ]);
 
-      const sepHeader = "sep=;\r\n";
-      const csvBody = [header, ...rows]
-        .map((row) => row.map(csvEscape).join(";"))
-        .join("\r\n");
+      const worksheetData = [...header, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Centros');
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
-      const blob = new Blob(["\uFEFF", sepHeader + csvBody], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `Centros_Salud_${new Date().toISOString().split("T")[0]}.csv`,
-      );
-      link.style.visibility = "hidden";
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Centros_Salud_${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast({
-        title: "Exportación exitosa",
+        title: 'Exportación exitosa',
         description: `Se ha descargado la lista de ${roleFilteredCentros.length} centros de salud.`,
       });
     } catch (error) {
-      console.error("Error exporting to Excel:", error);
+      console.error('Error exporting to Excel:', error);
       toast({
-        title: "Error en la exportación",
-        description: "No se pudo exportar la lista. Intente nuevamente.",
-        variant: "destructive",
+        title: 'Error en la exportación',
+        description: 'No se pudo exportar la lista. Intente nuevamente.',
+        variant: 'destructive',
       });
     }
   };
 
   const exportCenterProfessionalsToExcel = () => {
     try {
-      const csvEscape = (value: unknown) => {
-        const str = value == null ? "" : String(value);
-        return '"' + str.replace(/"/g, '""') + '"';
-      };
-
       const sorted = [...profesionalesDelCentro].sort((a, b) =>
         (a?.nombre_completo || "").localeCompare(b?.nombre_completo || "", "es", { sensitivity: "base" })
       );
 
-      const header = [
+      const header = [[
         "ID",
         "Nombre Completo",
         "Área Profesional",
@@ -241,7 +230,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
         "Email",
         "Fecha Registro",
         "Fecha Graduación"
-      ];
+      ]];
 
       const rows = sorted.map((p: any) => [
         p.id || "",
@@ -258,31 +247,32 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
         p.fecha_graduacion ? new Date(p.fecha_graduacion).toLocaleDateString("es-ES") : ""
       ]);
 
-      const sepHeader = "sep=;\r\n";
-      const csvBody = [header, ...rows]
-        .map(row => row.map(csvEscape).join(";"))
-        .join("\r\n");
+      const worksheetData = [...header, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Profesionales del Centro');
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
-      const blob = new Blob(["\uFEFF", sepHeader + csvBody], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", `Profesionales_Centro_${selectedCenter?.nombre || "centro"}_${new Date().toISOString().split("T")[0]}.csv`);
-      link.style.visibility = "hidden";
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Profesionales_Centro_${selectedCenter?.nombre || 'centro'}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast({
-        title: "Exportación exitosa",
+        title: 'Exportación exitosa',
         description: `Se ha descargado la lista de ${sorted.length} profesionales del centro.`,
       });
     } catch (error) {
-      console.error("Error exporting center professionals:", error);
+      console.error('Error exporting center professionals:', error);
       toast({
-        title: "Error en la exportación",
-        description: "No se pudo exportar la lista de profesionales.",
-        variant: "destructive",
+        title: 'Error en la exportación',
+        description: 'No se pudo exportar la lista de profesionales.',
+        variant: 'destructive',
       });
     }
   };

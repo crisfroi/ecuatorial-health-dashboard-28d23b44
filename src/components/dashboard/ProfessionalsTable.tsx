@@ -112,60 +112,58 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   // Excel export functionality
   const exportProfessionalsToExcel = () => {
     try {
-      // Create worksheet data
-      const worksheetData = [
-        // Header row
-        [
-          "ID",
-          "Nombre Completo",
-          "Profesión",
-          "ID Profesional",
-          "Estado Solicitud",
-          "Provincia",
-          "Género",
-          "Teléfono",
-          "Email",
-          "Fecha Registro",
-          "Fecha Graduación",
-          "Lugar de Trabajo",
-        ],
-        // Data rows
-        ...filteredProfesionales.map((profesional) => [
-          profesional.id || "",
-          profesional.nombre_completo || "",
-          profesional.titulacion_especifica_1 ||
-            profesional.area_profesional ||
-            "",
-          profesional.id_profesional_unico || "",
-          profesional.estado_solicitud || "",
-          profesional.provincia || "",
-          profesional.genero || "",
-          profesional.telefono || "",
-          profesional.email || "",
-          profesional.created_at
-            ? new Date(profesional.created_at).toLocaleDateString("es-ES")
-            : "",
-          profesional.fecha_graduacion
-            ? new Date(profesional.fecha_graduacion).toLocaleDateString("es-ES")
-            : "",
-          profesional.nombre_centro || "",
-        ]),
+      const csvEscape = (value: unknown) => {
+        const str = value == null ? "" : String(value);
+        return '"' + str.replace(/"/g, '""') + '"';
+      };
+
+      // Ordenar alfabéticamente por nombre completo (ignorar acentos y mayúsculas)
+      const sorted = [...filteredProfesionales].sort((a, b) =>
+        (a.nombre_completo || "").localeCompare(b.nombre_completo || "", "es", { sensitivity: "base" })
+      );
+
+      const header = [
+        "ID",
+        "Nombre Completo",
+        "Profesión",
+        "ID Profesional",
+        "Estado Solicitud",
+        "Provincia",
+        "Género",
+        "Teléfono",
+        "Email",
+        "Fecha Registro",
+        "Fecha Graduación",
+        "Lugar de Trabajo",
       ];
 
-      // Create CSV content
-      const csvContent = worksheetData
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
-        .join("\n");
+      const rows = sorted.map((profesional) => [
+        profesional.id || "",
+        profesional.nombre_completo || "",
+        profesional.titulacion_especifica_1 || profesional.area_profesional || "",
+        profesional.id_profesional_unico || "",
+        profesional.estado_solicitud || "",
+        profesional.provincia || "",
+        profesional.genero || "",
+        profesional.telefono || "",
+        profesional.email || "",
+        profesional.created_at ? new Date(profesional.created_at).toLocaleDateString("es-ES") : "",
+        profesional.fecha_graduacion ? new Date(profesional.fecha_graduacion).toLocaleDateString("es-ES") : "",
+        profesional.nombre_centro || "",
+      ]);
 
-      // Create and download file
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      // Forzar separador para Excel y codificación UTF-8 con BOM
+      const sepHeader = "sep=;\r\n"; // Indica a Excel que use ';' como separador
+      const csvBody = [header, ...rows]
+        .map((row) => row.map(csvEscape).join(";"))
+        .join("\r\n");
+      const csvWithSep = sepHeader + csvBody;
+
+      const blob = new Blob(["\uFEFF", csvWithSep], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `Profesionales_${new Date().toISOString().split("T")[0]}.csv`,
-      );
+      link.setAttribute("download", `Profesionales_${new Date().toISOString().split("T")[0]}.csv`);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
@@ -173,7 +171,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
 
       toast({
         title: "Exportación exitosa",
-        description: `Se ha descargado la lista de ${filteredProfesionales.length} profesionales.`,
+        description: `Se ha descargado la lista de ${sorted.length} profesionales.`,
       });
     } catch (error) {
       console.error("Error exporting to Excel:", error);
@@ -296,10 +294,15 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     (prof) =>
       prof.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       prof.area_profesional?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prof.id_profesional_unico
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()),
+      prof.id_profesional_unico?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  // Orden alfabético por defecto en todas las listas de profesionales
+  const sortedFilteredProfesionales = useMemo(() => {
+    return [...filteredProfesionales].sort((a, b) =>
+      (a.nombre_completo || "").localeCompare(b.nombre_completo || "", "es", { sensitivity: "base" })
+    );
+  }, [filteredProfesionales]);
 
   const handleClearAllFilters = () => {
     console.log("Clearing all filters in ProfessionalsTable");
@@ -710,15 +713,14 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredProfesionales.map((profesional) => (
+                  sortedFilteredProfesionales.map((profesional) => (
                     <TableRow key={profesional.id}>
                       <TableCell className="font-medium">
                         {profesional.nombre_completo}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {profesional.titulacion_especifica_1 ||
-                            profesional.area_profesional}
+                          {profesional.titulacion_especifica_1 || profesional.area_profesional}
                         </Badge>
                       </TableCell>
                       <TableCell className="font-mono text-sm">
@@ -740,21 +742,11 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Aprobado">
-                                  Aprobado
-                                </SelectItem>
-                                <SelectItem value="Pendiente">
-                                  Pendiente
-                                </SelectItem>
-                                <SelectItem value="Pendiente de Firma">
-                                  Pendiente de Firma
-                                </SelectItem>
-                                <SelectItem value="Rechazado">
-                                  Rechazado
-                                </SelectItem>
-                                <SelectItem value="Revisando">
-                                  Revisando
-                                </SelectItem>
+                                <SelectItem value="Aprobado">Aprobado</SelectItem>
+                                <SelectItem value="Pendiente">Pendiente</SelectItem>
+                                <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
+                                <SelectItem value="Rechazado">Rechazado</SelectItem>
+                                <SelectItem value="Revisando">Revisando</SelectItem>
                               </SelectContent>
                             </Select>
                             <Button
@@ -774,19 +766,13 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                             </Button>
                           </div>
                         ) : (
-                          <Badge
-                            className={getEstadoBadge(
-                              profesional.estado_solicitud || "Pendiente",
-                            )}
-                          >
+                          <Badge className={getEstadoBadge(profesional.estado_solicitud || "Pendiente")}>
                             {profesional.estado_solicitud || "Pendiente"}
                           </Badge>
                         )}
                       </TableCell>
                       <TableCell>{profesional.provincia || "N/A"}</TableCell>
-                      <TableCell>
-                        {formatDate(profesional.created_at)}
-                      </TableCell>
+                      <TableCell>{formatDate(profesional.created_at)}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Button

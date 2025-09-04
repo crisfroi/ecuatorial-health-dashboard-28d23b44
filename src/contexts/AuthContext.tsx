@@ -56,7 +56,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       try {
         console.log('🔐 Inicializando autenticación...');
 
-        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+        // Primero intenta leer sesión local sin red para evitar errores de conexión
+        const { data: sessionData } = await supabase.auth.getSession();
+        const supabaseUser = sessionData?.session?.user || null;
 
         if (!mounted) return;
 

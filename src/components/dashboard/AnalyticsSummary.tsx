@@ -26,6 +26,7 @@ import {
   Eye,
   Download,
 } from "lucide-react";
+import * as XLSX from 'xlsx';
 
 const COLORS = [
   "#0088FE",
@@ -94,21 +95,23 @@ const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
   };
 
   const exportData = (data: any[], filename: string) => {
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      Object.keys(data[0] || {}).join(",") +
-      "\n" +
-      data.map((row) => Object.values(row).join(",")).join("\n");
+    try {
+      const ws = XLSX.utils.json_to_sheet(data || []);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
-    const link = document.createElement("a");
-    link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute(
-      "download",
-      `${filename}_${new Date().toISOString().split("T")[0]}.csv`,
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error('Error exporting analytics data:', e);
+    }
   };
 
   return (

@@ -55,6 +55,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
   const [filterEstado, setFilterEstado] = useState("");
   const [showPendingCenters, setShowPendingCenters] = useState(false);
   const [viewType, setViewType] = useState<"kanban" | "list">("kanban");
+  const [selectedProfessional, setSelectedProfessional] = useState<Profesional | null>(null);
 
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
   const { crearCentroMutation, actualizarCentroMutation } = useCentrosSalud();

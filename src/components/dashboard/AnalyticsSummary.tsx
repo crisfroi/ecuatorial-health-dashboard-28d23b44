@@ -99,6 +99,11 @@ const AnalyticsSummary: React.FC<AnalyticsSummaryProps> = ({
       const ws = XLSX.utils.json_to_sheet(data || []);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+
+      const meta = [["Generado en", new Date().toLocaleString('es-ES')]];
+      const wsMeta = XLSX.utils.aoa_to_sheet([["Clave","Valor"], ...meta]);
+      XLSX.utils.book_append_sheet(wb, wsMeta, 'Metadatos');
+
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
       const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

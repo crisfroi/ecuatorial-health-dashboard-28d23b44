@@ -40,7 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCenterSync } from "@/hooks/useCenterSync";
 import { useQuery } from "@tanstack/react-query";
 
-interface HealthCentersProps { dashboardFilters?: any }
+interface HealthCentersProps { dashboardFilters?: { distrito_sanitario?: string } }
 const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");

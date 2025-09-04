@@ -27,6 +27,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { DataRestrictionIndicator } from "@/components/ui/data-restriction-indicator";
 import { supabase } from '@/integrations/supabase/client';
 import { PROVINCIAS_EG } from '@/utils/geo';
+import * as XLSX from 'xlsx';
 
 interface DashboardFilters {
   area_profesional?: string;
@@ -112,32 +113,24 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   // Excel export functionality
   const exportProfessionalsToExcel = () => {
     try {
-      const csvEscape = (value: unknown) => {
-        const str = value == null ? "" : String(value);
-        return '"' + str.replace(/"/g, '""') + '"';
-      };
-
-      // Ordenar alfabéticamente por nombre completo (ignorar acentos y mayúsculas)
-      const sorted = [...filteredProfesionales].sort((a, b) =>
-        (a.nombre_completo || "").localeCompare(b.nombre_completo || "", "es", { sensitivity: "base" })
-      );
-
       const header = [
-        "ID",
-        "Nombre Completo",
-        "Profesión",
-        "ID Profesional",
-        "Estado Solicitud",
-        "Provincia",
-        "Género",
-        "Teléfono",
-        "Email",
-        "Fecha Registro",
-        "Fecha Graduación",
-        "Lugar de Trabajo",
+        [
+          "ID",
+          "Nombre Completo",
+          "Profesión",
+          "ID Profesional",
+          "Estado Solicitud",
+          "Provincia",
+          "Género",
+          "Teléfono",
+          "Email",
+          "Fecha Registro",
+          "Fecha Graduación",
+          "Lugar de Trabajo",
+        ],
       ];
 
-      const rows = sorted.map((profesional) => [
+      const rows = sortedFilteredProfesionales.map((profesional) => [
         profesional.id || "",
         profesional.nombre_completo || "",
         profesional.titulacion_especifica_1 || profesional.area_profesional || "",
@@ -152,33 +145,32 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
         profesional.nombre_centro || "",
       ]);
 
-      // Forzar separador para Excel y codificación UTF-8 con BOM
-      const sepHeader = "sep=;\r\n"; // Indica a Excel que use ';' como separador
-      const csvBody = [header, ...rows]
-        .map((row) => row.map(csvEscape).join(";"))
-        .join("\r\n");
-      const csvWithSep = sepHeader + csvBody;
+      const worksheetData = [...header, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Profesionales');
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
-      const blob = new Blob(["\uFEFF", csvWithSep], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", `Profesionales_${new Date().toISOString().split("T")[0]}.csv`);
-      link.style.visibility = "hidden";
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Profesionales_${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast({
-        title: "Exportación exitosa",
-        description: `Se ha descargado la lista de ${sorted.length} profesionales.`,
+        title: 'Exportación exitosa',
+        description: `Se ha descargado la lista de ${sortedFilteredProfesionales.length} profesionales.`,
       });
     } catch (error) {
-      console.error("Error exporting to Excel:", error);
+      console.error('Error exporting to Excel:', error);
       toast({
-        title: "Error en la exportación",
-        description: "No se pudo exportar la lista. Intente nuevamente.",
-        variant: "destructive",
+        title: 'Error en la exportación',
+        description: 'No se pudo exportar la lista. Intente nuevamente.',
+        variant: 'destructive',
       });
     }
   };

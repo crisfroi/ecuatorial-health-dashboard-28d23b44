@@ -192,7 +192,8 @@ export function useProfesionales(filtros: Filtros = {}) {
 
       // Filtro para funcionarios públicos
       if (filtros.funcion_publica !== undefined) {
-        query = query.eq("funcion_publica", filtros.funcion_publica);
+        const val = typeof filtros.funcion_publica === 'string' ? filtros.funcion_publica === 'true' : filtros.funcion_publica
+        query = query.eq("funcion_publica", val as any);
       }
 
       const { data, error } = await query;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -40,7 +40,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useCenterSync } from "@/hooks/useCenterSync";
 import { useQuery } from "@tanstack/react-query";
 
-const HealthCenters = () => {
+interface HealthCentersProps { dashboardFilters?: any }
+const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedDistrito, setSelectedDistrito] = useState("");
@@ -93,6 +94,12 @@ const HealthCenters = () => {
       queryFn: getPendingCenters,
       enabled: true, // Siempre cargar para mostrar el conteo correcto
     });
+
+  useEffect(() => {
+    if (dashboardFilters?.distrito_sanitario) {
+      setSelectedDistrito(dashboardFilters.distrito_sanitario);
+    }
+  }, [dashboardFilters]);
 
   const categorias = [
     "HOSPITAL",

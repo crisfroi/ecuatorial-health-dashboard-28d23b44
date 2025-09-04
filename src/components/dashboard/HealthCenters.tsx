@@ -559,6 +559,8 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
           </CardContent>
         </Card>
 
+        <ProfessionalDetail professional={selectedProfessional as any} onClose={() => setSelectedProfessional(null)} />
+
         {/* Dialog para editar centro */}
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
           <DialogContent className="max-w-2xl">

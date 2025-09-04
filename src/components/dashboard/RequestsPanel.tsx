@@ -35,6 +35,7 @@ import { useProfesionalesMutations } from "@/hooks/useProfesionalesMutations";
 import { useToast } from "@/hooks/use-toast";
 import { useCarnetGeneration } from "@/hooks/useCarnetGeneration";
 import { Checkbox } from "@/components/ui/checkbox";
+import * as XLSX from 'xlsx';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,73 +106,62 @@ const RequestsPanel = ({
   // Excel export functionality
   const exportRequestsToExcel = () => {
     try {
-      // Create worksheet data
-      const worksheetData = [
-        // Header row
-        [
-          "ID",
-          "Nombre Completo",
-          "Área Profesional",
-          "Estado Solicitud",
-          "Provincia",
-          "Teléfono",
-          "Email",
-          "Fecha Solicitud",
-          "Fecha Graduación",
-          "Universidad",
-          "Lugar de Trabajo",
-          "Motivo Rechazo",
-        ],
-        // Data rows
-        ...filteredRequests.map((request) => [
-          request.id || "",
-          request.nombre_completo || "",
-          request.area_profesional || "",
-          request.estado_solicitud || "",
-          request.provincia || "",
-          request.telefono || "",
-          request.email || "",
-          request.created_at
-            ? new Date(request.created_at).toLocaleDateString("es-ES")
-            : "",
-          request.fecha_graduacion
-            ? new Date(request.fecha_graduacion).toLocaleDateString("es-ES")
-            : "",
-          request.universidad || "",
-          request.lugar_trabajo || "",
-          request.motivo_rechazo || "",
-        ]),
-      ];
+      const header = [[
+        "ID",
+        "Nombre Completo",
+        "Área Profesional",
+        "Estado Solicitud",
+        "Provincia",
+        "Teléfono",
+        "Email",
+        "Fecha Solicitud",
+        "Fecha Graduación",
+        "Universidad",
+        "Lugar de Trabajo",
+        "Motivo Rechazo",
+      ]];
 
-      // Create CSV content
-      const csvContent = worksheetData
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
-        .join("\n");
+      const rows = filteredRequests.map((request) => [
+        request.id || "",
+        request.nombre_completo || "",
+        request.area_profesional || "",
+        request.estado_solicitud || "",
+        request.provincia || "",
+        request.telefono || "",
+        request.email || "",
+        request.created_at ? new Date(request.created_at).toLocaleDateString("es-ES") : "",
+        request.fecha_graduacion ? new Date(request.fecha_graduacion).toLocaleDateString("es-ES") : "",
+        request.universidad || "",
+        request.lugar_trabajo || "",
+        request.motivo_rechazo || "",
+      ]);
 
-      // Create and download file
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
+      const worksheetData = [...header, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Solicitudes');
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `Solicitudes_${statusFilter}_${new Date().toISOString().split("T")[0]}.csv`,
-      );
-      link.style.visibility = "hidden";
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Solicitudes_${statusFilter}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast({
-        title: "Exportación exitosa",
+        title: 'Exportación exitosa',
         description: `Se ha descargado la lista de ${filteredRequests.length} solicitudes.`,
       });
     } catch (error) {
-      console.error("Error exporting to Excel:", error);
+      console.error('Error exporting to Excel:', error);
       toast({
-        title: "Error en la exportación",
-        description: "No se pudo exportar la lista. Intente nuevamente.",
-        variant: "destructive",
+        title: 'Error en la exportación',
+        description: 'No se pudo exportar la lista. Intente nuevamente.',
+        variant: 'destructive',
       });
     }
   };

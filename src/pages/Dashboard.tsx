@@ -533,6 +533,10 @@ const Dashboard = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <GlobalSearch onNavigate={(tab, filters) => {
+              setActiveTab(tab);
+              if (filters) setAppliedFilters(filters as any);
+            }} />
             <Button
               variant="outline"
               size="sm"

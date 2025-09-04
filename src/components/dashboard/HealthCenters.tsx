@@ -475,6 +475,10 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                   <SelectItem value="Rechazado">Rechazado</SelectItem>
                 </SelectContent>
               </Select>
+              <Button variant="outline" size="sm" onClick={exportCenterProfessionalsToExcel} className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Exportar Excel
+              </Button>
             </div>
           </CardHeader>
           <CardContent>

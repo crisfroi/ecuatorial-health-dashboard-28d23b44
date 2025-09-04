@@ -25,6 +25,9 @@ import { useRoleBasedData } from "@/hooks/useRoleBasedData";
 import { useToast } from "@/hooks/use-toast";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { DataRestrictionIndicator } from "@/components/ui/data-restriction-indicator";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { PROVINCIAS_EG } from '@/utils/geo';
 
 interface DashboardFilters {
   area_profesional?: string;
@@ -78,6 +81,8 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   );
 
   // Ahora 'genero' se incluye en localFilters y se inicializa con 'todos'
+  const [areaOptions, setAreaOptions] = useState<string[]>([]);
+
   const [localFilters, setLocalFilters] = useState({
     area_profesional: "todos",
     estado_solicitud: "Aprobado",
@@ -87,6 +92,21 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   });
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    const loadAreas = async () => {
+      const { data, error } = await supabase
+        .from('profesionales_sanitarios')
+        .select('area_profesional')
+        .not('area_profesional', 'is', null)
+        .limit(10000)
+      if (!error) {
+        const vals = Array.from(new Set((data || []).map((r: any) => String(r.area_profesional).trim()).filter(Boolean))).sort()
+        setAreaOptions(vals)
+      }
+    }
+    loadAreas()
+  }, [])
   const { updateProfesional } = useProfesionalesMutations();
   const { filterProfessionalsData, getFilterStats } = useRoleBasedData();
 
@@ -553,7 +573,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
               </Button>
 
               <div className="flex gap-2">
-                {/* Selector de Área Profesional (sin cambios) */}
+                {/* Selector de Área Profesional (dinámico) */}
                 <Select
                   value={localFilters.area_profesional}
                   onValueChange={(value) =>
@@ -568,20 +588,13 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todas las áreas</SelectItem>
-                    <SelectItem value="MEDICINA GENERAL">
-                      Medicina General
-                    </SelectItem>
-                    <SelectItem value="ENFERMERÍA">Enfermería</SelectItem>
-                    <SelectItem value="FARMACIA">Farmacia</SelectItem>
-                    <SelectItem value="LABORATORIO">Laboratorio</SelectItem>
-                    <SelectItem value="RADIOLOGÍA">Radiología</SelectItem>
-                    <SelectItem value="ODONTOLOGÍA">Odontología</SelectItem>
-                    <SelectItem value="NUTRICIÓN">Nutrición</SelectItem>
-                    <SelectItem value="ESPECIALIDAD">Especialidad</SelectItem>
+                    {areaOptions.map((a) => (
+                      <SelectItem key={a} value={a}>{a}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
-                {/* Selector de Provincia (sin cambios) */}
+                {/* Selector de Provincia (lista oficial) */}
                 <Select
                   value={localFilters.provincia}
                   onValueChange={(value) =>
@@ -593,13 +606,9 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todas</SelectItem>
-                    <SelectItem value="Malabo">Malabo</SelectItem>
-                    <SelectItem value="Bata">Bata</SelectItem>
-                    <SelectItem value="Ebebiyin">Ebebiyin</SelectItem>
-                    <SelectItem value="Aconibe">Aconibe</SelectItem>
-                    <SelectItem value="Mongomo">Mongomo</SelectItem>
-                    <SelectItem value="Evinayong">Evinayong</SelectItem>
-                    <SelectItem value="Luba">Luba</SelectItem>
+                    {PROVINCIAS_EG.map((p) => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 

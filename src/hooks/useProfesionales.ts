@@ -96,7 +96,8 @@ export function useProfesionales(filtros: Filtros = {}) {
 
       // Aplicar filtros existentes
       if (filtros.area_profesional && filtros.area_profesional !== "todos") {
-        query = query.ilike("area_profesional", filtros.area_profesional);
+        const pattern = `%${filtros.area_profesional}%`;
+        query = query.ilike("area_profesional", pattern);
       }
 
       if (filtros.estado_solicitud && filtros.estado_solicitud !== "todos") {

@@ -372,7 +372,7 @@ Ejemplo de capacidades:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4-turbo-preview',
+        model: 'o1',
           messages: [
             { role: 'system', content: systemPrompt + "\n\nGenera una respuesta natural e informativa basada en los datos obtenidos." },
             ...messages,

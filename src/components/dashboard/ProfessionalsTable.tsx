@@ -25,7 +25,6 @@ import { useRoleBasedData } from "@/hooks/useRoleBasedData";
 import { useToast } from "@/hooks/use-toast";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { DataRestrictionIndicator } from "@/components/ui/data-restriction-indicator";
-import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { PROVINCIAS_EG } from '@/utils/geo';
 

@@ -448,7 +448,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                 </span>
               </div>
             </CardTitle>
-            <div className="flex space-x-4">
+            <div className="flex space-x-4 items-center">
               <Select value={filterArea} onValueChange={setFilterArea}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Filtrar por área" />

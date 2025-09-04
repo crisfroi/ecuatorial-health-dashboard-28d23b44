@@ -39,6 +39,8 @@ import { useRoleBasedData } from "@/hooks/useRoleBasedData";
 import { useToast } from "@/hooks/use-toast";
 import { useCenterSync } from "@/hooks/useCenterSync";
 import { useQuery } from "@tanstack/react-query";
+import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
+import type { Profesional } from "@/hooks/useProfesionales";
 
 interface HealthCentersProps { dashboardFilters?: { distrito_sanitario?: string } }
 const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {

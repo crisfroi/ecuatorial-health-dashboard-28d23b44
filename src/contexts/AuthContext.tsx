@@ -91,6 +91,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           setUser(userProfile);
           setUserRole(role);
           console.log('✅ Usuario configurado:', { email, role, fullName });
+
+          // Intento en segundo plano para refrescar datos del usuario desde la red (sin romper si falla)
+          supabase.auth.getUser().catch((e) => {
+            console.warn('⚠️ No se pudo refrescar el usuario desde la red (se mantiene sesión local):', e?.message || e);
+          });
         } else {
           console.log('❌ No hay usuario autenticado');
           setUser(null);

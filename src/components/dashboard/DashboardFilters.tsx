@@ -1,7 +1,10 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Filter, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { PROVINCIAS_EG } from '@/utils/geo';
 
 interface Filtros {
   area_profesional?: string;
@@ -9,7 +12,7 @@ interface Filtros {
   provincia?: string;
   genero?: string;
   tipo_sector?: string;
-  funcion_publica?: string; // Nueva categorización
+  funcion_publica?: string; // string 'true'/'false' as used by UI
   distrito?: string;
   distrito_sanitario?: string;
   anoGraduacion?: string;
@@ -22,12 +25,56 @@ interface DashboardFiltersProps {
 }
 
 const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: DashboardFiltersProps) => {
+  const [areas, setAreas] = useState<string[]>([]);
+  const [estados, setEstados] = useState<string[]>([]);
+  const [provincias, setProvincias] = useState<string[]>([]);
+  const [distritosSanitarios, setDistritosSanitarios] = useState<string[]>([]);
+  const [generos, setGeneros] = useState<string[]>([]);
+  const [sectores, setSectores] = useState<string[]>([]);
+  const [distritos, setDistritos] = useState<string[]>([]);
+  const [anios, setAnios] = useState<string[]>([]);
+
   const updateFilter = (key: keyof Filtros, value: string) => {
     onFiltersChange({
       ...filters,
       [key]: value === 'todos' ? undefined : value
     });
   };
+
+  useEffect(() => {
+    const fetchDistinct = async () => {
+      const cols = [
+        'area_profesional', 'estado_solicitud', 'provincia', 'distrito_sanitario',
+        'genero', 'tipo_sector', 'distrito', 'año_graduacion'
+      ] as const;
+
+      const results = await Promise.all(cols.map(async (col) => {
+        const { data, error } = await supabase
+          .from('profesionales_sanitarios')
+          .select(col)
+          .not(col as any, 'is', null)
+          .limit(10000);
+        if (error) {
+          console.warn('Distinct fetch error for', col, error);
+          return { col, values: [] as string[] } as const;
+        }
+        const values = Array.from(new Set((data || []).map((r: any) => String(r[col]).trim()).filter(Boolean))).sort();
+        return { col, values } as const;
+      }));
+
+      results.forEach(({ col, values }) => {
+        if (col === 'area_profesional') setAreas(values);
+        if (col === 'estado_solicitud') setEstados(values);
+        if (col === 'provincia') setProvincias(Array.from(new Set([...(PROVINCIAS_EG as string[]), ...values])));
+        if (col === 'distrito_sanitario') setDistritosSanitarios(values);
+        if (col === 'genero') setGeneros(values);
+        if (col === 'tipo_sector') setSectores(values);
+        if (col === 'distrito') setDistritos(values);
+        if (col === 'año_graduacion') setAnios(values);
+      });
+    };
+    fetchDistinct();
+  }, []);
 
   return (
     <Card className="mb-6">
@@ -58,11 +105,9 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todas las áreas</SelectItem>
-                <SelectItem value="Medicina">Medicina</SelectItem>
-                <SelectItem value="Enfermería">Enfermería</SelectItem>
-                <SelectItem value="Farmacia">Farmacia</SelectItem>
-                <SelectItem value="Laboratorio">Laboratorio</SelectItem>
-                <SelectItem value="Odontología">Odontología</SelectItem>
+                {areas.map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -75,11 +120,9 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
-                <SelectItem value="Aprobado">Aprobado</SelectItem>
-                <SelectItem value="Rechazado">Rechazado</SelectItem>
-                <SelectItem value="Revisando">Revisando</SelectItem>
-                <SelectItem value="Recibido">Recibido</SelectItem>
+                {estados.map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -92,14 +135,9 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todas las provincias</SelectItem>
-                <SelectItem value="Conakry">Conakry</SelectItem>
-                <SelectItem value="Kindia">Kindia</SelectItem>
-                <SelectItem value="Boké">Boké</SelectItem>
-                <SelectItem value="Labé">Labé</SelectItem>
-                <SelectItem value="Faranah">Faranah</SelectItem>
-                <SelectItem value="Kankan">Kankan</SelectItem>
-                <SelectItem value="Nzérékoré">Nzérékoré</SelectItem>
-                <SelectItem value="Mamou">Mamou</SelectItem>
+                {provincias.map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -112,14 +150,9 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los distritos</SelectItem>
-                <SelectItem value="Distrito Sanitario de Conakry">Distrito Sanitario de Conakry</SelectItem>
-                <SelectItem value="Distrito Sanitario de Kindia">Distrito Sanitario de Kindia</SelectItem>
-                <SelectItem value="Distrito Sanitario de Boké">Distrito Sanitario de Boké</SelectItem>
-                <SelectItem value="Distrito Sanitario de Lab��">Distrito Sanitario de Labé</SelectItem>
-                <SelectItem value="Distrito Sanitario de Faranah">Distrito Sanitario de Faranah</SelectItem>
-                <SelectItem value="Distrito Sanitario de Kankan">Distrito Sanitario de Kankan</SelectItem>
-                <SelectItem value="Distrito Sanitario de Nzérékoré">Distrito Sanitario de Nzérékoré</SelectItem>
-                <SelectItem value="Distrito Sanitario de Mamou">Distrito Sanitario de Mamou</SelectItem>
+                {distritosSanitarios.map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -132,8 +165,9 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los géneros</SelectItem>
-                <SelectItem value="MASCULINO">Masculino</SelectItem>
-                <SelectItem value="FEMENINO">Femenino</SelectItem>
+                {generos.map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -146,10 +180,9 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los sectores</SelectItem>
-                <SelectItem value="Público">Público</SelectItem>
-                <SelectItem value="Privado">Privado</SelectItem>
-                <SelectItem value="Mixto">Mixto</SelectItem>
-                <SelectItem value="ONG">ONG</SelectItem>
+                {sectores.map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -176,11 +209,9 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los distritos</SelectItem>
-                <SelectItem value="Kaloum">Kaloum</SelectItem>
-                <SelectItem value="Dixinn">Dixinn</SelectItem>
-                <SelectItem value="Matam">Matam</SelectItem>
-                <SelectItem value="Matoto">Matoto</SelectItem>
-                <SelectItem value="Ratoma">Ratoma</SelectItem>
+                {distritos.map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -193,11 +224,9 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los años</SelectItem>
-                <SelectItem value="2024">2024</SelectItem>
-                <SelectItem value="2023">2023</SelectItem>
-                <SelectItem value="2022">2022</SelectItem>
-                <SelectItem value="2021">2021</SelectItem>
-                <SelectItem value="2020">2020</SelectItem>
+                {anios.map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

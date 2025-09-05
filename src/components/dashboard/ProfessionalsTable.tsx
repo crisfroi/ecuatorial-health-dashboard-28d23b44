@@ -25,6 +25,10 @@ import { useRoleBasedData } from "@/hooks/useRoleBasedData";
 import { useToast } from "@/hooks/use-toast";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { DataRestrictionIndicator } from "@/components/ui/data-restriction-indicator";
+import { supabase } from '@/integrations/supabase/client';
+import { PROVINCIAS_EG } from '@/utils/geo';
+import * as XLSX from 'xlsx';
+import { Copy } from 'lucide-react';
 
 interface DashboardFilters {
   area_profesional?: string;
@@ -78,6 +82,8 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   );
 
   // Ahora 'genero' se incluye en localFilters y se inicializa con 'todos'
+  const [areaOptions, setAreaOptions] = useState<string[]>([]);
+
   const [localFilters, setLocalFilters] = useState({
     area_profesional: "todos",
     estado_solicitud: "Aprobado",
@@ -87,130 +93,158 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   });
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    const loadAreas = async () => {
+      const { data, error } = await supabase
+        .from('profesionales_sanitarios')
+        .select('area_profesional')
+        .not('area_profesional', 'is', null)
+        .limit(10000)
+      if (!error) {
+        const vals = Array.from(new Set((data || []).map((r: any) => String(r.area_profesional).trim()).filter(Boolean))).sort()
+        setAreaOptions(vals)
+      }
+    }
+    loadAreas()
+  }, [])
   const { updateProfesional } = useProfesionalesMutations();
   const { filterProfessionalsData, getFilterStats } = useRoleBasedData();
 
   // Excel export functionality
   const exportProfessionalsToExcel = () => {
     try {
-      // Create worksheet data
-      const worksheetData = [
-        // Header row
-        [
-          "ID",
-          "Nombre Completo",
-          "Profesión",
-          "ID Profesional",
-          "Estado Solicitud",
-          "Provincia",
-          "Género",
-          "Teléfono",
-          "Email",
-          "Fecha Registro",
-          "Fecha Graduación",
-          "Lugar de Trabajo",
-        ],
-        // Data rows
-        ...filteredProfesionales.map((profesional) => [
-          profesional.id || "",
-          profesional.nombre_completo || "",
-          profesional.titulacion_especifica_1 ||
-            profesional.area_profesional ||
-            "",
-          profesional.id_profesional_unico || "",
-          profesional.estado_solicitud || "",
-          profesional.provincia || "",
-          profesional.genero || "",
-          profesional.telefono || "",
-          profesional.email || "",
-          profesional.created_at
-            ? new Date(profesional.created_at).toLocaleDateString("es-ES")
-            : "",
-          profesional.fecha_graduacion
-            ? new Date(profesional.fecha_graduacion).toLocaleDateString("es-ES")
-            : "",
-          profesional.nombre_centro || "",
-        ]),
+      const header = [[
+        "ID",
+        "Nombre Completo",
+        "Profesión",
+        "ID Profesional",
+        "Estado Solicitud",
+        "Provincia",
+        "Género",
+        "Teléfono",
+        "Email",
+        "Fecha Registro",
+        "Fecha Graduación",
+        "Lugar de Trabajo",
+      ]];
+
+      const rows = sortedFilteredProfesionales.map((profesional) => [
+        profesional.id || "",
+        profesional.nombre_completo || "",
+        profesional.titulacion_especifica_1 || profesional.area_profesional || "",
+        profesional.id_profesional_unico || "",
+        profesional.estado_solicitud || "",
+        profesional.provincia || "",
+        profesional.genero || "",
+        profesional.telefono || "",
+        profesional.email || "",
+        profesional.created_at ? new Date(profesional.created_at).toLocaleDateString("es-ES") : "",
+        profesional.fecha_graduacion ? new Date(profesional.fecha_graduacion).toLocaleDateString("es-ES") : "",
+        profesional.nombre_centro || "",
+      ]);
+
+      const worksheetData = [...header, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Profesionales');
+
+      const metadata = [
+        ["Generado en", new Date().toLocaleString('es-ES')],
+        ["Búsqueda", searchTerm || ""],
+        ["Área Profesional", localFilters.area_profesional],
+        ["Provincia", localFilters.provincia],
+        ["Género", localFilters.genero],
+        ["Tipo Sector", localFilters.tipo_sector],
+        ["Estado Solicitud", localFilters.estado_solicitud],
+        ["Total exportado", String(sortedFilteredProfesionales.length)],
       ];
+      const wsMeta = XLSX.utils.aoa_to_sheet([["Clave","Valor"], ...metadata]);
+      XLSX.utils.book_append_sheet(wb, wsMeta, 'Metadatos');
 
-      // Create CSV content
-      const csvContent = worksheetData
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
-        .join("\n");
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
-      // Create and download file
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `Profesionales_${new Date().toISOString().split("T")[0]}.csv`,
-      );
-      link.style.visibility = "hidden";
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Profesionales_${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast({
-        title: "Exportación exitosa",
-        description: `Se ha descargado la lista de ${filteredProfesionales.length} profesionales.`,
+        title: 'Exportación exitosa',
+        description: `Se ha descargado la lista de ${sortedFilteredProfesionales.length} profesionales.`,
       });
     } catch (error) {
-      console.error("Error exporting to Excel:", error);
+      console.error('Error exporting to Excel:', error);
       toast({
-        title: "Error en la exportación",
-        description: "No se pudo exportar la lista. Intente nuevamente.",
-        variant: "destructive",
+        title: 'Error en la exportación',
+        description: 'No se pudo exportar la lista. Intente nuevamente.',
+        variant: 'destructive',
       });
     }
   };
 
+  // Cargar filtros guardados al montar (persistencia)
   useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('professionals.filters')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        setLocalFilters((prev) => ({ ...prev, ...parsed }))
+      }
+    } catch {}
+  }, [])
+
+  // Guardar filtros cuando cambien
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('professionals.filters', JSON.stringify(localFilters))
+    } catch {}
+  }, [localFilters])
+
+  // Leer filtros desde la URL si existen (enlace compartido)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'professionals' && params.get('filters')) {
+        const parsed = JSON.parse(decodeURIComponent(params.get('filters') || ''));
+        setLocalFilters((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {}
+  }, [])
+
+  // Aplicar filtros del dashboard solo si vienen definidos, sin resetear los locales
+  useEffect(() => {
+    if (!dashboardFilters || Object.keys(dashboardFilters).length === 0) return
+
     console.log(
-      "ProfessionalsTable: Received dashboardFilters prop in useEffect:",
+      'ProfessionalsTable: Applying dashboardFilters (merge without reset):',
       dashboardFilters,
-    );
+    )
 
-    setSearchTerm("");
-
-    setLocalFilters((prevLocalFilters) => {
-      const newLocalFilters = { ...prevLocalFilters };
-
-      // Se aplican los filtros del dashboard si existen, de lo contrario, se usa 'todos' o el valor por defecto.
-      // Si el dashboard NO proporciona un filtro de género, se mantendrá 'todos' en localFilters
-      // Si el dashboard SÍ proporciona un filtro de género, se actualizará localFilters.genero con ese valor
-      newLocalFilters.area_profesional =
-        dashboardFilters?.area_profesional &&
-        dashboardFilters.area_profesional !== "todos"
-          ? dashboardFilters.area_profesional
-          : "todos";
-      newLocalFilters.provincia =
-        dashboardFilters?.provincia && dashboardFilters.provincia !== "todos"
-          ? dashboardFilters.provincia
-          : "todos";
-      newLocalFilters.genero =
-        dashboardFilters?.genero && dashboardFilters.genero !== "todos"
-          ? dashboardFilters.genero
-          : "todos"; // <<< CAMBIO CLAVE 2: Se sincroniza género desde el dashboard
-      newLocalFilters.tipo_sector =
-        dashboardFilters?.tipo_sector &&
-        dashboardFilters.tipo_sector !== "todos"
-          ? dashboardFilters.tipo_sector
-          : "todos";
-      newLocalFilters.estado_solicitud =
-        dashboardFilters?.estado_solicitud &&
-        dashboardFilters.estado_solicitud !== "todos"
-          ? dashboardFilters.estado_solicitud
-          : "Aprobado";
-
-      console.log(
-        "ProfessionalsTable: Updated localFilters based on dashboardFilters (inside useEffect):",
-        newLocalFilters,
-      );
-      return newLocalFilters;
-    });
-  }, [dashboardFilters]);
+    setLocalFilters((prev) => ({
+      ...prev,
+      ...(dashboardFilters.area_profesional && dashboardFilters.area_profesional !== 'todos'
+        ? { area_profesional: dashboardFilters.area_profesional }
+        : {}),
+      ...(dashboardFilters.provincia && dashboardFilters.provincia !== 'todos'
+        ? { provincia: dashboardFilters.provincia }
+        : {}),
+      ...(dashboardFilters.genero && dashboardFilters.genero !== 'todos'
+        ? { genero: dashboardFilters.genero }
+        : {}),
+      ...(dashboardFilters.tipo_sector && dashboardFilters.tipo_sector !== 'todos'
+        ? { tipo_sector: dashboardFilters.tipo_sector }
+        : {}),
+      ...(dashboardFilters.estado_solicitud && dashboardFilters.estado_solicitud !== 'todos'
+        ? { estado_solicitud: dashboardFilters.estado_solicitud }
+        : {}),
+    }))
+  }, [dashboardFilters])
 
   const combinedQueryFilters = useMemo(() => {
     const filters: any = {
@@ -276,10 +310,15 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     (prof) =>
       prof.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       prof.area_profesional?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prof.id_profesional_unico
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()),
+      prof.id_profesional_unico?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  // Orden alfabético por defecto en todas las listas de profesionales
+  const sortedFilteredProfesionales = useMemo(() => {
+    return [...filteredProfesionales].sort((a, b) =>
+      (a.nombre_completo || "").localeCompare(b.nombre_completo || "", "es", { sensitivity: "base" })
+    );
+  }, [filteredProfesionales]);
 
   const handleClearAllFilters = () => {
     console.log("Clearing all filters in ProfessionalsTable");
@@ -551,9 +590,24 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                 <Download className="w-4 h-4" />
                 Exportar Excel
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set('tab', 'professionals');
+                  url.searchParams.set('filters', encodeURIComponent(JSON.stringify(localFilters)));
+                  navigator.clipboard.writeText(url.toString());
+                  toast({ title: 'Enlace copiado', description: 'Filtros listos para compartir.' });
+                }}
+                className="flex items-center gap-2"
+              >
+                <Copy className="w-4 h-4" />
+                Compartir filtros
+              </Button>
 
               <div className="flex gap-2">
-                {/* Selector de Área Profesional (sin cambios) */}
+                {/* Selector de Área Profesional (dinámico) */}
                 <Select
                   value={localFilters.area_profesional}
                   onValueChange={(value) =>
@@ -568,20 +622,13 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todas las áreas</SelectItem>
-                    <SelectItem value="MEDICINA GENERAL">
-                      Medicina General
-                    </SelectItem>
-                    <SelectItem value="ENFERMERÍA">Enfermería</SelectItem>
-                    <SelectItem value="FARMACIA">Farmacia</SelectItem>
-                    <SelectItem value="LABORATORIO">Laboratorio</SelectItem>
-                    <SelectItem value="RADIOLOGÍA">Radiología</SelectItem>
-                    <SelectItem value="ODONTOLOGÍA">Odontología</SelectItem>
-                    <SelectItem value="NUTRICIÓN">Nutrición</SelectItem>
-                    <SelectItem value="ESPECIALIDAD">Especialidad</SelectItem>
+                    {areaOptions.map((a) => (
+                      <SelectItem key={a} value={a}>{a}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
-                {/* Selector de Provincia (sin cambios) */}
+                {/* Selector de Provincia (lista oficial) */}
                 <Select
                   value={localFilters.provincia}
                   onValueChange={(value) =>
@@ -593,13 +640,9 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todas</SelectItem>
-                    <SelectItem value="Malabo">Malabo</SelectItem>
-                    <SelectItem value="Bata">Bata</SelectItem>
-                    <SelectItem value="Ebebiyin">Ebebiyin</SelectItem>
-                    <SelectItem value="Aconibe">Aconibe</SelectItem>
-                    <SelectItem value="Mongomo">Mongomo</SelectItem>
-                    <SelectItem value="Evinayong">Evinayong</SelectItem>
-                    <SelectItem value="Luba">Luba</SelectItem>
+                    {PROVINCIAS_EG.map((p) => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
@@ -701,15 +744,14 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredProfesionales.map((profesional) => (
+                  sortedFilteredProfesionales.map((profesional) => (
                     <TableRow key={profesional.id}>
                       <TableCell className="font-medium">
                         {profesional.nombre_completo}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {profesional.titulacion_especifica_1 ||
-                            profesional.area_profesional}
+                          {profesional.titulacion_especifica_1 || profesional.area_profesional}
                         </Badge>
                       </TableCell>
                       <TableCell className="font-mono text-sm">
@@ -731,21 +773,11 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Aprobado">
-                                  Aprobado
-                                </SelectItem>
-                                <SelectItem value="Pendiente">
-                                  Pendiente
-                                </SelectItem>
-                                <SelectItem value="Pendiente de Firma">
-                                  Pendiente de Firma
-                                </SelectItem>
-                                <SelectItem value="Rechazado">
-                                  Rechazado
-                                </SelectItem>
-                                <SelectItem value="Revisando">
-                                  Revisando
-                                </SelectItem>
+                                <SelectItem value="Aprobado">Aprobado</SelectItem>
+                                <SelectItem value="Pendiente">Pendiente</SelectItem>
+                                <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
+                                <SelectItem value="Rechazado">Rechazado</SelectItem>
+                                <SelectItem value="Revisando">Revisando</SelectItem>
                               </SelectContent>
                             </Select>
                             <Button
@@ -765,19 +797,13 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                             </Button>
                           </div>
                         ) : (
-                          <Badge
-                            className={getEstadoBadge(
-                              profesional.estado_solicitud || "Pendiente",
-                            )}
-                          >
+                          <Badge className={getEstadoBadge(profesional.estado_solicitud || "Pendiente")}>
                             {profesional.estado_solicitud || "Pendiente"}
                           </Badge>
                         )}
                       </TableCell>
                       <TableCell>{profesional.provincia || "N/A"}</TableCell>
-                      <TableCell>
-                        {formatDate(profesional.created_at)}
-                      </TableCell>
+                      <TableCell>{formatDate(profesional.created_at)}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Button

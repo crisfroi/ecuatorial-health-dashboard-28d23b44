@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -39,8 +39,12 @@ import { useRoleBasedData } from "@/hooks/useRoleBasedData";
 import { useToast } from "@/hooks/use-toast";
 import { useCenterSync } from "@/hooks/useCenterSync";
 import { useQuery } from "@tanstack/react-query";
+import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
+import type { Profesional } from "@/hooks/useProfesionales";
+import * as XLSX from 'xlsx';
 
-const HealthCenters = () => {
+interface HealthCentersProps { dashboardFilters?: { distrito_sanitario?: string } }
+const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedDistrito, setSelectedDistrito] = useState("");
@@ -52,6 +56,7 @@ const HealthCenters = () => {
   const [filterEstado, setFilterEstado] = useState("");
   const [showPendingCenters, setShowPendingCenters] = useState(false);
   const [viewType, setViewType] = useState<"kanban" | "list">("kanban");
+  const [selectedProfessional, setSelectedProfessional] = useState<Profesional | null>(null);
 
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
   const { crearCentroMutation, actualizarCentroMutation } = useCentrosSalud();
@@ -93,6 +98,12 @@ const HealthCenters = () => {
       queryFn: getPendingCenters,
       enabled: true, // Siempre cargar para mostrar el conteo correcto
     });
+
+  useEffect(() => {
+    if (dashboardFilters?.distrito_sanitario) {
+      setSelectedDistrito(dashboardFilters.distrito_sanitario);
+    }
+  }, [dashboardFilters]);
 
   const categorias = [
     "HOSPITAL",
@@ -144,65 +155,146 @@ const HealthCenters = () => {
   // Excel export functionality
   const exportCentersToExcel = () => {
     try {
-      // Create worksheet data
-      const worksheetData = [
-        // Header row
-        [
-          "ID",
-          "Nombre",
-          "Categoría",
-          "Sector",
-          "Distrito Sanitario",
-          "Provincia",
-          "Distrito",
-          "Director",
-          "Teléfono",
-          "Total Profesionales",
-        ],
-        // Data rows
-        ...roleFilteredCentros.map((centro) => [
-          centro.id || "",
-          centro.nombre || "",
-          centro.categoria || "",
-          centro.sector || "",
-          centro.distrito_sanitario || "",
-          centro.provincia || "",
-          centro.distrito || "",
-          centro.director || "",
-          centro.telefono || "",
-          centro.total_profesionales || 0,
-        ]),
+      const header = [[
+        "ID",
+        "Nombre",
+        "Categoría",
+        "Sector",
+        "Distrito Sanitario",
+        "Provincia",
+        "Distrito",
+        "Director",
+        "Teléfono",
+        "Total Profesionales",
+      ]];
+
+      const rows = roleFilteredCentros.map((centro) => [
+        centro.id || "",
+        centro.nombre || "",
+        centro.categoria || "",
+        centro.sector || "",
+        centro.distrito_sanitario || "",
+        centro.provincia || "",
+        centro.distrito || "",
+        centro.director || "",
+        centro.telefono || "",
+        centro.total_profesionales || 0,
+      ]);
+
+      const worksheetData = [...header, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Centros');
+
+      const meta = [
+        ["Generado en", new Date().toLocaleString('es-ES')],
+        ["Búsqueda", searchTerm || ""],
+        ["Categoría", selectedCategory || ""],
+        ["Distrito Sanitario", selectedDistrito || ""],
+        ["Total exportado", String(roleFilteredCentros.length)],
       ];
+      const wsMeta = XLSX.utils.aoa_to_sheet([["Clave","Valor"], ...meta]);
+      XLSX.utils.book_append_sheet(wb, wsMeta, 'Metadatos');
 
-      // Create CSV content
-      const csvContent = worksheetData
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
-        .join("\n");
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
-      // Create and download file
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `Centros_Salud_${new Date().toISOString().split("T")[0]}.csv`,
-      );
-      link.style.visibility = "hidden";
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Centros_Salud_${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast({
-        title: "Exportación exitosa",
+        title: 'Exportación exitosa',
         description: `Se ha descargado la lista de ${roleFilteredCentros.length} centros de salud.`,
       });
     } catch (error) {
-      console.error("Error exporting to Excel:", error);
+      console.error('Error exporting to Excel:', error);
       toast({
-        title: "Error en la exportación",
-        description: "No se pudo exportar la lista. Intente nuevamente.",
-        variant: "destructive",
+        title: 'Error en la exportación',
+        description: 'No se pudo exportar la lista. Intente nuevamente.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const exportCenterProfessionalsToExcel = () => {
+    try {
+      const sorted = [...profesionalesDelCentro].sort((a, b) =>
+        (a?.nombre_completo || "").localeCompare(b?.nombre_completo || "", "es", { sensitivity: "base" })
+      );
+
+      const header = [[
+        "ID",
+        "Nombre Completo",
+        "Área Profesional",
+        "Estado Solicitud",
+        "Provincia",
+        "Distrito",
+        "Distrito Sanitario",
+        "Centro",
+        "Teléfono",
+        "Email",
+        "Fecha Registro",
+        "Fecha Graduación"
+      ]];
+
+      const rows = sorted.map((p: any) => [
+        p.id || "",
+        p.nombre_completo || "",
+        p.area_profesional || p.titulacion_especifica_1 || "",
+        p.estado_solicitud || "",
+        p.provincia || "",
+        p.distrito || "",
+        p.distrito_sanitario || "",
+        p.nombre_centro || p.lugar_trabajo || "",
+        p.telefono || "",
+        p.email || "",
+        p.created_at ? new Date(p.created_at).toLocaleDateString("es-ES") : "",
+        p.fecha_graduacion ? new Date(p.fecha_graduacion).toLocaleDateString("es-ES") : ""
+      ]);
+
+      const worksheetData = [...header, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Profesionales del Centro');
+
+      const meta = [
+        ["Generado en", new Date().toLocaleString('es-ES')],
+        ["Centro", selectedCenter?.nombre || ""],
+        ["Área filtro", filterArea || ""],
+        ["Estado filtro", filterEstado || ""],
+        ["Total exportado", String(sorted.length)],
+      ];
+      const wsMeta = XLSX.utils.aoa_to_sheet([["Clave","Valor"], ...meta]);
+      XLSX.utils.book_append_sheet(wb, wsMeta, 'Metadatos');
+
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Profesionales_Centro_${selectedCenter?.nombre || 'centro'}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: 'Exportación exitosa',
+        description: `Se ha descargado la lista de ${sorted.length} profesionales del centro.`,
+      });
+    } catch (error) {
+      console.error('Error exporting center professionals:', error);
+      toast({
+        title: 'Error en la exportación',
+        description: 'No se pudo exportar la lista de profesionales.',
+        variant: 'destructive',
       });
     }
   };
@@ -380,7 +472,7 @@ const HealthCenters = () => {
                 </span>
               </div>
             </CardTitle>
-            <div className="flex space-x-4">
+            <div className="flex space-x-4 items-center">
               <Select value={filterArea} onValueChange={setFilterArea}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Filtrar por área" />
@@ -407,6 +499,10 @@ const HealthCenters = () => {
                   <SelectItem value="Rechazado">Rechazado</SelectItem>
                 </SelectContent>
               </Select>
+              <Button variant="outline" size="sm" onClick={exportCenterProfessionalsToExcel} className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Exportar Excel
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -427,7 +523,9 @@ const HealthCenters = () => {
             </div>
 
             <div className="space-y-3">
-              {profesionalesDelCentro.map((prof) => (
+              {[...profesionalesDelCentro]
+                .sort((a, b) => (a?.nombre_completo || "").localeCompare(b?.nombre_completo || "", "es", { sensitivity: "base" }))
+                .map((prof) => (
                 <div key={prof.id} className={`border rounded-lg p-4 ${prof.estado_solicitud === "Aprobado" ? "border-green-200 bg-green-50" : "border-gray-200"}`}>
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -454,22 +552,27 @@ const HealthCenters = () => {
                         )}
                       </div>
                     </div>
-                    <Badge
-                      variant={
-                        prof.estado_solicitud === "Aprobado"
-                          ? "default"
-                          : prof.estado_solicitud === "Rechazado"
-                          ? "destructive"
-                          : "secondary"
-                      }
-                      className={
-                        prof.estado_solicitud === "Aprobado"
-                          ? "bg-green-600 text-white"
-                          : ""
-                      }
-                    >
-                      {prof.estado_solicitud}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={
+                          prof.estado_solicitud === "Aprobado"
+                            ? "default"
+                            : prof.estado_solicitud === "Rechazado"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                        className={
+                          prof.estado_solicitud === "Aprobado"
+                            ? "bg-green-600 text-white"
+                            : ""
+                        }
+                      >
+                        {prof.estado_solicitud}
+                      </Badge>
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedProfessional(prof as Profesional)}>
+                        <Eye className="w-4 h-4 mr-1" /> Ver
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -481,6 +584,8 @@ const HealthCenters = () => {
             </div>
           </CardContent>
         </Card>
+
+        <ProfessionalDetail professional={selectedProfessional as any} onClose={() => setSelectedProfessional(null)} />
 
         {/* Dialog para editar centro */}
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>

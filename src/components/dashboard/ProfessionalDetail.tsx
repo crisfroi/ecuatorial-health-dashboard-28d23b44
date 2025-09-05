@@ -39,7 +39,7 @@ const ProfessionalDetail = ({
 }: ProfessionalDetailProps) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
-  const { data: notificationCount } = useNotificationCount(professional.id);
+  const { data: notificationCount } = useNotificationCount(professional?.id);
   const sendSMSMutation = useSendSMSNotification();
 
   if (!professional) return null;

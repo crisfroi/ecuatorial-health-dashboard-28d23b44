@@ -1,24 +1,15 @@
-
 import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { UseFormReturn } from 'react-hook-form';
+import { PROVINCIAS_EG } from '@/utils/geo';
 
 interface AddressStepProps {
   form: UseFormReturn<any>;
 }
 
-const provincias = [
-  "Annobon",
-  "Bioko Norte",
-  "Bioko Sur",
-  "Centro Sur",
-  "Kie-Ntem",
-  "Litoral",
-  "Wele-Nzas"
-];
 
 export const AddressStep = ({ form }: AddressStepProps) => {
   return (
@@ -50,7 +41,7 @@ export const AddressStep = ({ form }: AddressStepProps) => {
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {provincias.map((provincia) => (
+                {PROVINCIAS_EG.map((provincia) => (
                   <SelectItem key={provincia} value={provincia}>
                     {provincia}
                   </SelectItem>

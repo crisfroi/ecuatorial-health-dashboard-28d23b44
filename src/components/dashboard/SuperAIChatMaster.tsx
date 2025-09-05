@@ -77,23 +77,29 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
   const checkSystemHealth = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('ai-chat-master', {
-        body: JSON.stringify({ 
+        body: {
           messages: [{ role: 'user', content: 'test' }],
-          healthCheck: true 
-        })
+          healthCheck: true
+        }
       });
-      
-      if (error?.message?.includes('OPENAI_API_KEY')) {
+
+      if (error) {
+        console.warn('Health check warning:', (error as any)?.message || error);
+      }
+
+      if (data?.needsOpenAI) {
         setNeedsOpenAI(true);
+        setSystemReady(false);
         toast({
           title: "⚙️ Configuración Requerida",
           description: "Se necesita configurar la API key de OpenAI para activar la IA",
           variant: "destructive"
         });
       } else {
+        setNeedsOpenAI(false);
         setSystemReady(true);
         toast({
-          title: "🚀 Sistema IA Activado", 
+          title: "🚀 Sistema IA Activado",
           description: "Superinteligencia lista para consultas avanzadas"
         });
       }
@@ -121,26 +127,25 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       console.log('🚀 Enviando consulta al sistema superinteligente...');
       
       const { data, error } = await supabase.functions.invoke('ai-chat-master', {
-        body: JSON.stringify({
-          messages: [...messages, userMessage].slice(-10), // Últimos 10 mensajes para contexto
+        body: {
+          messages: [...messages, userMessage].slice(-10),
           filters: filters || {}
-        })
+        }
       });
 
-      if (error) {
-        console.error('Error de la IA:', error);
-        
-        if (error.message?.includes('OPENAI_API_KEY') || data?.needsOpenAI) {
-          setNeedsOpenAI(true);
-          throw new Error('Se requiere configurar la API key de OpenAI');
-        }
-        
-        throw new Error(error.message || 'Error del sistema de IA');
+      if (data?.needsOpenAI) {
+        setNeedsOpenAI(true);
+        throw new Error('Se requiere configurar la API key de OpenAI');
+      }
+
+      if (error || data?.error) {
+        console.error('Error de la IA:', error || data?.error);
+        throw new Error((error as any)?.message || data?.error || 'Error del sistema de IA');
       }
 
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: data.answer || 'No se pudo generar una respuesta.',
+        content: data?.answer || 'No se pudo generar una respuesta.',
         timestamp: new Date().toISOString()
       };
 
@@ -164,21 +169,28 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       }
 
     } catch (error: any) {
-      console.error('Error completo:', error);
-      
+      const isFunctionsHttpError = typeof error?.message === 'string' && error.message.includes('Edge Function returned a non-2xx')
+      if (isFunctionsHttpError) {
+        console.warn('AI function non-2xx handled gracefully')
+      } else {
+        console.warn('AI error:', (error as any)?.message || error)
+      }
+
+      const friendly = needsOpenAI
+        ? 'Se requiere configurar la API key de OpenAI en Supabase Edge Functions.'
+        : (isFunctionsHttpError ? 'El servicio de IA no está disponible temporalmente. Intenta de nuevo en unos minutos.' : error.message)
+
       const errorMessage: ChatMessage = {
-        role: 'assistant', 
-        content: `❌ **Error:** ${error.message}\n\n${needsOpenAI ? 
-          '⚙️ **Acción requerida:** Configura la API key de OpenAI en la configuración de Supabase Edge Functions.' : 
-          '🔄 Por favor intenta de nuevo o reformula tu pregunta.'}`,
+        role: 'assistant',
+        content: `❌ ${friendly}`,
         timestamp: new Date().toISOString()
       };
-      
+
       setMessages(prev => [...prev, errorMessage]);
-      
+
       toast({
         title: "Error del Sistema IA",
-        description: error.message,
+        description: friendly,
         variant: "destructive"
       });
     } finally {

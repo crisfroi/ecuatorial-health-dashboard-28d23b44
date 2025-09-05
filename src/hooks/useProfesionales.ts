@@ -96,7 +96,8 @@ export function useProfesionales(filtros: Filtros = {}) {
 
       // Aplicar filtros existentes
       if (filtros.area_profesional && filtros.area_profesional !== "todos") {
-        query = query.eq("area_profesional", filtros.area_profesional);
+        const pattern = `%${filtros.area_profesional}%`;
+        query = query.ilike("area_profesional", pattern);
       }
 
       if (filtros.estado_solicitud && filtros.estado_solicitud !== "todos") {
@@ -192,7 +193,8 @@ export function useProfesionales(filtros: Filtros = {}) {
 
       // Filtro para funcionarios públicos
       if (filtros.funcion_publica !== undefined) {
-        query = query.eq("funcion_publica", filtros.funcion_publica);
+        const val = typeof filtros.funcion_publica === 'string' ? filtros.funcion_publica === 'true' : filtros.funcion_publica
+        query = query.eq("funcion_publica", val as any);
       }
 
       const { data, error } = await query;

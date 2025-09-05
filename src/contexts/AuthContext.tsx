@@ -56,7 +56,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       try {
         console.log('🔐 Inicializando autenticación...');
 
-        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+        // Primero intenta leer sesión local sin red para evitar errores de conexión
+        const { data: sessionData } = await supabase.auth.getSession();
+        const supabaseUser = sessionData?.session?.user || null;
 
         if (!mounted) return;
 
@@ -89,6 +91,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           setUser(userProfile);
           setUserRole(role);
           console.log('✅ Usuario configurado:', { email, role, fullName });
+
+          // Intento en segundo plano para refrescar datos del usuario desde la red (sin romper si falla)
+          supabase.auth.getUser().catch((e) => {
+            console.warn('⚠️ No se pudo refrescar el usuario desde la red (se mantiene sesión local):', e?.message || e);
+          });
         } else {
           console.log('❌ No hay usuario autenticado');
           setUser(null);

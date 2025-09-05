@@ -59,6 +59,7 @@ import HealthCenters from "@/components/dashboard/HealthCenters";
 import AdminPanel from "@/components/dashboard/AdminPanel";
 import AdvancedAnalyticsDashboard from "@/components/dashboard/AdvancedAnalyticsDashboard";
 import ProfessionalSearch from "@/components/dashboard/ProfessionalSearch";
+import GlobalSearch from "@/components/dashboard/GlobalSearch";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import ConnectionDebugPanel from "@/components/dashboard/ConnectionDebugPanel";
 import { OfflineNotification } from "@/components/ui/offline-notification";
@@ -223,6 +224,16 @@ const Dashboard = () => {
     console.log("Dashboard: dashboardFilters actualizado a:", finalFilters);
   }, [appliedFilters, activeTab]);
 
+  useEffect(() => {
+    if (activeTab !== "professionals") {
+      try { sessionStorage.removeItem('professionals.filters'); } catch {}
+      setAppliedFilters(prev => {
+        const { area_profesional, provincia, genero, tipo_sector, pais_formacion, institucion, categoria_titulacion, categoria_centro, edad_minima, edad_maxima, año_graduacion, funcion_publica, ...rest } = prev as any;
+        return rest as typeof prev;
+      });
+    }
+  }, [activeTab]);
+
   const handleChartClick = (data: any, chartType: string) => {
     console.log("Dashboard: Chart clicked:", data, chartType);
     const filter: Filtros = {};
@@ -281,7 +292,7 @@ const Dashboard = () => {
       console.error("Error inesperado al cerrar sesión:", error);
       toast({
         title: "Error inesperado",
-        description: "Ocurrió un error al cerrar sesión.",
+        description: "Ocurrió un error al cerrar sesi��n.",
         variant: "destructive",
       });
     }
@@ -522,6 +533,10 @@ const Dashboard = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <GlobalSearch onNavigate={(tab, filters) => {
+              setActiveTab(tab);
+              if (filters) setAppliedFilters(filters as any);
+            }} />
             <Button
               variant="outline"
               size="sm"
@@ -739,7 +754,7 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="health-centers" className="space-y-6">
-            <HealthCenters />
+            <HealthCenters dashboardFilters={dashboardFilters} />
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">

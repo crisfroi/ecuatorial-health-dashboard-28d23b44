@@ -18,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profesional } from "@/hooks/useProfesionales";
 import { useToast } from "@/hooks/use-toast"; // Asegúrate de que esta importación sea correcta
+import * as XLSX from 'xlsx';
 
 import {
   Dialog,
@@ -284,69 +285,69 @@ const RenewalAlerts = ({
   // Excel export functionality
   const exportRenewalsToExcel = () => {
     try {
-      // Create worksheet data
-      const worksheetData = [
-        // Header row
-        [
-          "ID Profesional",
-          "Nombre Completo",
-          "Área Profesional",
-          "Teléfono",
-          "Email",
-          "Provincia",
-          "Fecha Caducidad",
-          "Días Restantes",
-          "Prioridad",
-          "Número Carnet",
-          "Lugar de Trabajo",
-        ],
-        // Data rows
-        ...filteredRenewalAlerts.map((alert) => [
-          alert.id_profesional_unico || "",
-          alert.nombre_completo || "",
-          alert.area_profesional || "",
-          alert.telefono || "",
-          alert.email || "",
-          alert.provincia || "",
-          alert.fecha_caducidad
-            ? new Date(alert.fecha_caducidad).toLocaleDateString("es-ES")
-            : "",
-          alert.diasRestantes,
-          alert.prioridad,
-          alert.numero_carnet_profesional || "",
-          alert.lugar_trabajo || "",
-        ]),
+      const header = [[
+        "ID Profesional",
+        "Nombre Completo",
+        "Área Profesional",
+        "Teléfono",
+        "Email",
+        "Provincia",
+        "Fecha Caducidad",
+        "Días Restantes",
+        "Prioridad",
+        "Número Carnet",
+        "Lugar de Trabajo",
+      ]];
+
+      const rows = filteredRenewalAlerts.map((alert) => [
+        alert.id_profesional_unico || "",
+        alert.nombre_completo || "",
+        alert.area_profesional || "",
+        alert.telefono || "",
+        alert.email || "",
+        alert.provincia || "",
+        alert.fecha_caducidad ? new Date(alert.fecha_caducidad).toLocaleDateString("es-ES") : "",
+        alert.diasRestantes,
+        alert.prioridad,
+        alert.numero_carnet_profesional || "",
+        alert.lugar_trabajo || "",
+      ]);
+
+      const worksheetData = [...header, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Renovaciones');
+
+      const meta = [
+        ["Generado en", new Date().toLocaleString('es-ES')],
+        ["Prioridad", selectedPriorityFilter],
+        ["Total exportado", String(filteredRenewalAlerts.length)],
       ];
+      const wsMeta = XLSX.utils.aoa_to_sheet([["Clave","Valor"], ...meta]);
+      XLSX.utils.book_append_sheet(wb, wsMeta, 'Metadatos');
 
-      // Create CSV content
-      const csvContent = worksheetData
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
-        .join("\n");
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
-      // Create and download file
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `Renovaciones_${selectedPriorityFilter}_${new Date().toISOString().split("T")[0]}.csv`,
-      );
-      link.style.visibility = "hidden";
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Renovaciones_${selectedPriorityFilter}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast({
-        title: "Exportación exitosa",
+        title: 'Exportación exitosa',
         description: `Se ha descargado la lista de ${filteredRenewalAlerts.length} alertas de renovación.`,
       });
     } catch (error) {
-      console.error("Error exporting to Excel:", error);
+      console.error('Error exporting to Excel:', error);
       toast({
-        title: "Error en la exportación",
-        description: "No se pudo exportar la lista. Intente nuevamente.",
-        variant: "destructive",
+        title: 'Error en la exportación',
+        description: 'No se pudo exportar la lista. Intente nuevamente.',
+        variant: 'destructive',
       });
     }
   };

@@ -40,6 +40,10 @@ import {
   XCircle
 } from 'lucide-react';
 import { UserRole, ROLE_DEFINITIONS } from '@/types/roles';
+import { useUserManagement } from '@/hooks/useUserManagement';
+import { useAuth } from '@/contexts/AuthContext';
+import { useBuscarCentros } from '@/hooks/useCentrosSalud';
+import type { UserProfile } from '@/types/database';
 
 interface PanelRRHHProps {
   userRole: UserRole;
@@ -57,31 +61,42 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
     permissions: [] as string[]
   });
 
-  // Mock data para demostración
-  const usuarios = [
-    { id: '1', email: 'juan.perez@ministerio.gq', fullName: 'Juan Pérez', role: 'REVISOR_SOLICITUDES', centro: 'Hospital Nacional', active: true },
-    { id: '2', email: 'maria.garcia@centro1.gq', fullName: 'María García', role: 'ADMIN_CENTRO_SANITARIO', centro: 'Centro Malabo', active: true },
-    { id: '3', email: 'carlos.lopez@observador.gq', fullName: 'Carlos López', role: 'OBSERVADOR', centro: null, active: false }
-  ];
+  const { inviteUser, getUserProfiles, deleteUser, isLoading } = useUserManagement();
+  const { user: currentUser } = useAuth();
+  const { data: centrosSalud = [] } = useBuscarCentros({});
+  const [usuarios, setUsuarios] = useState<UserProfile[]>([]);
 
-  const centrosSalud = [
-    { id: '1', nombre: 'Hospital Nacional', categoria: 'Hospital', distrito: 'Malabo' },
-    { id: '2', nombre: 'Centro Malabo', categoria: 'Centro de Salud', distrito: 'Malabo' },
-    { id: '3', nombre: 'Clínica Bata', categoria: 'Clínica', distrito: 'Bata' }
-  ];
+  useEffect(() => {
+    (async () => {
+      const list = await getUserProfiles();
+      setUsuarios(list);
+    })();
+  }, []);
 
-  const handleCreateUser = () => {
-    console.log('Creating user:', newUser);
-    // Aquí iría la lógica para crear el usuario
-    setIsCreateUserOpen(false);
-    setNewUser({
-      email: '',
-      fullName: '',
-      role: 'OBSERVADOR',
-      centroAsignado: '',
-      department: '',
-      permissions: []
-    });
+  const handleCreateUser = async () => {
+    const invitation = {
+      email: newUser.email,
+      role: newUser.role,
+      full_name: newUser.fullName,
+      department: newUser.department,
+      assigned_center_id: newUser.centroAsignado && newUser.centroAsignado !== 'none' ? newUser.centroAsignado : undefined,
+      invited_by: currentUser?.id || 'system',
+    };
+
+    const result = await inviteUser(invitation as any);
+    if (result.success) {
+      setIsCreateUserOpen(false);
+      setNewUser({
+        email: '',
+        fullName: '',
+        role: 'OBSERVADOR',
+        centroAsignado: '',
+        department: '',
+        permissions: []
+      });
+      const list = await getUserProfiles();
+      setUsuarios(list);
+    }
   };
 
   const getRoleBadgeColor = (role: UserRole) => {
@@ -113,7 +128,7 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
               Panel de Recursos Humanos
             </CardTitle>
             <Badge variant="outline">
-              {usuarios.filter(u => u.active).length} usuarios activos
+              {usuarios.filter(u => u.is_active).length} usuarios activos
             </Badge>
           </div>
         </CardHeader>
@@ -245,7 +260,7 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                       <TableRow key={usuario.id}>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{usuario.fullName}</div>
+                            <div className="font-medium">{usuario.full_name || usuario.email}</div>
                             <div className="text-sm text-gray-500">{usuario.email}</div>
                           </div>
                         </TableCell>
@@ -255,10 +270,10 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {usuario.centro || 'No asignado'}
+                          {centrosSalud.find((c: any) => c.id === usuario.assigned_center_id)?.nombre || 'No asignado'}
                         </TableCell>
                         <TableCell>
-                          {usuario.active ? (
+                          {usuario.is_active ? (
                             <Badge className="bg-green-100 text-green-800">
                               <CheckCircle className="w-3 h-3 mr-1" />
                               Activo
@@ -278,7 +293,18 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                             <Button variant="ghost" size="sm">
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-red-600">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600"
+                              onClick={async () => {
+                                const res = await deleteUser(usuario.id);
+                                if (res.success) {
+                                  const list = await getUserProfiles();
+                                  setUsuarios(list);
+                                }
+                              }}
+                            >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
@@ -339,7 +365,7 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                       <TableRow key={centro.id}>
                         <TableCell className="font-medium">{centro.nombre}</TableCell>
                         <TableCell>{centro.categoria}</TableCell>
-                        <TableCell>{centro.distrito}</TableCell>
+                        <TableCell>{(centro as any).distrito || (centro as any).distrito_sanitario || ''}</TableCell>
                         <TableCell>
                           <Badge variant="outline">
                             {usuarios.filter(u => u.centro === centro.nombre).length} usuarios

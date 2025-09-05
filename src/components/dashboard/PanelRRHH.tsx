@@ -196,7 +196,7 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                               <SelectValue placeholder="Seleccionar centro" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Sin centro asignado</SelectItem>
+                              <SelectItem value="none">Sin centro asignado</SelectItem>
                               {centrosSalud.map((centro) => (
                                 <SelectItem key={centro.id} value={centro.id}>
                                   {centro.nombre}

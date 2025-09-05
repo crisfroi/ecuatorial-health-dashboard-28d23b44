@@ -53,7 +53,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
 // Importaciones necesarias para la nueva lógica
-import { supabase } from "@/lib/supabaseClient"; // Asegúrate de que esta ruta sea correcta
+import { supabase } from "@/integrations/supabase/client";
 
 
 // Definimos los estados válidos y su orden para el flujo

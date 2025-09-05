@@ -6,6 +6,10 @@
 
 export type UserRole = 
   | 'SUPER_ADMINISTRADOR'
+  | 'RRHH_MINISTERIO'
+  | 'MIEMBRO_GOBIERNO'
+  | 'HABILITACION'
+  | 'ADMIN_CENTRO_SANITARIO'
   | 'REVISOR_SOLICITUDES'
   | 'PERSONALIDAD_MINISTERIAL'
   | 'OBSERVADOR'
@@ -232,10 +236,130 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
     }
   },
 
-  DIRECTIVO_CENTRO_SANITARIO: {
-    id: 'DIRECTIVO_CENTRO_SANITARIO',
-    name: 'Directivo de Centro Sanitario',
-    description: 'Director o administrador de un centro de salud específico',
+  RRHH_MINISTERIO: {
+    id: 'RRHH_MINISTERIO',
+    name: 'RRHH del Ministerio',
+    description: 'Departamento de Recursos Humanos con capacidad de administrar usuarios y roles',
+    permissions: [
+      'view_dashboard',
+      'view_professionals',
+      'view_requests', 
+      'view_analytics',
+      'view_centers',
+      'view_incidents',
+      'view_renewals',
+      'view_admin_panel',
+      'manage_users',
+      'manage_roles',
+      'approve_professionals',
+      'reject_professionals',
+      'edit_professionals',
+      'create_centers',
+      'edit_centers',
+      'assign_centers',
+      'generate_carnets',
+      'manage_renewals',
+      'export_data',
+      'generate_reports',
+      'system_configuration',
+      'ai_chat_advanced',
+      'view_guardias',
+      'manage_guardias',
+      'approve_guardias',
+      'generate_nominas',
+      'view_guardias_reports',
+      'configure_guardias'
+    ],
+    dashboardTabs: [
+      'overview',
+      'professionals',
+      'requests',
+      'renewals',
+      'guardias',
+      'analytics',
+      'health-centers',
+      'incidents',
+      'iachat',
+      'admin'
+    ]
+  },
+
+  MIEMBRO_GOBIERNO: {
+    id: 'MIEMBRO_GOBIERNO',
+    name: 'Miembro del Gobierno',
+    description: 'Alto cargo gubernamental con acceso a panel ministerial y firmas de autorización',
+    permissions: [
+      'view_dashboard',
+      'view_professionals',
+      'view_requests',
+      'view_analytics',
+      'view_centers',
+      'view_incidents',
+      'view_renewals',
+      'view_ministerial_panel',
+      'approve_professionals',
+      'generate_reports',
+      'view_financial_data',
+      'export_data',
+      'access_audit_logs',
+      'ai_chat_advanced',
+      'ai_chat_analytics',
+      'view_guardias',
+      'approve_guardias',
+      'generate_nominas',
+      'manage_payments',
+      'view_guardias_reports',
+      'audit_guardias'
+    ],
+    dashboardTabs: [
+      'overview',
+      'professionals',
+      'requests',
+      'analytics',
+      'ministerial',
+      'guardias',
+      'health-centers',
+      'incidents',
+      'iachat'
+    ],
+    restrictions: {
+      dataFilters: {
+        hidePersonalDetails: false, // Pueden ver más detalles que personalidades ministeriales
+        aggregatedDataOnly: false
+      }
+    }
+  },
+
+  HABILITACION: {
+    id: 'HABILITACION',
+    name: 'Habilitación',
+    description: 'Encargados de validar nóminas de guardias y aprobar pagos',
+    permissions: [
+      'view_dashboard',
+      'view_analytics',
+      'view_guardias',
+      'approve_guardias', 
+      'generate_nominas',
+      'manage_payments',
+      'view_guardias_reports',
+      'audit_guardias',
+      'export_data',
+      'generate_reports',
+      'view_financial_data',
+      'ai_chat_basic'
+    ],
+    dashboardTabs: [
+      'overview',
+      'guardias',
+      'analytics',
+      'iachat'
+    ]
+  },
+
+  ADMIN_CENTRO_SANITARIO: {
+    id: 'ADMIN_CENTRO_SANITARIO',
+    name: 'Admin de Centro Sanitario',
+    description: 'Super administrador de un centro sanitario específico con capacidad de gestionar usuarios del centro',
     permissions: [
       'view_dashboard',
       'view_professionals',
@@ -245,6 +369,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'assign_professionals_to_centers',
       'create_incidents',
       'resolve_incidents',
+      'manage_users', // Solo para su centro
+      'manage_roles', // Solo para su centro
       'export_data',
       'ai_chat_basic',
       'view_guardias',
@@ -257,16 +383,17 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'guardias',
       'health-centers',
       'incidents',
-      'iachat'
+      'iachat',
+      'admin' // Panel de admin limitado a su centro
     ],
     restrictions: {
       dataFilters: {
-        // Solo puede ver datos de su centro asignado
         centerRestricted: true,
-        onlyAssignedCenter: true
+        onlyAssignedCenter: true,
+        canManageOwnCenter: true
       }
     }
-  }
+  },
 };
 
 // Funciones de utilidad para verificar permisos
@@ -304,7 +431,6 @@ export const getRoleRestrictions = (userRole: UserRole | null) => {
   return ROLE_DEFINITIONS[userRole].restrictions || {};
 };
 
-// Vista específica para cada rol en el dashboard
 export const ROLE_DASHBOARD_VIEWS: Record<UserRole, {
   defaultTab: string;
   featuredCards: string[];
@@ -314,6 +440,26 @@ export const ROLE_DASHBOARD_VIEWS: Record<UserRole, {
     defaultTab: 'overview',
     featuredCards: ['total_professionals', 'pending_requests', 'system_health', 'recent_activity'],
     hiddenSections: []
+  },
+  RRHH_MINISTERIO: {
+    defaultTab: 'admin',
+    featuredCards: ['total_users', 'pending_requests', 'center_assignments', 'role_management'],
+    hiddenSections: []
+  },
+  MIEMBRO_GOBIERNO: {
+    defaultTab: 'ministerial',
+    featuredCards: ['national_coverage', 'approval_signatures', 'strategic_metrics', 'policy_impact'],
+    hiddenSections: ['detailed_personal_data']
+  },
+  HABILITACION: {
+    defaultTab: 'guardias',
+    featuredCards: ['pending_nominas', 'payment_approvals', 'guardia_statistics', 'financial_summary'],
+    hiddenSections: ['personal_data', 'professional_details', 'center_management']
+  },
+  ADMIN_CENTRO_SANITARIO: {
+    defaultTab: 'overview',
+    featuredCards: ['center_professionals', 'center_incidents', 'center_guardias', 'user_management'],
+    hiddenSections: ['other_centers', 'global_admin', 'ministerial_data']
   },
   REVISOR_SOLICITUDES: {
     defaultTab: 'requests',

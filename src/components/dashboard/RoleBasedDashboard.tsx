@@ -53,7 +53,7 @@ const RoleBasedDashboard: React.FC<RoleBasedDashboardProps> = ({
   }
 
   const roleView = ROLE_DASHBOARD_VIEWS[userRole];
-  const availableTabs = [
+  const baseTabs = [
     { id: 'overview', label: 'Vista General', icon: BarChart3 },
     { id: 'professionals', label: 'Profesionales', icon: Users },
     { id: 'requests', label: 'Solicitudes', icon: FileText },
@@ -64,7 +64,18 @@ const RoleBasedDashboard: React.FC<RoleBasedDashboardProps> = ({
     { id: 'iachat', label: 'IA Chat', icon: Users },
     { id: 'admin', label: 'Admin', icon: Settings },
     { id: 'ministerial', label: 'Ministerial', icon: Crown }
-  ].filter(tab => canAccessTab(tab.id));
+  ];
+
+  // Agregar pestaña de traslados si es necesario
+  if (userRole === 'ADMIN_CENTRO_SANITARIO' || userRole === 'RRHH_MINISTERIO' || userRole === 'SUPER_ADMINISTRADOR') {
+    baseTabs.push({ 
+      id: 'traslados', 
+      label: 'Traslados', 
+      icon: Users 
+    });
+  }
+
+  const availableTabs = baseTabs.filter(tab => canAccessTab(tab.id));
 
   const getRoleWelcomeMessage = () => {
     switch (userRole) {
@@ -73,6 +84,34 @@ const RoleBasedDashboard: React.FC<RoleBasedDashboardProps> = ({
           title: '👑 Panel de Super Administrador',
           message: 'Tienes acceso completo a todas las funcionalidades del sistema. Puedes gestionar usuarios, aprobar solicitudes, y configurar el sistema.',
           priority: ['Solicitudes pendientes', 'Salud del sistema', 'Actividad reciente']
+        };
+
+      case 'RRHH_MINISTERIO':
+        return {
+          title: '🏛️ Panel de Recursos Humanos',
+          message: 'Administra usuarios, roles y centros de salud. Puedes crear usuarios y asignar permisos específicos.',
+          priority: ['Gestión de usuarios', 'Asignación de roles', 'Solicitudes de traslado']
+        };
+
+      case 'MIEMBRO_GOBIERNO':
+        return {
+          title: '🏛️ Panel de Gobierno',
+          message: 'Acceso ejecutivo a información estratégica con capacidad de aprobación y firma de autorizaciones.',
+          priority: ['Autorizaciones pendientes', 'Métricas estratégicas', 'Reportes ejecutivos']
+        };
+
+      case 'HABILITACION':
+        return {
+          title: '💰 Panel de Habilitación',
+          message: 'Valida nóminas de guardias y aprueba pagos del sistema. Control financiero completo.',
+          priority: ['Nóminas pendientes', 'Aprobación de pagos', 'Control financiero']
+        };
+
+      case 'ADMIN_CENTRO_SANITARIO':
+        return {
+          title: '🏥 Panel de Admin Centro',
+          message: 'Administra tu centro de salud, gestiona usuarios del centro y solicita traslados de profesionales.',
+          priority: ['Usuarios del centro', 'Solicitar traslados', 'Gestión local']
         };
 
       case 'REVISOR_SOLICITUDES':

@@ -48,6 +48,8 @@ import {
 import StatsCards from "@/components/dashboard/StatsCards";
 import DashboardCharts from "@/components/dashboard/DashboardCharts";
 import ProfessionalsTable from "@/components/dashboard/ProfessionalsTable";
+import PanelRRHH from "@/components/dashboard/PanelRRHH";
+import TrasladosProfesionalesPanel from "@/components/dashboard/TrasladosProfesionalesPanel";
 import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
 import RequestsPanel from "@/components/dashboard/RequestsPanel";
@@ -762,7 +764,15 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="admin" className="space-y-6">
-            {hasPermission("system_configuration") && <AdminPanel />}
+            {(userRole === 'RRHH_MINISTERIO' || userRole === 'SUPER_ADMINISTRADOR') && (
+              <PanelRRHH userRole={userRole} />
+            )}
+            {userRole === 'ADMIN_CENTRO_SANITARIO' && <AdminPanel />}
+            {hasPermission("system_configuration") && userRole === 'SUPER_ADMINISTRADOR' && <AdminPanel />}
+          </TabsContent>
+
+          <TabsContent value="traslados" className="space-y-6">
+            <TrasladosProfesionalesPanel userRole={userRole} />
           </TabsContent>
         </Tabs>
       </div>

@@ -74,8 +74,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             role = 'SUPER_ADMINISTRADOR';
             fullName = 'Beltran Ebiole';
           } else if (email === 'juan.froilan@ministeriosanidad.gq') {
-            role = 'SUPER_ADMINISTRADOR';
+            role = 'RRHH_MINISTERIO'; // Asignar como RRHH
             fullName = 'Juan Froilan Ramos Nabama';
+          } else if (email.includes('rrhh@') || email.includes('recursos@')) {
+            role = 'RRHH_MINISTERIO';
+            fullName = supabaseUser.email?.split('@')[0] || 'RRHH Usuario';
+          } else if (email.includes('gobierno@') || email.includes('ministro@')) {
+            role = 'MIEMBRO_GOBIERNO';
+            fullName = supabaseUser.email?.split('@')[0] || 'Miembro Gobierno';
+          } else if (email.includes('habilitacion@')) {
+            role = 'HABILITACION';
+            fullName = supabaseUser.email?.split('@')[0] || 'Habilitación Usuario';
+          } else if (email.includes('admin@centro') || email.includes('director@')) {
+            role = 'ADMIN_CENTRO_SANITARIO';
+            fullName = supabaseUser.email?.split('@')[0] || 'Admin Centro';
           } else {
             role = 'OBSERVADOR';
             fullName = supabaseUser.email?.split('@')[0] || 'Usuario';
@@ -138,8 +150,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             role = 'SUPER_ADMINISTRADOR';
             fullName = 'Beltran Ebiole';
           } else if (email === 'juan.froilan@ministeriosanidad.gq') {
-            role = 'SUPER_ADMINISTRADOR';
+            role = 'RRHH_MINISTERIO';
             fullName = 'Juan Froilan Ramos Nabama';
+          } else if (email.includes('rrhh@') || email.includes('recursos@')) {
+            role = 'RRHH_MINISTERIO';
+            fullName = session.user.email?.split('@')[0] || 'RRHH Usuario';
+          } else if (email.includes('gobierno@') || email.includes('ministro@')) {
+            role = 'MIEMBRO_GOBIERNO';
+            fullName = session.user.email?.split('@')[0] || 'Miembro Gobierno';
+          } else if (email.includes('habilitacion@')) {
+            role = 'HABILITACION';
+            fullName = session.user.email?.split('@')[0] || 'Habilitación Usuario';
+          } else if (email.includes('admin@centro') || email.includes('director@')) {
+            role = 'ADMIN_CENTRO_SANITARIO';
+            fullName = session.user.email?.split('@')[0] || 'Admin Centro';
           } else {
             role = 'OBSERVADOR';
             fullName = session.user.email?.split('@')[0] || 'Usuario';

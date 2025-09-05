@@ -911,6 +911,42 @@ export type Database = {
           },
         ]
       }
+      permisos_pestanas: {
+        Row: {
+          created_at: string | null
+          id: string
+          pestana: string
+          puede_aprobar: boolean | null
+          puede_editar: boolean | null
+          puede_ver: boolean | null
+          restricciones: Json | null
+          updated_at: string | null
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          pestana: string
+          puede_aprobar?: boolean | null
+          puede_editar?: boolean | null
+          puede_ver?: boolean | null
+          restricciones?: Json | null
+          updated_at?: string | null
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          pestana?: string
+          puede_aprobar?: boolean | null
+          puede_editar?: boolean | null
+          puede_ver?: boolean | null
+          restricciones?: Json | null
+          updated_at?: string | null
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       profesional_centro_asignado: {
         Row: {
           categoria_centro: string | null
@@ -1363,9 +1399,81 @@ export type Database = {
           },
         ]
       }
+      solicitudes_traslado: {
+        Row: {
+          aprobado_por: string | null
+          centro_destino_id: string
+          centro_origen_id: string | null
+          created_at: string | null
+          estado: string
+          fecha_aprobacion: string | null
+          fecha_solicitud: string | null
+          id: string
+          motivo: string
+          observaciones: string | null
+          profesional_id: string
+          solicitante_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          aprobado_por?: string | null
+          centro_destino_id: string
+          centro_origen_id?: string | null
+          created_at?: string | null
+          estado?: string
+          fecha_aprobacion?: string | null
+          fecha_solicitud?: string | null
+          id?: string
+          motivo: string
+          observaciones?: string | null
+          profesional_id: string
+          solicitante_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          aprobado_por?: string | null
+          centro_destino_id?: string
+          centro_origen_id?: string | null
+          created_at?: string | null
+          estado?: string
+          fecha_aprobacion?: string | null
+          fecha_solicitud?: string | null
+          id?: string
+          motivo?: string
+          observaciones?: string | null
+          profesional_id?: string
+          solicitante_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitudes_traslado_centro_destino_id_fkey"
+            columns: ["centro_destino_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_traslado_centro_origen_id_fkey"
+            columns: ["centro_origen_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_traslado_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_profiles: {
         Row: {
           assigned_center_id: string | null
+          centro_asignado_id: string | null
+          configuracion_role: Json | null
           created_at: string | null
           created_by: string | null
           department: string | null
@@ -1373,11 +1481,14 @@ export type Database = {
           full_name: string | null
           id: string
           is_active: boolean | null
+          permisos_especiales: Json | null
           role: string
           updated_at: string | null
         }
         Insert: {
           assigned_center_id?: string | null
+          centro_asignado_id?: string | null
+          configuracion_role?: Json | null
           created_at?: string | null
           created_by?: string | null
           department?: string | null
@@ -1385,11 +1496,14 @@ export type Database = {
           full_name?: string | null
           id: string
           is_active?: boolean | null
+          permisos_especiales?: Json | null
           role?: string
           updated_at?: string | null
         }
         Update: {
           assigned_center_id?: string | null
+          centro_asignado_id?: string | null
+          configuracion_role?: Json | null
           created_at?: string | null
           created_by?: string | null
           department?: string | null
@@ -1397,6 +1511,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean | null
+          permisos_especiales?: Json | null
           role?: string
           updated_at?: string | null
         }
@@ -1411,6 +1526,13 @@ export type Database = {
           {
             foreignKeyName: "user_profiles_assigned_center_id_fkey"
             columns: ["assigned_center_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_profiles_centro_asignado_id_fkey"
+            columns: ["centro_asignado_id"]
             isOneToOne: false
             referencedRelation: "centros_salud"
             referencedColumns: ["id"]
@@ -1641,6 +1763,16 @@ export type Database = {
       }
     }
     Enums: {
+      app_role:
+        | "SUPER_ADMINISTRADOR"
+        | "RRHH_MINISTERIO"
+        | "MIEMBRO_GOBIERNO"
+        | "HABILITACION"
+        | "ADMIN_CENTRO_SANITARIO"
+        | "REVISOR_SOLICITUDES"
+        | "PERSONALIDAD_MINISTERIAL"
+        | "OBSERVADOR"
+        | "DIRECTIVO_CENTRO_SANITARIO"
       categoria_profesional_guardia:
         | "especialista"
         | "general_licenciado"
@@ -1801,6 +1933,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: [
+        "SUPER_ADMINISTRADOR",
+        "RRHH_MINISTERIO",
+        "MIEMBRO_GOBIERNO",
+        "HABILITACION",
+        "ADMIN_CENTRO_SANITARIO",
+        "REVISOR_SOLICITUDES",
+        "PERSONALIDAD_MINISTERIAL",
+        "OBSERVADOR",
+        "DIRECTIVO_CENTRO_SANITARIO",
+      ],
       categoria_profesional_guardia: [
         "especialista",
         "general_licenciado",

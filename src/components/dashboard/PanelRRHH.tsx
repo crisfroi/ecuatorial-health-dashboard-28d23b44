@@ -356,7 +356,7 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Centro</TableHead>
-                      <TableHead>Categoría</TableHead>
+                      <TableHead>Categor��a</TableHead>
                       <TableHead>Distrito</TableHead>
                       <TableHead>Usuarios Asignados</TableHead>
                       <TableHead>Acciones</TableHead>
@@ -370,7 +370,7 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                         <TableCell>{(centro as any).distrito || (centro as any).distrito_sanitario || ''}</TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {usuarios.filter(u => u.centro === centro.nombre).length} usuarios
+                            {usuarios.filter(u => u.assigned_center_id === centro.id).length} usuarios
                           </Badge>
                         </TableCell>
                         <TableCell>

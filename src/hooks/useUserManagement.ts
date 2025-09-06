@@ -31,46 +31,75 @@ export const useUserManagement = () => {
         setTimeout(() => reject(new Error('Timeout: La función tardó más de 30 segundos')), 30000);
       });
 
-      // Llamar a la función con timeout
+      // Llamar a la función con timeout (usar POST y stringified body)
       const invitePromise = supabase.functions.invoke('send-user-invitation', {
-        body: {
+        body: JSON.stringify({
           email: invitation.email.trim(),
           role: invitation.role,
           full_name: invitation.full_name?.trim(),
           department: invitation.department?.trim(),
           assigned_center_id: invitation.assigned_center_id,
           invited_by: invitation.invited_by
-        }
+        }),
+        method: 'POST'
       });
 
       console.log('⏱️ Waiting for function response (max 30s)...');
-      const { data, error } = await Promise.race([invitePromise, timeoutPromise]) as any;
 
-      console.log('📨 Function response received:', { 
-        hasData: !!data, 
-        hasError: !!error,
-        dataSuccess: data?.success,
-        dataError: data?.error 
-      });
+      try {
+        const res = await Promise.race([invitePromise, timeoutPromise]) as any;
 
-      if (error) {
-        console.error('❌ Supabase function error:', error);
-        throw new Error(error.message || 'Error en la función de invitación');
+        // The Functions client can return different shapes; normalize
+        const data = res?.data ?? res;
+        const errorFromRes = res?.error ?? (res && !res?.success ? res : null);
+
+        console.log('📨 Function response received:', {
+          raw: res,
+          data: data,
+          error: errorFromRes,
+        });
+
+        if (errorFromRes) {
+          console.error('❌ Supabase function returned error payload:', errorFromRes);
+          throw errorFromRes;
+        }
+
+        if (data?.error || data?.success === false) {
+          console.error('❌ Function returned error object:', data);
+          throw data;
+        }
+
+        console.log('✅ Invitation sent successfully');
+
+        toast({
+          title: "✅ Invitación enviada",
+          description: `Se ha enviado una invitación a ${invitation.email}`,
+        });
+
+        return { success: true, data };
+      } catch (fnError: any) {
+        // Mejorar la información del error para debugging
+        console.error('❌ Supabase function error (detailed):', fnError);
+
+        // Intentar extraer detalles útiles
+        let detailedMessage = fnError?.message || String(fnError);
+
+        // Si es un FunctionsHttpError con response, intentar leer el body
+        try {
+          if (fnError?.response && typeof fnError.response.text === 'function') {
+            const text = await fnError.response.text();
+            detailedMessage = `${detailedMessage} - ${text}`;
+          } else if (fnError?.error) {
+            detailedMessage = JSON.stringify(fnError.error);
+          } else if (fnError?.data) {
+            detailedMessage = JSON.stringify(fnError.data);
+          }
+        } catch (readErr) {
+          console.warn('No se pudo leer body del error de función:', readErr);
+        }
+
+        throw new Error(detailedMessage);
       }
-
-      if (data?.error || !data?.success) {
-        console.error('❌ Function returned error:', data?.error);
-        throw new Error(data?.error || 'La función no completó exitosamente');
-      }
-
-      console.log('✅ Invitation sent successfully');
-
-      toast({
-        title: "✅ Invitación enviada",
-        description: `Se ha enviado una invitación a ${invitation.email}`,
-      });
-
-      return { success: true, data };
 
     } catch (error: any) {
       console.error('❌ Complete invitation error:', {

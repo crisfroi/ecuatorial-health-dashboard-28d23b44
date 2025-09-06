@@ -287,10 +287,10 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => setViewUser(usuario)}>
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => setEditUser(usuario)}>
                               <Edit className="w-4 h-4" />
                             </Button>
                             <Button
@@ -373,10 +373,10 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => setViewUser(usuario)}>
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => setEditUser(usuario)}>
                               <Edit className="w-4 h-4" />
                             </Button>
                             <Button variant="ghost" size="sm">

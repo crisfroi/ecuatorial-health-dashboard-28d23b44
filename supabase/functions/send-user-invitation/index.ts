@@ -22,11 +22,12 @@ serve(async (req) => {
       hasFullName: !!requestBody.full_name 
     })
 
-    const { 
-      email, 
+    const {
+      email,
       role = 'OBSERVADOR',
       full_name,
-      department 
+      department,
+      assigned_center_id
     } = requestBody
 
     // Validación básica
@@ -49,9 +50,7 @@ serve(async (req) => {
       siteUrl: siteUrl
     })
 
-    if (!RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY not configured')
-    }
+    const hasResend = !!RESEND_API_KEY
 
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Supabase environment variables not configured')
@@ -80,7 +79,8 @@ serve(async (req) => {
       user_metadata: {
         role: role,
         full_name: full_name || email.split('@')[0],
-        department: department || 'Ministerio de Sanidad y Bienestar Social'
+        department: department || 'Ministerio de Sanidad y Bienestar Social',
+        assigned_center_id: assigned_center_id || null
       }
     })
 
@@ -126,38 +126,57 @@ serve(async (req) => {
       `
     }
 
-    console.log('📨 Sending email via Resend...')
-    
-    // Enviar correo
-    const emailResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(emailData),
-    })
+    let emailId: string | null = null
+    let action_link: string | null = null
 
-    console.log('📬 Email API response status:', emailResponse.status)
+    if (hasResend) {
+      console.log('📨 Sending email via Resend...')
+      const emailResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailData),
+      })
 
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text()
-      console.error('❌ Email sending failed:', errorText)
-      throw new Error(`Email sending failed: ${errorText}`)
+      console.log('📬 Email API response status:', emailResponse.status)
+      if (emailResponse.ok) {
+        const emailResult = await emailResponse.json()
+        emailId = emailResult.id
+        console.log('✅ Email sent successfully, ID:', emailId)
+      } else {
+        const errorText = await emailResponse.text()
+        console.error('❌ Email sending failed:', errorText)
+      }
     }
 
-    const emailResult = await emailResponse.json()
-    console.log('✅ Email sent successfully, ID:', emailResult.id)
+    // Si no hay Resend o falló el envío, generar Magic Link como alternativa
+    if (!emailId) {
+      console.log('✨ Generating magic link as fallback...')
+      const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email,
+        options: { redirectTo: siteUrl }
+      })
+      if (linkError) {
+        console.error('❌ Magic link generation failed:', linkError)
+        throw new Error(`Magic link generation failed: ${linkError.message}`)
+      }
+      action_link = (linkData as any)?.properties?.action_link || null
+      console.log('✅ Magic link generated')
+    }
 
-    // Respuesta exitosa
+    // Respuesta exitosa (con emailId o action_link)
     const successResponse = {
       success: true,
       user: {
         id: userData.user?.id,
         email: userData.user?.email
       },
-      emailId: emailResult.id,
-      message: 'Usuario creado e invitación enviada exitosamente'
+      emailId,
+      action_link,
+      message: emailId ? 'Usuario creado e invitación enviada exitosamente' : 'Usuario creado. Comparta el enlace mágico para acceso rápido.'
     }
 
     console.log('🎉 Function completed successfully')

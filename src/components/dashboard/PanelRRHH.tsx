@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +40,10 @@ import {
   XCircle
 } from 'lucide-react';
 import { UserRole, ROLE_DEFINITIONS } from '@/types/roles';
+import { useUserManagement } from '@/hooks/useUserManagement';
+import { useAuth } from '@/contexts/AuthContext';
+import { useBuscarCentros } from '@/hooks/useCentrosSalud';
+import type { UserProfile } from '@/types/database';
 
 interface PanelRRHHProps {
   userRole: UserRole;
@@ -57,31 +61,46 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
     permissions: [] as string[]
   });
 
-  // Mock data para demostración
-  const usuarios = [
-    { id: '1', email: 'juan.perez@ministerio.gq', fullName: 'Juan Pérez', role: 'REVISOR_SOLICITUDES', centro: 'Hospital Nacional', active: true },
-    { id: '2', email: 'maria.garcia@centro1.gq', fullName: 'María García', role: 'ADMIN_CENTRO_SANITARIO', centro: 'Centro Malabo', active: true },
-    { id: '3', email: 'carlos.lopez@observador.gq', fullName: 'Carlos López', role: 'OBSERVADOR', centro: null, active: false }
-  ];
+  const { inviteUser, getUserProfiles, updateUserRole, deleteUser, isLoading } = useUserManagement();
+  const { user: currentUser } = useAuth();
+  const { data: centrosSalud = [] } = useBuscarCentros({});
+  const [usuarios, setUsuarios] = useState<UserProfile[]>([]);
+  const [viewUser, setViewUser] = useState<UserProfile | null>(null);
+  const [editUser, setEditUser] = useState<UserProfile | null>(null);
+  const [centerUsersOpen, setCenterUsersOpen] = useState(false);
+  const [selectedCenterId, setSelectedCenterId] = useState<string | null>(null);
 
-  const centrosSalud = [
-    { id: '1', nombre: 'Hospital Nacional', categoria: 'Hospital', distrito: 'Malabo' },
-    { id: '2', nombre: 'Centro Malabo', categoria: 'Centro de Salud', distrito: 'Malabo' },
-    { id: '3', nombre: 'Clínica Bata', categoria: 'Clínica', distrito: 'Bata' }
-  ];
+  useEffect(() => {
+    (async () => {
+      const list = await getUserProfiles();
+      setUsuarios(list);
+    })();
+  }, []);
 
-  const handleCreateUser = () => {
-    console.log('Creating user:', newUser);
-    // Aquí iría la lógica para crear el usuario
-    setIsCreateUserOpen(false);
-    setNewUser({
-      email: '',
-      fullName: '',
-      role: 'OBSERVADOR',
-      centroAsignado: '',
-      department: '',
-      permissions: []
-    });
+  const handleCreateUser = async () => {
+    const invitation = {
+      email: newUser.email,
+      role: newUser.role,
+      full_name: newUser.fullName,
+      department: newUser.department,
+      assigned_center_id: newUser.centroAsignado && newUser.centroAsignado !== 'none' ? newUser.centroAsignado : undefined,
+      invited_by: currentUser?.id || 'system',
+    };
+
+    const result = await inviteUser(invitation as any);
+    if (result.success) {
+      setIsCreateUserOpen(false);
+      setNewUser({
+        email: '',
+        fullName: '',
+        role: 'OBSERVADOR',
+        centroAsignado: '',
+        department: '',
+        permissions: []
+      });
+      const list = await getUserProfiles();
+      setUsuarios(list);
+    }
   };
 
   const getRoleBadgeColor = (role: UserRole) => {
@@ -113,7 +132,7 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
               Panel de Recursos Humanos
             </CardTitle>
             <Badge variant="outline">
-              {usuarios.filter(u => u.active).length} usuarios activos
+              {usuarios.filter(u => u.is_active).length} usuarios activos
             </Badge>
           </div>
         </CardHeader>
@@ -196,7 +215,7 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                               <SelectValue placeholder="Seleccionar centro" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Sin centro asignado</SelectItem>
+                              <SelectItem value="none">Sin centro asignado</SelectItem>
                               {centrosSalud.map((centro) => (
                                 <SelectItem key={centro.id} value={centro.id}>
                                   {centro.nombre}
@@ -245,7 +264,7 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                       <TableRow key={usuario.id}>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{usuario.fullName}</div>
+                            <div className="font-medium">{usuario.full_name || usuario.email}</div>
                             <div className="text-sm text-gray-500">{usuario.email}</div>
                           </div>
                         </TableCell>
@@ -255,10 +274,10 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {usuario.centro || 'No asignado'}
+                          {centrosSalud.find((c: any) => c.id === usuario.assigned_center_id)?.nombre || 'No asignado'}
                         </TableCell>
                         <TableCell>
-                          {usuario.active ? (
+                          {usuario.is_active ? (
                             <Badge className="bg-green-100 text-green-800">
                               <CheckCircle className="w-3 h-3 mr-1" />
                               Activo
@@ -272,13 +291,24 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => setViewUser(usuario)}>
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => setEditUser(usuario)}>
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-red-600">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600"
+                              onClick={async () => {
+                                const res = await deleteUser(usuario.id);
+                                if (res.success) {
+                                  const list = await getUserProfiles();
+                                  setUsuarios(list);
+                                }
+                              }}
+                            >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
@@ -289,6 +319,88 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                 </Table>
               </div>
             </TabsContent>
+
+            <Dialog open={!!viewUser} onOpenChange={(o) => !o && setViewUser(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Detalle de Usuario</DialogTitle>
+                </DialogHeader>
+                {viewUser && (
+                  <div className="space-y-2 text-sm">
+                    <div><strong>Email:</strong> {viewUser.email}</div>
+                    <div><strong>Nombre:</strong> {viewUser.full_name}</div>
+                    <div><strong>Rol:</strong> {viewUser.role}</div>
+                    <div><strong>Departamento:</strong> {viewUser.department}</div>
+                    <div><strong>Centro:</strong> {centrosSalud.find((c: any) => c.id === viewUser.assigned_center_id)?.nombre || 'No asignado'}</div>
+                    <div><strong>Estado:</strong> {viewUser.is_active ? 'Activo' : 'Inactivo'}</div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!editUser} onOpenChange={(o) => !o && setEditUser(null)}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Editar Usuario</DialogTitle>
+                </DialogHeader>
+                {editUser && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Nombre</label>
+                      <Input value={editUser.full_name || ''} onChange={(e) => setEditUser({ ...editUser, full_name: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Departamento</label>
+                      <Input value={editUser.department || ''} onChange={(e) => setEditUser({ ...editUser, department: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Rol</label>
+                      <Select value={editUser.role as UserRole} onValueChange={(v) => setEditUser({ ...editUser, role: v as UserRole })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(ROLE_DEFINITIONS).map(([key, role]) => (
+                            <SelectItem key={key} value={key}>{role.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Centro Asignado</label>
+                      <Select value={editUser.assigned_center_id || 'none'} onValueChange={(v) => setEditUser({ ...editUser, assigned_center_id: v === 'none' ? undefined as any : v })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar centro" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sin centro asignado</SelectItem>
+                          {centrosSalud.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setEditUser(null)}>Cancelar</Button>
+                      <Button onClick={async () => {
+                        if (!editUser) return;
+                        const res = await updateUserRole(editUser.id, {
+                          role: editUser.role,
+                          full_name: editUser.full_name,
+                          department: editUser.department,
+                          assigned_center_id: editUser.assigned_center_id || null,
+                        });
+                        if ((res as any)?.success) {
+                          setEditUser(null);
+                          const list = await getUserProfiles();
+                          setUsuarios(list);
+                        }
+                      }}>Guardar</Button>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
 
             <TabsContent value="roles" className="space-y-4">
               <h3 className="text-lg font-medium">Configuración de Roles</h3>
@@ -339,21 +451,33 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                       <TableRow key={centro.id}>
                         <TableCell className="font-medium">{centro.nombre}</TableCell>
                         <TableCell>{centro.categoria}</TableCell>
-                        <TableCell>{centro.distrito}</TableCell>
+                        <TableCell>{(centro as any).distrito || (centro as any).distrito_sanitario || ''}</TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {usuarios.filter(u => u.centro === centro.nombre).length} usuarios
+                            {usuarios.filter(u => u.assigned_center_id === centro.id).length} usuarios
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setSelectedCenterId(centro.id); setCenterUsersOpen(true); }}
+                            >
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setSelectedCenterId(centro.id); setCenterUsersOpen(true); }}
+                            >
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setSelectedCenterId(centro.id); setCenterUsersOpen(true); }}
+                            >
                               <Users className="w-4 h-4" />
                             </Button>
                           </div>
@@ -364,6 +488,61 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                 </Table>
               </div>
             </TabsContent>
+
+            <Dialog open={centerUsersOpen} onOpenChange={(o) => !o && (setCenterUsersOpen(false), setSelectedCenterId(null))}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Usuarios asignados al centro</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  {(() => {
+                    const list = usuarios.filter(u => u.assigned_center_id === selectedCenterId);
+                    if (!selectedCenterId) return <div className="text-sm text-gray-500">Seleccione un centro.</div>;
+                    if (list.length === 0) return <div className="text-sm text-gray-500">No hay usuarios asignados a este centro.</div>;
+                    return (
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Usuario</TableHead>
+                              <TableHead>Rol</TableHead>
+                              <TableHead>Estado</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {list.map(u => (
+                              <TableRow key={u.id}>
+                                <TableCell>
+                                  <div>
+                                    <div className="font-medium">{u.full_name || u.email}</div>
+                                    <div className="text-sm text-gray-500">{u.email}</div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge className={getRoleBadgeColor(u.role as UserRole)}>
+                                    {ROLE_DEFINITIONS[u.role as UserRole]?.name}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {u.is_active ? (
+                                    <Badge className="bg-green-100 text-green-800">Activo</Badge>
+                                  ) : (
+                                    <Badge className="bg-red-100 text-red-800">Inactivo</Badge>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    );
+                  })()}
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => { setCenterUsersOpen(false); setSelectedCenterId(null); }}>Cerrar</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             <TabsContent value="solicitudes" className="space-y-4">
               <h3 className="text-lg font-medium">Solicitudes de Traslado</h3>

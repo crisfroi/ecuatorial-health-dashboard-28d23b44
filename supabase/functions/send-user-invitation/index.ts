@@ -50,9 +50,7 @@ serve(async (req) => {
       siteUrl: siteUrl
     })
 
-    if (!RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY not configured')
-    }
+    const hasResend = !!RESEND_API_KEY
 
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Supabase environment variables not configured')

@@ -67,6 +67,8 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
   const [usuarios, setUsuarios] = useState<UserProfile[]>([]);
   const [viewUser, setViewUser] = useState<UserProfile | null>(null);
   const [editUser, setEditUser] = useState<UserProfile | null>(null);
+  const [centerUsersOpen, setCenterUsersOpen] = useState(false);
+  const [selectedCenterId, setSelectedCenterId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -457,19 +459,25 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => {
-                              const user = usuarios.find(u => u.assigned_center_id === centro.id);
-                              if (user) setViewUser(user);
-                            }}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setSelectedCenterId(centro.id); setCenterUsersOpen(true); }}
+                            >
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => {
-                              const user = usuarios.find(u => u.assigned_center_id === centro.id);
-                              if (user) setEditUser(user);
-                            }}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setSelectedCenterId(centro.id); setCenterUsersOpen(true); }}
+                            >
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setSelectedCenterId(centro.id); setCenterUsersOpen(true); }}
+                            >
                               <Users className="w-4 h-4" />
                             </Button>
                           </div>
@@ -480,6 +488,61 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                 </Table>
               </div>
             </TabsContent>
+
+            <Dialog open={centerUsersOpen} onOpenChange={(o) => !o && (setCenterUsersOpen(false), setSelectedCenterId(null))}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Usuarios asignados al centro</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                  {(() => {
+                    const list = usuarios.filter(u => u.assigned_center_id === selectedCenterId);
+                    if (!selectedCenterId) return <div className="text-sm text-gray-500">Seleccione un centro.</div>;
+                    if (list.length === 0) return <div className="text-sm text-gray-500">No hay usuarios asignados a este centro.</div>;
+                    return (
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Usuario</TableHead>
+                              <TableHead>Rol</TableHead>
+                              <TableHead>Estado</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {list.map(u => (
+                              <TableRow key={u.id}>
+                                <TableCell>
+                                  <div>
+                                    <div className="font-medium">{u.full_name || u.email}</div>
+                                    <div className="text-sm text-gray-500">{u.email}</div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge className={getRoleBadgeColor(u.role as UserRole)}>
+                                    {ROLE_DEFINITIONS[u.role as UserRole]?.name}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {u.is_active ? (
+                                    <Badge className="bg-green-100 text-green-800">Activo</Badge>
+                                  ) : (
+                                    <Badge className="bg-red-100 text-red-800">Inactivo</Badge>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    );
+                  })()}
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => { setCenterUsersOpen(false); setSelectedCenterId(null); }}>Cerrar</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             <TabsContent value="solicitudes" className="space-y-4">
               <h3 className="text-lg font-medium">Solicitudes de Traslado</h3>

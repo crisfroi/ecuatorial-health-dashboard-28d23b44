@@ -22,11 +22,12 @@ serve(async (req) => {
       hasFullName: !!requestBody.full_name 
     })
 
-    const { 
-      email, 
+    const {
+      email,
       role = 'OBSERVADOR',
       full_name,
-      department 
+      department,
+      assigned_center_id
     } = requestBody
 
     // Validación básica

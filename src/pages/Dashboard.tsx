@@ -31,6 +31,7 @@ import {
   ChevronUp,
   ChevronDown,
   Clock,
+  ArrowRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";

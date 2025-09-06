@@ -383,9 +383,9 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
               >
                 <PersonStanding className="h-5 w-5 text-blue-600" />{" "}
                 {/* Usamos PersonStanding */}
-                <span className="font-semibold text-blue-600">
-                  {effectiveStats?.generoMasculino || 0}
-                </span>
+                 <span className="font-semibold text-blue-600">
+                   {(effectiveStats?.porGenero as any)?.Masculino || 0}
+                 </span>
                 <Badge variant="secondary">Masculino</Badge>
               </div>
               {/* Mujeres */}
@@ -398,9 +398,9 @@ const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
               >
                 <PersonStanding className="h-5 w-5 text-pink-600" />{" "}
                 {/* Usamos PersonStanding */}
-                <span className="font-semibold text-pink-600">
-                  {effectiveStats?.generoFemenino || 0}
-                </span>
+                 <span className="font-semibold text-pink-600">
+                   {(effectiveStats?.porGenero as any)?.Femenino || 0}
+                 </span>
                 <Badge variant="secondary">Femenino</Badge>
               </div>
             </div>

@@ -603,9 +603,6 @@ const MinisterialPanel = () => {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         checked={isAllSelected}
-                        ref={(ref) => {
-                          if (ref) ref.indeterminate = isPartiallySelected;
-                        }}
                         onCheckedChange={handleSelectAll}
                       />
                       <Label className="text-sm">

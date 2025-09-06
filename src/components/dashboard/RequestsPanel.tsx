@@ -218,16 +218,18 @@ const RequestsPanel = ({
     error,
   } = useProfesionales(queryFilters);
 
+  const professionalsList = (profesionales || []) as Professional[];
+
   const filteredRequests = useMemo(() => {
     if (statusFilter === "todos") {
-      return profesionales.filter((req) => req.estado_solicitud !== "Aprobado");
+      return professionalsList.filter((req) => req.estado_solicitud !== "Aprobado");
     }
-    return profesionales;
-  }, [profesionales, statusFilter]);
+    return professionalsList;
+  }, [professionalsList, statusFilter]);
 
   console.log(
     "Total professionals from DB (filtered by hook):",
-    profesionales.length,
+    professionalsList.length,
   );
   console.log(
     "Filtered requests (non-approved, post-hook):",
@@ -297,7 +299,7 @@ const RequestsPanel = ({
     const newState = editingStates[requestId];
     if (!newState) return;
 
-    const currentProfesional = profesionales.find((p) => p.id === requestId);
+    const currentProfesional = professionalsList.find((p) => p.id === requestId);
     const currentStatus = currentProfesional?.estado_solicitud || "Recibido";
 
     const availableOptions = getAvailableStatusOptions(currentStatus);
@@ -460,7 +462,7 @@ const RequestsPanel = ({
     }
 
     const updates = selectedRequestIds.map(async (id) => {
-      const currentProfesional = profesionales.find((p) => p.id === id);
+      const currentProfesional = professionalsList.find((p) => p.id === id);
       const currentStatus = currentProfesional?.estado_solicitud || "Recibido";
 
       const availableOptions = getAvailableStatusOptions(currentStatus);
@@ -999,7 +1001,7 @@ const RequestsPanel = ({
                 <Button
                   onClick={handleBulkUpdate}
                   disabled={
-                    updateProfesional.isLoading ||
+                    updateProfesional.isPending ||
                     !bulkUpdateStatus ||
                     (bulkUpdateStatus === "Rechazado" && !bulkRejectionReason)
                   }
@@ -1053,7 +1055,6 @@ const RequestsPanel = ({
                     <Checkbox
                       checked={isAllSelected}
                       onCheckedChange={handleSelectAll}
-                      indeterminate={isIndeterminate ? true : undefined}
                     />
                   </TableHead>
                   <TableHead>Nombre Completo</TableHead>
@@ -1180,7 +1181,7 @@ const RequestsPanel = ({
                                 onClick={() => handleSaveState(request.id)}
                                 className="text-green-600 hover:text-green-700 hover:bg-green-50"
                                 disabled={
-                                  updateProfesional.isLoading ||
+                                  updateProfesional.isPending ||
                                   (editingStates[request.id] === "Rechazado" &&
                                     !rejectionReasons[request.id])
                                 }

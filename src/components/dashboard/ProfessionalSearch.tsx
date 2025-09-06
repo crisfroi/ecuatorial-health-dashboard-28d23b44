@@ -88,7 +88,11 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
         throw error;
       }
 
-      setSearchResults(data || []);
+      setSearchResults((data || []).map(item => ({
+        ...item,
+        documento_identidad: item.numero_dip || item.numero_pasaporte || '',
+        lugar_trabajo: item.nombre_centro || ''
+      })));
 
       if (data && data.length === 0) {
         setError(`No se encontraron profesionales con "${query}"`);

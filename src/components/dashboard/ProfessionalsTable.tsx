@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { Professional } from '@/types/Professional';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -300,10 +301,10 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   } = useProfesionales(combinedQueryFilters);
 
   // Aplicar primero filtros de rol (restricciones por centro para directivos)
-  const roleFilteredProfesionales = filterProfessionalsData(profesionales);
+  const roleFilteredProfesionales = filterProfessionalsData((profesionales || []) as Professional[]);
 
   // Obtener estadísticas de filtrado
-  const filterStats = getFilterStats(profesionales, roleFilteredProfesionales, 'profesionales');
+  const filterStats = getFilterStats((profesionales || []) as Professional[], roleFilteredProfesionales, 'profesionales');
 
   // Luego aplicar filtros de búsqueda
   const filteredProfesionales = roleFilteredProfesionales.filter(
@@ -715,7 +716,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
           {/* Indicador de restricciones de datos */}
           <DataRestrictionIndicator
             dataType="profesionales"
-            originalCount={profesionales.length}
+            originalCount={(profesionales || []).length}
             filteredCount={roleFilteredProfesionales.length}
             className="mb-4"
           />

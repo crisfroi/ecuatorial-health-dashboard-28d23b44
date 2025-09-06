@@ -273,9 +273,7 @@ const InteractiveCharts: React.FC<InteractiveChartsProps> = ({
                   <Tooltip />
                   <Bar
                     dataKey="value"
-                    fill={(entry: any, index: number) =>
-                      ["#8884d8", "#83a6ed", "#8dd1e1"][index] || "#8884d8"
-                    }
+                    fill="#8884d8"
                   />
                 </BarChart>
               </ResponsiveContainer>

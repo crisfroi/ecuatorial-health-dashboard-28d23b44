@@ -81,7 +81,8 @@ serve(async (req) => {
       user_metadata: {
         role: role,
         full_name: full_name || email.split('@')[0],
-        department: department || 'Ministerio de Sanidad y Bienestar Social'
+        department: department || 'Ministerio de Sanidad y Bienestar Social',
+        assigned_center_id: assigned_center_id || null
       }
     })
 

@@ -93,7 +93,8 @@ serve(async (req) => {
             user_metadata: {
               role: updates.role,
               full_name: updates.full_name,
-              department: updates.department
+              department: updates.department,
+              assigned_center_id: updates.assigned_center_id ?? null
             }
           }
         );

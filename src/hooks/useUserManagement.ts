@@ -102,31 +102,38 @@ export const useUserManagement = () => {
       }
 
     } catch (error: any) {
-      console.error('❌ Complete invitation error:', {
-        message: error.message,
-        name: error.name,
-        stack: error.stack
+      // Log completo del error
+      console.error('❌ Complete invitation error:', error, {
+        message: error?.message,
+        name: error?.name,
+        stack: error?.stack,
       });
-      
-      let errorMessage = error.message || "Error desconocido al enviar la invitación";
-      
+
+      // Preparar mensaje legible
+      let errorMessage = '';
+      if (typeof error === 'string') errorMessage = error;
+      else if (error?.message) errorMessage = error.message;
+      else if (error?.error) errorMessage = JSON.stringify(error.error);
+      else if (error?.data) errorMessage = JSON.stringify(error.data);
+      else errorMessage = 'Error desconocido al enviar la invitación';
+
       // Personalizar mensajes de error
       if (errorMessage.includes('Timeout')) {
-        errorMessage = "La invitación está tardando mucho. Verifique su conexión e intente nuevamente.";
+        errorMessage = 'La invitación está tardando mucho. Verifique su conexión e intente nuevamente.';
       } else if (errorMessage.includes('RESEND_API_KEY')) {
-        errorMessage = "Error de configuración: Servicio de correo no configurado";
-      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-        errorMessage = "Error de conexión. Verifique su internet e intente nuevamente";
+        errorMessage = 'Error de configuración: Servicio de correo no configurado';
+      } else if (errorMessage.toLowerCase().includes('network') || errorMessage.toLowerCase().includes('fetch')) {
+        errorMessage = 'Error de conexión. Verifique su internet e intente nuevamente';
       } else if (errorMessage.includes('not configured')) {
-        errorMessage = "Error de configuración del sistema";
+        errorMessage = 'Error de configuración del sistema';
       }
-      
+
       toast({
-        title: "❌ Error al enviar invitación",
+        title: '❌ Error al enviar invitación',
         description: errorMessage,
-        variant: "destructive",
+        variant: 'destructive',
       });
-      
+
       return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);

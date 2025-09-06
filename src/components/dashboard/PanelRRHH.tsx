@@ -61,7 +61,7 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
     permissions: [] as string[]
   });
 
-  const { inviteUser, getUserProfiles, deleteUser, isLoading } = useUserManagement();
+  const { inviteUser, getUserProfiles, updateUserRole, deleteUser, isLoading } = useUserManagement();
   const { user: currentUser } = useAuth();
   const { data: centrosSalud = [] } = useBuscarCentros({});
   const [usuarios, setUsuarios] = useState<UserProfile[]>([]);

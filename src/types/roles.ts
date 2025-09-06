@@ -116,7 +116,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'incidents',
       'iachat',
       'admin',
-      'ministerial'
+      'ministerial',
+      'traslados'
     ]
   },
 
@@ -280,7 +281,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'health-centers',
       'incidents',
       'iachat',
-      'admin'
+      'admin',
+      'traslados'
     ]
   },
 
@@ -384,7 +386,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'health-centers',
       'incidents',
       'iachat',
-      'admin' // Panel de admin limitado a su centro
+      'admin', // Panel de admin limitado a su centro
+      'traslados'
     ],
     restrictions: {
       dataFilters: {

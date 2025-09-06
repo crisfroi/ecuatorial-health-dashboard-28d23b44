@@ -65,6 +65,8 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
   const { user: currentUser } = useAuth();
   const { data: centrosSalud = [] } = useBuscarCentros({});
   const [usuarios, setUsuarios] = useState<UserProfile[]>([]);
+  const [viewUser, setViewUser] = useState<UserProfile | null>(null);
+  const [editUser, setEditUser] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     (async () => {

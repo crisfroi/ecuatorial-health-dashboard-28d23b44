@@ -457,10 +457,16 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => setViewUser(usuario)}>
+                            <Button variant="ghost" size="sm" onClick={() => {
+                              const user = usuarios.find(u => u.assigned_center_id === centro.id);
+                              if (user) setViewUser(user);
+                            }}>
                               <Eye className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => setEditUser(usuario)}>
+                            <Button variant="ghost" size="sm" onClick={() => {
+                              const user = usuarios.find(u => u.assigned_center_id === centro.id);
+                              if (user) setEditUser(user);
+                            }}>
                               <Edit className="w-4 h-4" />
                             </Button>
                             <Button variant="ghost" size="sm">

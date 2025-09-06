@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -61,6 +60,7 @@ serve(async (req) => {
           role: user.user_metadata?.role || 'OBSERVADOR',
           full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario',
           department: user.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
+          assigned_center_id: user.user_metadata?.assigned_center_id || null,
           created_at: user.created_at,
           updated_at: user.updated_at || user.created_at,
           is_active: !user.banned_until

@@ -318,6 +318,88 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
               </div>
             </TabsContent>
 
+            <Dialog open={!!viewUser} onOpenChange={(o) => !o && setViewUser(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Detalle de Usuario</DialogTitle>
+                </DialogHeader>
+                {viewUser && (
+                  <div className="space-y-2 text-sm">
+                    <div><strong>Email:</strong> {viewUser.email}</div>
+                    <div><strong>Nombre:</strong> {viewUser.full_name}</div>
+                    <div><strong>Rol:</strong> {viewUser.role}</div>
+                    <div><strong>Departamento:</strong> {viewUser.department}</div>
+                    <div><strong>Centro:</strong> {centrosSalud.find((c: any) => c.id === viewUser.assigned_center_id)?.nombre || 'No asignado'}</div>
+                    <div><strong>Estado:</strong> {viewUser.is_active ? 'Activo' : 'Inactivo'}</div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!editUser} onOpenChange={(o) => !o && setEditUser(null)}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Editar Usuario</DialogTitle>
+                </DialogHeader>
+                {editUser && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Nombre</label>
+                      <Input value={editUser.full_name || ''} onChange={(e) => setEditUser({ ...editUser, full_name: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Departamento</label>
+                      <Input value={editUser.department || ''} onChange={(e) => setEditUser({ ...editUser, department: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Rol</label>
+                      <Select value={editUser.role as UserRole} onValueChange={(v) => setEditUser({ ...editUser, role: v as UserRole })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(ROLE_DEFINITIONS).map(([key, role]) => (
+                            <SelectItem key={key} value={key}>{role.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Centro Asignado</label>
+                      <Select value={editUser.assigned_center_id || 'none'} onValueChange={(v) => setEditUser({ ...editUser, assigned_center_id: v === 'none' ? undefined as any : v })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar centro" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sin centro asignado</SelectItem>
+                          {centrosSalud.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setEditUser(null)}>Cancelar</Button>
+                      <Button onClick={async () => {
+                        if (!editUser) return;
+                        const res = await updateUserRole(editUser.id, {
+                          role: editUser.role,
+                          full_name: editUser.full_name,
+                          department: editUser.department,
+                          assigned_center_id: editUser.assigned_center_id || null,
+                        });
+                        if ((res as any)?.success) {
+                          setEditUser(null);
+                          const list = await getUserProfiles();
+                          setUsuarios(list);
+                        }
+                      }}>Guardar</Button>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
             <TabsContent value="roles" className="space-y-4">
               <h3 className="text-lg font-medium">Configuración de Roles</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -356,7 +438,7 @@ const PanelRRHH: React.FC<PanelRRHHProps> = ({ userRole }) => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Centro</TableHead>
-                      <TableHead>Categor��a</TableHead>
+                      <TableHead>Categoría</TableHead>
                       <TableHead>Distrito</TableHead>
                       <TableHead>Usuarios Asignados</TableHead>
                       <TableHead>Acciones</TableHead>

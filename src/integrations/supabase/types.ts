@@ -1718,6 +1718,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      is_admin_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       marcar_carnet_generado: {
         Args: { p_profesional_id: string; p_url_carnet: string }
         Returns: boolean

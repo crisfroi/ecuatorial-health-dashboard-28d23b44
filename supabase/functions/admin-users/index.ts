@@ -119,31 +119,42 @@ serve(async (req) => {
 
       case 'deleteUser':
         console.log('🗑️ Deleting user:', userId);
-        
+
         if (!userId) {
-          throw new Error('Missing userId for user deletion');
+          return new Response(JSON.stringify({ success: false, error: 'Missing userId for user deletion' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
         }
 
         // Delete user from auth
-        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+        try {
+          const deleteResult = await supabaseAdmin.auth.admin.deleteUser(userId);
+          console.log('🗑️ deleteResult:', deleteResult);
+          const deleteError = deleteResult?.error;
 
-        if (deleteError) {
-          console.error('❌ Delete error:', deleteError);
-          throw new Error(`Error deleting user: ${deleteError.message}`);
-        }
+          if (deleteError) {
+            console.error('❌ Delete error:', deleteError);
+            return new Response(JSON.stringify({ success: false, error: deleteError }), {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
 
-        console.log('✅ User deleted successfully');
+          console.log('✅ User deleted successfully');
 
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: 'User deleted successfully'
-          }),
-          {
+          return new Response(JSON.stringify({ success: true, message: 'User deleted successfully' }), {
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
+          });
+        } catch (err) {
+          console.error('❌ Unexpected error deleting user:', err);
+          const payload = (err instanceof Error) ? { message: err.message, stack: err.stack } : err;
+          return new Response(JSON.stringify({ success: false, error: payload }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
 
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -151,11 +162,15 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Error in admin-users function:', error);
-    
+
+    const errorPayload = (error instanceof Error)
+      ? { message: error.message, stack: error.stack }
+      : error;
+
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Unknown error occurred'
+        error: errorPayload
       }),
       {
         status: 500,

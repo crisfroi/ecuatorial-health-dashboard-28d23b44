@@ -482,6 +482,7 @@ const Dashboard = () => {
     ...(userRole && canAccessTab("ministerial") ? [{ id: "ministerial", label: "Ministerial", icon: Settings }] : []),
     ...(userRole && canAccessTab("incidents") ? [{ id: "incidents", label: "Incidencias", icon: Activity }] : []),
     ...(userRole && canAccessTab("health-centers") ? [{ id: "health-centers", label: "Centros", icon: MapPin }] : []),
+    ...(userRole && canAccessTab("traslados") ? [{ id: "traslados", label: "Traslados", icon: ArrowRight }] : []),
     ...(userRole && hasPermission("manage_users") ? [{ id: "users", label: "Usuarios", icon: UserCog }] : []),
     ...(userRole && hasPermission("system_configuration") ? [{ id: "admin", label: "Admin", icon: Settings }] : []),
   ].filter(tab => userRole ? canAccessTab(tab.id) : tab.id === "overview" || tab.id === "professionals");

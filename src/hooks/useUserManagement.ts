@@ -240,7 +240,7 @@ export const useUserManagement = () => {
   const deleteUser = async (userId: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('admin-users', {
-        body: { 
+        body: {
           action: 'deleteUser',
           userId
         }
@@ -251,7 +251,7 @@ export const useUserManagement = () => {
       }
 
       if (!data.success) {
-        throw new Error(data.error || 'Error deleting user');
+        throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error || 'Error deleting user'));
       }
 
       toast({
@@ -260,14 +260,31 @@ export const useUserManagement = () => {
       });
 
       return { success: true };
-    } catch (error: any) {
-      console.error('Error deleting user:', error);
+    } catch (fnError: any) {
+      console.error('❌ Supabase function error (detailed) deleting user:', fnError);
+
+      let detailedMessage = fnError?.message || String(fnError);
+
+      try {
+        if (fnError?.response && typeof fnError.response.text === 'function') {
+          const text = await fnError.response.text();
+          detailedMessage = `${detailedMessage} - ${text}`;
+        } else if (fnError?.error) {
+          detailedMessage = JSON.stringify(fnError.error);
+        } else if (fnError?.data) {
+          detailedMessage = JSON.stringify(fnError.data);
+        }
+      } catch (readErr) {
+        console.warn('No se pudo leer body del error de función (delete):', readErr);
+      }
+
       toast({
         title: "Error al eliminar usuario",
-        description: error.message,
+        description: detailedMessage,
         variant: "destructive",
       });
-      return { success: false, error: error.message };
+
+      return { success: false, error: detailedMessage };
     }
   };
 

@@ -41,9 +41,15 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
   const [centros, setCentros] = useState<{ id: string; nombre: string }[]>([]);
 
   const updateFilter = (key: keyof Filtros, value: string | number | undefined) => {
+    let normalized: any = value;
+    if (key === 'funcion_publica' && typeof value === 'string') {
+      if (value === 'true') normalized = true;
+      else if (value === 'false') normalized = false;
+      else normalized = undefined;
+    }
     onFiltersChange({
       ...filters,
-      [key]: value === 'todos' ? undefined : value
+      [key]: normalized === 'todos' ? undefined : normalized
     });
   };
 

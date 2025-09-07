@@ -75,8 +75,16 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
         if (col === 'genero') setGeneros(values);
         if (col === 'tipo_sector') setSectores(values);
         if (col === 'distrito') setDistritos(values);
-        if (col === 'año_graduacion') setAnios(values);
+        if (col === 'año_graduacion') setAnios((values as string[]).map(v => Number(v)).filter(n => !Number.isNaN(n)).sort((a,b)=>a-b));
       });
+
+      const { data: centrosData, error: centrosError } = await supabase
+        .from('centros_salud')
+        .select('id, nombre')
+        .order('nombre');
+      if (!centrosError && centrosData) {
+        setCentros(centrosData as any);
+      }
     };
     fetchDistinct();
   }, []);

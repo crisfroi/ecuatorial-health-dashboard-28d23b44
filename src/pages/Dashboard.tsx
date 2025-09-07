@@ -85,12 +85,18 @@ interface Filtros {
   genero?: string;
   tipo_sector?: string;
   distrito?: string;
-  anoGraduacion?: string;
+  distrito_sanitario?: string;
+  centro_id?: string;
+  centro_nombre?: string;
+  edad_minima?: number;
+  edad_maxima?: number;
+  año_graduacion?: number;
   vencimiento_proximo?: boolean;
   carnet_vencido?: boolean;
   prioridad_renovacion?: "alta" | "media" | "baja" | "vencido" | "all";
   pais_formacion?: string;
   institucion?: string;
+  funcion_publica?: boolean;
 }
 
 const Dashboard = () => {

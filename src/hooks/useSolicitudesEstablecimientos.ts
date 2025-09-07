@@ -168,7 +168,7 @@ export const useSolicitudesEstablecimientos = () => {
 
     if (error) {
       const message = getErrorMessage(error);
-      console.error("❌ Error al crear solicitud:", message, error);
+      console.error("�� Error al crear solicitud:", message, error);
       throw error;
     }
 
@@ -241,6 +241,7 @@ export const useSolicitudesEstablecimientos = () => {
 
   const crearSolicitudMutation = useMutation({
     mutationFn: crearSolicitud,
+    retry: false,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["solicitudes-establecimientos"] });
       toast({

@@ -47,8 +47,8 @@ const COLORS = [
   "#82CA9D",
 ];
 
-const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
-  const { data: stats, isLoading, error } = useEstadisticasAvanzadas();
+const DashboardCharts = ({ onChartClick, filters }: DashboardChartsProps) => {
+  const { data: stats, isLoading, error } = useEstadisticasAvanzadas(filters);
 
   // Debug logging (hidden in production)
   // console.log("DashboardCharts: Stats data:", stats);

@@ -907,6 +907,23 @@ const MinisterialPanel = () => {
             </Card>
           </div>
         </TabsContent>
+
+        {/* Establecimientos pendientes de firma */}
+        <TabsContent value="signatures">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center space-x-2">
+                  <Building2 className="w-5 h-5 text-blue-600" />
+                  <span>Establecimientos Pendientes de Firma</span>
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SolicitudesEstablecimientos userRole="PERSONALIDAD_MINISTERIAL" defaultEstado="Pendiente de Firma" />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Review Dialog - Enhanced Professional Detail */}

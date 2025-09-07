@@ -79,6 +79,7 @@ import EducationCard from "./professional-detail/EducationCard";
 import WorkplaceCard from "./professional-detail/WorkplaceCard";
 import ProfessionalCardInfo from "./professional-detail/ProfessionalCardInfo";
 import StatusCard from "./professional-detail/StatusCard";
+import SolicitudesEstablecimientos from "./SolicitudesEstablecimientos";
 
 const MinisterialPanel = () => {
   const { toast } = useToast();

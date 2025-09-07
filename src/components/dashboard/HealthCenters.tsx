@@ -28,6 +28,7 @@ import {
   Edit,
   Plus,
   Download,
+  FileImage,
 } from "lucide-react";
 import {
   useBuscarCentros,

@@ -650,6 +650,7 @@ const Dashboard = () => {
         {showStatsCards && (
           <div className="mb-6">
             <StatsCards
+              filters={dashboardFilters}
               onNavigateToProfessionals={handleNavigateToProfessionals}
             />
           </div>

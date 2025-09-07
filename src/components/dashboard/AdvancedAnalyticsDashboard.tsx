@@ -63,6 +63,7 @@ import AnalyticsSummary from "./AnalyticsSummary";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import FinancialAnalytics from "./FinancialAnalytics";
 import QuickDiagnostic from "./QuickDiagnostic";
+import ChartActions from "./ChartActions";
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 import {

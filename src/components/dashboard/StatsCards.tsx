@@ -18,12 +18,31 @@ import { useEstadisticasMock } from "@/hooks/useEstadisticasMock";
 import { useSupabaseConnectivity } from "@/hooks/useSupabaseConnectivity";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 
-interface StatsCardsProps {
-  onNavigateToProfessionals: (filters: any) => void;
+interface GlobalFilters {
+  area_profesional?: string;
+  estado_solicitud?: string;
+  provincia?: string;
+  genero?: string;
+  tipo_sector?: string;
+  distrito?: string;
+  distrito_sanitario?: string;
+  centro_id?: string;
+  centro_nombre?: string;
+  edad_minima?: number;
+  edad_maxima?: number;
+  año_graduacion?: number;
+  pais_formacion?: string;
+  institucion?: string;
+  funcion_publica?: boolean;
 }
 
-const StatsCards = ({ onNavigateToProfessionals }: StatsCardsProps) => {
-  const { data: stats, isLoading, error } = useEstadisticasAvanzadas();
+interface StatsCardsProps {
+  onNavigateToProfessionals: (filters: any) => void;
+  filters?: Partial<GlobalFilters>;
+}
+
+const StatsCards = ({ onNavigateToProfessionals, filters }: StatsCardsProps) => {
+  const { data: stats, isLoading, error } = useEstadisticasAvanzadas(filters);
   const {
     data: testStats,
     isLoading: testLoading,

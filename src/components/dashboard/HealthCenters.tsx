@@ -154,6 +154,23 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
   // Aplicar filtros de rol (restricciones por centro para directivos)
   const roleFilteredCentros = filterCentersData(centros);
 
+  // Aplicar filtros globales del dashboard si vienen
+  const globallyFilteredCentros = (roleFilteredCentros || []).filter((c: any) => {
+    if (dashboardFilters?.tipo_sector && dashboardFilters.tipo_sector !== 'todos') {
+      if ((c.sector || '').trim() !== dashboardFilters.tipo_sector) return false;
+    }
+    if (dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos') {
+      if ((c.provincia || '').trim() !== dashboardFilters.provincia) return false;
+    }
+    if (dashboardFilters?.distrito && dashboardFilters.distrito !== 'todos') {
+      if ((c.distrito || '').trim() !== dashboardFilters.distrito) return false;
+    }
+    if (dashboardFilters?.distrito_sanitario && dashboardFilters.distrito_sanitario !== 'todos') {
+      if ((c.distrito_sanitario || '').trim() !== dashboardFilters.distrito_sanitario) return false;
+    }
+    return true;
+  });
+
   // Excel export functionality
   const exportCentersToExcel = () => {
     try {
@@ -170,7 +187,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
         "Total Profesionales",
       ]];
 
-      const rows = roleFilteredCentros.map((centro) => [
+      const rows = globallyFilteredCentros.map((centro) => [
         centro.id || "",
         centro.nombre || "",
         centro.categoria || "",
@@ -193,7 +210,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
         ["Búsqueda", searchTerm || ""],
         ["Categoría", selectedCategory || ""],
         ["Distrito Sanitario", selectedDistrito || ""],
-        ["Total exportado", String(roleFilteredCentros.length)],
+        ["Total exportado", String(globallyFilteredCentros.length)],
       ];
       const wsMeta = XLSX.utils.aoa_to_sheet([["Clave","Valor"], ...meta]);
       XLSX.utils.book_append_sheet(wb, wsMeta, 'Metadatos');
@@ -212,7 +229,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
 
       toast({
         title: 'Exportación exitosa',
-        description: `Se ha descargado la lista de ${roleFilteredCentros.length} centros de salud.`,
+        description: `Se ha descargado la lista de ${globallyFilteredCentros.length} centros de salud.`,
       });
     } catch (error) {
       console.error('Error exporting to Excel:', error);
@@ -351,7 +368,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
 
   // Filter centers by category for cards
   const getCentersByCategory = (categoria: string) => {
-    return centros.filter((centro) => centro.categoria === categoria);
+    return globallyFilteredCentros.filter((centro) => centro.categoria === categoria);
   };
 
   // Handle category card click to filter
@@ -803,6 +820,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
           <p className="text-gray-600 mt-1">
             Gestión de centros de trabajo sanitarios
           </p>
+          <p className="text-xs text-gray-500">Resultados filtrados: {globallyFilteredCentros.length}</p>
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -867,7 +885,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                     <Input name="nombre" required />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Categor��a *</label>
+                    <label className="text-sm font-medium">Categor���a *</label>
                     <Select name="categoria" required>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar categoría" />
@@ -1302,7 +1320,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                   </CardContent>
                 </Card>
               ))
-            : roleFilteredCentros.map((centro) => (
+            : globallyFilteredCentros.map((centro) => (
                 <Card
                   key={centro.id}
                   className="hover:shadow-lg transition-shadow cursor-pointer"
@@ -1417,7 +1435,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                           </td>
                         </tr>
                       ))
-                    : roleFilteredCentros.map((centro) => (
+                    : globallyFilteredCentros.map((centro) => (
                         <tr
                           key={centro.id}
                           className="border-b hover:bg-gray-50"

@@ -66,11 +66,11 @@ export interface TitulacionCategoryStats {
 }
 
 // Hook for top centers by number of professionals
-export const useTopCenters = () => {
+export const useTopCenters = (filters?: Partial<{ provincia: string; distrito_sanitario: string; distrito: string; sector: string }>) => {
   return useQuery({
-    queryKey: ["topCenters"],
+    queryKey: ["topCenters", filters || null],
     queryFn: async (): Promise<TopCenter[]> => {
-      const { data, error } = await supabase
+      let centersQuery = supabase
         .from("centros_salud")
         .select(
           `
@@ -83,6 +83,13 @@ export const useTopCenters = () => {
         `,
         )
         .order("nombre");
+
+      if (filters?.provincia) centersQuery = centersQuery.eq('provincia', filters.provincia);
+      if (filters?.distrito_sanitario) centersQuery = centersQuery.eq('distrito_sanitario', filters.distrito_sanitario);
+      if (filters?.distrito) centersQuery = centersQuery.eq('distrito', filters.distrito);
+      if (filters?.sector) centersQuery = centersQuery.eq('sector', filters.sector);
+
+      const { data, error } = await centersQuery;
 
       if (error) throw error;
 
@@ -110,14 +117,27 @@ export const useTopCenters = () => {
 };
 
 // Hook for professional areas statistics
-export const useAreaProfessionalStats = () => {
+export const useAreaProfessionalStats = (filters?: Partial<{ provincia: string; distrito_sanitario: string; distrito: string; genero: string; tipo_sector: string; centro_id: string; centro_nombre: string; edad_minima: number; edad_maxima: number; año_graduacion: number }>) => {
   return useQuery({
-    queryKey: ["areaProfessionalStats"],
+    queryKey: ["areaProfessionalStats", filters || null],
     queryFn: async (): Promise<AreaProfessionalStats[]> => {
-      const { data, error } = await supabase
+      let profQuery = supabase
         .from("profesionales_sanitarios")
         .select("area_profesional, estado_solicitud")
         .not("area_profesional", "is", null);
+
+      if (filters?.provincia) profQuery = profQuery.eq('provincia', filters.provincia);
+      if (filters?.distrito_sanitario) profQuery = profQuery.eq('distrito_sanitario', filters.distrito_sanitario);
+      if (filters?.distrito) profQuery = profQuery.eq('distrito', filters.distrito);
+      if (filters?.genero) profQuery = profQuery.eq('genero', filters.genero);
+      if (filters?.tipo_sector) profQuery = profQuery.eq('tipo_sector', filters.tipo_sector);
+      if (filters?.centro_id) profQuery = profQuery.eq('centro_salud_id', filters.centro_id);
+      if (!filters?.centro_id && filters?.centro_nombre) profQuery = profQuery.eq('nombre_centro', filters.centro_nombre);
+      if (typeof filters?.edad_minima === 'number') profQuery = profQuery.gte('edad', filters.edad_minima);
+      if (typeof filters?.edad_maxima === 'number') profQuery = profQuery.lte('edad', filters.edad_maxima);
+      if (typeof filters?.año_graduacion === 'number') profQuery = profQuery.eq('año_graduacion', filters.año_graduacion);
+
+      const { data, error } = await profQuery;
 
       if (error) throw error;
 
@@ -160,24 +180,37 @@ export const useAreaProfessionalStats = () => {
 };
 
 // Hook for district statistics
-export const useDistrictStats = () => {
+export const useDistrictStats = (filters?: Partial<{ provincia: string; distrito_sanitario: string; distrito: string; genero: string; tipo_sector: string; centro_id: string; centro_nombre: string }>) => {
   return useQuery({
-    queryKey: ["districtStats"],
+    queryKey: ["districtStats", filters || null],
     queryFn: async (): Promise<DistrictStats[]> => {
       // Get professionals by district
-      const { data: profData, error: profError } = await supabase
+      let profQuery = supabase
         .from("profesionales_sanitarios")
         .select("distrito_sanitario, area_profesional")
         .eq("estado_solicitud", "Aprobado")
         .not("distrito_sanitario", "is", null);
+      if (filters?.provincia) profQuery = profQuery.eq('provincia', filters.provincia);
+      if (filters?.distrito_sanitario) profQuery = profQuery.eq('distrito_sanitario', filters.distrito_sanitario);
+      if (filters?.distrito) profQuery = profQuery.eq('distrito', filters.distrito);
+      if (filters?.genero) profQuery = profQuery.eq('genero', filters.genero);
+      if (filters?.tipo_sector) profQuery = profQuery.eq('tipo_sector', filters.tipo_sector);
+      if (filters?.centro_id) profQuery = profQuery.eq('centro_salud_id', filters.centro_id);
+      if (!filters?.centro_id && filters?.centro_nombre) profQuery = profQuery.eq('nombre_centro', filters.centro_nombre);
+      const { data: profData, error: profError } = await profQuery;
 
       if (profError) throw profError;
 
       // Get centers by district
-      const { data: centerData, error: centerError } = await supabase
+      let centerQuery = supabase
         .from("centros_salud")
         .select("distrito_sanitario")
         .not("distrito_sanitario", "is", null);
+      if (filters?.provincia) centerQuery = centerQuery.eq('provincia', filters.provincia);
+      if (filters?.distrito_sanitario) centerQuery = centerQuery.eq('distrito_sanitario', filters.distrito_sanitario);
+      if (filters?.distrito) centerQuery = centerQuery.eq('distrito', filters.distrito);
+      if (filters?.tipo_sector) centerQuery = centerQuery.eq('sector', filters.tipo_sector);
+      const { data: centerData, error: centerError } = await centerQuery;
 
       if (centerError) throw centerError;
 
@@ -220,15 +253,25 @@ export const useDistrictStats = () => {
 };
 
 // Hook for age range statistics
-export const useAgeRangeStats = () => {
+export const useAgeRangeStats = (filters?: Partial<{ provincia: string; distrito_sanitario: string; distrito: string; genero: string; tipo_sector: string; centro_id: string; centro_nombre: string; edad_minima: number; edad_maxima: number }>) => {
   return useQuery({
-    queryKey: ["ageRangeStats"],
+    queryKey: ["ageRangeStats", filters || null],
     queryFn: async (): Promise<AgeRangeStats[]> => {
-      const { data, error } = await supabase
+      let profQuery = supabase
         .from("profesionales_sanitarios")
         .select("edad")
         .eq("estado_solicitud", "Aprobado")
         .not("edad", "is", null);
+      if (filters?.provincia) profQuery = profQuery.eq('provincia', filters.provincia);
+      if (filters?.distrito_sanitario) profQuery = profQuery.eq('distrito_sanitario', filters.distrito_sanitario);
+      if (filters?.distrito) profQuery = profQuery.eq('distrito', filters.distrito);
+      if (filters?.genero) profQuery = profQuery.eq('genero', filters.genero);
+      if (filters?.tipo_sector) profQuery = profQuery.eq('tipo_sector', filters.tipo_sector);
+      if (filters?.centro_id) profQuery = profQuery.eq('centro_salud_id', filters.centro_id);
+      if (!filters?.centro_id && filters?.centro_nombre) profQuery = profQuery.eq('nombre_centro', filters.centro_nombre);
+      if (typeof filters?.edad_minima === 'number') profQuery = profQuery.gte('edad', filters.edad_minima);
+      if (typeof filters?.edad_maxima === 'number') profQuery = profQuery.lte('edad', filters.edad_maxima);
+      const { data, error } = await profQuery;
 
       if (error) throw error;
 
@@ -277,17 +320,26 @@ export const useAgeRangeStats = () => {
 };
 
 // Hook for graduation year statistics
-export const useGraduationYearStats = () => {
+export const useGraduationYearStats = (filters?: Partial<{ provincia: string; distrito_sanitario: string; distrito: string; genero: string; tipo_sector: string; centro_id: string; centro_nombre: string; año_graduacion: number }>) => {
   return useQuery({
-    queryKey: ["graduationYearStats"],
+    queryKey: ["graduationYearStats", filters || null],
     queryFn: async (): Promise<GraduationYearStats[]> => {
-      const { data, error } = await supabase
+      let profQuery = supabase
         .from("profesionales_sanitarios")
         .select("año_graduacion")
         .eq("estado_solicitud", "Aprobado")
         .not("año_graduacion", "is", null)
-        .gte("año_graduacion", 1990) // Filter reasonable years
+        .gte("año_graduacion", 1990)
         .lte("año_graduacion", new Date().getFullYear());
+      if (filters?.provincia) profQuery = profQuery.eq('provincia', filters.provincia);
+      if (filters?.distrito_sanitario) profQuery = profQuery.eq('distrito_sanitario', filters.distrito_sanitario);
+      if (filters?.distrito) profQuery = profQuery.eq('distrito', filters.distrito);
+      if (filters?.genero) profQuery = profQuery.eq('genero', filters.genero);
+      if (filters?.tipo_sector) profQuery = profQuery.eq('tipo_sector', filters.tipo_sector);
+      if (filters?.centro_id) profQuery = profQuery.eq('centro_salud_id', filters.centro_id);
+      if (!filters?.centro_id && filters?.centro_nombre) profQuery = profQuery.eq('nombre_centro', filters.centro_nombre);
+      if (typeof filters?.año_graduacion === 'number') profQuery = profQuery.eq('año_graduacion', filters.año_graduacion);
+      const { data, error } = await profQuery;
 
       if (error) throw error;
 
@@ -312,14 +364,22 @@ export const useGraduationYearStats = () => {
 };
 
 // Hook for countries of formation statistics
-export const useCountryStats = () => {
+export const useCountryStats = (filters?: Partial<{ provincia: string; distrito_sanitario: string; distrito: string; genero: string; tipo_sector: string; centro_id: string; centro_nombre: string }>) => {
   return useQuery({
-    queryKey: ["countryStats"],
+    queryKey: ["countryStats", filters || null],
     queryFn: async (): Promise<CountryStats[]> => {
-      const { data, error } = await supabase
+      let profQuery = supabase
         .from("profesionales_sanitarios")
         .select("pais_formacion_1, pais_formacion_2")
         .eq("estado_solicitud", "Aprobado");
+      if (filters?.provincia) profQuery = profQuery.eq('provincia', filters.provincia);
+      if (filters?.distrito_sanitario) profQuery = profQuery.eq('distrito_sanitario', filters.distrito_sanitario);
+      if (filters?.distrito) profQuery = profQuery.eq('distrito', filters.distrito);
+      if (filters?.genero) profQuery = profQuery.eq('genero', filters.genero);
+      if (filters?.tipo_sector) profQuery = profQuery.eq('tipo_sector', filters.tipo_sector);
+      if (filters?.centro_id) profQuery = profQuery.eq('centro_salud_id', filters.centro_id);
+      if (!filters?.centro_id && filters?.centro_nombre) profQuery = profQuery.eq('nombre_centro', filters.centro_nombre);
+      const { data, error } = await profQuery;
 
       if (error) throw error;
 
@@ -353,16 +413,24 @@ export const useCountryStats = () => {
 };
 
 // Hook for institution statistics
-export const useInstitutionStats = () => {
+export const useInstitutionStats = (filters?: Partial<{ provincia: string; distrito_sanitario: string; distrito: string; genero: string; tipo_sector: string; centro_id: string; centro_nombre: string }>) => {
   return useQuery({
-    queryKey: ["institutionStats"],
+    queryKey: ["institutionStats", filters || null],
     queryFn: async (): Promise<InstitutionStats[]> => {
-      const { data, error } = await supabase
+      let profQuery = supabase
         .from("profesionales_sanitarios")
         .select(
           "institucion_1, institucion_2, pais_formacion_1, pais_formacion_2",
         )
         .eq("estado_solicitud", "Aprobado");
+      if (filters?.provincia) profQuery = profQuery.eq('provincia', filters.provincia);
+      if (filters?.distrito_sanitario) profQuery = profQuery.eq('distrito_sanitario', filters.distrito_sanitario);
+      if (filters?.distrito) profQuery = profQuery.eq('distrito', filters.distrito);
+      if (filters?.genero) profQuery = profQuery.eq('genero', filters.genero);
+      if (filters?.tipo_sector) profQuery = profQuery.eq('tipo_sector', filters.tipo_sector);
+      if (filters?.centro_id) profQuery = profQuery.eq('centro_salud_id', filters.centro_id);
+      if (!filters?.centro_id && filters?.centro_nombre) profQuery = profQuery.eq('nombre_centro', filters.centro_nombre);
+      const { data, error } = await profQuery;
 
       if (error) throw error;
 
@@ -400,13 +468,18 @@ export const useInstitutionStats = () => {
 };
 
 // Hook for center category statistics
-export const useCenterCategoryStats = () => {
+export const useCenterCategoryStats = (filters?: Partial<{ provincia: string; distrito_sanitario: string; distrito: string; sector: string }>) => {
   return useQuery({
-    queryKey: ["centerCategoryStats"],
+    queryKey: ["centerCategoryStats", filters || null],
     queryFn: async (): Promise<CenterCategoryStats[]> => {
-      const { data: centers, error } = await supabase
+      let centersQuery = supabase
         .from("centros_salud")
         .select("categoria, nombre, id");
+      if (filters?.provincia) centersQuery = centersQuery.eq('provincia', filters.provincia);
+      if (filters?.distrito_sanitario) centersQuery = centersQuery.eq('distrito_sanitario', filters.distrito_sanitario);
+      if (filters?.distrito) centersQuery = centersQuery.eq('distrito', filters.distrito);
+      if (filters?.sector) centersQuery = centersQuery.eq('sector', filters.sector);
+      const { data: centers, error } = await centersQuery;
 
       if (error) throw error;
 
@@ -451,14 +524,22 @@ export const useCenterCategoryStats = () => {
 };
 
 // Hook for categoria_titulacion statistics
-export const useTitulacionCategoryStats = () => {
+export const useTitulacionCategoryStats = (filters?: Partial<{ provincia: string; distrito_sanitario: string; distrito: string; genero: string; tipo_sector: string; centro_id: string; centro_nombre: string }>) => {
   return useQuery({
-    queryKey: ["titulacionCategoryStats"],
+    queryKey: ["titulacionCategoryStats", filters || null],
     queryFn: async (): Promise<TitulacionCategoryStats[]> => {
-      const { data, error } = await supabase
+      let profQuery = supabase
         .from("profesionales_sanitarios")
         .select("categoria_titulacion, estado_solicitud")
         .not("categoria_titulacion", "is", null);
+      if (filters?.provincia) profQuery = profQuery.eq('provincia', filters.provincia);
+      if (filters?.distrito_sanitario) profQuery = profQuery.eq('distrito_sanitario', filters.distrito_sanitario);
+      if (filters?.distrito) profQuery = profQuery.eq('distrito', filters.distrito);
+      if (filters?.genero) profQuery = profQuery.eq('genero', filters.genero);
+      if (filters?.tipo_sector) profQuery = profQuery.eq('tipo_sector', filters.tipo_sector);
+      if (filters?.centro_id) profQuery = profQuery.eq('centro_salud_id', filters.centro_id);
+      if (!filters?.centro_id && filters?.centro_nombre) profQuery = profQuery.eq('nombre_centro', filters.centro_nombre);
+      const { data, error } = await profQuery;
 
       if (error) throw error;
 

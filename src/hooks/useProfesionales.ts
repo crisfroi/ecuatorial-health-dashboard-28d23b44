@@ -128,6 +128,10 @@ export function useProfesionales(filtros: Filtros = {}) {
         query = query.eq("año_graduacion", parseInt(filtros.anoGraduacion));
       }
 
+      if ((filtros as any).centro_salud_id) {
+        query = query.eq('centro_salud_id', (filtros as any).centro_salud_id);
+      }
+
       if (filtros.lugar_trabajo && filtros.lugar_trabajo !== "todos") {
         query = query.eq("nombre_centro", filtros.lugar_trabajo);
       }

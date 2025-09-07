@@ -85,12 +85,18 @@ interface Filtros {
   genero?: string;
   tipo_sector?: string;
   distrito?: string;
-  anoGraduacion?: string;
+  distrito_sanitario?: string;
+  centro_id?: string;
+  centro_nombre?: string;
+  edad_minima?: number;
+  edad_maxima?: number;
+  año_graduacion?: number;
   vencimiento_proximo?: boolean;
   carnet_vencido?: boolean;
   prioridad_renovacion?: "alta" | "media" | "baja" | "vencido" | "all";
   pais_formacion?: string;
   institucion?: string;
+  funcion_publica?: boolean;
 }
 
 const Dashboard = () => {
@@ -296,7 +302,7 @@ const Dashboard = () => {
       console.error("Error inesperado al cerrar sesión:", error);
       toast({
         title: "Error inesperado",
-        description: "Ocurrió un error al cerrar sesi��n.",
+        description: "Ocurrió un error al cerrar sesi���n.",
         variant: "destructive",
       });
     }
@@ -304,6 +310,21 @@ const Dashboard = () => {
 
   const handleUserSettings = () => {
     console.log("Dashboard: Configuración de usuario.");
+  };
+
+  const handleFullPageScreenshot = async () => {
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const element = document.body;
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      const link = document.createElement("a");
+      link.download = `captura_dashboard_${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (e) {
+      console.error("Error generating screenshot:", e);
+      toast({ title: "Error al capturar pantalla", description: "Intenta nuevamente.", variant: "destructive" });
+    }
   };
 
   const sendSmsNotification = async (
@@ -499,7 +520,8 @@ const Dashboard = () => {
             onValueChange={setActiveTab}
             className="space-y-0"
           >
-            <TabsList className="w-full overflow-x-auto whitespace-nowrap flex gap-2 p-2 bg-muted rounded-md">
+            <div className="w-full overflow-x-auto whitespace-nowrap">
+              <TabsList className="min-w-max flex gap-2 p-2 bg-muted rounded-md no-scrollbar">
               {tabsConfig.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -522,7 +544,8 @@ const Dashboard = () => {
                   </TabsTrigger>
                 );
               })}
-            </TabsList>
+              </TabsList>
+            </div>
           </Tabs>
         </div>
       </div>
@@ -642,6 +665,7 @@ const Dashboard = () => {
         {showStatsCards && (
           <div className="mb-6">
             <StatsCards
+              filters={dashboardFilters}
               onNavigateToProfessionals={handleNavigateToProfessionals}
             />
           </div>
@@ -665,7 +689,7 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <DashboardCharts onChartClick={handleChartClick} />
+                <DashboardCharts onChartClick={handleChartClick} filters={dashboardFilters} />
               </div>
               <div className="space-y-6">
                 <GuardiasStatsWidget
@@ -736,6 +760,7 @@ const Dashboard = () => {
           <TabsContent value="analytics" className="space-y-6">
             <AdvancedAnalyticsDashboard
               onNavigateToTab={handleNavigateFromAnalytics}
+              filters={dashboardFilters}
             />
           </TabsContent>
 
@@ -783,6 +808,15 @@ const Dashboard = () => {
             <TrasladosProfesionalesPanel userRole={userRole} />
           </TabsContent>
         </Tabs>
+
+        <button
+          onClick={handleFullPageScreenshot}
+          aria-label="Capturar pantalla"
+          className="fixed bottom-6 right-6 z-50 rounded-full bg-guinea-teal text-white shadow-lg hover:opacity-90 transition-opacity p-4"
+          title="Capturar pantalla"
+        >
+          📷
+        </button>
       </div>
 
       {/* ResizeObserver test indicator - only shown during development */}

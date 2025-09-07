@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Expand, Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import html2canvas from 'html2canvas';
 
 interface ChartActionsProps {
   title: string;
@@ -11,20 +12,16 @@ interface ChartActionsProps {
 
 const ChartActions = ({ title, children, onDownload }: ChartActionsProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const handleDownload = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const handleDownload = async () => {
     if (onDownload) {
       onDownload();
-    } else {
-      // Default download functionality
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        // Create a simple download of the chart
-        const link = document.createElement('a');
-        link.download = `${title.toLowerCase().replace(/\s+/g, '-')}-chart.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-      }
+    } else if (containerRef.current) {
+      const canvas = await html2canvas(containerRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const link = document.createElement('a');
+      link.download = `${title.toLowerCase().replace(/\s+/g, '-')}-chart.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
     }
   };
 
@@ -66,7 +63,7 @@ const ChartActions = ({ title, children, onDownload }: ChartActionsProps) => {
 
       {/* Use conditional rendering instead of CSS hiding to prevent measurement issues */}
       {!isExpanded && (
-        <div>
+        <div ref={containerRef}>
           {children}
         </div>
       )}

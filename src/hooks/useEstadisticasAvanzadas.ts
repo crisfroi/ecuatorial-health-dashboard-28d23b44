@@ -36,9 +36,25 @@ const getEmptyStats = () => ({
   datosGraficoProvincias: [],
 });
 
-export function useEstadisticasAvanzadas() {
+export function useEstadisticasAvanzadas(filters?: Partial<{
+  area_profesional: string;
+  estado_solicitud: string;
+  provincia: string;
+  genero: string;
+  tipo_sector: string;
+  distrito: string;
+  distrito_sanitario: string;
+  centro_id: string;
+  centro_nombre: string;
+  edad_minima: number;
+  edad_maxima: number;
+  año_graduacion: number;
+  pais_formacion: string;
+  institucion: string;
+  funcion_publica: boolean;
+}>) {
   return useQuery({
-    queryKey: ["estadisticas-avanzadas"], // Mantenemos la queryKey original
+    queryKey: ["estadisticas-avanzadas", filters || null],
     queryFn: async () => {
       console.log("Fetching estadísticas avanzadas...");
 
@@ -243,6 +259,38 @@ export function useEstadisticasAvanzadas() {
           `Successfully fetched ${profesionales.length} professionals`,
         );
         console.log("First professional sample:", profesionales[0]);
+
+        // Apply optional filters to professionals dataset
+        if (filters && profesionales.length > 0) {
+          profesionales = profesionales.filter((p: any) => {
+            if (filters.estado_solicitud && p.estado_solicitud !== filters.estado_solicitud) return false;
+            if (filters.area_profesional && p.area_profesional !== filters.area_profesional) return false;
+            if (filters.provincia && p.provincia !== filters.provincia) return false;
+            if (filters.genero && p.genero !== filters.genero) return false;
+            if (filters.tipo_sector && p.tipo_sector !== filters.tipo_sector) return false;
+            if (filters.distrito && p.distrito !== filters.distrito) return false;
+            if (filters.distrito_sanitario && p.distrito_sanitario !== filters.distrito_sanitario) return false;
+            if (filters.centro_id && p.centro_salud_id !== filters.centro_id) return false;
+            if (filters.centro_nombre && p.nombre_centro !== filters.centro_nombre) return false;
+            if (typeof filters.año_graduacion === 'number' && p.año_graduacion !== filters.año_graduacion) return false;
+            if (typeof filters.edad_minima === 'number' && (p.edad == null || p.edad < filters.edad_minima)) return false;
+            if (typeof filters.edad_maxima === 'number' && (p.edad == null || p.edad > filters.edad_maxima)) return false;
+            if (typeof filters.funcion_publica === 'boolean') {
+              const fp = String(p.funcion_publica) === 'true' || p.funcion_publica === true;
+              if (fp !== filters.funcion_publica) return false;
+            }
+            if (filters.pais_formacion) {
+              const pf = p.pais_formacion_1 || p.pais_formacion || '';
+              if (pf !== filters.pais_formacion) return false;
+            }
+            if (filters.institucion) {
+              const insts = [p.institucion_1, p.institucion_2].filter(Boolean);
+              if (!insts.includes(filters.institucion)) return false;
+            }
+            return true;
+          });
+          console.log('useEstadisticasAvanzadas: filtered professionals count ->', profesionales.length);
+        }
       } catch (fetchError: any) {
         console.error("Network or fetch error:", fetchError);
 

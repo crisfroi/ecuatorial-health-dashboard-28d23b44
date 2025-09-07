@@ -63,7 +63,9 @@ import AnalyticsSummary from "./AnalyticsSummary";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import FinancialAnalytics from "./FinancialAnalytics";
 import QuickDiagnostic from "./QuickDiagnostic";
+import ChartActions from "./ChartActions";
 import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
 import {
   useDashboardNavigation,
   type NavigationFilters,
@@ -100,10 +102,28 @@ const AREA_COLORS = [
 
 interface AdvancedAnalyticsDashboardProps {
   onNavigateToTab?: (tab: string, filters?: NavigationFilters) => void;
+  filters?: Partial<{
+    area_profesional: string;
+    estado_solicitud: string;
+    provincia: string;
+    genero: string;
+    tipo_sector: string;
+    distrito: string;
+    distrito_sanitario: string;
+    centro_id: string;
+    centro_nombre: string;
+    edad_minima: number;
+    edad_maxima: number;
+    año_graduacion: number;
+    pais_formacion: string;
+    institucion: string;
+    funcion_publica: boolean;
+  }>;
 }
 
 const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
   onNavigateToTab,
+  filters,
 }) => {
   const [selectedView, setSelectedView] = useState("overview");
   const [selectedDistrict, setSelectedDistrict] = useState("all");
@@ -143,24 +163,24 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
   } = useDashboardNavigation(onNavigateToTab || (() => {}));
 
   // Fetch all analytics data
-  const { data: topCenters = [], isLoading: loadingCenters } = useTopCenters();
+  const { data: topCenters = [], isLoading: loadingCenters } = useTopCenters(filters as any);
   const { data: areaStats = [], isLoading: loadingAreas } =
-    useAreaProfessionalStats();
+    useAreaProfessionalStats(filters as any);
   const { data: districtStats = [], isLoading: loadingDistricts } =
-    useDistrictStats();
+    useDistrictStats(filters as any);
   const { data: allDistrictRows = [] } = useDistritosSanitarios();
   const allDistrictNames = (allDistrictRows || [])
     .map((d: any) => d.nombre_distrito)
     .filter((n: any) => !!n)
     .sort();
   const { data: ageRangeStats = [], isLoading: loadingAges } =
-    useAgeRangeStats();
+    useAgeRangeStats(filters as any);
   const { data: graduationStats = [], isLoading: loadingGraduation } =
-    useGraduationYearStats();
+    useGraduationYearStats(filters as any);
   const { data: countryStats = [], isLoading: loadingCountries } =
-    useCountryStats();
+    useCountryStats(filters as any);
   const { data: institutionStats = [], isLoading: loadingInstitutions } =
-    useInstitutionStats();
+    useInstitutionStats(filters as any);
   const { data: allCountries = [] } = useAllCountryStats();
   const { data: allInstitutions = [] } = useAllInstitutionStats();
 
@@ -169,9 +189,14 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     institution: selectedInstitution || undefined,
   });
   const { data: categoryStats = [], isLoading: loadingCategories } =
-    useCenterCategoryStats();
+    useCenterCategoryStats({
+      provincia: filters?.provincia,
+      distrito_sanitario: filters?.distrito_sanitario,
+      distrito: filters?.distrito,
+      sector: filters?.tipo_sector,
+    } as any);
   const { data: titulacionStats = [], isLoading: loadingTitulacion } =
-    useTitulacionCategoryStats();
+    useTitulacionCategoryStats(filters as any);
 
   const isLoading =
     loadingCenters ||
@@ -183,6 +208,48 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     loadingInstitutions ||
     loadingCategories ||
     loadingTitulacion;
+
+  const captureCardToPng = async (ref: React.RefObject<HTMLDivElement>, filename: string) => {
+    if (!ref.current) return;
+    const canvas = await html2canvas(ref.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    const link = document.createElement('a');
+    link.download = `${filename}_${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  const exportEducationExcel = () => {
+    const wb = XLSX.utils.book_new();
+    try {
+      const wsCountries = XLSX.utils.json_to_sheet(countryStats);
+      XLSX.utils.book_append_sheet(wb, wsCountries, 'Paises');
+
+      const wsInstitutions = XLSX.utils.json_to_sheet(institutionStats);
+      XLSX.utils.book_append_sheet(wb, wsInstitutions, 'Instituciones');
+
+      const wsGraduation = XLSX.utils.json_to_sheet(graduationStats);
+      XLSX.utils.book_append_sheet(wb, wsGraduation, 'Graduacion');
+
+      if (segmentation) {
+        const wsAreas = XLSX.utils.json_to_sheet(segmentation.areas || []);
+        XLSX.utils.book_append_sheet(wb, wsAreas, 'Seg_Areas');
+        const wsTitul = XLSX.utils.json_to_sheet(segmentation.titulaciones || []);
+        XLSX.utils.book_append_sheet(wb, wsTitul, 'Seg_Titulaciones');
+      }
+
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Analiticas_Formacion_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error('Error exporting education Excel:', e);
+    }
+  };
 
   // Export functionality
   const exportData = (data: any[], filename: string) => {
@@ -1078,6 +1145,15 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
 
         {/* Education Tab */}
         <TabsContent value="education" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">Exportar datos de formación</div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={exportEducationExcel} className="flex items-center gap-2">
+                <Download className="w-4 h-4" /> Excel (todas las secciones)
+              </Button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
@@ -1085,31 +1161,36 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                   <Globe className="w-5 h-5 text-blue-600" />
                   Países de Formación (Top 10)
                 </CardTitle>
+                <div className="ml-auto">
+                  <Button variant="ghost" size="sm" onClick={() => exportData(countryStats as any, 'Paises_Formacion')}>Excel</Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={countryStats}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="pais_formacion"
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                      fontSize={10}
-                    />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar
-                      dataKey="cantidad"
-                      fill="#0088FE"
-                      onClick={(data: any) => {
-                        setSelectedCountry(data.pais_formacion);
-                        setSelectedInstitution(null);
-                      }}
-                      className="cursor-pointer hover:opacity-80"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                <ChartActions title="Paises de Formación">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={countryStats}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="pais_formacion"
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                        fontSize={10}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar
+                        dataKey="cantidad"
+                        fill="#0088FE"
+                        onClick={(data: any) => {
+                          setSelectedCountry(data.pais_formacion);
+                          setSelectedInstitution(null);
+                        }}
+                        className="cursor-pointer hover:opacity-80"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartActions>
                 <div className="mt-4">
                   <Select
                     onValueChange={(value) => {
@@ -1138,6 +1219,9 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                   <GraduationCap className="w-5 h-5 text-green-600" />
                   Instituciones de Formación (Top 10)
                 </CardTitle>
+                <div className="ml-auto">
+                  <Button variant="ghost" size="sm" onClick={() => exportData(institutionStats as any, 'Instituciones_Formacion')}>Excel</Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 max-h-80 overflow-y-auto">
@@ -1193,22 +1277,27 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                 <Calendar className="w-5 h-5 text-purple-600" />
                 Años de Graduación (Últimos 20 años)
               </CardTitle>
+              <div className="ml-auto">
+                <Button variant="ghost" size="sm" onClick={() => exportData(graduationStats as any, 'Anios_Graduacion')}>Excel</Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={graduationStats}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="año_graduacion" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="cantidad"
-                    stroke="#8884d8"
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <ChartActions title="Años de Graduación">
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={graduationStats}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="año_graduacion" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="cantidad"
+                      stroke="#8884d8"
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartActions>
             </CardContent>
           </Card>
 
@@ -1219,6 +1308,27 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                 Resumen segmentado {selectedCountry ? `- País: ${selectedCountry}` : selectedInstitution ? `- Institución: ${selectedInstitution}` : "(selecciona un país o institución)"}
               </CardTitle>
               <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const seg = segmentation || { areas: [], titulaciones: [] };
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(seg.areas || []), 'Areas');
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(seg.titulaciones || []), 'Titulaciones');
+                    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `Resumen_Segmentado_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  disabled={!segmentation}
+                >
+                  Excel
+                </Button>
                 <Button
                   variant="outline"
                   disabled={!(selectedCountry || selectedInstitution)}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Filter, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PROVINCIAS_EG } from '@/utils/geo';
@@ -15,7 +16,11 @@ interface Filtros {
   funcion_publica?: string; // string 'true'/'false' as used by UI
   distrito?: string;
   distrito_sanitario?: string;
-  anoGraduacion?: string;
+  centro_id?: string;
+  centro_nombre?: string;
+  edad_minima?: number;
+  edad_maxima?: number;
+  año_graduacion?: number;
 }
 
 interface DashboardFiltersProps {
@@ -32,12 +37,19 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
   const [generos, setGeneros] = useState<string[]>([]);
   const [sectores, setSectores] = useState<string[]>([]);
   const [distritos, setDistritos] = useState<string[]>([]);
-  const [anios, setAnios] = useState<string[]>([]);
+  const [anios, setAnios] = useState<number[]>([]);
+  const [centros, setCentros] = useState<{ id: string; nombre: string }[]>([]);
 
-  const updateFilter = (key: keyof Filtros, value: string) => {
+  const updateFilter = (key: keyof Filtros, value: string | number | undefined) => {
+    let normalized: any = value;
+    if (key === 'funcion_publica' && typeof value === 'string') {
+      if (value === 'true') normalized = true;
+      else if (value === 'false') normalized = false;
+      else normalized = undefined;
+    }
     onFiltersChange({
       ...filters,
-      [key]: value === 'todos' ? undefined : value
+      [key]: normalized === 'todos' ? undefined : normalized
     });
   };
 
@@ -70,8 +82,16 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
         if (col === 'genero') setGeneros(values);
         if (col === 'tipo_sector') setSectores(values);
         if (col === 'distrito') setDistritos(values);
-        if (col === 'año_graduacion') setAnios(values);
+        if (col === 'año_graduacion') setAnios((values as string[]).map(v => Number(v)).filter(n => !Number.isNaN(n)).sort((a,b)=>a-b));
       });
+
+      const { data: centrosData, error: centrosError } = await supabase
+        .from('centros_salud')
+        .select('id, nombre')
+        .order('nombre');
+      if (!centrosError && centrosData) {
+        setCentros(centrosData as any);
+      }
     };
     fetchDistinct();
   }, []);
@@ -108,6 +128,20 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
                 {areas.map((v) => (
                   <SelectItem key={v} value={v}>{v}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Función Pública</label>
+            <Select value={typeof filters.funcion_publica === 'boolean' ? String(filters.funcion_publica) : 'todos'} onValueChange={(value) => updateFilter('funcion_publica' as any, value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="true">Sí</SelectItem>
+                <SelectItem value="false">No</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -158,6 +192,28 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
           </div>
 
           <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Centro</label>
+            <Select value={filters.centro_id || 'todos'} onValueChange={(value) => {
+              const selected = centros.find(c => c.id === value);
+              onFiltersChange({
+                ...filters,
+                centro_id: value === 'todos' ? undefined : value,
+                centro_nombre: selected ? selected.nombre : undefined,
+              });
+            }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los centros" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los centros</SelectItem>
+                {centros.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Género</label>
             <Select value={filters.genero || 'todos'} onValueChange={(value) => updateFilter('genero', value)}>
               <SelectTrigger>
@@ -188,20 +244,6 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Función Pública</label>
-            <Select value={filters.funcion_publica || 'todos'} onValueChange={(value) => updateFilter('funcion_publica', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="true">Función Pública</SelectItem>
-                <SelectItem value="false">No Función Pública</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Distrito</label>
             <Select value={filters.distrito || 'todos'} onValueChange={(value) => updateFilter('distrito', value)}>
               <SelectTrigger>
@@ -218,17 +260,25 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Año de Graduación</label>
-            <Select value={filters.anoGraduacion || 'todos'} onValueChange={(value) => updateFilter('anoGraduacion', value)}>
+            <Select value={filters.año_graduacion ?? 'todos'} onValueChange={(value) => updateFilter('año_graduacion', value === 'todos' ? undefined : Number(value))}>
               <SelectTrigger>
                 <SelectValue placeholder="Todos los años" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los años</SelectItem>
                 {anios.map((v) => (
-                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                  <SelectItem key={v} value={String(v)}>{v}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Edad</label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input type="number" placeholder="Mín" value={filters.edad_minima ?? ''} onChange={(e) => updateFilter('edad_minima', e.target.value ? Number(e.target.value) : undefined)} />
+              <Input type="number" placeholder="Máx" value={filters.edad_maxima ?? ''} onChange={(e) => updateFilter('edad_maxima', e.target.value ? Number(e.target.value) : undefined)} />
+            </div>
           </div>
         </div>
       </CardContent>

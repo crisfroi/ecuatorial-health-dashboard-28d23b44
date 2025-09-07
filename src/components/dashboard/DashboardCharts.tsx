@@ -19,6 +19,23 @@ import ChartActions from "./ChartActions";
 
 interface DashboardChartsProps {
   onChartClick: (data: any, chartType: string) => void;
+  filters?: Partial<{
+    area_profesional: string;
+    estado_solicitud: string;
+    provincia: string;
+    genero: string;
+    tipo_sector: string;
+    distrito: string;
+    distrito_sanitario: string;
+    centro_id: string;
+    centro_nombre: string;
+    edad_minima: number;
+    edad_maxima: number;
+    año_graduacion: number;
+    pais_formacion: string;
+    institucion: string;
+    funcion_publica: boolean;
+  }>;
 }
 
 const COLORS = [
@@ -30,8 +47,8 @@ const COLORS = [
   "#82CA9D",
 ];
 
-const DashboardCharts = ({ onChartClick }: DashboardChartsProps) => {
-  const { data: stats, isLoading, error } = useEstadisticasAvanzadas();
+const DashboardCharts = ({ onChartClick, filters }: DashboardChartsProps) => {
+  const { data: stats, isLoading, error } = useEstadisticasAvanzadas(filters);
 
   // Debug logging (hidden in production)
   // console.log("DashboardCharts: Stats data:", stats);

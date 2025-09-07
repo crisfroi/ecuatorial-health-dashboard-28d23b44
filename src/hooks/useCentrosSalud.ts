@@ -143,18 +143,24 @@ export const useCentrosSalud = () => {
     areaProfesional?: string,
     estadoSolicitud?: string,
   ) => {
+    if (!centroId) {
+      console.warn("⚠️ obtenerProfesionalesPorCentro llamado sin centroId válido");
+      return [] as any[];
+    }
+
     console.log("👥 Obteniendo profesionales para centro:", centroId);
-    
+
     // First get the center information
     const { data: centro, error: centerError } = await supabase
       .from("centros_salud")
-      .select("nombre, distrito_sanitario")
+      .select("id, nombre, distrito_sanitario")
       .eq("id", centroId)
-      .single();
+      .maybeSingle();
 
-    if (centerError) {
-      console.error("❌ Error al obtener centro:", centerError);
-      throw centerError;
+    if (centerError || !centro) {
+      const message = getErrorMessage(centerError || { message: "Centro no encontrado" });
+      console.error("❌ Error al obtener centro:", message, centerError);
+      return [] as any[];
     }
 
     console.log("🏥 Centro encontrado:", centro.nombre);

@@ -1,14 +1,62 @@
-
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Building, MapPin } from 'lucide-react';
 import type { Profesional } from '@/hooks/useProfesionales';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WorkplaceCardProps {
   professional: Profesional;
 }
 
+interface CentroSaludLite {
+  id: string;
+  nombre: string;
+  categoria?: string | null;
+  sector?: string | null;
+  distrito?: string | null;
+  distrito_sanitario?: string | null;
+  provincia?: string | null;
+}
+
 const WorkplaceCard = ({ professional }: WorkplaceCardProps) => {
+  const [centro, setCentro] = useState<CentroSaludLite | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCentro = async () => {
+      try {
+        if (professional.centro_salud_id) {
+          const { data } = await supabase
+            .from('centros_salud')
+            .select('id, nombre, categoria, sector, distrito, distrito_sanitario, provincia')
+            .eq('id', professional.centro_salud_id)
+            .maybeSingle();
+          if (isMounted) setCentro((data as any) || null);
+        } else if (professional.nombre_centro) {
+          const { data } = await supabase
+            .from('centros_salud')
+            .select('id, nombre, categoria, sector, distrito, distrito_sanitario, provincia')
+            .eq('nombre', professional.nombre_centro)
+            .maybeSingle();
+          if (isMounted) setCentro((data as any) || null);
+        } else {
+          setCentro(null);
+        }
+      } catch (_) {
+        if (isMounted) setCentro(null);
+      }
+    };
+    fetchCentro();
+    return () => { isMounted = false; };
+  }, [professional.centro_salud_id, professional.nombre_centro]);
+
+  const nombreCentro = centro?.nombre || professional.nombre_centro || 'No especificado';
+  const categoriaCentro = centro?.categoria || professional.categoria_centro || undefined;
+  const sectorCentro = centro?.sector || professional.tipo_sector || undefined;
+  const distritoTexto = (centro?.distrito || professional.distrito || 'No especificado');
+  const provinciaTexto = (centro?.provincia || professional.provincia || 'No especificado');
+
   return (
     <Card>
       <CardHeader>
@@ -20,7 +68,7 @@ const WorkplaceCard = ({ professional }: WorkplaceCardProps) => {
       <CardContent className="space-y-3">
         <div>
           <span className="text-sm font-medium text-gray-600">Institución:</span>
-          <p className="font-medium">{professional.nombre_centro || 'No especificado'}</p>
+          <p className="font-medium">{nombreCentro}</p>
         </div>
         <div>
           <span className="text-sm font-medium text-gray-600">Área profesional:</span>
@@ -34,18 +82,18 @@ const WorkplaceCard = ({ professional }: WorkplaceCardProps) => {
         )}
         <div className="flex items-center space-x-2">
           <MapPin className="w-4 h-4 text-gray-500" />
-          <span>{professional.distrito || 'No especificado'}, {professional.provincia || 'No especificado'}</span>
+          <span>{distritoTexto}, {provinciaTexto}</span>
         </div>
-        {professional.categoria_centro && (
+        {categoriaCentro && (
           <div>
             <span className="text-sm font-medium text-gray-600">Categoría del centro:</span>
-            <p>{professional.categoria_centro}</p>
+            <p>{categoriaCentro}</p>
           </div>
         )}
-        {professional.tipo_sector && (
+        {sectorCentro && (
           <div>
             <span className="text-sm font-medium text-gray-600">Sector:</span>
-            <Badge variant="outline">{professional.tipo_sector}</Badge>
+            <Badge variant="outline">{sectorCentro}</Badge>
           </div>
         )}
       </CardContent>

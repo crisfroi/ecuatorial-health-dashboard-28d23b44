@@ -416,6 +416,12 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                       <strong>Sector:</strong> {selectedCenter.sector}
                     </div>
                     <div>
+                      <strong>NIF:</strong> {selectedCenter.nif || "No especificado"}
+                    </div>
+                    <div>
+                      <strong>Responsable:</strong> {selectedCenter.responsable || "No especificado"}
+                    </div>
+                    <div>
                       <strong>Distrito Sanitario:</strong>{" "}
                       {selectedCenter.distrito_sanitario || "No especificado"}
                     </div>
@@ -442,6 +448,16 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                     </div>
                   </div>
                 </div>
+                {Array.isArray(selectedCenter.fotos_establecimiento) && selectedCenter.fotos_establecimiento.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2"><FileImage className="w-4 h-4" /> Fotos del Establecimiento</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {selectedCenter.fotos_establecimiento.map((foto: string, idx: number) => (
+                        <img key={idx} src={foto} alt={`Foto ${idx+1}`} className="w-full h-32 object-cover rounded border" />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -851,7 +867,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                     <Input name="nombre" required />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Categoría *</label>
+                    <label className="text-sm font-medium">Categor��a *</label>
                     <Select name="categoria" required>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar categoría" />

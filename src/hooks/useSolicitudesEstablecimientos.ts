@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface SolicitudEstablecimiento {
   id: string;
@@ -62,7 +63,7 @@ export const useSolicitudesEstablecimientos = () => {
     console.log("🏗️ Creando nueva solicitud de establecimiento:", params.nombre_establecimiento);
     
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Usuario no autenticado");
+    const solicitanteId = user?.id || null; // permitir envío público sin sesión
 
     // Subir fotos del establecimiento si existen
     let fotosUrls: string[] = [];
@@ -117,7 +118,7 @@ export const useSolicitudesEstablecimientos = () => {
           ...rest,
           fotos_establecimiento: fotosUrls,
           documentos_adicionales: documentosUrls,
-          solicitante_id: user.id,
+          solicitante_id: solicitanteId,
         },
       ])
       .select()

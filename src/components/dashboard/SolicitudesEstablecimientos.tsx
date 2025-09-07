@@ -295,17 +295,58 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                               <span>Solicitud {solicitudSeleccionada?.numero_solicitud || ''}</span>
                               <div className="flex items-center gap-2">
                                 <Badge className={getStatusColor(solicitudSeleccionada?.estado || 'Pendiente')}>{solicitudSeleccionada?.estado}</Badge>
-                                {/* Menú de acciones */}
+                                {/* Acciones rápidas estilo ministerial */}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex items-center gap-2"
+                                  onClick={() => handleEditarEstado(solicitudSeleccionada!.id, solicitudSeleccionada!.estado)}
+                                >
+                                  <Edit className="h-3 w-3" /> Editar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                                  onClick={async () => {
+                                    await actualizarEstadoMutation.mutateAsync({ id: solicitudSeleccionada!.id, estado: 'Autorizado' });
+                                    await refetch();
+                                  }}
+                                >
+                                  <Save className="h-3 w-3" /> Autorizar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  className="flex items-center gap-2"
+                                  onClick={async () => {
+                                    await actualizarEstadoMutation.mutateAsync({ id: solicitudSeleccionada!.id, estado: 'Pendiente de Firma' });
+                                    await refetch();
+                                  }}
+                                >
+                                  <Save className="h-3 w-3" /> Pendiente de Firma
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="flex items-center gap-2"
+                                  onClick={async () => {
+                                    const motivo = window.prompt('Motivo de rechazo:');
+                                    if (motivo && motivo.trim()) {
+                                      await actualizarEstadoMutation.mutateAsync({ id: solicitudSeleccionada!.id, estado: 'Rechazado', motivo_rechazo: motivo.trim() });
+                                      await refetch();
+                                    }
+                                  }}
+                                >
+                                  <X className="h-3 w-3" /> Rechazar
+                                </Button>
+                                {/* Menú adicional */}
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="outline" size="sm">
-                                      Acciones
+                                      Más
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleEditarEstado(solicitudSeleccionada!.id, solicitudSeleccionada!.estado)}>
-                                      Editar estado
-                                    </DropdownMenuItem>
                                     <DropdownMenuItem asChild>
                                       <a href={`data:text/plain,${encodeURIComponent(JSON.stringify(solicitudSeleccionada, null, 2))}`} download={`solicitud_${solicitudSeleccionada?.numero_solicitud || solicitudSeleccionada?.id}.json`}>
                                         Descargar JSON

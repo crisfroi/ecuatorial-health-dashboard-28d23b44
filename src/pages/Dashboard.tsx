@@ -302,7 +302,7 @@ const Dashboard = () => {
       console.error("Error inesperado al cerrar sesión:", error);
       toast({
         title: "Error inesperado",
-        description: "Ocurrió un error al cerrar sesi��n.",
+        description: "Ocurrió un error al cerrar sesi���n.",
         variant: "destructive",
       });
     }
@@ -808,6 +808,15 @@ const Dashboard = () => {
             <TrasladosProfesionalesPanel userRole={userRole} />
           </TabsContent>
         </Tabs>
+
+        <button
+          onClick={handleFullPageScreenshot}
+          aria-label="Capturar pantalla"
+          className="fixed bottom-6 right-6 z-50 rounded-full bg-guinea-teal text-white shadow-lg hover:opacity-90 transition-opacity p-4"
+          title="Capturar pantalla"
+        >
+          📷
+        </button>
       </div>
 
       {/* ResizeObserver test indicator - only shown during development */}

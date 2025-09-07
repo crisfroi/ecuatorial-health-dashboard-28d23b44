@@ -85,7 +85,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     headers: {
       'X-Client-Info': 'guinea-salud-dashboard',
     },
-    fetch: resilientFetch,
   },
   db: {
     schema: 'public',

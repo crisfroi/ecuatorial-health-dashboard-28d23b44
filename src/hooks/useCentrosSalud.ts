@@ -199,20 +199,40 @@ export const useCentrosSalud = () => {
       query3 = query3.eq("estado_solicitud", estadoSolicitud);
     }
 
-    // Execute all queries
+    // Execute main queries
     const [result1, result2, result3] = await Promise.all([
       query1,
       query2,
       query3
     ]);
 
-    // Combine results and remove duplicates
-    const allProfessionals = [];
-    const seenIds = new Set();
+    // Strategy 4: From profesional_centro_asignado mapping by center name
+    const { data: asignaciones, error: asignError } = await supabase
+      .from("profesional_centro_asignado")
+      .select("id_profesional")
+      .eq("nombre_centro", centro.nombre);
 
-    [result1.data, result2.data, result3.data].forEach(data => {
+    let result4: { data: any[] | null } = { data: [] };
+    if (!asignError && asignaciones && asignaciones.length > 0) {
+      const ids = asignaciones
+        .map((a: any) => a.id_profesional)
+        .filter((id: any) => !!id);
+      if (ids.length > 0) {
+        const { data } = await supabase
+          .from("profesionales_sanitarios")
+          .select("*")
+          .in("id", ids);
+        result4.data = data || [];
+      }
+    }
+
+    // Combine results and remove duplicates
+    const allProfessionals: any[] = [];
+    const seenIds = new Set<string>();
+
+    [result1.data, result2.data, result3.data, result4.data].forEach((data) => {
       if (data) {
-        data.forEach(prof => {
+        data.forEach((prof: any) => {
           if (!seenIds.has(prof.id)) {
             seenIds.add(prof.id);
             allProfessionals.push(prof);

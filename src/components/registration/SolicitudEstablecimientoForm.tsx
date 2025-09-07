@@ -136,7 +136,6 @@ const SolicitudEstablecimientoForm = () => {
       setServiciosPersonalizados([]);
       setAreasPersonalizadas([]);
     } catch (error) {
-      const { getErrorMessage } = await import("@/utils/errorHandler");
       const message = getErrorMessage(error);
       console.error("Error enviando solicitud:", message, error);
     }

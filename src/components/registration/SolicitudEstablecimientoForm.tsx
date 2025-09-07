@@ -42,10 +42,20 @@ const SolicitudEstablecimientoForm = () => {
   const form = useForm<SolicitudFormData>({
     resolver: zodResolver(solicitudSchema),
     defaultValues: {
+      nombre_establecimiento: "",
+      categoria: "",
+      tipo_servicio: "",
+      provincia: "",
+      distrito_sanitario: "",
+      direccion: "",
+      telefono: "",
+      email: "",
+      director_responsable: "",
       numero_camas: 0,
       servicios_ofrecidos: [],
       areas_especializadas: [],
       equipamiento_medico: [],
+      observaciones: "",
     },
   });
 

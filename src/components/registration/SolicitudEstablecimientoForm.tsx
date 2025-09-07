@@ -640,9 +640,9 @@ const SolicitudEstablecimientoForm = () => {
               </Button>
               <Button
                 type="submit"
-                disabled={crearSolicitudMutation.isPending}
+                disabled={submitting || crearSolicitudMutation.isPending}
               >
-                {crearSolicitudMutation.isPending ? "Enviando..." : "Enviar Solicitud"}
+                {submitting || crearSolicitudMutation.isPending ? "Enviando..." : "Enviar Solicitud"}
               </Button>
             </div>
           </form>

@@ -560,6 +560,26 @@ const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
         </Card>
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Instituciones de Formación (Top 10)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {stats.instituciones_formacion.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {stats.instituciones_formacion.map((inst) => (
+                <div key={inst.institucion} className="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50" onClick={() => onNavigateToTab && onNavigateToTab("professionals", { institucion: inst.institucion, distrito_sanitario: selectedDistrict, estado_solicitud: "Aprobado" })}>
+                  <div className="font-medium text-sm">{inst.institucion}</div>
+                  <Badge variant="outline">{inst.cantidad}</Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 py-8">No hay datos de instituciones de formación</p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Detailed Analysis */}
       <Card>
         <CardHeader>

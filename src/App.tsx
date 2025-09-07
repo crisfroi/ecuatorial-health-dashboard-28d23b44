@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import ProfessionalRegistration from "./pages/ProfessionalRegistration";
 import PublicSearch from "./pages/PublicSearch";
 import NotFound from "./pages/NotFound";
+import SolicitudEstablecimiento from "./pages/SolicitudEstablecimiento";
 import Auth from "./pages/Auth";
 import "./utils/authErrorHandler"; // Initialize global auth error handling
 import "./utils/storageCleanup"; // Initialize storage cleanup
@@ -76,6 +77,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/register" element={<ProfessionalRegistration />} />
             <Route path="/search" element={<PublicSearch />} />
+            <Route path="/solicitud-establecimiento" element={<SolicitudEstablecimiento />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

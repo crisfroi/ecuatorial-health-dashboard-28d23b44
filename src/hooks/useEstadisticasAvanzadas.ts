@@ -36,9 +36,25 @@ const getEmptyStats = () => ({
   datosGraficoProvincias: [],
 });
 
-export function useEstadisticasAvanzadas() {
+export function useEstadisticasAvanzadas(filters?: Partial<{
+  area_profesional: string;
+  estado_solicitud: string;
+  provincia: string;
+  genero: string;
+  tipo_sector: string;
+  distrito: string;
+  distrito_sanitario: string;
+  centro_id: string;
+  centro_nombre: string;
+  edad_minima: number;
+  edad_maxima: number;
+  año_graduacion: number;
+  pais_formacion: string;
+  institucion: string;
+  funcion_publica: boolean;
+}>) {
   return useQuery({
-    queryKey: ["estadisticas-avanzadas"], // Mantenemos la queryKey original
+    queryKey: ["estadisticas-avanzadas", filters || null],
     queryFn: async () => {
       console.log("Fetching estadísticas avanzadas...");
 

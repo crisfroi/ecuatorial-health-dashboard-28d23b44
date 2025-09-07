@@ -368,7 +368,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
 
   // Filter centers by category for cards
   const getCentersByCategory = (categoria: string) => {
-    return centros.filter((centro) => centro.categoria === categoria);
+    return globallyFilteredCentros.filter((centro) => centro.categoria === categoria);
   };
 
   // Handle category card click to filter

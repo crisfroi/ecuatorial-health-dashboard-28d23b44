@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface SolicitudEstablecimiento {
   id: string;
@@ -230,7 +229,7 @@ export const useSolicitudesEstablecimientos = () => {
       });
     },
     onError: (error: any) => {
-      console.error("❌ Error en mutación actualizar estado:", error);
+      console.error("❌ Error en mutaci��n actualizar estado:", error);
       toast({
         title: "Error al actualizar estado",
         description: error.message,

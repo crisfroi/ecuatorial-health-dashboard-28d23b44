@@ -154,6 +154,23 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
   // Aplicar filtros de rol (restricciones por centro para directivos)
   const roleFilteredCentros = filterCentersData(centros);
 
+  // Aplicar filtros globales del dashboard si vienen
+  const globallyFilteredCentros = (roleFilteredCentros || []).filter((c: any) => {
+    if (dashboardFilters?.tipo_sector && dashboardFilters.tipo_sector !== 'todos') {
+      if ((c.sector || '').trim() !== dashboardFilters.tipo_sector) return false;
+    }
+    if (dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos') {
+      if ((c.provincia || '').trim() !== dashboardFilters.provincia) return false;
+    }
+    if (dashboardFilters?.distrito && dashboardFilters.distrito !== 'todos') {
+      if ((c.distrito || '').trim() !== dashboardFilters.distrito) return false;
+    }
+    if (dashboardFilters?.distrito_sanitario && dashboardFilters.distrito_sanitario !== 'todos') {
+      if ((c.distrito_sanitario || '').trim() !== dashboardFilters.distrito_sanitario) return false;
+    }
+    return true;
+  });
+
   // Excel export functionality
   const exportCentersToExcel = () => {
     try {

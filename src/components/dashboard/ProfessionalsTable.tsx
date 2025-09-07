@@ -277,6 +277,8 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     // Pasar directamente otros filtros provenientes de analytics
     if (dashboardFilters?.distrito_sanitario) filters.distrito_sanitario = dashboardFilters.distrito_sanitario;
     if (dashboardFilters?.distrito) filters.distrito = dashboardFilters.distrito;
+    if (dashboardFilters?.centro_id) (filters as any).centro_salud_id = dashboardFilters.centro_id;
+    if (dashboardFilters?.centro_nombre) filters.lugar_trabajo = dashboardFilters.centro_nombre;
     if (dashboardFilters?.lugar_trabajo) filters.lugar_trabajo = dashboardFilters.lugar_trabajo;
     if (dashboardFilters?.edad_minima !== undefined) filters.edad_minima = dashboardFilters.edad_minima;
     if (dashboardFilters?.edad_maxima !== undefined) filters.edad_maxima = dashboardFilters.edad_maxima;

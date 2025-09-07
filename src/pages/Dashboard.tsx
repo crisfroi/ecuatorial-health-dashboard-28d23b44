@@ -312,6 +312,21 @@ const Dashboard = () => {
     console.log("Dashboard: Configuración de usuario.");
   };
 
+  const handleFullPageScreenshot = async () => {
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const element = document.body;
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      const link = document.createElement("a");
+      link.download = `captura_dashboard_${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (e) {
+      console.error("Error generating screenshot:", e);
+      toast({ title: "Error al capturar pantalla", description: "Intenta nuevamente.", variant: "destructive" });
+    }
+  };
+
   const sendSmsNotification = async (
     profesionalId: string,
     telefono: string | null,

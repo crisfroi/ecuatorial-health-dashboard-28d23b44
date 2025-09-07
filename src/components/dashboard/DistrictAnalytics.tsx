@@ -388,6 +388,11 @@ const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
             <Download className="w-4 h-4" />
             Exportar
           </Button>
+
+          <Button variant="ghost" size="sm" onClick={() => captureViewAsImage(`analiticas_distrito_${selectedDistrict}`)} className="flex items-center gap-2">
+            <Eye className="w-4 h-4" />
+            Capturar imagen
+          </Button>
         </div>
       </div>
 

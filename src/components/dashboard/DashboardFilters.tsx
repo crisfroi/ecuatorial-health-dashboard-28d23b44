@@ -171,6 +171,28 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
           </div>
 
           <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Centro</label>
+            <Select value={filters.centro_id || 'todos'} onValueChange={(value) => {
+              const selected = centros.find(c => c.id === value);
+              onFiltersChange({
+                ...filters,
+                centro_id: value === 'todos' ? undefined : value,
+                centro_nombre: selected ? selected.nombre : undefined,
+              });
+            }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los centros" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los centros</SelectItem>
+                {centros.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Género</label>
             <Select value={filters.genero || 'todos'} onValueChange={(value) => updateFilter('genero', value)}>
               <SelectTrigger>
@@ -201,20 +223,6 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Función Pública</label>
-            <Select value={filters.funcion_publica || 'todos'} onValueChange={(value) => updateFilter('funcion_publica', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="true">Función Pública</SelectItem>
-                <SelectItem value="false">No Función Pública</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Distrito</label>
             <Select value={filters.distrito || 'todos'} onValueChange={(value) => updateFilter('distrito', value)}>
               <SelectTrigger>
@@ -231,17 +239,25 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Año de Graduación</label>
-            <Select value={filters.anoGraduacion || 'todos'} onValueChange={(value) => updateFilter('anoGraduacion', value)}>
+            <Select value={filters.año_graduacion ?? 'todos'} onValueChange={(value) => updateFilter('año_graduacion', value === 'todos' ? undefined : Number(value))}>
               <SelectTrigger>
                 <SelectValue placeholder="Todos los años" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos los años</SelectItem>
                 {anios.map((v) => (
-                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                  <SelectItem key={v} value={String(v)}>{v}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Edad</label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input type="number" placeholder="Mín" value={filters.edad_minima ?? ''} onChange={(e) => updateFilter('edad_minima', e.target.value ? Number(e.target.value) : undefined)} />
+              <Input type="number" placeholder="Máx" value={filters.edad_maxima ?? ''} onChange={(e) => updateFilter('edad_maxima', e.target.value ? Number(e.target.value) : undefined)} />
+            </div>
           </div>
         </div>
       </CardContent>

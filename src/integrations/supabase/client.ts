@@ -25,6 +25,53 @@ console.log('✅ Supabase client initialized with:', {
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const resilientFetch: typeof fetch = async (input, init = {}) => {
+  const maxAttempts = 3;
+  const baseTimeoutMs = 12000;
+  let lastError: any = null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), baseTimeoutMs * (attempt + 1));
+    try {
+      const resp = await fetch(input, {
+        ...init,
+        cache: 'no-store',
+        keepalive: true,
+        signal: controller.signal,
+        headers: {
+          ...(init.headers || {}),
+          'X-Client-Info': 'guinea-salud-dashboard',
+        },
+        mode: 'cors',
+      } as RequestInit);
+
+      clearTimeout(timeout);
+
+      // Retry on transient server/network statuses
+      if ([429, 502, 503, 504].includes(resp.status)) {
+        lastError = new Error(`HTTP ${resp.status}`);
+        await sleep(300 * (attempt + 1));
+        continue;
+      }
+      return resp;
+    } catch (err: any) {
+      clearTimeout(timeout);
+      lastError = err;
+      const msg = (err?.name === 'AbortError') ? 'Timeout' : (err?.message || 'Failed to fetch');
+      console.warn(`resilientFetch attempt ${attempt + 1}/${maxAttempts} -> ${msg}`);
+      if (attempt < maxAttempts - 1) {
+        await sleep(300 * (attempt + 1));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError || new Error('Unknown fetch error');
+};
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     autoRefreshToken: true,

@@ -5,35 +5,39 @@ import { getErrorMessage } from "@/utils/errorHandler";
 
 export interface SolicitudEstablecimiento {
   id: string;
-  numero_solicitud: string;
+  numero_solicitud?: string;
   numero_registro?: string;
   nombre_establecimiento: string;
   categoria: string;
   tipo_servicio: string;
   provincia: string;
-  distrito_sanitario?: string;
+  distrito_sanitario?: string | null;
   direccion: string;
-  telefono?: string;
-  email?: string;
-  director_responsable?: string;
-  servicios_ofrecidos?: string[];
-  numero_camas?: number;
-  areas_especializadas?: string[];
-  equipamiento_medico?: string[];
-  fotos_establecimiento?: string[];
-  documentos_adicionales?: string[];
-  estado: string;
-  motivo_rechazo?: string;
-  fecha_solicitud?: string;
-  fecha_revision?: string;
-  fecha_autorizacion?: string;
-  solicitante_id?: string;
-  revisor_id?: string;
-  autorizador_id?: string;
-  observaciones?: string;
-  notas_revision?: string;
-  created_at?: string;
-  updated_at?: string;
+  telefono?: string | null;
+  email?: string | null;
+  director_responsable?: string | null;
+  servicios_ofrecidos?: string[] | null;
+  numero_camas?: number | null;
+  areas_especializadas?: string[] | null;
+  equipamiento_medico?: string[] | null;
+  fotos_establecimiento?: string[] | null;
+  documentos_adicionales?: string[] | null;
+  estado?: string | null;
+  motivo_rechazo?: string | null;
+  fecha_solicitud?: string | null;
+  fecha_revision?: string | null;
+  fecha_autorizacion?: string | null;
+  solicitante_id?: string | null;
+  revisor_id?: string | null;
+  autorizador_id?: string | null;
+  observaciones?: string | null;
+  notas_revision?: string | null;
+  nif?: string | null;
+  tipo_documento?: string | null;
+  numero_documento?: string | null;
+  nacionalidad_responsable?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 export interface CrearSolicitudEstablecimientoParams {
@@ -79,51 +83,51 @@ export const useSolicitudesEstablecimientos = () => {
       });
     };
 
-    // Intentar subir archivos; si falla por permisos, usar data URLs (permite envíos públicos)
+    const uploadWithTimeout = async (promise: Promise<any>, ms = 15000) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), ms)),
+      ]);
+    };
+
+    const uploadOrFallback = async (
+      bucket: string,
+      path: string,
+      file: File
+    ): Promise<string> => {
+      try {
+        const { data: uploadData, error: uploadError } = await uploadWithTimeout(
+          supabase.storage.from(bucket).upload(path, file)
+        ) as any;
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(uploadData.path);
+        return publicUrl;
+      } catch (_) {
+        return fileToDataUrl(file);
+      }
+    };
+
+    // Subidas concurrentes con fallback robusto
     let fotosUrls: string[] = [];
     if (params.fotos_establecimiento && params.fotos_establecimiento.length > 0) {
-      for (const foto of params.fotos_establecimiento) {
-        try {
+      const results = await Promise.allSettled(
+        params.fotos_establecimiento.map((foto) => {
           const fileName = `${Date.now()}_${foto.name}`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('fotos-carnet')
-            .upload(`establecimientos/${fileName}`, foto);
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('fotos-carnet')
-            .getPublicUrl(uploadData.path);
-
-          fotosUrls.push(publicUrl);
-        } catch (e) {
-          const fallback = await fileToDataUrl(foto);
-          fotosUrls.push(fallback);
-        }
-      }
+          return uploadOrFallback('fotos-carnet', `establecimientos/${fileName}`, foto);
+        })
+      );
+      fotosUrls = results.map(r => r.status === 'fulfilled' ? r.value : '').filter(Boolean);
     }
 
     let documentosUrls: string[] = [];
     if (params.documentos_adicionales && params.documentos_adicionales.length > 0) {
-      for (const doc of params.documentos_adicionales) {
-        try {
+      const results = await Promise.allSettled(
+        params.documentos_adicionales.map((doc) => {
           const fileName = `${Date.now()}_${doc.name}`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('documentos-profesionales')
-            .upload(`establecimientos/${fileName}`, doc);
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('documentos-profesionales')
-            .getPublicUrl(uploadData.path);
-
-          documentosUrls.push(publicUrl);
-        } catch (e) {
-          const fallback = await fileToDataUrl(doc);
-          documentosUrls.push(fallback);
-        }
-      }
+          return uploadOrFallback('documentos-profesionales', `establecimientos/${fileName}`, doc);
+        })
+      );
+      documentosUrls = results.map(r => r.status === 'fulfilled' ? r.value : '').filter(Boolean);
     }
 
     const {
@@ -145,7 +149,8 @@ export const useSolicitudesEstablecimientos = () => {
       nacionalidad_responsable ? `Nacionalidad responsable: ${nacionalidad_responsable}` : null,
     ].filter(Boolean).join(" | ") || null;
 
-    const { data, error } = await supabase
+    // Si no hay usuario autenticado, evitamos .select() para no romper por RLS en el RETURNING
+    const insertBuilder = supabase
       .from("solicitudes_establecimientos")
       .insert([
         {
@@ -155,18 +160,20 @@ export const useSolicitudesEstablecimientos = () => {
           documentos_adicionales: documentosUrls,
           solicitante_id: solicitanteId,
         },
-      ])
-      .select()
-      .single();
+      ]);
+
+    const { data, error } = solicitanteId
+      ? await insertBuilder.select().single()
+      : await insertBuilder; // sin .select() cuando es público
 
     if (error) {
       const message = getErrorMessage(error);
-      console.error("❌ Error al crear solicitud:", message, error);
+      console.error("�� Error al crear solicitud:", message, error);
       throw error;
     }
-    
-    console.log("✅ Solicitud creada exitosamente:", data.id);
-    return data;
+
+    console.log("✅ Solicitud creada exitosamente");
+    return (data as any) || { id: undefined };
   };
 
   const actualizarEstado = async (id: string, estado: string, motivo_rechazo?: string, notas_revision?: string) => {
@@ -234,6 +241,7 @@ export const useSolicitudesEstablecimientos = () => {
 
   const crearSolicitudMutation = useMutation({
     mutationFn: crearSolicitud,
+    retry: false,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["solicitudes-establecimientos"] });
       toast({

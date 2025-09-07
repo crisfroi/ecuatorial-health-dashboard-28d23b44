@@ -139,7 +139,11 @@ const SolicitudEstablecimientoForm = () => {
     setDocumentosAdicionales(prev => prev.filter((_, i) => i !== index));
   };
 
+  const [submitting, setSubmitting] = useState(false);
+
   const onSubmit = async (data: SolicitudFormData) => {
+    setSubmitting(true);
+    const safety = setTimeout(() => setSubmitting(false), 20000);
     try {
       await crearSolicitudMutation.mutateAsync({
         ...data,
@@ -158,6 +162,9 @@ const SolicitudEstablecimientoForm = () => {
     } catch (error) {
       const message = getErrorMessage(error);
       console.error("Error enviando solicitud:", message, error);
+    } finally {
+      clearTimeout(safety);
+      setSubmitting(false);
     }
   };
 
@@ -633,9 +640,9 @@ const SolicitudEstablecimientoForm = () => {
               </Button>
               <Button
                 type="submit"
-                disabled={crearSolicitudMutation.isPending}
+                disabled={submitting || crearSolicitudMutation.isPending}
               >
-                {crearSolicitudMutation.isPending ? "Enviando..." : "Enviar Solicitud"}
+                {submitting || crearSolicitudMutation.isPending ? "Enviando..." : "Enviar Solicitud"}
               </Button>
             </div>
           </form>

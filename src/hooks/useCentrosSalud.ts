@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/utils/errorHandler";
 
 interface BuscarCentrosParams {
   nombreParcial?: string;
@@ -65,11 +66,11 @@ export const useCentrosSalud = () => {
           .select("*", { count: "exact", head: true })
           .eq("nombre_centro", centro.nombre);
 
-        // Strategy 3: Match by lugar_trabajo
+        // Strategy 3: Match by nombre_centro (workplace)
         const { count: countByLugarTrabajo } = await supabase
           .from("profesionales_sanitarios")
           .select("*", { count: "exact", head: true })
-          .eq("lugar_trabajo", centro.nombre);
+          .eq("nombre_centro", centro.nombre);
 
         // Use the maximum count from all strategies
         const totalProfesionales = Math.max(countById || 0, countByName || 0, countByLugarTrabajo || 0);
@@ -142,18 +143,24 @@ export const useCentrosSalud = () => {
     areaProfesional?: string,
     estadoSolicitud?: string,
   ) => {
+    if (!centroId) {
+      console.warn("⚠️ obtenerProfesionalesPorCentro llamado sin centroId válido");
+      return [] as any[];
+    }
+
     console.log("👥 Obteniendo profesionales para centro:", centroId);
-    
+
     // First get the center information
     const { data: centro, error: centerError } = await supabase
       .from("centros_salud")
-      .select("nombre, distrito_sanitario")
+      .select("id, nombre, distrito_sanitario")
       .eq("id", centroId)
-      .single();
+      .maybeSingle();
 
-    if (centerError) {
-      console.error("❌ Error al obtener centro:", centerError);
-      throw centerError;
+    if (centerError || !centro) {
+      const message = getErrorMessage(centerError || { message: "Centro no encontrado" });
+      console.error("❌ Error al obtener centro:", message, centerError);
+      return [] as any[];
     }
 
     console.log("🏥 Centro encontrado:", centro.nombre);
@@ -173,11 +180,11 @@ export const useCentrosSalud = () => {
       .select("*")
       .eq("nombre_centro", centro.nombre);
 
-    // Strategy 3: By lugar_trabajo
+    // Strategy 3: By nombre_centro (workplace)
     let query3 = supabase
       .from("profesionales_sanitarios")
       .select("*")
-      .eq("lugar_trabajo", centro.nombre);
+      .eq("nombre_centro", centro.nombre);
 
     // Apply additional filters to all queries
     if (areaProfesional && areaProfesional !== "todos") {

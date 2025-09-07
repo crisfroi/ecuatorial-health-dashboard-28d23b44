@@ -129,7 +129,7 @@ export function useProfesionales(filtros: Filtros = {}) {
       }
 
       if (filtros.lugar_trabajo && filtros.lugar_trabajo !== "todos") {
-        query = query.eq("lugar_trabajo", filtros.lugar_trabajo);
+        query = query.eq("nombre_centro", filtros.lugar_trabajo);
       }
 
       if (filtros.año_graduacion) {
@@ -187,7 +187,7 @@ export function useProfesionales(filtros: Filtros = {}) {
       if (filtros.search && filtros.search.trim()) {
         const term = filtros.search.trim();
         query = query.or(
-          `nombre_completo.ilike.%${term}%,area_profesional.ilike.%${term}%,id_profesional_unico.ilike.%${term}%,lugar_trabajo.ilike.%${term}%`
+          `nombre_completo.ilike.%${term}%,area_profesional.ilike.%${term}%,id_profesional_unico.ilike.%${term}%,nombre_centro.ilike.%${term}%`
         );
       }
 

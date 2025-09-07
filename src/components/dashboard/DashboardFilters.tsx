@@ -15,7 +15,11 @@ interface Filtros {
   funcion_publica?: string; // string 'true'/'false' as used by UI
   distrito?: string;
   distrito_sanitario?: string;
-  anoGraduacion?: string;
+  centro_id?: string;
+  centro_nombre?: string;
+  edad_minima?: number;
+  edad_maxima?: number;
+  año_graduacion?: number;
 }
 
 interface DashboardFiltersProps {
@@ -32,9 +36,10 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
   const [generos, setGeneros] = useState<string[]>([]);
   const [sectores, setSectores] = useState<string[]>([]);
   const [distritos, setDistritos] = useState<string[]>([]);
-  const [anios, setAnios] = useState<string[]>([]);
+  const [anios, setAnios] = useState<number[]>([]);
+  const [centros, setCentros] = useState<{ id: string; nombre: string }[]>([]);
 
-  const updateFilter = (key: keyof Filtros, value: string) => {
+  const updateFilter = (key: keyof Filtros, value: string | number | undefined) => {
     onFiltersChange({
       ...filters,
       [key]: value === 'todos' ? undefined : value

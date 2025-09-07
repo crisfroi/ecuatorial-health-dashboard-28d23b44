@@ -15,6 +15,7 @@ import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
 import { useSolicitudesEstablecimientos } from "@/hooks/useSolicitudesEstablecimientos";
 import { useAuth } from "@/contexts/AuthContext";
 import { getErrorMessage } from "@/utils/errorHandler";
+import { useNacionalidades } from "@/hooks/useNacionalidades";
 
 const solicitudSchema = z.object({
   nombre_establecimiento: z.string().min(1, "El nombre del establecimiento es requerido"),
@@ -26,6 +27,10 @@ const solicitudSchema = z.object({
   telefono: z.string().optional(),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   director_responsable: z.string().min(1, "El director responsable es requerido"),
+  nif: z.string().min(1, "El NIF es requerido"),
+  tipo_documento: z.string().min(1, "El tipo de documento es requerido"),
+  numero_documento: z.string().min(1, "El número de documento es requerido"),
+  nacionalidad_responsable: z.string().min(1, "La nacionalidad es requerida"),
   numero_camas: z.number().min(0).optional(),
   servicios_ofrecidos: z.array(z.string()).optional(),
   areas_especializadas: z.array(z.string()).optional(),
@@ -53,6 +58,10 @@ const SolicitudEstablecimientoForm = () => {
       telefono: "",
       email: "",
       director_responsable: "",
+      nif: "",
+      tipo_documento: "",
+      numero_documento: "",
+      nacionalidad_responsable: "",
       numero_camas: 0,
       servicios_ofrecidos: [],
       areas_especializadas: [],
@@ -65,6 +74,7 @@ const SolicitudEstablecimientoForm = () => {
   const { data: distritosSanitarios = [] } = useDistritosSanitarios(watchedProvincia);
   const { crearSolicitudMutation } = useSolicitudesEstablecimientos();
   const { user } = useAuth();
+  const { data: nacionalidades = [] } = useNacionalidades();
 
   const categorias = [
     "HOSPITAL",
@@ -123,8 +133,8 @@ const SolicitudEstablecimientoForm = () => {
     try {
       await crearSolicitudMutation.mutateAsync({
         ...data,
-        fotos_establecimiento: user ? fotosEstablecimiento : [],
-        documentos_adicionales: user ? documentosAdicionales : [],
+        fotos_establecimiento: fotosEstablecimiento,
+        documentos_adicionales: documentosAdicionales,
         servicios_ofrecidos: [...(data.servicios_ofrecidos || []), ...serviciosPersonalizados],
         areas_especializadas: [...(data.areas_especializadas || []), ...areasPersonalizadas],
       });
@@ -404,8 +414,8 @@ const SolicitudEstablecimientoForm = () => {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <Camera className="mx-auto h-12 w-12 text-gray-400" />
                   <div className="mt-4">
-                    <label htmlFor="fotos-establecimiento" className={user ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}>
-                      <Button type="button" variant="outline" asChild disabled={!user}>
+                    <label htmlFor="fotos-establecimiento" className="cursor-pointer">
+                      <Button type="button" variant="outline" asChild>
                         <span>
                           <Camera className="w-4 h-4 mr-2" />
                           Subir Fotos
@@ -419,10 +429,9 @@ const SolicitudEstablecimientoForm = () => {
                       accept="image/*"
                       onChange={handleFotoUpload}
                       className="hidden"
-                      disabled={!user}
                     />
                     <p className="mt-2 text-sm text-gray-600">
-                      {user ? "Máximo 5 fotos (JPG, PNG)" : "Inicia sesión para adjuntar fotos (opcional)"}
+                      Máximo 5 fotos (JPG, PNG)
                     </p>
                   </div>
                 </div>
@@ -458,8 +467,8 @@ const SolicitudEstablecimientoForm = () => {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <Upload className="mx-auto h-12 w-12 text-gray-400" />
                   <div className="mt-4">
-                    <label htmlFor="documentos-adicionales" className={user ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}>
-                      <Button type="button" variant="outline" asChild disabled={!user}>
+                    <label htmlFor="documentos-adicionales" className="cursor-pointer">
+                      <Button type="button" variant="outline" asChild>
                         <span>
                           <Upload className="w-4 h-4 mr-2" />
                           Subir Documentos
@@ -473,10 +482,9 @@ const SolicitudEstablecimientoForm = () => {
                       accept=".pdf,.jpg,.jpeg,.png"
                       onChange={handleDocumentoUpload}
                       className="hidden"
-                      disabled={!user}
                     />
                     <p className="mt-2 text-sm text-gray-600">
-                      {user ? "PDF, JPG, PNG (máx. 5MB cada uno)" : "Inicia sesión para adjuntar documentos (opcional)"}
+                      PDF, JPG, PNG (máx. 5MB cada uno)
                     </p>
                   </div>
                 </div>

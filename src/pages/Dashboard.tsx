@@ -59,6 +59,7 @@ import IAChatOrchestrator from "@/components/dashboard/IAChatOrchestrator";
 import MinisterialPanel from "@/components/dashboard/MinisterialPanel";
 import IncidentManagement from "@/components/dashboard/IncidentManagement";
 import HealthCenters from "@/components/dashboard/HealthCenters";
+import SolicitudesEstablecimientos from "@/components/dashboard/SolicitudesEstablecimientos";
 import AdminPanel from "@/components/dashboard/AdminPanel";
 import AdvancedAnalyticsDashboard from "@/components/dashboard/AdvancedAnalyticsDashboard";
 import ProfessionalSearch from "@/components/dashboard/ProfessionalSearch";
@@ -482,6 +483,7 @@ const Dashboard = () => {
     ...(userRole && canAccessTab("ministerial") ? [{ id: "ministerial", label: "Ministerial", icon: Settings }] : []),
     ...(userRole && canAccessTab("incidents") ? [{ id: "incidents", label: "Incidencias", icon: Activity }] : []),
     ...(userRole && canAccessTab("health-centers") ? [{ id: "health-centers", label: "Centros", icon: MapPin }] : []),
+    ...(userRole && canAccessTab("establecimientos") ? [{ id: "establecimientos", label: "Solicitudes Establecimientos", icon: Building2 }] : []),
     ...(userRole && canAccessTab("traslados") ? [{ id: "traslados", label: "Traslados", icon: ArrowRight }] : []),
     ...(userRole && hasPermission("manage_users") ? [{ id: "users", label: "Usuarios", icon: UserCog }] : []),
     ...(userRole && hasPermission("system_configuration") ? [{ id: "admin", label: "Admin", icon: Settings }] : []),
@@ -759,6 +761,10 @@ const Dashboard = () => {
 
           <TabsContent value="health-centers" className="space-y-6">
             <HealthCenters dashboardFilters={dashboardFilters} />
+          </TabsContent>
+
+          <TabsContent value="establecimientos" className="space-y-6">
+            <SolicitudesEstablecimientos userRole={userRole as string} />
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">

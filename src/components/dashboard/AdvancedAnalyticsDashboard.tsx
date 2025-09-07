@@ -100,10 +100,28 @@ const AREA_COLORS = [
 
 interface AdvancedAnalyticsDashboardProps {
   onNavigateToTab?: (tab: string, filters?: NavigationFilters) => void;
+  filters?: Partial<{
+    area_profesional: string;
+    estado_solicitud: string;
+    provincia: string;
+    genero: string;
+    tipo_sector: string;
+    distrito: string;
+    distrito_sanitario: string;
+    centro_id: string;
+    centro_nombre: string;
+    edad_minima: number;
+    edad_maxima: number;
+    año_graduacion: number;
+    pais_formacion: string;
+    institucion: string;
+    funcion_publica: boolean;
+  }>;
 }
 
 const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
   onNavigateToTab,
+  filters,
 }) => {
   const [selectedView, setSelectedView] = useState("overview");
   const [selectedDistrict, setSelectedDistrict] = useState("all");

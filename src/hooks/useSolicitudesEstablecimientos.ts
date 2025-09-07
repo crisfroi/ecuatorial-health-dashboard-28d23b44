@@ -64,9 +64,9 @@ export const useSolicitudesEstablecimientos = () => {
     const { data: { user } } = await supabase.auth.getUser();
     const solicitanteId = user?.id || null; // permitir envío público sin sesión
 
-    // Subir fotos del establecimiento si existen
+    // Subir archivos SOLO si hay usuario autenticado (evitar violaciones RLS)
     let fotosUrls: string[] = [];
-    if (params.fotos_establecimiento && params.fotos_establecimiento.length > 0) {
+    if (user && params.fotos_establecimiento && params.fotos_establecimiento.length > 0) {
       for (const foto of params.fotos_establecimiento) {
         const fileName = `${Date.now()}_${foto.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -86,9 +86,9 @@ export const useSolicitudesEstablecimientos = () => {
       }
     }
 
-    // Subir documentos adicionales si existen
+    // Subir documentos adicionales SOLO si hay usuario autenticado
     let documentosUrls: string[] = [];
-    if (params.documentos_adicionales && params.documentos_adicionales.length > 0) {
+    if (user && params.documentos_adicionales && params.documentos_adicionales.length > 0) {
       for (const doc of params.documentos_adicionales) {
         const fileName = `${Date.now()}_${doc.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage

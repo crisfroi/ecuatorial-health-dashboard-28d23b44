@@ -171,8 +171,8 @@ const SolicitudEstablecimientoForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {categorias.map((categoria) => (
-                          <SelectItem key={categoria} value={categoria}>
+                        {categorias.map((categoria, idx) => (
+                          <SelectItem key={`${categoria}-${idx}`} value={categoria}>
                             {categoria}
                           </SelectItem>
                         ))}
@@ -283,8 +283,8 @@ const SolicitudEstablecimientoForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {PROVINCIAS_EG.map((provincia) => (
-                          <SelectItem key={provincia} value={provincia}>
+                        {PROVINCIAS_EG.map((provincia, idx) => (
+                          <SelectItem key={`${provincia}-${idx}`} value={provincia}>
                             {provincia}
                           </SelectItem>
                         ))}
@@ -308,8 +308,8 @@ const SolicitudEstablecimientoForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {distritosSanitarios.map((distrito) => (
-                          <SelectItem key={distrito.id} value={distrito.nombre_distrito}>
+                        {distritosSanitarios.map((distrito, idx) => (
+                          <SelectItem key={`${distrito.id}-${idx}`} value={distrito.nombre_distrito}>
                             {distrito.nombre_distrito}
                           </SelectItem>
                         ))}

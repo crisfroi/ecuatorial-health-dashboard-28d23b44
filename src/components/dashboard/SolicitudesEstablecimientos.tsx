@@ -288,83 +288,136 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                             Ver
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
-                            <DialogTitle>
-                              Detalles de Solicitud - {solicitudSeleccionada?.numero_solicitud}
+                            <DialogTitle className="flex items-center justify-between w-full">
+                              <span>Solicitud {solicitudSeleccionada?.numero_solicitud || ''}</span>
+                              <div className="flex items-center gap-2">
+                                <Badge className={getStatusColor(solicitudSeleccionada?.estado || 'Pendiente')}>{solicitudSeleccionada?.estado}</Badge>
+                                {/* Menú de acciones */}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                      Acciones
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleEditarEstado(solicitudSeleccionada!.id, solicitudSeleccionada!.estado)}>
+                                      Editar estado
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                      <a href={`data:text/plain,${encodeURIComponent(JSON.stringify(solicitudSeleccionada, null, 2))}`} download={`solicitud_${solicitudSeleccionada?.numero_solicitud || solicitudSeleccionada?.id}.json`}>
+                                        Descargar JSON
+                                      </a>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             </DialogTitle>
                           </DialogHeader>
                           {solicitudSeleccionada && (
                             <div className="space-y-6">
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <h4 className="font-medium mb-2">Información General</h4>
-                                  <div className="space-y-2 text-sm">
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <Card className="lg:col-span-1">
+                                  <CardHeader>
+                                    <CardTitle>Información General</CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="space-y-2 text-sm">
                                     <div><strong>Nombre:</strong> {solicitudSeleccionada.nombre_establecimiento}</div>
                                     <div><strong>Categoría:</strong> {solicitudSeleccionada.categoria}</div>
                                     <div><strong>Tipo:</strong> {solicitudSeleccionada.tipo_servicio}</div>
                                     <div><strong>Director:</strong> {solicitudSeleccionada.director_responsable}</div>
-                                    <div><strong>Teléfono:</strong> {solicitudSeleccionada.telefono}</div>
-                                    <div><strong>Email:</strong> {solicitudSeleccionada.email}</div>
-                                  </div>
-                                </div>
-                                <div>
-                                  <h4 className="font-medium mb-2">Ubicación</h4>
-                                  <div className="space-y-2 text-sm">
+                                    <div><strong>Teléfono:</strong> {solicitudSeleccionada.telefono || '—'}</div>
+                                    <div><strong>Email:</strong> {solicitudSeleccionada.email || '—'}</div>
+                                    <div><strong>NIF:</strong> {solicitudSeleccionada.nif || '—'}</div>
+                                  </CardContent>
+                                </Card>
+                                <Card className="lg:col-span-1">
+                                  <CardHeader>
+                                    <CardTitle>Ubicación</CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="space-y-2 text-sm">
                                     <div><strong>Provincia:</strong> {solicitudSeleccionada.provincia}</div>
-                                    <div><strong>Distrito Sanitario:</strong> {solicitudSeleccionada.distrito_sanitario}</div>
+                                    <div><strong>Distrito Sanitario:</strong> {solicitudSeleccionada.distrito_sanitario || '—'}</div>
                                     <div><strong>Dirección:</strong> {solicitudSeleccionada.direccion}</div>
-                                  </div>
-                                </div>
+                                  </CardContent>
+                                </Card>
+                                <Card className="lg:col-span-1">
+                                  <CardHeader>
+                                    <CardTitle>Registro</CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="space-y-2 text-sm">
+                                    <div><strong>Nº Solicitud:</strong> {solicitudSeleccionada.numero_solicitud || '—'}</div>
+                                    <div><strong>Nº Registro:</strong> {solicitudSeleccionada.numero_registro || '—'}</div>
+                                    <div><strong>Fecha Solicitud:</strong> {formatearFecha(solicitudSeleccionada.fecha_solicitud)}</div>
+                                    <div><strong>Fecha Revisión:</strong> {formatearFecha(solicitudSeleccionada.fecha_revision)}</div>
+                                  </CardContent>
+                                </Card>
                               </div>
 
                               {solicitudSeleccionada.fotos_establecimiento?.length > 0 && (
-                                <div>
-                                  <h4 className="font-medium mb-2">Fotos del Establecimiento</h4>
-                                  <div className="grid grid-cols-3 gap-4">
-                                    {solicitudSeleccionada.fotos_establecimiento.map((foto: string, index: number) => (
-                                      <img
-                                        key={index}
-                                        src={foto}
-                                        alt={`Foto ${index + 1}`}
-                                        className="w-full h-32 object-cover rounded border"
-                                      />
-                                    ))}
-                                  </div>
-                                </div>
+                                <Card>
+                                  <CardHeader>
+                                    <CardTitle>Fotos del Establecimiento</CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                      {solicitudSeleccionada.fotos_establecimiento.map((foto: string, index: number) => (
+                                        <img
+                                          key={index}
+                                          src={foto}
+                                          alt={`Foto ${index + 1}`}
+                                          className="w-full h-40 object-cover rounded border"
+                                        />
+                                      ))}
+                                    </div>
+                                  </CardContent>
+                                </Card>
                               )}
 
                               {solicitudSeleccionada.documentos_adicionales?.length > 0 && (
-                                <div>
-                                  <h4 className="font-medium mb-2">Documentos Adicionales</h4>
-                                  <div className="space-y-2">
-                                    {solicitudSeleccionada.documentos_adicionales.map((doc: string, index: number) => (
-                                      <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                                        <span className="text-sm">Documento {index + 1}</span>
-                                        <Button size="sm" variant="outline" asChild>
-                                          <a href={doc} target="_blank" rel="noopener noreferrer">
-                                            <Download className="h-3 w-3 mr-1" />
-                                            Descargar
-                                          </a>
-                                        </Button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
+                                <Card>
+                                  <CardHeader>
+                                    <CardTitle>Documentos Adicionales</CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <div className="space-y-2">
+                                      {solicitudSeleccionada.documentos_adicionales.map((doc: string, index: number) => (
+                                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                          <span className="text-sm">Documento {index + 1}</span>
+                                          <Button size="sm" variant="outline" asChild>
+                                            <a href={doc} target="_blank" rel="noopener noreferrer">
+                                              <Download className="h-3 w-3 mr-1" />
+                                              Descargar
+                                            </a>
+                                          </Button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </CardContent>
+                                </Card>
                               )}
 
                               {solicitudSeleccionada.observaciones && (
-                                <div>
-                                  <h4 className="font-medium mb-2">Observaciones</h4>
-                                  <p className="text-sm bg-gray-50 p-3 rounded">{solicitudSeleccionada.observaciones}</p>
-                                </div>
+                                <Card>
+                                  <CardHeader>
+                                    <CardTitle>Observaciones</CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <p className="text-sm bg-gray-50 p-3 rounded">{solicitudSeleccionada.observaciones}</p>
+                                  </CardContent>
+                                </Card>
                               )}
 
                               {solicitudSeleccionada.motivo_rechazo && (
-                                <div>
-                                  <h4 className="font-medium mb-2 text-red-600">Motivo de Rechazo</h4>
-                                  <p className="text-sm bg-red-50 p-3 rounded">{solicitudSeleccionada.motivo_rechazo}</p>
-                                </div>
+                                <Card>
+                                  <CardHeader>
+                                    <CardTitle className="text-red-600">Motivo de Rechazo</CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <p className="text-sm bg-red-50 p-3 rounded">{solicitudSeleccionada.motivo_rechazo}</p>
+                                  </CardContent>
+                                </Card>
                               )}
                             </div>
                           )}

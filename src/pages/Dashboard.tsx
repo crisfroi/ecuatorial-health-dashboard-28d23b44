@@ -505,7 +505,8 @@ const Dashboard = () => {
             onValueChange={setActiveTab}
             className="space-y-0"
           >
-            <TabsList className="w-full overflow-x-auto whitespace-nowrap flex gap-2 p-2 bg-muted rounded-md">
+            <div className="w-full overflow-x-auto whitespace-nowrap">
+              <TabsList className="min-w-max flex gap-2 p-2 bg-muted rounded-md no-scrollbar">
               {tabsConfig.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -528,7 +529,8 @@ const Dashboard = () => {
                   </TabsTrigger>
                 );
               })}
-            </TabsList>
+              </TabsList>
+            </div>
           </Tabs>
         </div>
       </div>
@@ -671,7 +673,7 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <DashboardCharts onChartClick={handleChartClick} />
+                <DashboardCharts onChartClick={handleChartClick} filters={dashboardFilters} />
               </div>
               <div className="space-y-6">
                 <GuardiasStatsWidget
@@ -742,6 +744,7 @@ const Dashboard = () => {
           <TabsContent value="analytics" className="space-y-6">
             <AdvancedAnalyticsDashboard
               onNavigateToTab={handleNavigateFromAnalytics}
+              filters={dashboardFilters}
             />
           </TabsContent>
 

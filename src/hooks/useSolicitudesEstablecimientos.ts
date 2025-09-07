@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface SolicitudEstablecimiento {
   id: string;
@@ -108,16 +109,18 @@ export const useSolicitudesEstablecimientos = () => {
       }
     }
 
+    const { fotos_establecimiento: _fe, documentos_adicionales: _da, ...rest } = params as any;
+
     const { data, error } = await supabase
       .from("solicitudes_establecimientos")
-      .insert([{
-        ...params,
-        fotos_establecimiento: fotosUrls,
-        documentos_adicionales: documentosUrls,
-        solicitante_id: user.id,
-        fotos_establecimiento: undefined, // Remove File[] from insert
-        documentos_adicionales: undefined, // Remove File[] from insert
-      }])
+      .insert([
+        {
+          ...rest,
+          fotos_establecimiento: fotosUrls,
+          documentos_adicionales: documentosUrls,
+          solicitante_id: user.id,
+        },
+      ])
       .select()
       .single();
 

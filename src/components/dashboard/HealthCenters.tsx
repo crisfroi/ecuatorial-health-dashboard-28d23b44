@@ -820,6 +820,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
           <p className="text-gray-600 mt-1">
             Gestión de centros de trabajo sanitarios
           </p>
+          <p className="text-xs text-gray-500">Resultados filtrados: {globallyFilteredCentros.length}</p>
         </div>
         <div className="flex items-center space-x-2">
           <Button

@@ -14,6 +14,7 @@ import { PROVINCIAS_EG } from "@/utils/geo";
 import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
 import { useSolicitudesEstablecimientos } from "@/hooks/useSolicitudesEstablecimientos";
 import { useAuth } from "@/contexts/AuthContext";
+import { getErrorMessage } from "@/utils/errorHandler";
 
 const solicitudSchema = z.object({
   nombre_establecimiento: z.string().min(1, "El nombre del establecimiento es requerido"),

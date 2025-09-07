@@ -13,10 +13,11 @@ import { useToast } from "@/hooks/use-toast";
 
 interface SolicitudesEstablecimientosProps {
   userRole: string;
+  defaultEstado?: string;
 }
 
-const SolicitudesEstablecimientos = ({ userRole }: SolicitudesEstablecimientosProps) => {
-  const [estadoFiltro, setEstadoFiltro] = useState("Pendiente");
+const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: SolicitudesEstablecimientosProps) => {
+  const [estadoFiltro, setEstadoFiltro] = useState(defaultEstado);
   const [editandoEstados, setEditandoEstados] = useState<Record<string, string>>({});
   const [motivosRechazo, setMotivosRechazo] = useState<Record<string, string>>({});
   const [notasRevision, setNotasRevision] = useState<Record<string, string>>({});

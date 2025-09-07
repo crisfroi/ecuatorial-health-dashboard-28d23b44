@@ -343,8 +343,8 @@ const SolicitudEstablecimientoForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {nacionalidades.map((nac) => (
-                          <SelectItem key={nac.id} value={nac.nacionalidad}>
+                        {nacionalidadesUnicas.map((nac) => (
+                          <SelectItem key={`${nac.id}-${nac.nacionalidad}`} value={nac.nacionalidad}>
                             {nac.nacionalidad}
                           </SelectItem>
                         ))}

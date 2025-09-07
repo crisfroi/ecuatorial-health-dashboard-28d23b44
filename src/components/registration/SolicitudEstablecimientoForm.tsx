@@ -54,16 +54,12 @@ const SolicitudEstablecimientoForm = () => {
   const { crearSolicitudMutation } = useSolicitudesEstablecimientos();
 
   const categorias = [
-    "Hospital Regional",
-    "Hospital Provincial",
-    "Hospital Distrital",
-    "Centro de Salud",
-    "Puesto de Salud",
-    "Clínica Privada",
-    "Consultorio Médico",
-    "Centro de Especialidades",
-    "Laboratorio Clínico",
-    "Centro de Diagnóstico",
+    "HOSPITAL",
+    "CLINICA",
+    "CENTRO DE SALUD",
+    "CONSULTORIO",
+    "FARMACIA",
+    "LABORATORIO",
   ];
 
   const serviciosBase = [
@@ -163,7 +159,7 @@ const SolicitudEstablecimientoForm = () => {
                 name="categoria"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Categoría *</FormLabel>
+                    <FormLabel>Categoría del Centro *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>

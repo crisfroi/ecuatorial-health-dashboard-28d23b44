@@ -53,6 +53,10 @@ export interface CrearSolicitudEstablecimientoParams {
   fotos_establecimiento?: File[];
   documentos_adicionales?: File[];
   observaciones?: string;
+  nif?: string;
+  tipo_documento?: string;
+  numero_documento?: string;
+  nacionalidad_responsable?: string;
 }
 
 export const useSolicitudesEstablecimientos = () => {
@@ -61,61 +65,92 @@ export const useSolicitudesEstablecimientos = () => {
 
   const crearSolicitud = async (params: CrearSolicitudEstablecimientoParams) => {
     console.log("🏗️ Creando nueva solicitud de establecimiento:", params.nombre_establecimiento);
-    
+
     const { data: { user } } = await supabase.auth.getUser();
     const solicitanteId = user?.id || null; // permitir envío público sin sesión
 
-    // Subir archivos SOLO si hay usuario autenticado (evitar violaciones RLS)
+    // Helper para convertir archivos a data URL como respaldo cuando el storage falle o no haya permisos
+    const fileToDataUrl = async (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    };
+
+    // Intentar subir archivos; si falla por permisos, usar data URLs (permite envíos públicos)
     let fotosUrls: string[] = [];
-    if (user && params.fotos_establecimiento && params.fotos_establecimiento.length > 0) {
+    if (params.fotos_establecimiento && params.fotos_establecimiento.length > 0) {
       for (const foto of params.fotos_establecimiento) {
-        const fileName = `${Date.now()}_${foto.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('fotos-carnet')
-          .upload(`establecimientos/${fileName}`, foto);
+        try {
+          const fileName = `${Date.now()}_${foto.name}`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('fotos-carnet')
+            .upload(`establecimientos/${fileName}`, foto);
 
-        if (uploadError) {
-          console.error("Error subiendo foto:", uploadError);
-          throw uploadError;
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('fotos-carnet')
+            .getPublicUrl(uploadData.path);
+
+          fotosUrls.push(publicUrl);
+        } catch (e) {
+          const fallback = await fileToDataUrl(foto);
+          fotosUrls.push(fallback);
         }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('fotos-carnet')
-          .getPublicUrl(uploadData.path);
-
-        fotosUrls.push(publicUrl);
       }
     }
 
-    // Subir documentos adicionales SOLO si hay usuario autenticado
     let documentosUrls: string[] = [];
-    if (user && params.documentos_adicionales && params.documentos_adicionales.length > 0) {
+    if (params.documentos_adicionales && params.documentos_adicionales.length > 0) {
       for (const doc of params.documentos_adicionales) {
-        const fileName = `${Date.now()}_${doc.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('documentos-profesionales')
-          .upload(`establecimientos/${fileName}`, doc);
+        try {
+          const fileName = `${Date.now()}_${doc.name}`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('documentos-profesionales')
+            .upload(`establecimientos/${fileName}`, doc);
 
-        if (uploadError) {
-          console.error("Error subiendo documento:", uploadError);
-          throw uploadError;
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('documentos-profesionales')
+            .getPublicUrl(uploadData.path);
+
+          documentosUrls.push(publicUrl);
+        } catch (e) {
+          const fallback = await fileToDataUrl(doc);
+          documentosUrls.push(fallback);
         }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('documentos-profesionales')
-          .getPublicUrl(uploadData.path);
-
-        documentosUrls.push(publicUrl);
       }
     }
 
-    const { fotos_establecimiento: _fe, documentos_adicionales: _da, ...rest } = params as any;
+    const {
+      fotos_establecimiento: _fe,
+      documentos_adicionales: _da,
+      nif,
+      tipo_documento,
+      numero_documento,
+      nacionalidad_responsable,
+      observaciones,
+      ...rest
+    } = params as any;
+
+    const observacionesExtendidas = [
+      observaciones?.toString().trim() || null,
+      nif ? `NIF: ${nif}` : null,
+      tipo_documento ? `Tipo documento: ${tipo_documento}` : null,
+      numero_documento ? `Número documento: ${numero_documento}` : null,
+      nacionalidad_responsable ? `Nacionalidad responsable: ${nacionalidad_responsable}` : null,
+    ].filter(Boolean).join(" | ") || null;
 
     const { data, error } = await supabase
       .from("solicitudes_establecimientos")
       .insert([
         {
           ...rest,
+          observaciones: observacionesExtendidas,
           fotos_establecimiento: fotosUrls,
           documentos_adicionales: documentosUrls,
           solicitante_id: solicitanteId,

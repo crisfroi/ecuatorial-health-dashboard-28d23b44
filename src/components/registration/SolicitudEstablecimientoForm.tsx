@@ -75,6 +75,16 @@ const SolicitudEstablecimientoForm = () => {
   const { crearSolicitudMutation } = useSolicitudesEstablecimientos();
   const { user } = useAuth();
   const { data: nacionalidades = [] } = useNacionalidades();
+  const nacionalidadesUnicas = React.useMemo(() => {
+    const seen = new Set<string>();
+    return (nacionalidades || []).filter((n: any) => {
+      const name = (n?.nacionalidad || "").trim();
+      if (!name) return false;
+      if (seen.has(name)) return false;
+      seen.add(name);
+      return true;
+    });
+  }, [nacionalidades]);
 
   const categorias = [
     "HOSPITAL",

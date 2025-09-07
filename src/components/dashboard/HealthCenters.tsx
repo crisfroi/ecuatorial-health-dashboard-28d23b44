@@ -59,7 +59,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
   const [selectedProfessional, setSelectedProfessional] = useState<Profesional | null>(null);
 
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
-  const { crearCentroMutation, actualizarCentroMutation } = useCentrosSalud();
+  const { crearCentroMutation, actualizarCentroMutation, eliminarCentroMutation } = useCentrosSalud();
   const { validateCenterMutation, getPendingCenters } = useCenterSync();
   const { filterCentersData } = useRoleBasedData();
   const { toast } = useToast();
@@ -114,6 +114,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
     "LABORATORIO",
   ];
   const sectores = ["Público", "Privado", "Mixto", "ONG"];
+  const subcategorias = ["Regional", "Distrital", "Provincial", "General"];
   const areasProf = [
     "MEDICINA GENERAL",
     "ENFERMERÍA",
@@ -310,6 +311,8 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
       distrito: data.distrito as string,
       director: (data.director as string) || undefined,
       telefono: (data.telefono as string) || undefined,
+      // @ts-expect-error subcategoria no está en los tipos generados aún
+      subcategoria: (data.subcategoria as string) || null,
     });
     setShowCreateDialog(false);
   };
@@ -327,6 +330,8 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
       distrito: data.distrito as string,
       director: (data.director as string) || undefined,
       telefono: (data.telefono as string) || undefined,
+      // @ts-expect-error subcategoria no está en los tipos generados aún
+      subcategoria: (data.subcategoria as string) || null,
     });
     setShowEditDialog(false);
     setEditingCenter(null);
@@ -360,16 +365,34 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
           <Button variant="outline" onClick={() => setSelectedCenter(null)}>
             ← Volver a centros
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setEditingCenter(selectedCenter);
-              setShowEditDialog(true);
-            }}
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Editar Centro
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditingCenter(selectedCenter);
+                setShowEditDialog(true);
+              }}
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Editar Centro
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (window.confirm(`¿Eliminar centro "${selectedCenter.nombre}"? Esta acción no se puede deshacer.`)) {
+                  try {
+                    await eliminarCentroMutation.mutateAsync(selectedCenter.id);
+                    setSelectedCenter(null);
+                    toast({ title: 'Centro eliminado', description: 'El centro fue eliminado correctamente.' });
+                  } catch (e: any) {
+                    toast({ title: 'Error al eliminar', description: e.message, variant: 'destructive' });
+                  }
+                }
+              }}
+            >
+              Eliminar
+            </Button>
+          </div>
         </div>
 
         <Card>
@@ -642,6 +665,19 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                   </Select>
                 </div>
                 <div>
+                  <label className="text-sm font-medium">Subcategoría</label>
+                  <Select name="subcategoria" defaultValue={(editingCenter as any)?.subcategoria || undefined}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar subcategoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subcategorias.map((sub) => (
+                        <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <label className="text-sm font-medium">Sector *</label>
                   <Select name="sector" defaultValue={editingCenter?.sector}>
                     <SelectTrigger>
@@ -824,6 +860,19 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                           <SelectItem key={cat} value={cat}>
                             {cat}
                           </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Subcategoría</label>
+                    <Select name="subcategoria">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar subcategoría" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subcategorias.map((sub) => (
+                          <SelectItem key={sub} value={sub}>{sub}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

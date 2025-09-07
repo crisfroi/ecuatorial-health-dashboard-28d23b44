@@ -13,6 +13,9 @@ import { Upload, Building2, Camera, X } from "lucide-react";
 import { PROVINCIAS_EG } from "@/utils/geo";
 import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
 import { useSolicitudesEstablecimientos } from "@/hooks/useSolicitudesEstablecimientos";
+import { useAuth } from "@/contexts/AuthContext";
+import { getErrorMessage } from "@/utils/errorHandler";
+import { useNacionalidades } from "@/hooks/useNacionalidades";
 
 const solicitudSchema = z.object({
   nombre_establecimiento: z.string().min(1, "El nombre del establecimiento es requerido"),
@@ -24,6 +27,10 @@ const solicitudSchema = z.object({
   telefono: z.string().optional(),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   director_responsable: z.string().min(1, "El director responsable es requerido"),
+  nif: z.string().min(1, "El NIF es requerido"),
+  tipo_documento: z.string().min(1, "El tipo de documento es requerido"),
+  numero_documento: z.string().min(1, "El número de documento es requerido"),
+  nacionalidad_responsable: z.string().min(1, "La nacionalidad es requerida"),
   numero_camas: z.number().min(0).optional(),
   servicios_ofrecidos: z.array(z.string()).optional(),
   areas_especializadas: z.array(z.string()).optional(),
@@ -42,28 +49,50 @@ const SolicitudEstablecimientoForm = () => {
   const form = useForm<SolicitudFormData>({
     resolver: zodResolver(solicitudSchema),
     defaultValues: {
+      nombre_establecimiento: "",
+      categoria: "",
+      tipo_servicio: "",
+      provincia: "",
+      distrito_sanitario: "",
+      direccion: "",
+      telefono: "",
+      email: "",
+      director_responsable: "",
+      nif: "",
+      tipo_documento: "",
+      numero_documento: "",
+      nacionalidad_responsable: "",
       numero_camas: 0,
       servicios_ofrecidos: [],
       areas_especializadas: [],
       equipamiento_medico: [],
+      observaciones: "",
     },
   });
 
   const watchedProvincia = form.watch("provincia");
   const { data: distritosSanitarios = [] } = useDistritosSanitarios(watchedProvincia);
   const { crearSolicitudMutation } = useSolicitudesEstablecimientos();
+  const { user } = useAuth();
+  const { data: nacionalidades = [] } = useNacionalidades();
+  const nacionalidadesUnicas = React.useMemo(() => {
+    const seen = new Set<string>();
+    return (nacionalidades || []).filter((n: any) => {
+      const name = (n?.nacionalidad || "").trim();
+      if (!name) return false;
+      if (seen.has(name)) return false;
+      seen.add(name);
+      return true;
+    });
+  }, [nacionalidades]);
 
   const categorias = [
-    "Hospital Regional",
-    "Hospital Provincial",
-    "Hospital Distrital",
-    "Centro de Salud",
-    "Puesto de Salud",
-    "Clínica Privada",
-    "Consultorio Médico",
-    "Centro de Especialidades",
-    "Laboratorio Clínico",
-    "Centro de Diagnóstico",
+    "HOSPITAL",
+    "CLINICA",
+    "CENTRO DE SALUD",
+    "CONSULTORIO",
+    "FARMACIA",
+    "LABORATORIO",
   ];
 
   const serviciosBase = [
@@ -119,7 +148,7 @@ const SolicitudEstablecimientoForm = () => {
         servicios_ofrecidos: [...(data.servicios_ofrecidos || []), ...serviciosPersonalizados],
         areas_especializadas: [...(data.areas_especializadas || []), ...areasPersonalizadas],
       });
-      
+
       // Limpiar formulario
       form.reset();
       setFotosEstablecimiento([]);
@@ -127,7 +156,8 @@ const SolicitudEstablecimientoForm = () => {
       setServiciosPersonalizados([]);
       setAreasPersonalizadas([]);
     } catch (error) {
-      console.error("Error enviando solicitud:", error);
+      const message = getErrorMessage(error);
+      console.error("Error enviando solicitud:", message, error);
     }
   };
 
@@ -163,7 +193,7 @@ const SolicitudEstablecimientoForm = () => {
                 name="categoria"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Categoría *</FormLabel>
+                    <FormLabel>Categoría del Centro *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -171,8 +201,8 @@ const SolicitudEstablecimientoForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {categorias.map((categoria) => (
-                          <SelectItem key={categoria} value={categoria}>
+                        {categorias.map((categoria, idx) => (
+                          <SelectItem key={`${categoria}-${idx}`} value={categoria}>
                             {categoria}
                           </SelectItem>
                         ))}
@@ -250,14 +280,91 @@ const SolicitudEstablecimientoForm = () => {
 
               <FormField
                 control={form.control}
+                name="nif"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Número NIF *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="NIF del responsable" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="tipo_documento"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Documento *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione el tipo de documento" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="DIP">DIP</SelectItem>
+                        <SelectItem value="Pasaporte">Pasaporte</SelectItem>
+                        <SelectItem value="NIE">NIE</SelectItem>
+                        <SelectItem value="Otro">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="numero_documento"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Número de Documento *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Número del documento" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="nacionalidad_responsable"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nacionalidad del Responsable *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione la nacionalidad" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {nacionalidadesUnicas.map((nac) => (
+                          <SelectItem key={`${nac.id}-${nac.nacionalidad}`} value={nac.nacionalidad}>
+                            {nac.nacionalidad}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="numero_camas"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Número de Camas</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="0" 
+                      <Input
+                        type="number"
+                        placeholder="0"
                         {...field}
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                       />
@@ -283,8 +390,8 @@ const SolicitudEstablecimientoForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {PROVINCIAS_EG.map((provincia) => (
-                          <SelectItem key={provincia} value={provincia}>
+                        {PROVINCIAS_EG.map((provincia, idx) => (
+                          <SelectItem key={`${provincia}-${idx}`} value={provincia}>
                             {provincia}
                           </SelectItem>
                         ))}
@@ -308,8 +415,8 @@ const SolicitudEstablecimientoForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {distritosSanitarios.map((distrito) => (
-                          <SelectItem key={distrito.id} value={distrito.nombre_distrito}>
+                        {distritosSanitarios.map((distrito, idx) => (
+                          <SelectItem key={`${distrito.id}-${idx}`} value={distrito.nombre_distrito}>
                             {distrito.nombre_distrito}
                           </SelectItem>
                         ))}

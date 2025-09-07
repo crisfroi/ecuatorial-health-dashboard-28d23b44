@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +17,7 @@ interface CrearCentroParams {
   distrito: string;
   director?: string;
   telefono?: string;
+  subcategoria?: string | null;
 }
 
 export const useCentrosSalud = () => {
@@ -92,7 +92,7 @@ export const useCentrosSalud = () => {
     
     const { data, error } = await supabase
       .from("centros_salud")
-      .insert([params])
+      .insert([params as any])
       .select()
       .single();
 
@@ -113,7 +113,7 @@ export const useCentrosSalud = () => {
     
     const { data, error } = await supabase
       .from("centros_salud")
-      .update(params)
+      .update(params as any)
       .eq("id", id)
       .select()
       .single();
@@ -125,6 +125,16 @@ export const useCentrosSalud = () => {
     
     console.log("✅ Centro actualizado exitosamente");
     return data;
+  };
+
+  const eliminarCentro = async (id: string) => {
+    console.log("🗑️ Eliminando centro:", id);
+    const { error } = await supabase.from("centros_salud").delete().eq("id", id);
+    if (error) {
+      console.error("❌ Error al eliminar centro:", error);
+      throw error;
+    }
+    queryClient.invalidateQueries({ queryKey: ["centros"] });
   };
 
   const obtenerProfesionalesPorCentro = async (
@@ -250,10 +260,23 @@ export const useCentrosSalud = () => {
     },
   });
 
+  const eliminarCentroMutation = useMutation({
+    mutationFn: eliminarCentro,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["centros"] });
+      toast({ title: "Centro eliminado", description: "El centro fue eliminado correctamente." });
+    },
+    onError: (error: any) => {
+      console.error("❌ Error en eliminar centro:", error);
+      toast({ title: "Error al eliminar centro", description: error.message, variant: "destructive" });
+    }
+  });
+
   return {
     buscarCentros,
     crearCentroMutation,
     actualizarCentroMutation,
+    eliminarCentroMutation,
     obtenerProfesionalesPorCentro,
   };
 };

@@ -76,6 +76,11 @@ const Home = () => {
                 Verificar Acreditación
               </Button>
             </Link>
+            <Link to="/solicitud-establecimiento">
+              <Button size="lg" variant="outline" className="px-8 py-3">
+                Solicitud de Establecimiento
+              </Button>
+            </Link>
           </div>
         </div>
 

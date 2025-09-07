@@ -113,6 +113,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'guardias',
       'analytics',
       'health-centers',
+      'establecimientos',
       'incidents',
       'iachat',
       'admin',
@@ -157,6 +158,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'guardias',
       'analytics',
       'health-centers',
+      'establecimientos',
       'incidents',
       'iachat'
     ]
@@ -279,6 +281,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'guardias',
       'analytics',
       'health-centers',
+      'establecimientos',
       'incidents',
       'iachat',
       'admin',

@@ -66,11 +66,11 @@ export const useCentrosSalud = () => {
           .select("*", { count: "exact", head: true })
           .eq("nombre_centro", centro.nombre);
 
-        // Strategy 3: Match by lugar_trabajo
+        // Strategy 3: Match by nombre_centro (workplace)
         const { count: countByLugarTrabajo } = await supabase
           .from("profesionales_sanitarios")
           .select("*", { count: "exact", head: true })
-          .eq("lugar_trabajo", centro.nombre);
+          .eq("nombre_centro", centro.nombre);
 
         // Use the maximum count from all strategies
         const totalProfesionales = Math.max(countById || 0, countByName || 0, countByLugarTrabajo || 0);
@@ -180,11 +180,11 @@ export const useCentrosSalud = () => {
       .select("*")
       .eq("nombre_centro", centro.nombre);
 
-    // Strategy 3: By lugar_trabajo
+    // Strategy 3: By nombre_centro (workplace)
     let query3 = supabase
       .from("profesionales_sanitarios")
       .select("*")
-      .eq("lugar_trabajo", centro.nombre);
+      .eq("nombre_centro", centro.nombre);
 
     // Apply additional filters to all queries
     if (areaProfesional && areaProfesional !== "todos") {

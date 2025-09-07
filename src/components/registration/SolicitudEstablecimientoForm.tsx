@@ -127,7 +127,7 @@ const SolicitudEstablecimientoForm = () => {
         servicios_ofrecidos: [...(data.servicios_ofrecidos || []), ...serviciosPersonalizados],
         areas_especializadas: [...(data.areas_especializadas || []), ...areasPersonalizadas],
       });
-      
+
       // Limpiar formulario
       form.reset();
       setFotosEstablecimiento([]);
@@ -135,7 +135,9 @@ const SolicitudEstablecimientoForm = () => {
       setServiciosPersonalizados([]);
       setAreasPersonalizadas([]);
     } catch (error) {
-      console.error("Error enviando solicitud:", error);
+      const { getErrorMessage } = await import("@/utils/errorHandler");
+      const message = getErrorMessage(error);
+      console.error("Error enviando solicitud:", message, error);
     }
   };
 

@@ -13,6 +13,7 @@ import { Upload, Building2, Camera, X } from "lucide-react";
 import { PROVINCIAS_EG } from "@/utils/geo";
 import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
 import { useSolicitudesEstablecimientos } from "@/hooks/useSolicitudesEstablecimientos";
+import { useAuth } from "@/contexts/AuthContext";
 
 const solicitudSchema = z.object({
   nombre_establecimiento: z.string().min(1, "El nombre del establecimiento es requerido"),
@@ -62,6 +63,7 @@ const SolicitudEstablecimientoForm = () => {
   const watchedProvincia = form.watch("provincia");
   const { data: distritosSanitarios = [] } = useDistritosSanitarios(watchedProvincia);
   const { crearSolicitudMutation } = useSolicitudesEstablecimientos();
+  const { user } = useAuth();
 
   const categorias = [
     "HOSPITAL",
@@ -120,8 +122,8 @@ const SolicitudEstablecimientoForm = () => {
     try {
       await crearSolicitudMutation.mutateAsync({
         ...data,
-        fotos_establecimiento: fotosEstablecimiento,
-        documentos_adicionales: documentosAdicionales,
+        fotos_establecimiento: user ? fotosEstablecimiento : [],
+        documentos_adicionales: user ? documentosAdicionales : [],
         servicios_ofrecidos: [...(data.servicios_ofrecidos || []), ...serviciosPersonalizados],
         areas_especializadas: [...(data.areas_especializadas || []), ...areasPersonalizadas],
       });
@@ -400,8 +402,8 @@ const SolicitudEstablecimientoForm = () => {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <Camera className="mx-auto h-12 w-12 text-gray-400" />
                   <div className="mt-4">
-                    <label htmlFor="fotos-establecimiento" className="cursor-pointer">
-                      <Button type="button" variant="outline" asChild>
+                    <label htmlFor="fotos-establecimiento" className={user ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}>
+                      <Button type="button" variant="outline" asChild disabled={!user}>
                         <span>
                           <Camera className="w-4 h-4 mr-2" />
                           Subir Fotos
@@ -415,9 +417,10 @@ const SolicitudEstablecimientoForm = () => {
                       accept="image/*"
                       onChange={handleFotoUpload}
                       className="hidden"
+                      disabled={!user}
                     />
                     <p className="mt-2 text-sm text-gray-600">
-                      Máximo 5 fotos (JPG, PNG)
+                      {user ? "Máximo 5 fotos (JPG, PNG)" : "Inicia sesión para adjuntar fotos (opcional)"}
                     </p>
                   </div>
                 </div>
@@ -453,8 +456,8 @@ const SolicitudEstablecimientoForm = () => {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <Upload className="mx-auto h-12 w-12 text-gray-400" />
                   <div className="mt-4">
-                    <label htmlFor="documentos-adicionales" className="cursor-pointer">
-                      <Button type="button" variant="outline" asChild>
+                    <label htmlFor="documentos-adicionales" className={user ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}>
+                      <Button type="button" variant="outline" asChild disabled={!user}>
                         <span>
                           <Upload className="w-4 h-4 mr-2" />
                           Subir Documentos
@@ -468,9 +471,10 @@ const SolicitudEstablecimientoForm = () => {
                       accept=".pdf,.jpg,.jpeg,.png"
                       onChange={handleDocumentoUpload}
                       className="hidden"
+                      disabled={!user}
                     />
                     <p className="mt-2 text-sm text-gray-600">
-                      PDF, JPG, PNG (máx. 5MB cada uno)
+                      {user ? "PDF, JPG, PNG (máx. 5MB cada uno)" : "Inicia sesión para adjuntar documentos (opcional)"}
                     </p>
                   </div>
                 </div>

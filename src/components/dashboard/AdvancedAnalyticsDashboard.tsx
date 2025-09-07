@@ -1165,29 +1165,31 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                 </div>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={countryStats}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="pais_formacion"
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                      fontSize={10}
-                    />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar
-                      dataKey="cantidad"
-                      fill="#0088FE"
-                      onClick={(data: any) => {
-                        setSelectedCountry(data.pais_formacion);
-                        setSelectedInstitution(null);
-                      }}
-                      className="cursor-pointer hover:opacity-80"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                <ChartActions title="Paises de Formación">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={countryStats}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="pais_formacion"
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                        fontSize={10}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar
+                        dataKey="cantidad"
+                        fill="#0088FE"
+                        onClick={(data: any) => {
+                          setSelectedCountry(data.pais_formacion);
+                          setSelectedInstitution(null);
+                        }}
+                        className="cursor-pointer hover:opacity-80"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartActions>
                 <div className="mt-4">
                   <Select
                     onValueChange={(value) => {
@@ -1279,20 +1281,22 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={graduationStats}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="año_graduacion" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="cantidad"
-                    stroke="#8884d8"
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <ChartActions title="Años de Graduación">
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={graduationStats}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="año_graduacion" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="cantidad"
+                      stroke="#8884d8"
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartActions>
             </CardContent>
           </Card>
 

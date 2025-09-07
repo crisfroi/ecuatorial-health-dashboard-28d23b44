@@ -83,51 +83,51 @@ export const useSolicitudesEstablecimientos = () => {
       });
     };
 
-    // Intentar subir archivos; si falla por permisos, usar data URLs (permite envíos públicos)
+    const uploadWithTimeout = async (promise: Promise<any>, ms = 15000) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), ms)),
+      ]);
+    };
+
+    const uploadOrFallback = async (
+      bucket: string,
+      path: string,
+      file: File
+    ): Promise<string> => {
+      try {
+        const { data: uploadData, error: uploadError } = await uploadWithTimeout(
+          supabase.storage.from(bucket).upload(path, file)
+        ) as any;
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(uploadData.path);
+        return publicUrl;
+      } catch (_) {
+        return fileToDataUrl(file);
+      }
+    };
+
+    // Subidas concurrentes con fallback robusto
     let fotosUrls: string[] = [];
     if (params.fotos_establecimiento && params.fotos_establecimiento.length > 0) {
-      for (const foto of params.fotos_establecimiento) {
-        try {
+      const results = await Promise.allSettled(
+        params.fotos_establecimiento.map((foto) => {
           const fileName = `${Date.now()}_${foto.name}`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('fotos-carnet')
-            .upload(`establecimientos/${fileName}`, foto);
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('fotos-carnet')
-            .getPublicUrl(uploadData.path);
-
-          fotosUrls.push(publicUrl);
-        } catch (e) {
-          const fallback = await fileToDataUrl(foto);
-          fotosUrls.push(fallback);
-        }
-      }
+          return uploadOrFallback('fotos-carnet', `establecimientos/${fileName}`, foto);
+        })
+      );
+      fotosUrls = results.map(r => r.status === 'fulfilled' ? r.value : '').filter(Boolean);
     }
 
     let documentosUrls: string[] = [];
     if (params.documentos_adicionales && params.documentos_adicionales.length > 0) {
-      for (const doc of params.documentos_adicionales) {
-        try {
+      const results = await Promise.allSettled(
+        params.documentos_adicionales.map((doc) => {
           const fileName = `${Date.now()}_${doc.name}`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('documentos-profesionales')
-            .upload(`establecimientos/${fileName}`, doc);
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('documentos-profesionales')
-            .getPublicUrl(uploadData.path);
-
-          documentosUrls.push(publicUrl);
-        } catch (e) {
-          const fallback = await fileToDataUrl(doc);
-          documentosUrls.push(fallback);
-        }
-      }
+          return uploadOrFallback('documentos-profesionales', `establecimientos/${fileName}`, doc);
+        })
+      );
+      documentosUrls = results.map(r => r.status === 'fulfilled' ? r.value : '').filter(Boolean);
     }
 
     const {
@@ -173,7 +173,7 @@ export const useSolicitudesEstablecimientos = () => {
     }
 
     console.log("✅ Solicitud creada exitosamente");
-    return (data as any) || null;
+    return (data as any) || { id: undefined };
   };
 
   const actualizarEstado = async (id: string, estado: string, motivo_rechazo?: string, notas_revision?: string) => {

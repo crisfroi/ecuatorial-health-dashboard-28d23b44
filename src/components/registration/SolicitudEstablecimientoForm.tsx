@@ -270,14 +270,91 @@ const SolicitudEstablecimientoForm = () => {
 
               <FormField
                 control={form.control}
+                name="nif"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Número NIF *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="NIF del responsable" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="tipo_documento"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Documento *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione el tipo de documento" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="DIP">DIP</SelectItem>
+                        <SelectItem value="Pasaporte">Pasaporte</SelectItem>
+                        <SelectItem value="NIE">NIE</SelectItem>
+                        <SelectItem value="Otro">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="numero_documento"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Número de Documento *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Número del documento" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="nacionalidad_responsable"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nacionalidad del Responsable *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione la nacionalidad" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {nacionalidades.map((nac) => (
+                          <SelectItem key={nac.id} value={nac.nacionalidad}>
+                            {nac.nacionalidad}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="numero_camas"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Número de Camas</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="0" 
+                      <Input
+                        type="number"
+                        placeholder="0"
                         {...field}
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                       />

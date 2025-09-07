@@ -149,7 +149,8 @@ export const useSolicitudesEstablecimientos = () => {
       nacionalidad_responsable ? `Nacionalidad responsable: ${nacionalidad_responsable}` : null,
     ].filter(Boolean).join(" | ") || null;
 
-    const { data, error } = await supabase
+    // Si no hay usuario autenticado, evitamos .select() para no romper por RLS en el RETURNING
+    const insertBuilder = supabase
       .from("solicitudes_establecimientos")
       .insert([
         {
@@ -159,18 +160,20 @@ export const useSolicitudesEstablecimientos = () => {
           documentos_adicionales: documentosUrls,
           solicitante_id: solicitanteId,
         },
-      ])
-      .select()
-      .single();
+      ]);
+
+    const { data, error } = solicitanteId
+      ? await insertBuilder.select().single()
+      : await insertBuilder; // sin .select() cuando es público
 
     if (error) {
       const message = getErrorMessage(error);
       console.error("❌ Error al crear solicitud:", message, error);
       throw error;
     }
-    
-    console.log("✅ Solicitud creada exitosamente:", data.id);
-    return data;
+
+    console.log("✅ Solicitud creada exitosamente");
+    return (data as any) || null;
   };
 
   const actualizarEstado = async (id: string, estado: string, motivo_rechazo?: string, notas_revision?: string) => {

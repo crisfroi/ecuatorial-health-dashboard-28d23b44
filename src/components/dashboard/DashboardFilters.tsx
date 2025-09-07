@@ -133,6 +133,20 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
           </div>
 
           <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Función Pública</label>
+            <Select value={typeof filters.funcion_publica === 'boolean' ? String(filters.funcion_publica) : 'todos'} onValueChange={(value) => updateFilter('funcion_publica' as any, value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="true">Sí</SelectItem>
+                <SelectItem value="false">No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Estado de Solicitud</label>
             <Select value={filters.estado_solicitud || 'todos'} onValueChange={(value) => updateFilter('estado_solicitud', value)}>
               <SelectTrigger>

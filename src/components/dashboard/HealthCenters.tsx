@@ -187,7 +187,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
         "Total Profesionales",
       ]];
 
-      const rows = roleFilteredCentros.map((centro) => [
+      const rows = globallyFilteredCentros.map((centro) => [
         centro.id || "",
         centro.nombre || "",
         centro.categoria || "",

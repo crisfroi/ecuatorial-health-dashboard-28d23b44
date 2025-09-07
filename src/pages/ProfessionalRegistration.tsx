@@ -572,7 +572,7 @@ const ProfessionalRegistration = () => {
           />
         );
       case 2:
-        return <AddressStep form={form} />;
+        return <AddressStep form={form} watchedValues={watchedValues} />;
       case 3:
         return <EducationStep form={form} />;
       case 4:

@@ -218,7 +218,7 @@ const RequestsPanel = ({
     error,
   } = useProfesionales(queryFilters);
 
-  const professionalsList = (profesionales || []) as Professional[];
+  const professionalsList = (profesionales || []) as Profesional[];
 
   const filteredRequests = useMemo(() => {
     if (statusFilter === "todos") {

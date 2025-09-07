@@ -214,8 +214,10 @@ export type Database = {
           distrito_sanitario_id: number | null
           especialidades: string[] | null
           estado: string | null
+          fecha_registro: string | null
           id: string
           nombre: string
+          numero_registro: string | null
           profesionales_aprobados_count: number | null
           provincia: string
           sector: string
@@ -231,8 +233,10 @@ export type Database = {
           distrito_sanitario_id?: number | null
           especialidades?: string[] | null
           estado?: string | null
+          fecha_registro?: string | null
           id?: string
           nombre: string
+          numero_registro?: string | null
           profesionales_aprobados_count?: number | null
           provincia: string
           sector: string
@@ -248,8 +252,10 @@ export type Database = {
           distrito_sanitario_id?: number | null
           especialidades?: string[] | null
           estado?: string | null
+          fecha_registro?: string | null
           id?: string
           nombre?: string
+          numero_registro?: string | null
           profesionales_aprobados_count?: number | null
           provincia?: string
           sector?: string
@@ -1398,6 +1404,105 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      solicitudes_establecimientos: {
+        Row: {
+          areas_especializadas: string[] | null
+          autorizador_id: string | null
+          categoria: string
+          created_at: string | null
+          direccion: string
+          director_responsable: string | null
+          distrito_sanitario: string | null
+          documentos_adicionales: string[] | null
+          email: string | null
+          equipamiento_medico: string[] | null
+          estado: string | null
+          fecha_autorizacion: string | null
+          fecha_revision: string | null
+          fecha_solicitud: string | null
+          fotos_establecimiento: string[] | null
+          id: string
+          motivo_rechazo: string | null
+          nombre_establecimiento: string
+          notas_revision: string | null
+          numero_camas: number | null
+          numero_registro: string | null
+          numero_solicitud: string | null
+          observaciones: string | null
+          provincia: string
+          revisor_id: string | null
+          servicios_ofrecidos: string[] | null
+          solicitante_id: string | null
+          telefono: string | null
+          tipo_servicio: string
+          updated_at: string | null
+        }
+        Insert: {
+          areas_especializadas?: string[] | null
+          autorizador_id?: string | null
+          categoria: string
+          created_at?: string | null
+          direccion: string
+          director_responsable?: string | null
+          distrito_sanitario?: string | null
+          documentos_adicionales?: string[] | null
+          email?: string | null
+          equipamiento_medico?: string[] | null
+          estado?: string | null
+          fecha_autorizacion?: string | null
+          fecha_revision?: string | null
+          fecha_solicitud?: string | null
+          fotos_establecimiento?: string[] | null
+          id?: string
+          motivo_rechazo?: string | null
+          nombre_establecimiento: string
+          notas_revision?: string | null
+          numero_camas?: number | null
+          numero_registro?: string | null
+          numero_solicitud?: string | null
+          observaciones?: string | null
+          provincia: string
+          revisor_id?: string | null
+          servicios_ofrecidos?: string[] | null
+          solicitante_id?: string | null
+          telefono?: string | null
+          tipo_servicio: string
+          updated_at?: string | null
+        }
+        Update: {
+          areas_especializadas?: string[] | null
+          autorizador_id?: string | null
+          categoria?: string
+          created_at?: string | null
+          direccion?: string
+          director_responsable?: string | null
+          distrito_sanitario?: string | null
+          documentos_adicionales?: string[] | null
+          email?: string | null
+          equipamiento_medico?: string[] | null
+          estado?: string | null
+          fecha_autorizacion?: string | null
+          fecha_revision?: string | null
+          fecha_solicitud?: string | null
+          fotos_establecimiento?: string[] | null
+          id?: string
+          motivo_rechazo?: string | null
+          nombre_establecimiento?: string
+          notas_revision?: string | null
+          numero_camas?: number | null
+          numero_registro?: string | null
+          numero_solicitud?: string | null
+          observaciones?: string | null
+          provincia?: string
+          revisor_id?: string | null
+          servicios_ofrecidos?: string[] | null
+          solicitante_id?: string | null
+          telefono?: string | null
+          tipo_servicio?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       solicitudes_traslado: {
         Row: {

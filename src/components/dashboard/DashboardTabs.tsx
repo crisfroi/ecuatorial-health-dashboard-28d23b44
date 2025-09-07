@@ -13,6 +13,7 @@ const DashboardTabs = ({ activeTab, onTabChange, userRole }: DashboardTabsProps)
     { id: 'requests', label: 'Solicitudes', icon: FileText },
     { id: 'professionals', label: 'Profesionales', icon: Users },
     { id: 'health-centers', label: 'Centros de Salud', icon: Building2 },
+    { id: 'establecimientos', label: 'Establecimientos', icon: Building2 },
     { id: 'stats', label: 'Estadísticas', icon: TrendingUp },
     { id: 'iachat', label: 'Análisis IA', icon: MessageCircle },
     { id: 'incidents', label: 'Incidencias', icon: AlertTriangle },

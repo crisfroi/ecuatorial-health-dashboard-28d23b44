@@ -107,6 +107,24 @@ export const DocumentsStep = ({
         </div>
       </div>
 
+      {/* Código de barras del expediente */}
+      <div className="space-y-4 bg-blue-50 p-6 rounded-lg border border-blue-200">
+        <h4 className="font-medium text-lg text-blue-800">Código de Barras del Expediente</h4>
+        <div className="text-center">
+          <div className="inline-block bg-white p-4 rounded-lg border-2 border-blue-300 shadow-sm">
+            <div className="text-sm text-gray-600 mb-2">
+              Se generará automáticamente al enviar la solicitud
+            </div>
+            <div className="w-48 h-16 bg-gray-100 rounded flex items-center justify-center">
+              <span className="text-gray-500 text-xs">Código de barras</span>
+            </div>
+            <div className="text-xs text-gray-500 mt-2">
+              El código se genera con la información del expediente
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Documentos adicionales */}
       <div className="space-y-4">
         <h4 className="font-medium text-lg">Documentos adicionales</h4>

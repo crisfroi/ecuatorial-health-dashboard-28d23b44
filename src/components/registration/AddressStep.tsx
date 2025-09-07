@@ -5,13 +5,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { UseFormReturn } from 'react-hook-form';
 import { PROVINCIAS_EG } from '@/utils/geo';
+import { useDistritosSanitarios } from '@/hooks/useDistritosSanitarios';
 
 interface AddressStepProps {
   form: UseFormReturn<any>;
+  watchedValues?: any;
 }
 
 
-export const AddressStep = ({ form }: AddressStepProps) => {
+export const AddressStep = ({ form, watchedValues }: AddressStepProps) => {
+  const { data: distritosSanitarios = [] } = useDistritosSanitarios(watchedValues?.provincia);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <FormField
@@ -55,13 +59,24 @@ export const AddressStep = ({ form }: AddressStepProps) => {
 
       <FormField
         control={form.control}
-        name="distrito"
+        name="distrito_sanitario"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Distrito *</FormLabel>
-            <FormControl>
-              <Input placeholder="Ingrese el distrito" {...field} />
-            </FormControl>
+            <FormLabel>Distrito Sanitario *</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione el distrito sanitario" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {distritosSanitarios.map((distrito) => (
+                  <SelectItem key={distrito.id} value={distrito.nombre_distrito}>
+                    {distrito.nombre_distrito}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <FormMessage />
           </FormItem>
         )}

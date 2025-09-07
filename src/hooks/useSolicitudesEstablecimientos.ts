@@ -1,0 +1,255 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+export interface SolicitudEstablecimiento {
+  id: string;
+  numero_solicitud: string;
+  numero_registro?: string;
+  nombre_establecimiento: string;
+  categoria: string;
+  tipo_servicio: string;
+  provincia: string;
+  distrito_sanitario?: string;
+  direccion: string;
+  telefono?: string;
+  email?: string;
+  director_responsable?: string;
+  servicios_ofrecidos?: string[];
+  numero_camas?: number;
+  areas_especializadas?: string[];
+  equipamiento_medico?: string[];
+  fotos_establecimiento?: string[];
+  documentos_adicionales?: string[];
+  estado: string;
+  motivo_rechazo?: string;
+  fecha_solicitud?: string;
+  fecha_revision?: string;
+  fecha_autorizacion?: string;
+  solicitante_id?: string;
+  revisor_id?: string;
+  autorizador_id?: string;
+  observaciones?: string;
+  notas_revision?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CrearSolicitudEstablecimientoParams {
+  nombre_establecimiento: string;
+  categoria: string;
+  tipo_servicio: string;
+  provincia: string;
+  distrito_sanitario?: string;
+  direccion: string;
+  telefono?: string;
+  email?: string;
+  director_responsable?: string;
+  servicios_ofrecidos?: string[];
+  numero_camas?: number;
+  areas_especializadas?: string[];
+  equipamiento_medico?: string[];
+  fotos_establecimiento?: File[];
+  documentos_adicionales?: File[];
+  observaciones?: string;
+}
+
+export const useSolicitudesEstablecimientos = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const crearSolicitud = async (params: CrearSolicitudEstablecimientoParams) => {
+    console.log("🏗️ Creando nueva solicitud de establecimiento:", params.nombre_establecimiento);
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Usuario no autenticado");
+
+    // Subir fotos del establecimiento si existen
+    let fotosUrls: string[] = [];
+    if (params.fotos_establecimiento && params.fotos_establecimiento.length > 0) {
+      for (const foto of params.fotos_establecimiento) {
+        const fileName = `${Date.now()}_${foto.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('fotos-carnet')
+          .upload(`establecimientos/${fileName}`, foto);
+
+        if (uploadError) {
+          console.error("Error subiendo foto:", uploadError);
+          throw uploadError;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('fotos-carnet')
+          .getPublicUrl(uploadData.path);
+
+        fotosUrls.push(publicUrl);
+      }
+    }
+
+    // Subir documentos adicionales si existen
+    let documentosUrls: string[] = [];
+    if (params.documentos_adicionales && params.documentos_adicionales.length > 0) {
+      for (const doc of params.documentos_adicionales) {
+        const fileName = `${Date.now()}_${doc.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('documentos-profesionales')
+          .upload(`establecimientos/${fileName}`, doc);
+
+        if (uploadError) {
+          console.error("Error subiendo documento:", uploadError);
+          throw uploadError;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('documentos-profesionales')
+          .getPublicUrl(uploadData.path);
+
+        documentosUrls.push(publicUrl);
+      }
+    }
+
+    const { data, error } = await supabase
+      .from("solicitudes_establecimientos")
+      .insert([{
+        ...params,
+        fotos_establecimiento: fotosUrls,
+        documentos_adicionales: documentosUrls,
+        solicitante_id: user.id,
+        fotos_establecimiento: undefined, // Remove File[] from insert
+        documentos_adicionales: undefined, // Remove File[] from insert
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ Error al crear solicitud:", error);
+      throw error;
+    }
+    
+    console.log("✅ Solicitud creada exitosamente:", data.id);
+    return data;
+  };
+
+  const actualizarEstado = async (id: string, estado: string, motivo_rechazo?: string, notas_revision?: string) => {
+    console.log("✏️ Actualizando estado de solicitud:", id, "a", estado);
+    
+    const updates: any = {
+      estado,
+      updated_at: new Date().toISOString()
+    };
+
+    if (estado === 'Revisando' || estado === 'Pendiente de Firma') {
+      updates.fecha_revision = new Date().toISOString();
+    }
+    
+    if (estado === 'Rechazado' && motivo_rechazo) {
+      updates.motivo_rechazo = motivo_rechazo;
+    }
+
+    if (notas_revision) {
+      updates.notas_revision = notas_revision;
+    }
+
+    const { data, error } = await supabase
+      .from("solicitudes_establecimientos")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("❌ Error al actualizar estado:", error);
+      throw error;
+    }
+    
+    console.log("✅ Estado actualizado exitosamente");
+    return data;
+  };
+
+  const obtenerSolicitudes = async (filtros: { estado?: string; fecha_desde?: string; fecha_hasta?: string } = {}) => {
+    let query = supabase
+      .from("solicitudes_establecimientos")
+      .select("*");
+
+    if (filtros.estado && filtros.estado !== "todos") {
+      query = query.eq("estado", filtros.estado);
+    }
+
+    if (filtros.fecha_desde) {
+      query = query.gte("fecha_solicitud", filtros.fecha_desde);
+    }
+
+    if (filtros.fecha_hasta) {
+      query = query.lte("fecha_solicitud", filtros.fecha_hasta);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("❌ Error al obtener solicitudes:", error);
+      throw error;
+    }
+
+    return data as SolicitudEstablecimiento[];
+  };
+
+  const crearSolicitudMutation = useMutation({
+    mutationFn: crearSolicitud,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["solicitudes-establecimientos"] });
+      toast({
+        title: "Solicitud creada",
+        description: "La solicitud de establecimiento ha sido enviada exitosamente.",
+      });
+    },
+    onError: (error: any) => {
+      console.error("❌ Error en mutación crear solicitud:", error);
+      toast({
+        title: "Error al crear solicitud",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const actualizarEstadoMutation = useMutation({
+    mutationFn: ({ id, estado, motivo_rechazo, notas_revision }: { 
+      id: string; 
+      estado: string; 
+      motivo_rechazo?: string; 
+      notas_revision?: string; 
+    }) => actualizarEstado(id, estado, motivo_rechazo, notas_revision),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["solicitudes-establecimientos"] });
+      toast({
+        title: "Estado actualizado",
+        description: "El estado de la solicitud ha sido actualizado correctamente.",
+      });
+    },
+    onError: (error: any) => {
+      console.error("❌ Error en mutación actualizar estado:", error);
+      toast({
+        title: "Error al actualizar estado",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return {
+    crearSolicitudMutation,
+    actualizarEstadoMutation,
+    obtenerSolicitudes,
+  };
+};
+
+export const useSolicitudesEstablecimientosQuery = (filtros: { estado?: string; fecha_desde?: string; fecha_hasta?: string } = {}) => {
+  const { obtenerSolicitudes } = useSolicitudesEstablecimientos();
+
+  return useQuery({
+    queryKey: ["solicitudes-establecimientos", filtros],
+    queryFn: () => obtenerSolicitudes(filtros),
+    refetchInterval: 10000,
+    staleTime: 5000,
+  });
+};

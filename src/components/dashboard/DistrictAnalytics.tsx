@@ -64,6 +64,10 @@ interface DistrictDetailStats {
     año: number;
     cantidad: number;
   }>;
+  instituciones_formacion: Array<{
+    institucion: string;
+    cantidad: number;
+  }>;
 }
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
@@ -182,6 +186,21 @@ const useDistrictDetailStats = (distrito: string) => {
         .map(([año, cantidad]) => ({ año: parseInt(año), cantidad }))
         .sort((a, b) => a.año - b.año);
 
+      // Process training institutions (both institucion_1 and institucion_2)
+      const institutionCounts = professionals.reduce((acc, prof) => {
+        [prof.institucion_1, prof.institucion_2].forEach((inst) => {
+          if (inst && inst.trim()) {
+            acc[inst] = (acc[inst] || 0) + 1;
+          }
+        });
+        return acc;
+      }, {} as Record<string, number>);
+
+      const instituciones_formacion = Object.entries(institutionCounts)
+        .map(([institucion, cantidad]) => ({ institucion, cantidad }))
+        .sort((a, b) => b.cantidad - a.cantidad)
+        .slice(0, 10);
+
       return {
         distrito_sanitario: distrito,
         total_profesionales: professionals.length,
@@ -190,6 +209,7 @@ const useDistrictDetailStats = (distrito: string) => {
         distribucion_edad,
         formacion_internacional,
         tendencia_graduacion,
+        instituciones_formacion,
       };
     },
     enabled: !!distrito && distrito !== "all",
@@ -218,32 +238,46 @@ const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
   const exportDistrictData = () => {
     if (!stats) return;
 
-    const header = [["Área Profesional","Cantidad","Porcentaje"]];
-    const rows = stats.profesionales_por_area.map((area) => [
-      area.area,
-      area.cantidad,
-      Number(area.porcentaje.toFixed(2))
-    ]);
-
-    const worksheetData = [...header, ...rows];
-    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Distrito');
 
-    const meta = [
-      ["Generado en", new Date().toLocaleString('es-ES')],
-      ["Distrito", selectedDistrict],
-    ];
+    // Profesionales por Área
+    const headerArea = [["Área Profesional","Cantidad","Porcentaje"]];
+    const rowsArea = stats.profesionales_por_area.map((area) => [area.area, area.cantidad, Number(area.porcentaje.toFixed(2))]);
+    const wsArea = XLSX.utils.aoa_to_sheet([...headerArea, ...rowsArea]);
+    XLSX.utils.book_append_sheet(wb, wsArea, 'Profesionales_por_Area');
+
+    // Centros por Categoría
+    const headerCentros = [["Categoría","Cantidad"]];
+    const rowsCentros = stats.centros_por_categoria.map((c) => [c.categoria, c.cantidad]);
+    const wsCentros = XLSX.utils.aoa_to_sheet([...headerCentros, ...rowsCentros]);
+    XLSX.utils.book_append_sheet(wb, wsCentros, 'Centros_por_Categoria');
+
+    // Distribución por Edad
+    const headerEdad = [["Rango Edad","Cantidad"]];
+    const rowsEdad = stats.distribucion_edad.map((r) => [r.rango_edad, r.cantidad]);
+    const wsEdad = XLSX.utils.aoa_to_sheet([...headerEdad, ...rowsEdad]);
+    XLSX.utils.book_append_sheet(wb, wsEdad, 'Distribucion_por_Edad');
+
+    // Formación / Instituciones
+    const headerForm = [["Institución","Cantidad"]];
+    const rowsForm = stats.instituciones_formacion.map((i) => [i.institucion, i.cantidad]);
+    const wsForm = XLSX.utils.aoa_to_sheet([...headerForm, ...rowsForm]);
+    XLSX.utils.book_append_sheet(wb, wsForm, 'Formacion_Instituciones');
+
+    // Metadatos
+    const meta = [["Generado en", new Date().toLocaleString('es-ES')],["Distrito", selectedDistrict]];
     const wsMeta = XLSX.utils.aoa_to_sheet([["Clave","Valor"], ...meta]);
     XLSX.utils.book_append_sheet(wb, wsMeta, 'Metadatos');
 
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    // Build filename with applied filters included (currently only distrito)
+    const filename = `analiticas_distrito_${selectedDistrict}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `distrito_${selectedDistrict}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -462,7 +496,7 @@ const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
                 <XAxis dataKey="categoria" fontSize={10} />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="cantidad" fill="#00C49F" onClick={(data: any) => onNavigateToTab && onNavigateToTab("professionals", { categoria_centro: data.categoria, distrito_sanitario: selectedDistrict, estado_solicitud: "Aprobado" })} className="cursor-pointer hover:opacity-80" />
+                <Bar dataKey="cantidad" fill="#00C49F" onClick={(data: any) => onNavigateToTab && onNavigateToTab("health-centers", { categoria_centro: data.categoria, distrito_sanitario: selectedDistrict })} className="cursor-pointer hover:opacity-80" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

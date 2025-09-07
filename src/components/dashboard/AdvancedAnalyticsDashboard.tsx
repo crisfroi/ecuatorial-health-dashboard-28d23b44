@@ -161,24 +161,24 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
   } = useDashboardNavigation(onNavigateToTab || (() => {}));
 
   // Fetch all analytics data
-  const { data: topCenters = [], isLoading: loadingCenters } = useTopCenters();
+  const { data: topCenters = [], isLoading: loadingCenters } = useTopCenters(filters as any);
   const { data: areaStats = [], isLoading: loadingAreas } =
-    useAreaProfessionalStats();
+    useAreaProfessionalStats(filters as any);
   const { data: districtStats = [], isLoading: loadingDistricts } =
-    useDistrictStats();
+    useDistrictStats(filters as any);
   const { data: allDistrictRows = [] } = useDistritosSanitarios();
   const allDistrictNames = (allDistrictRows || [])
     .map((d: any) => d.nombre_distrito)
     .filter((n: any) => !!n)
     .sort();
   const { data: ageRangeStats = [], isLoading: loadingAges } =
-    useAgeRangeStats();
+    useAgeRangeStats(filters as any);
   const { data: graduationStats = [], isLoading: loadingGraduation } =
-    useGraduationYearStats();
+    useGraduationYearStats(filters as any);
   const { data: countryStats = [], isLoading: loadingCountries } =
-    useCountryStats();
+    useCountryStats(filters as any);
   const { data: institutionStats = [], isLoading: loadingInstitutions } =
-    useInstitutionStats();
+    useInstitutionStats(filters as any);
   const { data: allCountries = [] } = useAllCountryStats();
   const { data: allInstitutions = [] } = useAllInstitutionStats();
 
@@ -187,9 +187,14 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     institution: selectedInstitution || undefined,
   });
   const { data: categoryStats = [], isLoading: loadingCategories } =
-    useCenterCategoryStats();
+    useCenterCategoryStats({
+      provincia: filters?.provincia,
+      distrito_sanitario: filters?.distrito_sanitario,
+      distrito: filters?.distrito,
+      sector: filters?.tipo_sector,
+    } as any);
   const { data: titulacionStats = [], isLoading: loadingTitulacion } =
-    useTitulacionCategoryStats();
+    useTitulacionCategoryStats(filters as any);
 
   const isLoading =
     loadingCenters ||

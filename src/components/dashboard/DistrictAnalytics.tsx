@@ -39,6 +39,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
+import { useRef } from 'react';
 
 interface DistrictDetailStats {
   distrito_sanitario: string;
@@ -281,6 +283,21 @@ const DistrictAnalytics: React.FC<DistrictAnalyticsProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  const captureViewAsImage = async (filename = 'district_analytics') => {
+    if (!rootRef.current) return;
+    try {
+      const canvas = await html2canvas(rootRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const link = document.createElement('a');
+      link.download = `${filename}_${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (e) {
+      console.error('Error capturing district analytics image:', e);
+    }
   };
 
   if (selectedDistrict === "all") {

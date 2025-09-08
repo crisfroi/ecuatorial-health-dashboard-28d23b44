@@ -514,6 +514,12 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
           </Card>
         </div>
 
+        {/* Panel de asistencia y turnos del centro */}
+        <CenterAttendancePanel
+          centerId={selectedCenter.id}
+          professionals={profesionalesDelCentro.map(p => ({ id: p.id, nombre_completo: p.nombre_completo, area_profesional: p.area_profesional })) as any}
+        />
+
         {/* Profesionales del centro */}
         <Card>
           <CardHeader>

@@ -214,9 +214,12 @@ const Dashboard = () => {
     );
 
     if (activeTab === "overview") {
-      // Al volver al dashboard general, limpiar filtros para que las tarjetas no cambien
-      setAppliedFilters({});
-      setDashboardFilters({});
+      // Evitar bucles de renderizado: solo limpiar si realmente hay filtros aplicados
+      const hasFilters = Object.keys(appliedFilters || {}).length > 0;
+      if (hasFilters) {
+        setAppliedFilters({});
+        setDashboardFilters({});
+      }
       return;
     }
 

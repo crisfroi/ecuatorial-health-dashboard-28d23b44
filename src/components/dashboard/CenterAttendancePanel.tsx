@@ -95,7 +95,8 @@ const CenterAttendancePanel: React.FC<Props> = ({ centerId, professionals }) => 
         .single();
       if (error) throw error; return data;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["asistencia-dispositivos", centerId] }); toast({ title: "Dispositivo registrado" }); }
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["asistencia-dispositivos", centerId] }); toast({ title: "Dispositivo registrado" }); },
+    onError: (err: any) => { toast({ title: "Error al registrar", description: err?.message || "No se pudo registrar el dispositivo", variant: "destructive" }); }
   });
 
   const createTemplate = useMutation({

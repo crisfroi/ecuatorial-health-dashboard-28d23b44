@@ -93,7 +93,10 @@ export const useCentrosSalud = () => {
     
     const { data, error } = await supabase
       .from("centros_salud")
-      .insert([params as any])
+      .insert([{
+        ...(params as any),
+        estado: (params as any)?.estado ?? "pendiente_validacion",
+      }])
       .select()
       .single();
 

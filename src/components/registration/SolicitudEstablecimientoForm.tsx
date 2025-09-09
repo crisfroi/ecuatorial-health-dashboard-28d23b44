@@ -207,6 +207,7 @@ const SolicitudEstablecimientoForm = () => {
       setPersonalCategorias({ medicos: 0, enfermeria: 0, farmacia: 0, laboratorio: 0, otros: 0 });
       setPersonalListado([]);
       setAsesorTecnico({ nombre: "", telefono: "", formacion: "" });
+      setPrintSolicitud(null);
     } catch (error) {
       const message = getErrorMessage(error);
       console.error("Error enviando solicitud:", message, error);

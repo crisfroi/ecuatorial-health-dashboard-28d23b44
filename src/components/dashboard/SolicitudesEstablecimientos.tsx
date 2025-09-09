@@ -299,7 +299,7 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                               <span>Solicitud {solicitudSeleccionada?.numero_solicitud || ''}</span>
                               <div className="flex items-center gap-2">
                                 <Badge className={getStatusColor(solicitudSeleccionada?.estado || 'Pendiente')}>{solicitudSeleccionada?.estado}</Badge>
-                                {/* Acciones rápidas estilo ministerial */}
+                                {/* Acciones r��pidas estilo ministerial */}
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -467,6 +467,55 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                                         />
                                       ))}
                                     </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+
+                              {(solicitudSeleccionada.personal_apertura || solicitudSeleccionada.asesor_tecnico) && (
+                                <Card>
+                                  <CardHeader>
+                                    <CardTitle>Plan de Personal y Asesor Técnico</CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="space-y-3 text-sm">
+                                    {solicitudSeleccionada.personal_apertura?.categorias && Object.keys(solicitudSeleccionada.personal_apertura.categorias).length > 0 && (
+                                      <div>
+                                        <div className="font-medium">Personal requerido:</div>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1">
+                                          {Object.entries(solicitudSeleccionada.personal_apertura.categorias).map(([k, v]: any) => (
+                                            <div key={k} className="bg-gray-50 rounded p-2">
+                                              <span className="text-xs uppercase text-gray-500">{k}</span>
+                                              <div className="text-lg font-bold">{v as number}</div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {Array.isArray(solicitudSeleccionada.personal_apertura?.personas) && solicitudSeleccionada.personal_apertura.personas.length > 0 && (
+                                      <div>
+                                        <div className="font-medium mb-1">Listado de personal:</div>
+                                        <div className="space-y-1">
+                                          {solicitudSeleccionada.personal_apertura.personas.map((p: any, i: number) => (
+                                            <div key={i} className="flex justify-between border rounded p-2">
+                                              <div>
+                                                <div className="font-medium">{p.nombre}</div>
+                                                {p.categoria && <div className="text-xs text-gray-500">{p.categoria}</div>}
+                                              </div>
+                                              <div className="text-sm">{p.telefono}</div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {(solicitudSeleccionada.asesor_tecnico?.nombre || solicitudSeleccionada.asesor_tecnico?.formacion || solicitudSeleccionada.asesor_tecnico?.telefono) && (
+                                      <div>
+                                        <div className="font-medium mb-1">Asesor Técnico</div>
+                                        <div className="text-sm">
+                                          {solicitudSeleccionada.asesor_tecnico?.nombre} {solicitudSeleccionada.asesor_tecnico?.formacion ? `• ${solicitudSeleccionada.asesor_tecnico.formacion}` : ''} {solicitudSeleccionada.asesor_tecnico?.telefono ? `• ${solicitudSeleccionada.asesor_tecnico.telefono}` : ''}
+                                        </div>
+                                      </div>
+                                    )}
                                   </CardContent>
                                 </Card>
                               )}

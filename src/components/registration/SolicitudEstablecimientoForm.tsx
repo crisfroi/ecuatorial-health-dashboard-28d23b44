@@ -512,6 +512,103 @@ const SolicitudEstablecimientoForm = () => {
               </div>
             </div>
 
+            {/* Plan de Personal para Apertura */}
+            <div className="space-y-4">
+              <FormLabel>Plan de Personal para Apertura</FormLabel>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                {([
+                  { key: 'medicos', label: 'Médicos' },
+                  { key: 'enfermeria', label: 'Enfermería' },
+                  { key: 'farmacia', label: 'Farmacia' },
+                  { key: 'laboratorio', label: 'Laboratorio' },
+                  { key: 'otros', label: 'Otros' },
+                ] as const).map((item) => (
+                  <div key={item.key}>
+                    <label className="text-sm font-medium">{item.label}</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={(personalCategorias as any)[item.key]}
+                      onChange={(e) => setPersonalCategorias({ ...personalCategorias, [item.key]: parseInt(e.target.value || '0', 10) })}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h5 className="font-medium">Listado de Personal (Nombres y Teléfonos)</h5>
+                  <Button type="button" size="sm" onClick={() => setPersonalListado([...personalListado, { nombre: '', telefono: '', categoria: '' }])}>
+                    Añadir Persona
+                  </Button>
+                </div>
+                {personalListado.length === 0 ? (
+                  <p className="text-sm text-gray-500">No se han añadido personas</p>
+                ) : (
+                  <div className="space-y-2">
+                    {personalListado.map((p, idx) => (
+                      <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+                        <div className="md:col-span-4">
+                          <label className="text-sm font-medium">Nombre</label>
+                          <Input value={p.nombre} onChange={(e) => {
+                            const copy = [...personalListado];
+                            copy[idx] = { ...copy[idx], nombre: e.target.value };
+                            setPersonalListado(copy);
+                          }} />
+                        </div>
+                        <div className="md:col-span-4">
+                          <label className="text-sm font-medium">Teléfono</label>
+                          <Input value={p.telefono} onChange={(e) => {
+                            const copy = [...personalListado];
+                            copy[idx] = { ...copy[idx], telefono: e.target.value };
+                            setPersonalListado(copy);
+                          }} />
+                        </div>
+                        <div className="md:col-span-3">
+                          <label className="text-sm font-medium">Categoría</label>
+                          <Select value={p.categoria} onValueChange={(v) => {
+                            const copy = [...personalListado];
+                            copy[idx] = { ...copy[idx], categoria: v };
+                            setPersonalListado(copy);
+                          }}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Médicos">Médicos</SelectItem>
+                              <SelectItem value="Enfermería">Enfermería</SelectItem>
+                              <SelectItem value="Farmacia">Farmacia</SelectItem>
+                              <SelectItem value="Laboratorio">Laboratorio</SelectItem>
+                              <SelectItem value="Otros">Otros</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="md:col-span-1 flex justify-end">
+                          <Button type="button" variant="ghost" className="text-red-600" onClick={() => setPersonalListado(personalListado.filter((_, i) => i !== idx))}>✕</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Asesor Técnico */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-sm font-medium">Asesor Técnico</label>
+                <Input value={asesorTecnico.nombre} onChange={(e) => setAsesorTecnico({ ...asesorTecnico, nombre: e.target.value })} placeholder="Nombre del asesor técnico" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Teléfono</label>
+                <Input value={asesorTecnico.telefono} onChange={(e) => setAsesorTecnico({ ...asesorTecnico, telefono: e.target.value })} placeholder="+240..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Grado de Formación</label>
+                <Input value={asesorTecnico.formacion} onChange={(e) => setAsesorTecnico({ ...asesorTecnico, formacion: e.target.value })} placeholder="Ej. Licenciatura, Máster, Especialista" />
+              </div>
+            </div>
+
             {/* Fotos del Establecimiento */}
             <div className="space-y-4">
               <FormLabel>Fotos del Establecimiento</FormLabel>

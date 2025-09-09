@@ -60,6 +60,8 @@ const formSchema = z
       .min(1, "La categoría de titulación es requerida"),
     titulacion_especifica_1: z.string().min(1, "La titulación es requerida"),
     institucion_1: z.string().min(1, "La institución es requerida"),
+    categoria_institucion_1: z.string().optional(),
+    institucion_formacion_id_1: z.string().optional(),
     periodo_formacion: z
       .string()
       .min(1, "El período de formaci��n es requerido"),
@@ -243,6 +245,8 @@ const ProfessionalRegistration = () => {
       numero_funcionario: "",
       fecha_nombramiento: "",
       fecha_inicio_trabajo: "",
+      categoria_institucion_1: "",
+      institucion_formacion_id_1: "",
     },
   });
 
@@ -346,6 +350,28 @@ const ProfessionalRegistration = () => {
         throw new Error("Error al subir la foto");
       }
 
+      // Asegurar relación con institución de formación
+      let institucionFormacionId: string | null = null;
+      if (data.institucion_1 && data.pais_formacion_1) {
+        const { data: existing, error: findErr } = await supabase
+          .from('instituciones_formacion')
+          .select('id, categoria')
+          .eq('nombre', data.institucion_1.trim())
+          .eq('pais', data.pais_formacion_1.trim())
+          .maybeSingle();
+        if (findErr) console.warn('find institucion error', findErr);
+        if (existing?.id) {
+          institucionFormacionId = existing.id;
+        } else {
+          const { data: created, error: createErr } = await supabase
+            .from('instituciones_formacion')
+            .insert([{ nombre: data.institucion_1.trim(), pais: data.pais_formacion_1.trim(), categoria: (data as any).categoria_institucion_1 || 'OTRA' }])
+            .select('id')
+            .single();
+          if (!createErr) institucionFormacionId = created?.id || null;
+        }
+      }
+
       // Calcular edad
       const birthDate = new Date(data.fecha_nacimiento);
       const age = new Date().getFullYear() - birthDate.getFullYear();
@@ -394,6 +420,7 @@ const ProfessionalRegistration = () => {
         // URLs de documentos adicionales subidos al bucket
         documentos_adicionales: documentosUrls, // URLs de los documentos subidos
         foto_carnet: fotoUrl, // URL de la foto subida
+        institucion_formacion_id_1: institucionFormacionId,
         // Eliminamos codigo_barras de la inserción inicial, ya que usaremos codigo_expediente de la DB
         estado_solicitud: "Recibido" as const,
         fecha_solicitud: new Date().toISOString().split("T")[0],

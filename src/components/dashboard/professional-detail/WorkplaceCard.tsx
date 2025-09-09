@@ -96,6 +96,27 @@ const WorkplaceCard = ({ professional }: WorkplaceCardProps) => {
             <Badge variant="outline">{sectorCentro}</Badge>
           </div>
         )}
+        
+        {professional.funcion_publica && (
+          <div className="pt-3 border-t border-gray-200 space-y-2">
+            <div>
+              <span className="text-sm font-medium text-gray-600">Función pública:</span>
+              <Badge variant="secondary" className="ml-2">Funcionario Público</Badge>
+            </div>
+            {professional.estatus_funcionario && (
+              <div>
+                <span className="text-sm font-medium text-gray-600">Estatus:</span>
+                <p>{professional.estatus_funcionario === 'nombrado' ? 'Nombrado' : 'No nombrado'}</p>
+              </div>
+            )}
+            {professional.fecha_nombramiento && (
+              <div>
+                <span className="text-sm font-medium text-gray-600">Fecha nombramiento:</span>
+                <p>{new Date(professional.fecha_nombramiento).toLocaleDateString('es-ES')}</p>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

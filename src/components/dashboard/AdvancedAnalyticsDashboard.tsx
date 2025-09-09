@@ -75,6 +75,7 @@ import {
 } from "@/hooks/useDashboardNavigation";
 import { useAllCountryStats, useAllInstitutionStats } from "@/hooks/useAllFormationStats";
 import { useFormationSegmentation } from "@/hooks/useFormationSegmentation";
+import FuncionariosPublicosAnalytics from "./FuncionariosPublicosAnalytics";
 
 // Color palettes for charts
 const COLORS = [
@@ -440,7 +441,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
 
       {/* Main Analytics Tabs */}
       <Tabs defaultValue="summary" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger
             value="summary"
             className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
@@ -482,6 +483,13 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
           >
             <GraduationCap className="w-4 h-4" />
             Formación
+          </TabsTrigger>
+          <TabsTrigger
+            value="funcionarios"
+            className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
+          >
+            <Users className="w-4 h-4" />
+            Funcionarios
           </TabsTrigger>
           <TabsTrigger
             value="trends"
@@ -1567,6 +1575,12 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
         </TabsContent>
 
         {/* Financial Analytics Tab */}
+        <TabsContent value="funcionarios" className="space-y-6">
+          <ErrorBoundary>
+            <FuncionariosPublicosAnalytics onNavigateToTab={onNavigateToTab} />
+          </ErrorBoundary>
+        </TabsContent>
+
         <TabsContent value="financial" className="space-y-6">
           <ErrorBoundary>
             <FinancialAnalytics onNavigateToTab={onNavigateToTab} />

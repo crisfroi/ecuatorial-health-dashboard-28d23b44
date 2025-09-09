@@ -45,14 +45,14 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
                 />
               </div>
             )}
-            {/* Código de barras debajo de la foto - AHORA CON URL */}
-            {formData.url_codigo_barras_expediente && ( // Usa la URL del código de barras
+            {/* Código de barras debajo de la foto */}
+            {formData.url_codigo_barras_expediente && (
               <div className="flex flex-col items-center">
                 <img
-                  src={formData.url_codigo_barras_expediente} // Aquí usas la URL
-                  alt={`Código de Barras: ${formData.codigo_expediente}`} // Texto alternativo para accesibilidad
-                  style={{ width: '120px', height: '35px' }} // Aplica las dimensiones
-                  className="mb-0.5 object-contain" // object-contain para asegurar que la imagen se ajuste sin recortarse
+                  src={formData.url_codigo_barras_expediente}
+                  alt={`Código de Barras: ${formData.codigo_expediente}`}
+                  style={{ width: '120px', height: '35px' }}
+                  className="mb-0.5 object-contain"
                 />
                 <p className="text-xs text-gray-600 text-center">Código de Barras</p>
               </div>
@@ -108,7 +108,7 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
         </Card>
 
         {/* Información laboral */}
-        <Card className="mb-2"> {/* Reducido mb-4 a mb-2 */}
+        <Card className="mb-2">
           <CardHeader className="py-2 px-3">
             <CardTitle className="text-sm">Información Laboral</CardTitle>
           </CardHeader>
@@ -119,6 +119,20 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
               <div><strong>Categoría centro:</strong> {formData.categoria_centro}</div>
               <div><strong>Tipo sector:</strong> {formData.tipo_sector}</div>
               {formData.distrito_sanitario && <div><strong>Distrito sanitario:</strong> {formData.distrito_sanitario}</div>}
+              {formData.funcion_publica && (
+                <>
+                  <div><strong>Función pública:</strong> Sí</div>
+                  {formData.estatus_funcionario && (
+                    <div><strong>Estatus:</strong> {formData.estatus_funcionario === 'nombrado' ? 'Nombrado' : 'No nombrado'}</div>
+                  )}
+                  {formData.fecha_nombramiento && (
+                    <div><strong>Fecha nombramiento:</strong> {new Date(formData.fecha_nombramiento).toLocaleDateString('es-ES')}</div>
+                  )}
+                  {formData.numero_funcionario && (
+                    <div><strong>Número funcionario:</strong> {formData.numero_funcionario}</div>
+                  )}
+                </>
+              )}
               {formData.pertenece_brigada_medica && (
                 <div><strong>Brigada médica:</strong> {formData.tipo_cooperacion}</div>
               )}

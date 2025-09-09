@@ -110,6 +110,24 @@ const ApprovalLetter = ({ formData }: ApprovalLetterProps) => {
             <strong>País de Formación:</strong>{" "}
             {formData.pais_formacion_1}
           </p>
+          {formData.funcion_publica && (
+            <>
+              <p>
+                <strong>Condición:</strong> Funcionario Público del Sistema Sanitario
+              </p>
+              {formData.estatus_funcionario === 'nombrado' && formData.fecha_nombramiento && (
+                <p>
+                  <strong>Fecha de Nombramiento:</strong>{" "}
+                  {new Date(formData.fecha_nombramiento).toLocaleDateString('es-ES')}
+                </p>
+              )}
+              {formData.numero_funcionario && (
+                <p>
+                  <strong>Número de Funcionario:</strong> {formData.numero_funcionario}
+                </p>
+              )}
+            </>
+          )}
         </div>
 
         <p>
@@ -134,7 +152,10 @@ const ApprovalLetter = ({ formData }: ApprovalLetterProps) => {
           <strong>SEGUNDO:</strong> AUTORIZAR el ejercicio profesional en el
           territorio nacional de Guinea Ecuatorial, con todas las
           responsabilidades y derechos que ello conlleva, en estricto
-          cumplimiento del código deontológico de su profesión.
+          cumplimiento del código deontológico de su profesión
+          {formData.funcion_publica && (
+            <> y del régimen estatutario del funcionario público sanitario</>
+          )}.
         </p>
 
         <p>

@@ -10,55 +10,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertTriangle, Plus, Edit, Eye, Clock, CheckCircle, XCircle, User, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const HospitalIncidents = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [incidentType, setIncidentType] = useState<'hospitalaria' | 'profesional'>('hospitalaria');
 
-  // Datos simulados de incidencias
-  const [incidencias, setIncidencias] = useState([
-    {
-      id: 1,
-      titulo: 'Falta de suministros médicos',
-      descripcion: 'Escasez crítica de medicamentos esenciales en farmacia',
-      tipo: 'Suministros',
-      gravedad: 'Alta',
-      estado: 'Abierta',
-      fechaIncidencia: '2024-01-20',
-      reportadoPor: 'Dr. Carlos Obiang',
-      centroAfectado: 'Hospital Regional Malabo',
-      provincia: 'Bioko Norte'
-    },
-    {
-      id: 2,
-      titulo: 'Equipo médico averiado',
-      descripcion: 'Máquina de rayos X fuera de servicio desde hace 3 días',
-      tipo: 'Equipamiento',
-      gravedad: 'Media',
-      estado: 'En Progreso',
-      fechaIncidencia: '2024-01-18',
-      reportadoPor: 'Dra. María Nsue',
-      centroAfectado: 'Centro de Salud Bata',
-      provincia: 'Litoral'
-    },
-    {
-      id: 3,
-      titulo: 'Incidente de seguridad',
-      descripcion: 'Robo de medicamentos en área de farmacia durante la noche',
-      tipo: 'Seguridad',
-      gravedad: 'Alta',
-      estado: 'Resuelta',
-      fechaIncidencia: '2024-01-15',
-      fechaResolucion: '2024-01-22',
-      reportadoPor: 'Farm. Ana Nguema',
-      resuelto: 'Admin. Pedro Nsue',
-      centroAfectado: 'Farmacia Central',
-      provincia: 'Bioko Norte'
+  // Obtener incidencias reales de la base de datos
+  const { data: incidencias = [], isLoading } = useQuery({
+    queryKey: ['incidencias_hospitalarias'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('incidencias_hospitalarias')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
     }
-  ]);
+  });
 
   // Datos de incidencias de profesionales
   const [incidenciasProfesionales, setIncidenciasProfesionales] = useState([
@@ -179,6 +154,50 @@ const HospitalIncidents = () => {
     }
   };
 
+  const createIncidentMutation = useMutation({
+    mutationFn: async (incidentData: any) => {
+      const { data, error } = await supabase
+        .from('incidencias_hospitalarias')
+        .insert([{
+          titulo_incidencia: incidentData.titulo,
+          descripcion: incidentData.descripcion,
+          tipo_incidencia: incidentData.tipo,
+          gravedad: incidentData.gravedad,
+          estado: 'Abierta',
+          fecha_incidencia: new Date().toISOString(),
+          reportado_por: 'Usuario Actual', // En una app real vendría del contexto de auth
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incidencias_hospitalarias'] });
+      setNewIncident({
+        titulo: '',
+        descripcion: '',
+        tipo: '',
+        gravedad: 'Media',
+        centroAfectado: '',
+        provincia: ''
+      });
+      setIsAddDialogOpen(false);
+      toast({
+        title: "Incidencia creada",
+        description: "La incidencia ha sido registrada exitosamente",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Error al crear la incidencia: " + error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleAddIncident = () => {
     if (!newIncident.titulo || !newIncident.descripcion || !newIncident.tipo) {
       toast({
@@ -189,29 +208,7 @@ const HospitalIncidents = () => {
       return;
     }
 
-    const newIncidentData = {
-      id: incidencias.length + 1,
-      ...newIncident,
-      estado: 'Abierta',
-      fechaIncidencia: new Date().toISOString().split('T')[0],
-      reportadoPor: 'Usuario Actual' // En una app real vendría del contexto de auth
-    };
-
-    setIncidencias([...incidencias, newIncidentData]);
-    setNewIncident({
-      titulo: '',
-      descripcion: '',
-      tipo: '',
-      gravedad: 'Media',
-      centroAfectado: '',
-      provincia: ''
-    });
-    setIsAddDialogOpen(false);
-
-    toast({
-      title: "Incidencia creada",
-      description: "La incidencia ha sido registrada exitosamente",
-    });
+    createIncidentMutation.mutate(newIncident);
   };
 
   const handleViewIncident = (incident: any) => {
@@ -219,23 +216,56 @@ const HospitalIncidents = () => {
     setIsViewDialogOpen(true);
   };
 
-  const updateIncidentStatus = (id: number, newStatus: string) => {
-    setIncidencias(incidencias.map(inc => 
-      inc.id === id 
-        ? { 
-            ...inc, 
-            estado: newStatus,
-            fechaResolucion: newStatus === 'Resuelta' ? new Date().toISOString().split('T')[0] : undefined,
-            resuelto: newStatus === 'Resuelta' ? 'Usuario Actual' : undefined
-          }
-        : inc
-    ));
+  const updateIncidentMutation = useMutation({
+    mutationFn: async ({ id, newStatus }: { id: string, newStatus: string }) => {
+      const updateData: any = {
+        estado: newStatus,
+        updated_at: new Date().toISOString()
+      };
+      
+      if (newStatus === 'Resuelta') {
+        updateData.fecha_resolucion = new Date().toISOString();
+        updateData.resuelto_por = 'Usuario Actual';
+      }
 
-    toast({
-      title: "Estado actualizado",
-      description: `La incidencia ha sido marcada como ${newStatus}`,
-    });
+      const { data, error } = await supabase
+        .from('incidencias_hospitalarias')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['incidencias_hospitalarias'] });
+      toast({
+        title: "Estado actualizado",
+        description: `La incidencia ha sido marcada como ${variables.newStatus}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Error al actualizar el estado: " + error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateIncidentStatus = (id: string, newStatus: string) => {
+    updateIncidentMutation.mutate({ id, newStatus });
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-gray-600">Cargando incidencias...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -423,14 +453,14 @@ const HospitalIncidents = () => {
                 <TableRow key={incidencia.id}>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{incidencia.titulo}</div>
+                      <div className="font-medium">{incidencia.titulo_incidencia}</div>
                       <div className="text-sm text-gray-500 truncate max-w-xs">
                         {incidencia.descripcion}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{incidencia.tipo}</Badge>
+                    <Badge variant="outline">{incidencia.tipo_incidencia}</Badge>
                   </TableCell>
                   <TableCell>
                     <Badge className={getGravityColor(incidencia.gravedad)}>
@@ -447,12 +477,12 @@ const HospitalIncidents = () => {
                   </TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium text-sm">{incidencia.centroAfectado}</div>
-                      <div className="text-xs text-gray-500">{incidencia.provincia}</div>
+                      <div className="font-medium text-sm">Sistema</div>
+                      <div className="text-xs text-gray-500">Incidencia Hospitalaria</div>
                     </div>
                   </TableCell>
-                  <TableCell>{incidencia.fechaIncidencia}</TableCell>
-                  <TableCell>{incidencia.reportadoPor}</TableCell>
+                  <TableCell>{new Date(incidencia.fecha_incidencia).toLocaleDateString('es-ES')}</TableCell>
+                  <TableCell>{incidencia.reportado_por}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Button

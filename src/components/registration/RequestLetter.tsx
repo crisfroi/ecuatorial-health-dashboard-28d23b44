@@ -73,16 +73,25 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
                 durante el período <span className="font-semibold">{formData.periodo_formacion}</span>.
               </p>
 
-              <p>
-                Actualmente, mi situación laboral es <span className="font-semibold">{formData.situacion_laboral}</span>
-                {formData.nombre_centro && (
-                  <>, prestando servicios en <span className="font-semibold">{formData.nombre_centro}</span> 
-                  ({formData.categoria_centro}) en el sector <span className="font-semibold">{formData.tipo_sector}</span>
-                  {formData.distrito_sanitario && (
-                    <>, correspondiente al distrito sanitario de <span className="font-semibold">{formData.distrito_sanitario}</span></>
-                  )}</>
-                )}.
-              </p>
+            <p>
+              Actualmente, mi situación laboral es <span className="font-semibold">{formData.situacion_laboral}</span>
+              {formData.funcion_publica && (
+                <>, desempeñándome como funcionario público 
+                {formData.estatus_funcionario === 'nombrado' && formData.fecha_nombramiento && (
+                  <> con nombramiento oficial desde el <span className="font-semibold">{new Date(formData.fecha_nombramiento).toLocaleDateString('es-ES')}</span></>
+                )}
+                {formData.estatus_funcionario === 'no_nombrado' && (
+                  <> en condición de contratado temporal</>
+                )}</>
+              )}
+              {formData.nombre_centro && (
+                <>, prestando servicios en <span className="font-semibold">{formData.nombre_centro}</span> 
+                ({formData.categoria_centro}) en el sector <span className="font-semibold">{formData.tipo_sector}</span>
+                {formData.distrito_sanitario && (
+                  <>, correspondiente al distrito sanitario de <span className="font-semibold">{formData.distrito_sanitario}</span></>
+                )}</>
+              )}.
+            </p>
 
               {formData.pertenece_brigada_medica && (
                 <p>
@@ -94,10 +103,16 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
               )}
 
               <p>
-                Mi formación académica en el campo de la salud y mi compromiso con el ejercicio ético y 
-                profesional de la medicina me motivan a solicitar esta acreditación oficial, que me permitirá 
+                Mi formación académica en el campo de la salud
+                {formData.funcion_publica && (
+                  <> y mi condición de funcionario público del sistema sanitario nacional</>
+                )} 
+                y mi compromiso con el ejercicio ético y profesional de la medicina me motivan a solicitar esta acreditación oficial, que me permitirá 
                 continuar contribuyendo al desarrollo del sistema sanitario de Guinea Ecuatorial con la 
-                debida autorización y reconocimiento profesional.
+                debida autorización y reconocimiento profesional
+                {formData.funcion_publica && (
+                  <> en mi calidad de servidor público</>
+                )}.
               </p>
 
               <p>

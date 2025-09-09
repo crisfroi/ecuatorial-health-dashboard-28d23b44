@@ -106,35 +106,79 @@ const RequestsPanel = ({
   // Excel export functionality
   const exportRequestsToExcel = () => {
     try {
-      const header = [[
+      // Determinar si hay funcionarios públicos para incluir columnas adicionales
+      const hasFuncionarios = filteredRequests.some(r => r.funcion_publica);
+      
+      const baseHeader = [
         "ID",
-        "Nombre Completo",
+        "Nombre Completo", 
         "Área Profesional",
         "Estado Solicitud",
         "Provincia",
+        "Distrito Sanitario",
         "Teléfono",
         "Email",
+        "Edad",
         "Fecha Solicitud",
         "Fecha Graduación",
         "Universidad",
         "Lugar de Trabajo",
         "Motivo Rechazo",
-      ]];
+      ];
 
-      const rows = filteredRequests.map((request) => [
-        request.id || "",
-        request.nombre_completo || "",
-        request.area_profesional || "",
-        request.estado_solicitud || "",
-        request.provincia || "",
-        request.telefono || "",
-        request.email || "",
-        request.created_at ? new Date(request.created_at).toLocaleDateString("es-ES") : "",
-        request.fecha_graduacion ? new Date(request.fecha_graduacion).toLocaleDateString("es-ES") : "",
-        request.universidad || "",
-        request.lugar_trabajo || "",
-        request.motivo_rechazo || "",
-      ]);
+      const funcionarioHeaders = hasFuncionarios ? [
+        "Es Funcionario",
+        "Estatus Funcionario", 
+        "Fecha Nombramiento",
+        "Edad Laboral",
+        "Años Restantes Jubilación"
+      ] : [];
+
+      const header = [baseHeader.concat(funcionarioHeaders)];
+
+      const rows = filteredRequests.map((request) => {
+        // Calcular campos adicionales para funcionarios
+        const calcularEdadLaboral = () => {
+          const inicioTrabajo = request.fecha_inicio_trabajo ? new Date(request.fecha_inicio_trabajo) : null;
+          const nombramiento = request.fecha_nombramiento ? new Date(request.fecha_nombramiento) : null;
+          const fechaRef = nombramiento || inicioTrabajo;
+          if (!fechaRef) return null;
+          const años = Math.floor((new Date().getTime() - fechaRef.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          return años;
+        };
+
+        const calcularAñosRestantesJubilacion = () => {
+          if (!request.edad) return null;
+          return Math.max(0, 65 - request.edad);
+        };
+
+        const baseRow = [
+          request.id || "",
+          request.nombre_completo || "",
+          request.area_profesional || "",
+          request.estado_solicitud || "",
+          request.provincia || "",
+          request.distrito_sanitario || "",
+          request.telefono || "",
+          request.email || "",
+          request.edad || "",
+          request.created_at ? new Date(request.created_at).toLocaleDateString("es-ES") : "",
+          request.año_graduacion || "",
+          request.institucion_1 || request.universidad || "",
+          request.nombre_centro || request.lugar_trabajo || "",
+          request.motivo_rechazo || "",
+        ];
+
+        const funcionarioRow = hasFuncionarios ? [
+          request.funcion_publica ? "Sí" : "No",
+          request.estatus_funcionario || "",
+          request.fecha_nombramiento ? new Date(request.fecha_nombramiento).toLocaleDateString("es-ES") : "",
+          calcularEdadLaboral() || "",
+          calcularAñosRestantesJubilacion() || ""
+        ] : [];
+
+        return baseRow.concat(funcionarioRow);
+      });
 
       const worksheetData = [...header, ...rows];
       const ws = XLSX.utils.aoa_to_sheet(worksheetData);

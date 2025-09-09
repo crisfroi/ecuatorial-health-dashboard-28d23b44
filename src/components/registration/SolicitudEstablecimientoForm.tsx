@@ -45,6 +45,9 @@ const SolicitudEstablecimientoForm = () => {
   const [documentosAdicionales, setDocumentosAdicionales] = useState<File[]>([]);
   const [serviciosPersonalizados, setServiciosPersonalizados] = useState<string[]>([]);
   const [areasPersonalizadas, setAreasPersonalizadas] = useState<string[]>([]);
+  const [personalCategorias, setPersonalCategorias] = useState({ medicos: 0, enfermeria: 0, farmacia: 0, laboratorio: 0, otros: 0 });
+  const [personalListado, setPersonalListado] = useState<{ nombre: string; telefono: string; categoria: string }[]>([]);
+  const [asesorTecnico, setAsesorTecnico] = useState<{ nombre: string; telefono: string; formacion: string }>({ nombre: "", telefono: "", formacion: "" });
 
   const form = useForm<SolicitudFormData>({
     resolver: zodResolver(solicitudSchema),

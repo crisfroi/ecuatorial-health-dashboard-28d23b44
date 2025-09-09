@@ -385,6 +385,10 @@ const ProfessionalRegistration = () => {
         tipo_sector: data.tipo_sector || null,
         distrito_sanitario: data.distrito_sanitario || null,
         funcion_publica: data.funcion_publica || false, // Nueva categorización
+        estatus_funcionario: data.funcion_publica ? (data.funcionario_estatus || null) : null,
+        numero_funcionario: data.funcion_publica && data.funcionario_estatus === 'nombrado' ? (data.numero_funcionario || null) : null,
+        fecha_nombramiento: data.funcion_publica && data.funcionario_estatus === 'nombrado' ? (data.fecha_nombramiento || null) : null,
+        fecha_inicio_trabajo: data.funcion_publica && data.funcionario_estatus === 'no_nombrado' ? (data.fecha_inicio_trabajo || null) : null,
         pertenece_brigada_medica: data.pertenece_brigada_medica,
         tipo_cooperacion: data.tipo_cooperacion || null,
         // URLs de documentos adicionales subidos al bucket

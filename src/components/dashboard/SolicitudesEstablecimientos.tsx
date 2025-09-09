@@ -304,7 +304,7 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                                   size="sm"
                                   variant="outline"
                                   className="flex items-center gap-2"
-                                  onClick={() => handleEditarEstado(solicitudSeleccionada!.id, solicitudSeleccionada!.estado)}
+                                  onClick={() => solicitudSeleccionada && handleEditarEstado(solicitudSeleccionada.id, solicitudSeleccionada.estado || 'Pendiente')}
                                 >
                                   <Edit className="h-3 w-3" /> Editar
                                 </Button>
@@ -370,12 +370,12 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                                           pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                                           heightLeft -= 297;
                                         }
-                                        pdf.save(`carta-solicitud-establecimiento-${solicitudSeleccionada.numero_solicitud || solicitudSeleccionada.id}.pdf`);
+                                        pdf.save(`carta-solicitud-establecimiento-${solicitudSeleccionada?.numero_solicitud || solicitudSeleccionada?.id || 'solicitud'}.pdf`);
                                       }}
                                     >
                                       Carta de Solicitud (PDF)
                                     </DropdownMenuItem>
-                                    {(solicitudSeleccionada.estado === 'Pendiente de Firma' || solicitudSeleccionada.estado === 'Autorizado') && (
+                                    {((solicitudSeleccionada?.estado === 'Pendiente de Firma' || solicitudSeleccionada?.estado === 'Autorizado')) && (
                                       <DropdownMenuItem
                                         onClick={async () => {
                                           const el = document.getElementById('est-resolution-print');
@@ -395,7 +395,7 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                                             pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                                             heightLeft -= 297;
                                           }
-                                          pdf.save(`resolucion-alta-establecimiento-${solicitudSeleccionada.numero_solicitud || solicitudSeleccionada.id}.pdf`);
+                                          pdf.save(`resolucion-alta-establecimiento-${solicitudSeleccionada?.numero_solicitud || solicitudSeleccionada?.id || 'solicitud'}.pdf`);
                                         }}
                                       >
                                         Resolución de Aprobación (PDF)

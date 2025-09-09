@@ -239,6 +239,10 @@ const ProfessionalRegistration = () => {
       situacion_laboral: "Activo",
       nacionalidad: "Ecuatoguineana",
       telefono: "+240",
+      funcionario_estatus: undefined,
+      numero_funcionario: "",
+      fecha_nombramiento: "",
+      fecha_inicio_trabajo: "",
     },
   });
 

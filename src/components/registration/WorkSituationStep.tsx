@@ -153,6 +153,80 @@ export const WorkSituationStep = ({ form, watchedValues, distritosSanitarios }: 
               </FormItem>
             )}
           />
+
+          {watchedValues.funcion_publica && (
+            <>
+              <FormField
+                control={form.control}
+                name="funcionario_estatus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Funcionario</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione estatus" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="nombrado">Nombrado</SelectItem>
+                        <SelectItem value="no_nombrado">No nombrado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {watchedValues.funcionario_estatus === 'nombrado' && (
+                <FormField
+                  control={form.control}
+                  name="numero_funcionario"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número de Funcionario</FormLabel>
+                      <FormControl>
+                        <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Ingrese su número de funcionario" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {watchedValues.funcionario_estatus === 'nombrado' ? (
+                  <FormField
+                    control={form.control}
+                    name="fecha_nombramiento"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Fecha de Nombramiento</FormLabel>
+                        <FormControl>
+                          <input type="date" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <FormField
+                    control={form.control}
+                    name="fecha_inicio_trabajo"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Fecha de Inicio de Trabajo</FormLabel>
+                        <FormControl>
+                          <input type="date" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+            </>
+          )}
         </>
       )}
 

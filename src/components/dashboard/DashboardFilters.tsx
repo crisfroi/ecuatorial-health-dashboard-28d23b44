@@ -14,6 +14,7 @@ interface Filtros {
   genero?: string;
   tipo_sector?: string;
   funcion_publica?: string; // string 'true'/'false' as used by UI
+  estatus_funcionario?: 'nombrado' | 'no_nombrado';
   distrito?: string;
   distrito_sanitario?: string;
   centro_id?: string;
@@ -21,6 +22,13 @@ interface Filtros {
   edad_minima?: number;
   edad_maxima?: number;
   año_graduacion?: number;
+  // Nuevos filtros calculados (client-side)
+  edad_laboral_min?: number;
+  edad_laboral_max?: number;
+  años_servicio_min?: number;
+  años_servicio_max?: number;
+  años_restantes_jubilacion_min?: number;
+  años_restantes_jubilacion_max?: number;
 }
 
 interface DashboardFiltersProps {
@@ -142,6 +150,20 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="true">Sí</SelectItem>
                 <SelectItem value="false">No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Estatus de Funcionario</label>
+            <Select value={(filters as any).estatus_funcionario || 'todos'} onValueChange={(value) => updateFilter('estatus_funcionario' as any, value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="nombrado">Nombrados</SelectItem>
+                <SelectItem value="no_nombrado">No nombrados</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -278,6 +300,30 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
             <div className="grid grid-cols-2 gap-2">
               <Input type="number" placeholder="Mín" value={filters.edad_minima ?? ''} onChange={(e) => updateFilter('edad_minima', e.target.value ? Number(e.target.value) : undefined)} />
               <Input type="number" placeholder="Máx" value={filters.edad_maxima ?? ''} onChange={(e) => updateFilter('edad_maxima', e.target.value ? Number(e.target.value) : undefined)} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Edad laboral (años)</label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input type="number" placeholder="Mín" value={filters.edad_laboral_min ?? ''} onChange={(e) => updateFilter('edad_laboral_min' as any, e.target.value ? Number(e.target.value) : undefined)} />
+              <Input type="number" placeholder="Máx" value={filters.edad_laboral_max ?? ''} onChange={(e) => updateFilter('edad_laboral_max' as any, e.target.value ? Number(e.target.value) : undefined)} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Años de servicio</label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input type="number" placeholder="Mín" value={filters.años_servicio_min ?? ''} onChange={(e) => updateFilter('años_servicio_min' as any, e.target.value ? Number(e.target.value) : undefined)} />
+              <Input type="number" placeholder="Máx" value={filters.años_servicio_max ?? ''} onChange={(e) => updateFilter('años_servicio_max' as any, e.target.value ? Number(e.target.value) : undefined)} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Años restantes hasta jubilación</label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input type="number" placeholder="Mín" value={filters.años_restantes_jubilacion_min ?? ''} onChange={(e) => updateFilter('años_restantes_jubilacion_min' as any, e.target.value ? Number(e.target.value) : undefined)} />
+              <Input type="number" placeholder="Máx" value={filters.años_restantes_jubilacion_max ?? ''} onChange={(e) => updateFilter('años_restantes_jubilacion_max' as any, e.target.value ? Number(e.target.value) : undefined)} />
             </div>
           </div>
         </div>

@@ -54,6 +54,9 @@ import {
   useInstitutionStats,
   useCenterCategoryStats,
   useTitulacionCategoryStats,
+  useWorkAgeStats,
+  useServiceYearsStats,
+  useRetirementRemainingStats,
 } from "@/hooks/useAdvancedAnalytics";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
@@ -144,6 +147,9 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
       queryClient.invalidateQueries({ queryKey: ["allInstitutionStats"] });
       queryClient.invalidateQueries({ queryKey: ["centerCategoryStats"] });
       queryClient.invalidateQueries({ queryKey: ["titulacionCategoryStats"] });
+      queryClient.invalidateQueries({ queryKey: ["workAgeStats"] });
+      queryClient.invalidateQueries({ queryKey: ["serviceYearsStats"] });
+      queryClient.invalidateQueries({ queryKey: ["retirementRemainingStats"] });
     }, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
@@ -175,6 +181,9 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     .sort();
   const { data: ageRangeStats = [], isLoading: loadingAges } =
     useAgeRangeStats(filters as any);
+  const { data: workAgeStats = [] } = useWorkAgeStats(filters as any);
+  const { data: serviceYearsStats = [] } = useServiceYearsStats(filters as any);
+  const { data: retirementRemainingStats = [] } = useRetirementRemainingStats(filters as any);
   const { data: graduationStats = [], isLoading: loadingGraduation } =
     useGraduationYearStats(filters as any);
   const { data: countryStats = [], isLoading: loadingCountries } =
@@ -1113,6 +1122,48 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
             </Card>
           </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-indigo-600" />
+                  Edad laboral (distribución)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={workAgeStats}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="rango" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="cantidad" fill="#6366F1" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-rose-600" />
+                  Años de servicio (distribución)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={serviceYearsStats}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="rango" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="cantidad" fill="#F43F5E" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
             <CardHeader>
               <CardTitle>Resumen Demográfico</CardTitle>
@@ -1139,6 +1190,26 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-amber-600" />
+                Años restantes hasta jubilación
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={retirementRemainingStats}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="rango" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="cantidad" fill="#F59E0B" />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </TabsContent>

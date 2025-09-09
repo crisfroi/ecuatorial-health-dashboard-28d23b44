@@ -792,7 +792,7 @@ const SolicitudEstablecimientoForm = () => {
               </Button>
             </div>
           </form>
-          <div style={{ position: 'absolute', left: '-10000px', top: 0, visibility: 'hidden', pointerEvents: 'none' }}>
+          <div style={{ position: 'fixed', left: '-10000px', top: 0, opacity: 0, pointerEvents: 'none', width: '210mm', minHeight: '297mm', zIndex: -1 }}>
             {printSolicitud && (
               <div id="est-letter-print-on-submit" style={{ backgroundColor: '#ffffff' }}>
                 <EstablishmentRequestLetter solicitud={{

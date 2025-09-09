@@ -60,6 +60,8 @@ const formSchema = z
       .min(1, "La categoría de titulación es requerida"),
     titulacion_especifica_1: z.string().min(1, "La titulación es requerida"),
     institucion_1: z.string().min(1, "La institución es requerida"),
+    categoria_institucion_1: z.string().optional(),
+    institucion_formacion_id_1: z.string().optional(),
     periodo_formacion: z
       .string()
       .min(1, "El período de formaci��n es requerido"),
@@ -71,6 +73,10 @@ const formSchema = z
     tipo_sector: z.string().min(1, "El tipo de sector es requerido"),
     distrito_sanitario: z.string().optional(),
     funcion_publica: z.boolean().default(false), // Nueva categorización
+    funcionario_estatus: z.enum(['nombrado','no_nombrado']).optional(),
+    numero_funcionario: z.string().optional(),
+    fecha_nombramiento: z.string().optional(),
+    fecha_inicio_trabajo: z.string().optional(),
     pertenece_brigada_medica: z.boolean().default(false),
     tipo_cooperacion: z.string().optional(),
 
@@ -133,6 +139,23 @@ const formSchema = z
           message: "Verifique su número de Pasaporte.",
           path: ["numero_pasaporte"],
         });
+      }
+    }
+
+    if (data.funcion_publica) {
+      if (!data.funcionario_estatus) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Seleccione el tipo de funcionario", path: ["funcionario_estatus"] });
+      } else if (data.funcionario_estatus === 'nombrado') {
+        if (!data.numero_funcionario || !data.numero_funcionario.trim()) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Ingrese su número de funcionario", path: ["numero_funcionario"] });
+        }
+        if (!data.fecha_nombramiento) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Seleccione la fecha de nombramiento", path: ["fecha_nombramiento"] });
+        }
+      } else if (data.funcionario_estatus === 'no_nombrado') {
+        if (!data.fecha_inicio_trabajo) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Seleccione la fecha de inicio de trabajo", path: ["fecha_inicio_trabajo"] });
+        }
       }
     }
   });
@@ -218,6 +241,12 @@ const ProfessionalRegistration = () => {
       situacion_laboral: "Activo",
       nacionalidad: "Ecuatoguineana",
       telefono: "+240",
+      funcionario_estatus: undefined,
+      numero_funcionario: "",
+      fecha_nombramiento: "",
+      fecha_inicio_trabajo: "",
+      categoria_institucion_1: "",
+      institucion_formacion_id_1: "",
     },
   });
 
@@ -321,6 +350,28 @@ const ProfessionalRegistration = () => {
         throw new Error("Error al subir la foto");
       }
 
+      // Asegurar relación con institución de formación
+      let institucionFormacionId: string | null = null;
+      if (data.institucion_1 && data.pais_formacion_1) {
+        const { data: existing, error: findErr } = await supabase
+          .from('instituciones_formacion')
+          .select('id, categoria')
+          .eq('nombre', data.institucion_1.trim())
+          .eq('pais', data.pais_formacion_1.trim())
+          .maybeSingle();
+        if (findErr) console.warn('find institucion error', findErr);
+        if (existing?.id) {
+          institucionFormacionId = existing.id;
+        } else {
+          const { data: created, error: createErr } = await supabase
+            .from('instituciones_formacion')
+            .insert([{ nombre: data.institucion_1.trim(), pais: data.pais_formacion_1.trim(), categoria: (data as any).categoria_institucion_1 || 'OTRA' }])
+            .select('id')
+            .single();
+          if (!createErr) institucionFormacionId = created?.id || null;
+        }
+      }
+
       // Calcular edad
       const birthDate = new Date(data.fecha_nacimiento);
       const age = new Date().getFullYear() - birthDate.getFullYear();
@@ -360,11 +411,16 @@ const ProfessionalRegistration = () => {
         tipo_sector: data.tipo_sector || null,
         distrito_sanitario: data.distrito_sanitario || null,
         funcion_publica: data.funcion_publica || false, // Nueva categorización
+        estatus_funcionario: data.funcion_publica ? (data.funcionario_estatus || null) : null,
+        numero_funcionario: data.funcion_publica && data.funcionario_estatus === 'nombrado' ? (data.numero_funcionario || null) : null,
+        fecha_nombramiento: data.funcion_publica && data.funcionario_estatus === 'nombrado' ? (data.fecha_nombramiento || null) : null,
+        fecha_inicio_trabajo: data.funcion_publica && data.funcionario_estatus === 'no_nombrado' ? (data.fecha_inicio_trabajo || null) : null,
         pertenece_brigada_medica: data.pertenece_brigada_medica,
         tipo_cooperacion: data.tipo_cooperacion || null,
         // URLs de documentos adicionales subidos al bucket
         documentos_adicionales: documentosUrls, // URLs de los documentos subidos
         foto_carnet: fotoUrl, // URL de la foto subida
+        institucion_formacion_id_1: institucionFormacionId,
         // Eliminamos codigo_barras de la inserción inicial, ya que usaremos codigo_expediente de la DB
         estado_solicitud: "Recibido" as const,
         fecha_solicitud: new Date().toISOString().split("T")[0],
@@ -396,25 +452,55 @@ const ProfessionalRegistration = () => {
 
           const { data: sessionData } = await supabase.auth.getSession();
           const accessToken = sessionData.session?.access_token;
-          if (!accessToken) throw new Error("No hay sesión activa para subir documentos.");
 
-          const resp = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-documentos-adicionales`,
-            {
-              method: "POST",
-              headers: { Authorization: `Bearer ${accessToken}` },
-              body: formDataDocs,
-            },
-          );
+          if (accessToken) {
+            const resp = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-documentos-adicionales`,
+              {
+                method: "POST",
+                headers: { Authorization: `Bearer ${accessToken}` },
+                body: formDataDocs,
+              },
+            );
 
-          if (!resp.ok) {
-            const t = await resp.text();
-            throw new Error(`Error al subir documentos: ${t}`);
-          }
+            if (!resp.ok) {
+              const t = await resp.text();
+              throw new Error(`Error al subir documentos: ${t}`);
+            }
 
-          const json = await resp.json();
-          if (json?.success && Array.isArray(json.updated_record?.documentos_adicionales)) {
-            documentosUrls = json.updated_record.documentos_adicionales as string[];
+            const json = await resp.json();
+            if (json?.success && Array.isArray(json.updated_record?.documentos_adicionales)) {
+              documentosUrls = json.updated_record.documentos_adicionales as string[];
+            }
+          } else {
+            // Fallback sin sesión: subir directamente a Storage y actualizar el registro
+            const uploaded: string[] = [];
+            for (const file of uploadedFiles) {
+              const fileName = `${Date.now()}_${file.name}`;
+              const filePath = `documentos-adicionales/${result.id}/${fileName}`;
+              const { data: up, error: upErr } = await supabase.storage
+                .from('documentos-profesionales')
+                .upload(filePath, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+              if (upErr) throw upErr;
+              const { data: pub } = supabase.storage
+                .from('documentos-profesionales')
+                .getPublicUrl(up.path);
+              uploaded.push(pub.publicUrl);
+            }
+            if (uploaded.length > 0) {
+              const { data: current } = await supabase
+                .from('profesionales_sanitarios')
+                .select('documentos_adicionales')
+                .eq('id', result.id)
+                .single();
+              const combined = [ ...(current?.documentos_adicionales || []), ...uploaded ];
+              const { error: updErr } = await supabase
+                .from('profesionales_sanitarios')
+                .update({ documentos_adicionales: combined })
+                .eq('id', result.id);
+              if (updErr) throw updErr;
+              documentosUrls = combined;
+            }
           }
         } catch (e: any) {
           console.error("Error subiendo documentos tras crear profesional:", e);
@@ -526,7 +612,7 @@ const ProfessionalRegistration = () => {
       });
       console.error(
         "Errores de validación al avanzar de paso:",
-        form.formState.errors,
+        JSON.stringify(form.formState.errors, null, 2),
       );
     }
   };

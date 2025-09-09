@@ -93,11 +93,15 @@ export const PersonalInfoStep = ({ form, nacionalidades, watchedValues }: Person
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {nacionalidades.map((nacionalidad) => (
-                  <SelectItem key={nacionalidad.id} value={nacionalidad.nacionalidad}>
-                    {nacionalidad.nacionalidad}
-                  </SelectItem>
-                ))}
+                {Array.from(
+                  new Set((nacionalidades || []).map((n: any) => String(n.nacionalidad || '').trim()))
+                )
+                  .filter((v) => !!v)
+                  .map((val, idx) => (
+                    <SelectItem key={`${val}-${idx}`} value={val}>
+                      {val}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
             <FormMessage />
@@ -147,7 +151,7 @@ export const PersonalInfoStep = ({ form, nacionalidades, watchedValues }: Person
               <Input
                 placeholder="Ej: +240XXXXXXXX"
                 inputMode="tel"
-                value={field.value}
+                value={field.value ?? ''}
                 onChange={(e) => {
                   let v = e.target.value.replace(/\s|-/g, "");
                   if (v && !v.startsWith("+240")) {

@@ -151,7 +151,7 @@ export const PersonalInfoStep = ({ form, nacionalidades, watchedValues }: Person
               <Input
                 placeholder="Ej: +240XXXXXXXX"
                 inputMode="tel"
-                value={field.value}
+                value={field.value ?? ''}
                 onChange={(e) => {
                   let v = e.target.value.replace(/\s|-/g, "");
                   if (v && !v.startsWith("+240")) {

@@ -22,6 +22,13 @@ interface Filtros {
   edad_minima?: number;
   edad_maxima?: number;
   año_graduacion?: number;
+  // Nuevos filtros calculados (client-side)
+  edad_laboral_min?: number;
+  edad_laboral_max?: number;
+  años_servicio_min?: number;
+  años_servicio_max?: number;
+  años_restantes_jubilacion_min?: number;
+  años_restantes_jubilacion_max?: number;
 }
 
 interface DashboardFiltersProps {

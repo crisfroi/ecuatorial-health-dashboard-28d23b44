@@ -169,8 +169,8 @@ export const EducationStep = ({ form }: EducationStepProps) => {
               </FormControl>
               <SelectContent>
                 {paises.map((pais) => (
-                  <SelectItem key={pais} value={pais}>
-                    {pais}
+                  <SelectItem key={pais} value={String(pais).toUpperCase()}>
+                    {String(pais).toUpperCase()}
                   </SelectItem>
                 ))}
               </SelectContent>

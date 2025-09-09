@@ -201,6 +201,11 @@ export function useProfesionales(filtros: Filtros = {}) {
         query = query.eq("funcion_publica", val as any);
       }
 
+      // Filtro por estatus de funcionario (nombrado / no_nombrado)
+      if ((filtros as any).estatus_funcionario) {
+        query = query.eq('estatus_funcionario', (filtros as any).estatus_funcionario);
+      }
+
       const { data, error } = await query;
 
       if (error) {

@@ -2096,41 +2096,43 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         console.log('📄 Fetching nominas for:', { mes, ano, centroId });
         set({ loading: true, error: null });
         try {
-          let query = supabase
-            .from('nominas_guardias')
-            .select(`
-              id,
-              centro_salud_id,
-              mes,
-              anio,
-              estado,
-              total_importe,
-              total_guardias,
-              total_profesionales,
-              created_by,
-              approved_by,
-              approved_at,
-              observaciones,
-              created_at,
-              updated_at
-            `)
-            .eq('mes', mes)
-            .eq('anio', ano)
-            .order('created_at', { ascending: false });
+          await retryWithBackoff(async () => {
+            let query = supabase
+              .from('nominas_guardias')
+              .select(`
+                id,
+                centro_salud_id,
+                mes,
+                anio,
+                estado,
+                total_importe,
+                total_guardias,
+                total_profesionales,
+                created_by,
+                approved_by,
+                approved_at,
+                observaciones,
+                created_at,
+                updated_at
+              `)
+              .eq('mes', mes)
+              .eq('anio', ano)
+              .order('created_at', { ascending: false });
 
-          if (centroId) {
-            query = query.eq('centro_salud_id', centroId);
-          }
+            if (centroId) {
+              query = query.eq('centro_salud_id', centroId);
+            }
 
-          const { data, error } = await query;
+            const { data, error } = await query;
 
-          if (error) {
-            console.error('❌ Supabase error in fetchNominas:', error);
-            throw error;
-          }
+            if (error) {
+              console.error('❌ Supabase error in fetchNominas:', error);
+              throw error;
+            }
 
-          console.log('✅ Nominas fetched successfully:', data?.length || 0, 'records');
-          set({ nominas: data || [], loading: false });
+            console.log('✅ Nominas fetched successfully:', data?.length || 0, 'records');
+            set({ nominas: data || [], loading: false });
+          });
         } catch (error: any) {
           console.error('💥 Exception in fetchNominas:', error);
           const errorMessage = formatSupabaseError(error);
@@ -2142,36 +2144,38 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         console.log('📄 Fetching nomina lineas for nomina:', nominaId);
         set({ loading: true, error: null });
         try {
-          const { data, error } = await supabase
-            .from('nominas_guardias_lineas')
-            .select(`
-              id,
-              nomina_id,
-              profesional_guardia_id,
-              categoria,
-              guardias_ordinarias,
-              guardias_fines_semana,
-              guardias_festivos,
-              localizables_programadas,
-              localizables_llamadas,
-              coste_unitario_ordinario,
-              coste_unitario_fin_semana,
-              coste_unitario_festivo,
-              coste_localizable_programada,
-              coste_localizable_llamada,
-              total_linea,
-              created_at,
-              updated_at
-            `)
-            .eq('nomina_id', nominaId);
+          await retryWithBackoff(async () => {
+            const { data, error } = await supabase
+              .from('nominas_guardias_lineas')
+              .select(`
+                id,
+                nomina_id,
+                profesional_guardia_id,
+                categoria,
+                guardias_ordinarias,
+                guardias_fines_semana,
+                guardias_festivos,
+                localizables_programadas,
+                localizables_llamadas,
+                coste_unitario_ordinario,
+                coste_unitario_fin_semana,
+                coste_unitario_festivo,
+                coste_localizable_programada,
+                coste_localizable_llamada,
+                total_linea,
+                created_at,
+                updated_at
+              `)
+              .eq('nomina_id', nominaId);
 
-          if (error) {
-            console.error('❌ Supabase error in fetchNominasLineas:', error);
-            throw error;
-          }
+            if (error) {
+              console.error('❌ Supabase error in fetchNominasLineas:', error);
+              throw error;
+            }
 
-          console.log('✅ Nomina lineas fetched successfully:', data?.length || 0, 'records');
-          set({ nominasLineas: data || [], loading: false });
+            console.log('✅ Nomina lineas fetched successfully:', data?.length || 0, 'records');
+            set({ nominasLineas: data || [], loading: false });
+          });
         } catch (error: any) {
           console.error('💥 Exception in fetchNominasLineas:', error);
           const errorMessage = formatSupabaseError(error);

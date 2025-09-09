@@ -94,7 +94,7 @@ export const PersonalInfoStep = ({ form, nacionalidades, watchedValues }: Person
               </FormControl>
               <SelectContent>
                 {Array.from(
-                  new Set((nacionalidades || []).map((n: any) => String(n.nacionalidad || '').trim()))
+                  new Set((nacionalidades || []).map((n: any) => String(n.nacionalidad || '').trim().toUpperCase()))
                 )
                   .filter((v) => !!v)
                   .map((val, idx) => (

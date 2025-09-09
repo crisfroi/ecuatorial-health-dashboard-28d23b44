@@ -577,8 +577,8 @@ const ProfessionalRegistration = () => {
         photoFile,
         foto_carnet: fotoUrl,
         foto_carnet_base64: fotoCarnetBase64,
-        url_codigo_barras_expediente: result.url_codigo_barras_expediente, // CAMBIO: Usamos el codigo_expediente de la DB
-        codigo_expediente: result.codigo_expediente, // Mantenemos para claridad
+        url_codigo_barras_expediente: urlCodigoBarrasExp || result.url_codigo_barras_expediente || '',
+        codigo_expediente: result.codigo_expediente,
         edad: age,
         submittedData: result,
       });

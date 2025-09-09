@@ -195,7 +195,7 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {solicitudes.map((solicitud) => (
+              {(solicitudes || []).filter(Boolean).map((solicitud: any) => (
                 <TableRow key={solicitud.id}>
                   <TableCell className="font-mono text-sm">
                     {solicitud.numero_solicitud}
@@ -226,7 +226,7 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {getOpcionesEstado(solicitud.estado).map((opcion) => (
+                            {getOpcionesEstado(((solicitud as any)?.estado || 'Pendiente')).map((opcion) => (
                               <SelectItem key={opcion} value={opcion}>
                                 {opcion}
                               </SelectItem>
@@ -274,12 +274,12 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                         </div>
                       </div>
                     ) : (
-                      <Badge className={getStatusColor(solicitud.estado)}>
-                        {solicitud.estado}
+                      <Badge className={getStatusColor(((solicitud as any)?.estado || 'Pendiente'))}>
+                        {(solicitud as any)?.estado || 'Pendiente'}
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell>{formatearFecha(solicitud.fecha_solicitud)}</TableCell>
+                  <TableCell>{formatearFecha((solicitud as any)?.fecha_solicitud)}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Dialog>
@@ -530,12 +530,12 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                         </DialogContent>
                       </Dialog>
 
-                      {!editandoEstados[solicitud.id] && 
-                       getOpcionesEstado(solicitud.estado).length > 0 && (
+                      {!editandoEstados[(solicitud as any).id] &&
+                       getOpcionesEstado(((solicitud as any)?.estado || 'Pendiente')).length > 0 && (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleEditarEstado(solicitud.id, solicitud.estado)}
+                          onClick={() => handleEditarEstado((solicitud as any).id, ((solicitud as any)?.estado || 'Pendiente'))}
                         >
                           <Edit className="h-3 w-3 mr-1" />
                           Editar

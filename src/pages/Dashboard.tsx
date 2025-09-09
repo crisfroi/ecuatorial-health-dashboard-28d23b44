@@ -213,33 +213,19 @@ const Dashboard = () => {
       "Dashboard: useEffect activado. Sincronizando appliedFilters con dashboardFilters.",
     );
 
-    if (activeTab === "overview") {
-      // Evitar bucles de renderizado: solo limpiar si realmente hay filtros aplicados
-      const hasFilters = Object.keys(appliedFilters || {}).length > 0;
-      if (hasFilters) {
-        setAppliedFilters({});
-        setDashboardFilters({});
-      }
-      return;
-    }
-
+    // Mantener filtros globales aunque cambie la pestaña, no limpiar automáticamente
     let finalFilters: Filtros = { ...appliedFilters };
 
-    if (activeTab !== "renewals") {
-      delete finalFilters.vencimiento_proximo;
-      delete finalFilters.carnet_vencido;
-      delete finalFilters.prioridad_renovacion;
-      console.log(
-        'Dashboard: Se eliminaron filtros de renovación porque la pestaña activa no es "renewals".',
-      );
-    }
+    // Solo limpiar filtros muy específicos si perjudican otras vistas (comentado para respetar filtro global)
+    // if (activeTab !== "renewals") {
+    //   delete finalFilters.vencimiento_proximo;
+    //   delete finalFilters.carnet_vencido;
+    //   delete finalFilters.prioridad_renovacion;
+    // }
 
-    if (activeTab !== "professionals") {
-      delete finalFilters.genero;
-      console.log(
-        'Dashboard: Se eliminó el filtro de género porque la pestaña activa no es "professionals".',
-      );
-    }
+    // if (activeTab !== "professionals") {
+    //   delete finalFilters.genero;
+    // }
 
     setDashboardFilters(finalFilters);
     console.log("Dashboard: dashboardFilters actualizado a:", finalFilters);

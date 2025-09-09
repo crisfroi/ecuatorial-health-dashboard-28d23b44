@@ -64,7 +64,8 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
 
   // Obtener datos de funcionarios públicos
   const { data: funcionarios = [], isLoading } = useProfesionales({
-    funcion_publica: true
+    funcion_publica: true,
+    estado_solicitud: 'Aprobado'
   });
 
   if (isLoading) {

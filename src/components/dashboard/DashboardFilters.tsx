@@ -14,6 +14,7 @@ interface Filtros {
   genero?: string;
   tipo_sector?: string;
   funcion_publica?: string; // string 'true'/'false' as used by UI
+  estatus_funcionario?: 'nombrado' | 'no_nombrado';
   distrito?: string;
   distrito_sanitario?: string;
   centro_id?: string;

@@ -139,6 +139,23 @@ const formSchema = z
         });
       }
     }
+
+    if (data.funcion_publica) {
+      if (!data.funcionario_estatus) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Seleccione el tipo de funcionario", path: ["funcionario_estatus"] });
+      } else if (data.funcionario_estatus === 'nombrado') {
+        if (!data.numero_funcionario || !data.numero_funcionario.trim()) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Ingrese su número de funcionario", path: ["numero_funcionario"] });
+        }
+        if (!data.fecha_nombramiento) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Seleccione la fecha de nombramiento", path: ["fecha_nombramiento"] });
+        }
+      } else if (data.funcionario_estatus === 'no_nombrado') {
+        if (!data.fecha_inicio_trabajo) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Seleccione la fecha de inicio de trabajo", path: ["fecha_inicio_trabajo"] });
+        }
+      }
+    }
   });
 
 type FormData = z.infer<typeof formSchema>;

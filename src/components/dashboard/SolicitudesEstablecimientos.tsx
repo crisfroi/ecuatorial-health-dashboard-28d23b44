@@ -471,12 +471,12 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                                 </Card>
                               )}
 
-                              {/* Contenido oculto para generación de PDF */}
-                              <div className="hidden">
-                                <div id="est-letter-print">
+                              {/* Contenido fuera de pantalla para generación de PDF (no usar display:none) */}
+                              <div style={{ position: 'absolute', left: '-10000px', top: 0, visibility: 'hidden', pointerEvents: 'none' }}>
+                                <div id="est-letter-print" style={{ backgroundColor: '#ffffff' }}>
                                   <EstablishmentRequestLetter solicitud={solicitudSeleccionada} />
                                 </div>
-                                <div id="est-resolution-print">
+                                <div id="est-resolution-print" style={{ backgroundColor: '#ffffff' }}>
                                   <EstablishmentApprovalResolution solicitud={solicitudSeleccionada} />
                                 </div>
                               </div>

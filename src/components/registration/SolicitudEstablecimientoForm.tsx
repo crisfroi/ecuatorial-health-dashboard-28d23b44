@@ -792,6 +792,27 @@ const SolicitudEstablecimientoForm = () => {
               </Button>
             </div>
           </form>
+          <div style={{ position: 'absolute', left: '-10000px', top: 0, visibility: 'hidden', pointerEvents: 'none' }}>
+            {printSolicitud && (
+              <div id="est-letter-print-on-submit" style={{ backgroundColor: '#ffffff' }}>
+                <EstablishmentRequestLetter solicitud={{
+                  nombre_establecimiento: printSolicitud.nombre_establecimiento,
+                  categoria: printSolicitud.categoria,
+                  tipo_servicio: printSolicitud.tipo_servicio,
+                  provincia: printSolicitud.provincia,
+                  distrito_sanitario: printSolicitud.distrito_sanitario || '',
+                  direccion: printSolicitud.direccion,
+                  director_responsable: printSolicitud.director_responsable,
+                  telefono: printSolicitud.telefono,
+                  email: printSolicitud.email,
+                  personal_apertura: printSolicitud.personal_apertura,
+                  asesor_tecnico: printSolicitud.asesor_tecnico,
+                  fecha_solicitud: printSolicitud.fecha_solicitud,
+                  numero_solicitud: undefined,
+                }} />
+              </div>
+            )}
+          </div>
         </Form>
       </CardContent>
     </Card>

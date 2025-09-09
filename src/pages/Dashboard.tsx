@@ -231,15 +231,6 @@ const Dashboard = () => {
     console.log("Dashboard: dashboardFilters actualizado a:", finalFilters);
   }, [appliedFilters, activeTab]);
 
-  useEffect(() => {
-    if (activeTab !== "professionals") {
-      try { sessionStorage.removeItem('professionals.filters'); } catch {}
-      setAppliedFilters(prev => {
-        const { area_profesional, provincia, genero, tipo_sector, pais_formacion, institucion, categoria_titulacion, categoria_centro, edad_minima, edad_maxima, año_graduacion, funcion_publica, ...rest } = prev as any;
-        return rest as typeof prev;
-      });
-    }
-  }, [activeTab]);
 
   const handleChartClick = (data: any, chartType: string) => {
     console.log("Dashboard: Chart clicked:", data, chartType);
@@ -307,6 +298,16 @@ const Dashboard = () => {
 
   const handleUserSettings = () => {
     console.log("Dashboard: Configuración de usuario.");
+  };
+
+  const handleTabChange = (tab: string) => {
+    if (tab !== activeTab) {
+      setAppliedFilters({});
+      setShowFilters(false);
+      try { sessionStorage.removeItem('professionals.filters'); } catch {}
+      console.log(`Dashboard: Filtros limpiados al cambiar a la pestaña: ${tab}`);
+    }
+    setActiveTab(tab);
   };
 
   const handleFullPageScreenshot = async () => {
@@ -514,7 +515,7 @@ const Dashboard = () => {
         <div className="container mx-auto p-4">
           <Tabs
             value={activeTab}
-            onValueChange={setActiveTab}
+            onValueChange={handleTabChange}
             className="space-y-0"
           >
             <div className="w-full overflow-x-auto whitespace-nowrap">
@@ -670,7 +671,7 @@ const Dashboard = () => {
 
         <Tabs
           value={activeTab}
-          onValueChange={setActiveTab}
+          onValueChange={handleTabChange}
           className="space-y-6"
         >
           <TabsContent value="overview" className="space-y-6">

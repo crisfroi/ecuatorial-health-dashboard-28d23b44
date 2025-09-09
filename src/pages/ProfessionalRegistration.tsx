@@ -425,25 +425,55 @@ const ProfessionalRegistration = () => {
 
           const { data: sessionData } = await supabase.auth.getSession();
           const accessToken = sessionData.session?.access_token;
-          if (!accessToken) throw new Error("No hay sesión activa para subir documentos.");
 
-          const resp = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-documentos-adicionales`,
-            {
-              method: "POST",
-              headers: { Authorization: `Bearer ${accessToken}` },
-              body: formDataDocs,
-            },
-          );
+          if (accessToken) {
+            const resp = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-documentos-adicionales`,
+              {
+                method: "POST",
+                headers: { Authorization: `Bearer ${accessToken}` },
+                body: formDataDocs,
+              },
+            );
 
-          if (!resp.ok) {
-            const t = await resp.text();
-            throw new Error(`Error al subir documentos: ${t}`);
-          }
+            if (!resp.ok) {
+              const t = await resp.text();
+              throw new Error(`Error al subir documentos: ${t}`);
+            }
 
-          const json = await resp.json();
-          if (json?.success && Array.isArray(json.updated_record?.documentos_adicionales)) {
-            documentosUrls = json.updated_record.documentos_adicionales as string[];
+            const json = await resp.json();
+            if (json?.success && Array.isArray(json.updated_record?.documentos_adicionales)) {
+              documentosUrls = json.updated_record.documentos_adicionales as string[];
+            }
+          } else {
+            // Fallback sin sesión: subir directamente a Storage y actualizar el registro
+            const uploaded: string[] = [];
+            for (const file of uploadedFiles) {
+              const fileName = `${Date.now()}_${file.name}`;
+              const filePath = `documentos-adicionales/${result.id}/${fileName}`;
+              const { data: up, error: upErr } = await supabase.storage
+                .from('documentos-profesionales')
+                .upload(filePath, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+              if (upErr) throw upErr;
+              const { data: pub } = supabase.storage
+                .from('documentos-profesionales')
+                .getPublicUrl(up.path);
+              uploaded.push(pub.publicUrl);
+            }
+            if (uploaded.length > 0) {
+              const { data: current } = await supabase
+                .from('profesionales_sanitarios')
+                .select('documentos_adicionales')
+                .eq('id', result.id)
+                .single();
+              const combined = [ ...(current?.documentos_adicionales || []), ...uploaded ];
+              const { error: updErr } = await supabase
+                .from('profesionales_sanitarios')
+                .update({ documentos_adicionales: combined })
+                .eq('id', result.id);
+              if (updErr) throw updErr;
+              documentosUrls = combined;
+            }
           }
         } catch (e: any) {
           console.error("Error subiendo documentos tras crear profesional:", e);
@@ -555,7 +585,7 @@ const ProfessionalRegistration = () => {
       });
       console.error(
         "Errores de validación al avanzar de paso:",
-        form.formState.errors,
+        JSON.stringify(form.formState.errors, null, 2),
       );
     }
   };

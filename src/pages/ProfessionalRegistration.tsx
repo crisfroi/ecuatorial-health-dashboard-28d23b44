@@ -443,6 +443,27 @@ const ProfessionalRegistration = () => {
 
       console.log("Resultado exitoso de Supabase:", result);
 
+      // Fallback: generar URL de código de barras del expediente si no vino del trigger
+      let urlCodigoBarrasExp = result.url_codigo_barras_expediente;
+      if (!urlCodigoBarrasExp && result.codigo_expediente) {
+        try {
+          const { data: rpcData, error: rpcError } = await supabase.rpc('generar_url_codigo_barras_expediente', {
+            codigo_expediente_param: result.codigo_expediente,
+            categoria_titulacion_param: submissionData.categoria_titulacion
+          });
+          if (rpcError) throw rpcError;
+          if (rpcData && typeof rpcData === 'string') {
+            urlCodigoBarrasExp = rpcData;
+            await supabase
+              .from('profesionales_sanitarios')
+              .update({ url_codigo_barras_expediente: rpcData })
+              .eq('id', result.id);
+          }
+        } catch (e) {
+          console.warn('No se pudo generar URL de código de barras via RPC:', e);
+        }
+      }
+
       // Subir documentos adicionales ahora que tenemos el ID real del profesional
       if (uploadedFiles.length > 0 && result?.id) {
         try {

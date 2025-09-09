@@ -451,6 +451,9 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                     </div>
                   </div>
                 </div>
+
+                {/* Resumen de solicitud de apertura (si existe) */}
+                <AperturaResumen centerId={selectedCenter.id} centerName={selectedCenter.nombre} />
               </div>
               <div className="space-y-4">
                 <div>

@@ -71,6 +71,10 @@ const formSchema = z
     tipo_sector: z.string().min(1, "El tipo de sector es requerido"),
     distrito_sanitario: z.string().optional(),
     funcion_publica: z.boolean().default(false), // Nueva categorización
+    funcionario_estatus: z.enum(['nombrado','no_nombrado']).optional(),
+    numero_funcionario: z.string().optional(),
+    fecha_nombramiento: z.string().optional(),
+    fecha_inicio_trabajo: z.string().optional(),
     pertenece_brigada_medica: z.boolean().default(false),
     tipo_cooperacion: z.string().optional(),
 

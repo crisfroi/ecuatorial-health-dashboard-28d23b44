@@ -152,6 +152,7 @@ const SolicitudEstablecimientoForm = () => {
     setSubmitting(true);
     const safety = setTimeout(() => setSubmitting(false), 20000);
     try {
+      const fechaSolicitudIso = new Date().toISOString();
       await crearSolicitudMutation.mutateAsync({
         ...data,
         fotos_establecimiento: fotosEstablecimiento,

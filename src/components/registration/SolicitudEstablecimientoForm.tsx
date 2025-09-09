@@ -154,6 +154,11 @@ const SolicitudEstablecimientoForm = () => {
         documentos_adicionales: documentosAdicionales,
         servicios_ofrecidos: [...(data.servicios_ofrecidos || []), ...serviciosPersonalizados],
         areas_especializadas: [...(data.areas_especializadas || []), ...areasPersonalizadas],
+        personal_apertura: {
+          categorias: personalCategorias,
+          personas: personalListado,
+        },
+        asesor_tecnico: asesorTecnico,
       });
 
       // Limpiar formulario
@@ -162,6 +167,9 @@ const SolicitudEstablecimientoForm = () => {
       setDocumentosAdicionales([]);
       setServiciosPersonalizados([]);
       setAreasPersonalizadas([]);
+      setPersonalCategorias({ medicos: 0, enfermeria: 0, farmacia: 0, laboratorio: 0, otros: 0 });
+      setPersonalListado([]);
+      setAsesorTecnico({ nombre: "", telefono: "", formacion: "" });
     } catch (error) {
       const message = getErrorMessage(error);
       console.error("Error enviando solicitud:", message, error);

@@ -11,6 +11,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Building2, Eye, Edit, Save, X, RefreshCw, FileImage, Download } from "lucide-react";
 import { useSolicitudesEstablecimientosQuery, useSolicitudesEstablecimientos } from "@/hooks/useSolicitudesEstablecimientos";
 import { useToast } from "@/hooks/use-toast";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import EstablishmentRequestLetter from "@/components/registration/EstablishmentRequestLetter";
+import EstablishmentApprovalResolution from "@/components/registration/EstablishmentApprovalResolution";
 
 interface SolicitudesEstablecimientosProps {
   userRole: string;

@@ -289,6 +289,15 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     if ((dashboardFilters as any)?.estatus_funcionario) (filters as any).estatus_funcionario = (dashboardFilters as any).estatus_funcionario;
     if (dashboardFilters?.pais_formacion) filters.pais_formacion = dashboardFilters.pais_formacion;
     if (dashboardFilters?.institucion) filters.institucion = dashboardFilters.institucion;
+
+    // Nuevos filtros calculados
+    if ((dashboardFilters as any)?.edad_laboral_min !== undefined) (filters as any).edad_laboral_min = (dashboardFilters as any).edad_laboral_min;
+    if ((dashboardFilters as any)?.edad_laboral_max !== undefined) (filters as any).edad_laboral_max = (dashboardFilters as any).edad_laboral_max;
+    if ((dashboardFilters as any)?.años_servicio_min !== undefined) (filters as any).años_servicio_min = (dashboardFilters as any).años_servicio_min;
+    if ((dashboardFilters as any)?.años_servicio_max !== undefined) (filters as any).años_servicio_max = (dashboardFilters as any).años_servicio_max;
+    if ((dashboardFilters as any)?.años_restantes_jubilacion_min !== undefined) (filters as any).años_restantes_jubilacion_min = (dashboardFilters as any).años_restantes_jubilacion_min;
+    if ((dashboardFilters as any)?.años_restantes_jubilacion_max !== undefined) (filters as any).años_restantes_jubilacion_max = (dashboardFilters as any).años_restantes_jubilacion_max;
+
     console.log(
       "ProfessionalsTable: Final combinedQueryFilters passed to useProfesionales (from useMemo):",
       filters,

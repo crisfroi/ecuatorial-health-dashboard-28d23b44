@@ -234,6 +234,8 @@ export function useProfesionales(filtros: Filtros = {}) {
       if (filtros.funcion_publica !== undefined) {
         const val = typeof filtros.funcion_publica === 'string' ? filtros.funcion_publica === 'true' : filtros.funcion_publica
         query = query.eq("funcion_publica", val as any);
+        // Regla de negocio: para considerar función pública, debe estar Aprobado
+        query = query.eq("estado_solicitud", "Aprobado");
       }
 
       // Filtro por estatus de funcionario (nombrado / no_nombrado)

@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import EstablishmentRequestLetter from "@/components/registration/EstablishmentRequestLetter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +48,10 @@ const SolicitudEstablecimientoForm = () => {
   const [documentosAdicionales, setDocumentosAdicionales] = useState<File[]>([]);
   const [serviciosPersonalizados, setServiciosPersonalizados] = useState<string[]>([]);
   const [areasPersonalizadas, setAreasPersonalizadas] = useState<string[]>([]);
+  const [personalCategorias, setPersonalCategorias] = useState({ medicos: 0, enfermeria: 0, farmacia: 0, laboratorio: 0, otros: 0 });
+  const [personalListado, setPersonalListado] = useState<{ nombre: string; telefono: string; categoria: string }[]>([]);
+  const [asesorTecnico, setAsesorTecnico] = useState<{ nombre: string; telefono: string; formacion: string }>({ nombre: "", telefono: "", formacion: "" });
+  const [printSolicitud, setPrintSolicitud] = useState<any | null>(null);
 
   const form = useForm<SolicitudFormData>({
     resolver: zodResolver(solicitudSchema),
@@ -145,13 +152,51 @@ const SolicitudEstablecimientoForm = () => {
     setSubmitting(true);
     const safety = setTimeout(() => setSubmitting(false), 20000);
     try {
+      const fechaSolicitudIso = new Date().toISOString();
       await crearSolicitudMutation.mutateAsync({
         ...data,
         fotos_establecimiento: fotosEstablecimiento,
         documentos_adicionales: documentosAdicionales,
         servicios_ofrecidos: [...(data.servicios_ofrecidos || []), ...serviciosPersonalizados],
         areas_especializadas: [...(data.areas_especializadas || []), ...areasPersonalizadas],
+        personal_apertura: {
+          categorias: personalCategorias,
+          personas: personalListado,
+        },
+        asesor_tecnico: asesorTecnico,
       });
+
+      const solicitudParaImpresion = {
+        ...data,
+        fecha_solicitud: fechaSolicitudIso,
+        personal_apertura: {
+          categorias: personalCategorias,
+          personas: personalListado,
+        },
+        asesor_tecnico: asesorTecnico,
+      };
+      setPrintSolicitud(solicitudParaImpresion);
+      await new Promise((r) => setTimeout(r, 50));
+      const el = document.getElementById('est-letter-print-on-submit');
+      if (el) {
+        const canvas = await html2canvas(el as HTMLElement, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= 297;
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= 297;
+        }
+        const fileSafeName = (data.nombre_establecimiento || 'establecimiento').replace(/[^a-zA-Z0-9-_]+/g, '_');
+        pdf.save(`carta-solicitud-establecimiento-${fileSafeName}.pdf`);
+      }
 
       // Limpiar formulario
       form.reset();
@@ -159,6 +204,10 @@ const SolicitudEstablecimientoForm = () => {
       setDocumentosAdicionales([]);
       setServiciosPersonalizados([]);
       setAreasPersonalizadas([]);
+      setPersonalCategorias({ medicos: 0, enfermeria: 0, farmacia: 0, laboratorio: 0, otros: 0 });
+      setPersonalListado([]);
+      setAsesorTecnico({ nombre: "", telefono: "", formacion: "" });
+      setPrintSolicitud(null);
     } catch (error) {
       const message = getErrorMessage(error);
       console.error("Error enviando solicitud:", message, error);
@@ -501,6 +550,103 @@ const SolicitudEstablecimientoForm = () => {
               </div>
             </div>
 
+            {/* Plan de Personal para Apertura */}
+            <div className="space-y-4">
+              <FormLabel>Plan de Personal para Apertura</FormLabel>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                {([
+                  { key: 'medicos', label: 'Médicos' },
+                  { key: 'enfermeria', label: 'Enfermería' },
+                  { key: 'farmacia', label: 'Farmacia' },
+                  { key: 'laboratorio', label: 'Laboratorio' },
+                  { key: 'otros', label: 'Otros' },
+                ] as const).map((item) => (
+                  <div key={item.key}>
+                    <label className="text-sm font-medium">{item.label}</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={(personalCategorias as any)[item.key]}
+                      onChange={(e) => setPersonalCategorias({ ...personalCategorias, [item.key]: parseInt(e.target.value || '0', 10) })}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h5 className="font-medium">Listado de Personal (Nombres y Teléfonos)</h5>
+                  <Button type="button" size="sm" onClick={() => setPersonalListado([...personalListado, { nombre: '', telefono: '', categoria: '' }])}>
+                    Añadir Persona
+                  </Button>
+                </div>
+                {personalListado.length === 0 ? (
+                  <p className="text-sm text-gray-500">No se han añadido personas</p>
+                ) : (
+                  <div className="space-y-2">
+                    {personalListado.map((p, idx) => (
+                      <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
+                        <div className="md:col-span-4">
+                          <label className="text-sm font-medium">Nombre</label>
+                          <Input value={p.nombre} onChange={(e) => {
+                            const copy = [...personalListado];
+                            copy[idx] = { ...copy[idx], nombre: e.target.value };
+                            setPersonalListado(copy);
+                          }} />
+                        </div>
+                        <div className="md:col-span-4">
+                          <label className="text-sm font-medium">Teléfono</label>
+                          <Input value={p.telefono} onChange={(e) => {
+                            const copy = [...personalListado];
+                            copy[idx] = { ...copy[idx], telefono: e.target.value };
+                            setPersonalListado(copy);
+                          }} />
+                        </div>
+                        <div className="md:col-span-3">
+                          <label className="text-sm font-medium">Categoría</label>
+                          <Select value={p.categoria} onValueChange={(v) => {
+                            const copy = [...personalListado];
+                            copy[idx] = { ...copy[idx], categoria: v };
+                            setPersonalListado(copy);
+                          }}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Médicos">Médicos</SelectItem>
+                              <SelectItem value="Enfermería">Enfermería</SelectItem>
+                              <SelectItem value="Farmacia">Farmacia</SelectItem>
+                              <SelectItem value="Laboratorio">Laboratorio</SelectItem>
+                              <SelectItem value="Otros">Otros</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="md:col-span-1 flex justify-end">
+                          <Button type="button" variant="ghost" className="text-red-600" onClick={() => setPersonalListado(personalListado.filter((_, i) => i !== idx))}>✕</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Asesor Técnico */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-sm font-medium">Asesor Técnico</label>
+                <Input value={asesorTecnico.nombre} onChange={(e) => setAsesorTecnico({ ...asesorTecnico, nombre: e.target.value })} placeholder="Nombre del asesor técnico" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Teléfono</label>
+                <Input value={asesorTecnico.telefono} onChange={(e) => setAsesorTecnico({ ...asesorTecnico, telefono: e.target.value })} placeholder="+240..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Grado de Formación</label>
+                <Input value={asesorTecnico.formacion} onChange={(e) => setAsesorTecnico({ ...asesorTecnico, formacion: e.target.value })} placeholder="Ej. Licenciatura, Máster, Especialista" />
+              </div>
+            </div>
+
             {/* Fotos del Establecimiento */}
             <div className="space-y-4">
               <FormLabel>Fotos del Establecimiento</FormLabel>
@@ -646,6 +792,27 @@ const SolicitudEstablecimientoForm = () => {
               </Button>
             </div>
           </form>
+          <div style={{ position: 'absolute', left: '-10000px', top: 0, visibility: 'hidden', pointerEvents: 'none' }}>
+            {printSolicitud && (
+              <div id="est-letter-print-on-submit" style={{ backgroundColor: '#ffffff' }}>
+                <EstablishmentRequestLetter solicitud={{
+                  nombre_establecimiento: printSolicitud.nombre_establecimiento,
+                  categoria: printSolicitud.categoria,
+                  tipo_servicio: printSolicitud.tipo_servicio,
+                  provincia: printSolicitud.provincia,
+                  distrito_sanitario: printSolicitud.distrito_sanitario || '',
+                  direccion: printSolicitud.direccion,
+                  director_responsable: printSolicitud.director_responsable,
+                  telefono: printSolicitud.telefono,
+                  email: printSolicitud.email,
+                  personal_apertura: printSolicitud.personal_apertura,
+                  asesor_tecnico: printSolicitud.asesor_tecnico,
+                  fecha_solicitud: printSolicitud.fecha_solicitud,
+                  numero_solicitud: undefined,
+                }} />
+              </div>
+            )}
+          </div>
         </Form>
       </CardContent>
     </Card>

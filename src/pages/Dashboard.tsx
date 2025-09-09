@@ -212,6 +212,17 @@ const Dashboard = () => {
     console.log(
       "Dashboard: useEffect activado. Sincronizando appliedFilters con dashboardFilters.",
     );
+
+    if (activeTab === "overview") {
+      // Evitar bucles de renderizado: solo limpiar si realmente hay filtros aplicados
+      const hasFilters = Object.keys(appliedFilters || {}).length > 0;
+      if (hasFilters) {
+        setAppliedFilters({});
+        setDashboardFilters({});
+      }
+      return;
+    }
+
     let finalFilters: Filtros = { ...appliedFilters };
 
     if (activeTab !== "renewals") {
@@ -662,7 +673,7 @@ const Dashboard = () => {
           </Card>
         )}
 
-        {showStatsCards && (
+        {showStatsCards && activeTab === "overview" && (
           <div className="mb-6">
             <StatsCards
               filters={dashboardFilters}

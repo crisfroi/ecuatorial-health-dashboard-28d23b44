@@ -38,6 +38,11 @@ export interface SolicitudEstablecimiento {
   nacionalidad_responsable?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+  centro_id?: string | null;
+  personal_apertura?: any;
+  asesor_tecnico?: any;
+  pdf_url_solicitud?: string | null;
+  pdf_url_resolucion?: string | null;
 }
 
 export interface CrearSolicitudEstablecimientoParams {
@@ -61,6 +66,9 @@ export interface CrearSolicitudEstablecimientoParams {
   tipo_documento?: string;
   numero_documento?: string;
   nacionalidad_responsable?: string;
+  centro_id?: string;
+  personal_apertura?: any;
+  asesor_tecnico?: any;
 }
 
 export const useSolicitudesEstablecimientos = () => {

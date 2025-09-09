@@ -105,7 +105,8 @@ const AdditionalDocuments = ({
     try {
       // Crear FormData para enviar archivos
       const formData = new FormData();
-      formData.append("profesional_id", professionalId);
+      // La función espera la clave 'professional_id'
+      formData.append("professional_id", professionalId);
 
       selectedFiles.forEach((file) => {
         formData.append("documentos_adicionales[]", file);
@@ -116,12 +117,19 @@ const AdditionalDocuments = ({
         setUploadProgress((prev) => Math.min(prev + 10, 90));
       }, 200);
 
+      // Obtener token de sesión del usuario (requerido por la Edge Function)
+      const { data: sessionData } = await (await import("@/integrations/supabase/client")).supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        throw new Error("No hay sesión activa. Inicie sesión para subir documentos.");
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-documentos-adicionales`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: formData,
         },

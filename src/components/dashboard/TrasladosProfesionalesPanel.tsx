@@ -71,34 +71,8 @@ const TrasladosProfesionalesPanel: React.FC<TrasladosProfesionalesPanelProps> = 
     observaciones: ''
   });
 
-  // Mock data para demostración
-  const solicitudesTraslado: SolicitudTraslado[] = [
-    {
-      id: '1',
-      profesionalId: 'prof-1',
-      nombreProfesional: 'Dr. Juan Pérez',
-      areaProfesional: 'Medicina General',
-      centroOrigen: 'Centro Malabo',
-      centroDestino: 'Hospital Nacional',
-      motivo: 'Necesidad de especialización',
-      estado: 'pendiente',
-      fechaSolicitud: '2024-01-15',
-      solicitantePor: 'Admin Centro Malabo'
-    },
-    {
-      id: '2',
-      profesionalId: 'prof-2',
-      nombreProfesional: 'Dra. María García',
-      areaProfesional: 'Enfermería',
-      centroOrigen: 'Hospital Nacional',
-      centroDestino: 'Clínica Bata',
-      motivo: 'Cobertura de emergencias',
-      estado: 'aprobado',
-      fechaSolicitud: '2024-01-10',
-      fechaRespuesta: '2024-01-12',
-      solicitantePor: 'RRHH Ministerio'
-    }
-  ];
+  // Datos reales deben provenir de la base de datos; eliminar mocks
+  const solicitudesTraslado: SolicitudTraslado[] = [];
 
   const profesionalesDisponibles = [
     { id: 'prof-1', nombre: 'Dr. Juan Pérez', area: 'Medicina General', centro: 'Centro Malabo' },

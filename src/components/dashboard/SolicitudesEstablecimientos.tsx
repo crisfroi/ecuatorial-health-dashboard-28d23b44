@@ -11,6 +11,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Building2, Eye, Edit, Save, X, RefreshCw, FileImage, Download } from "lucide-react";
 import { useSolicitudesEstablecimientosQuery, useSolicitudesEstablecimientos } from "@/hooks/useSolicitudesEstablecimientos";
 import { useToast } from "@/hooks/use-toast";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import EstablishmentRequestLetter from "@/components/registration/EstablishmentRequestLetter";
+import EstablishmentApprovalResolution from "@/components/registration/EstablishmentApprovalResolution";
 
 interface SolicitudesEstablecimientosProps {
   userRole: string;
@@ -191,7 +195,7 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {solicitudes.map((solicitud) => (
+              {(solicitudes || []).filter(Boolean).map((solicitud: any) => (
                 <TableRow key={solicitud.id}>
                   <TableCell className="font-mono text-sm">
                     {solicitud.numero_solicitud}
@@ -222,7 +226,7 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {getOpcionesEstado(solicitud.estado).map((opcion) => (
+                            {getOpcionesEstado(((solicitud as any)?.estado || 'Pendiente')).map((opcion) => (
                               <SelectItem key={opcion} value={opcion}>
                                 {opcion}
                               </SelectItem>
@@ -270,12 +274,12 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                         </div>
                       </div>
                     ) : (
-                      <Badge className={getStatusColor(solicitud.estado)}>
-                        {solicitud.estado}
+                      <Badge className={getStatusColor(((solicitud as any)?.estado || 'Pendiente'))}>
+                        {(solicitud as any)?.estado || 'Pendiente'}
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell>{formatearFecha(solicitud.fecha_solicitud)}</TableCell>
+                  <TableCell>{formatearFecha((solicitud as any)?.fecha_solicitud)}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Dialog>
@@ -295,12 +299,12 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                               <span>Solicitud {solicitudSeleccionada?.numero_solicitud || ''}</span>
                               <div className="flex items-center gap-2">
                                 <Badge className={getStatusColor(solicitudSeleccionada?.estado || 'Pendiente')}>{solicitudSeleccionada?.estado}</Badge>
-                                {/* Acciones rápidas estilo ministerial */}
+                                {/* Acciones r��pidas estilo ministerial */}
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="flex items-center gap-2"
-                                  onClick={() => handleEditarEstado(solicitudSeleccionada!.id, solicitudSeleccionada!.estado)}
+                                  onClick={() => solicitudSeleccionada && handleEditarEstado(solicitudSeleccionada.id, solicitudSeleccionada.estado || 'Pendiente')}
                                 >
                                   <Edit className="h-3 w-3" /> Editar
                                 </Button>
@@ -347,6 +351,56 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={async () => {
+                                        const el = document.getElementById('est-letter-print');
+                                        if (!el) return;
+                                        const canvas = await html2canvas(el as HTMLElement, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+                                        const imgData = canvas.toDataURL('image/png');
+                                        const pdf = new jsPDF('p', 'mm', 'a4');
+                                        const imgWidth = 210;
+                                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                                        let heightLeft = imgHeight;
+                                        let position = 0;
+                                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                                        heightLeft -= 297;
+                                        while (heightLeft > 0) {
+                                          position = heightLeft - imgHeight;
+                                          pdf.addPage();
+                                          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                                          heightLeft -= 297;
+                                        }
+                                        pdf.save(`carta-solicitud-establecimiento-${solicitudSeleccionada?.numero_solicitud || solicitudSeleccionada?.id || 'solicitud'}.pdf`);
+                                      }}
+                                    >
+                                      Carta de Solicitud (PDF)
+                                    </DropdownMenuItem>
+                                    {((solicitudSeleccionada?.estado === 'Pendiente de Firma' || solicitudSeleccionada?.estado === 'Autorizado')) && (
+                                      <DropdownMenuItem
+                                        onClick={async () => {
+                                          const el = document.getElementById('est-resolution-print');
+                                          if (!el) return;
+                                          const canvas = await html2canvas(el as HTMLElement, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+                                          const imgData = canvas.toDataURL('image/png');
+                                          const pdf = new jsPDF('p', 'mm', 'a4');
+                                          const imgWidth = 210;
+                                          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                                          let heightLeft = imgHeight;
+                                          let position = 0;
+                                          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                                          heightLeft -= 297;
+                                          while (heightLeft > 0) {
+                                            position = heightLeft - imgHeight;
+                                            pdf.addPage();
+                                            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                                            heightLeft -= 297;
+                                          }
+                                          pdf.save(`resolucion-alta-establecimiento-${solicitudSeleccionada?.numero_solicitud || solicitudSeleccionada?.id || 'solicitud'}.pdf`);
+                                        }}
+                                      >
+                                        Resolución de Aprobación (PDF)
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem asChild>
                                       <a href={`data:text/plain,${encodeURIComponent(JSON.stringify(solicitudSeleccionada, null, 2))}`} download={`solicitud_${solicitudSeleccionada?.numero_solicitud || solicitudSeleccionada?.id}.json`}>
                                         Descargar JSON
@@ -417,6 +471,65 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                                 </Card>
                               )}
 
+                              {(solicitudSeleccionada.personal_apertura || solicitudSeleccionada.asesor_tecnico) && (
+                                <Card>
+                                  <CardHeader>
+                                    <CardTitle>Plan de Personal y Asesor Técnico</CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="space-y-3 text-sm">
+                                    {solicitudSeleccionada.personal_apertura?.categorias && Object.keys(solicitudSeleccionada.personal_apertura.categorias).length > 0 && (
+                                      <div>
+                                        <div className="font-medium">Personal requerido:</div>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1">
+                                          {Object.entries(solicitudSeleccionada.personal_apertura.categorias).map(([k, v]: any) => (
+                                            <div key={k} className="bg-gray-50 rounded p-2">
+                                              <span className="text-xs uppercase text-gray-500">{k}</span>
+                                              <div className="text-lg font-bold">{v as number}</div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {Array.isArray(solicitudSeleccionada.personal_apertura?.personas) && solicitudSeleccionada.personal_apertura.personas.length > 0 && (
+                                      <div>
+                                        <div className="font-medium mb-1">Listado de personal:</div>
+                                        <div className="space-y-1">
+                                          {solicitudSeleccionada.personal_apertura.personas.map((p: any, i: number) => (
+                                            <div key={i} className="flex justify-between border rounded p-2">
+                                              <div>
+                                                <div className="font-medium">{p.nombre}</div>
+                                                {p.categoria && <div className="text-xs text-gray-500">{p.categoria}</div>}
+                                              </div>
+                                              <div className="text-sm">{p.telefono}</div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {(solicitudSeleccionada.asesor_tecnico?.nombre || solicitudSeleccionada.asesor_tecnico?.formacion || solicitudSeleccionada.asesor_tecnico?.telefono) && (
+                                      <div>
+                                        <div className="font-medium mb-1">Asesor Técnico</div>
+                                        <div className="text-sm">
+                                          {solicitudSeleccionada.asesor_tecnico?.nombre} {solicitudSeleccionada.asesor_tecnico?.formacion ? `• ${solicitudSeleccionada.asesor_tecnico.formacion}` : ''} {solicitudSeleccionada.asesor_tecnico?.telefono ? `• ${solicitudSeleccionada.asesor_tecnico.telefono}` : ''}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              )}
+
+                              {/* Contenido fuera de pantalla para generación de PDF (no usar display:none) */}
+                              <div style={{ position: 'absolute', left: '-10000px', top: 0, visibility: 'hidden', pointerEvents: 'none' }}>
+                                <div id="est-letter-print" style={{ backgroundColor: '#ffffff' }}>
+                                  <EstablishmentRequestLetter solicitud={solicitudSeleccionada} />
+                                </div>
+                                <div id="est-resolution-print" style={{ backgroundColor: '#ffffff' }}>
+                                  <EstablishmentApprovalResolution solicitud={solicitudSeleccionada} />
+                                </div>
+                              </div>
+
                               {solicitudSeleccionada.documentos_adicionales?.length > 0 && (
                                 <Card>
                                   <CardHeader>
@@ -466,12 +579,12 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                         </DialogContent>
                       </Dialog>
 
-                      {!editandoEstados[solicitud.id] && 
-                       getOpcionesEstado(solicitud.estado).length > 0 && (
+                      {!editandoEstados[(solicitud as any).id] &&
+                       getOpcionesEstado(((solicitud as any)?.estado || 'Pendiente')).length > 0 && (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleEditarEstado(solicitud.id, solicitud.estado)}
+                          onClick={() => handleEditarEstado((solicitud as any).id, ((solicitud as any)?.estado || 'Pendiente'))}
                         >
                           <Edit className="h-3 w-3 mr-1" />
                           Editar

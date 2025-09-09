@@ -43,6 +43,8 @@ import { useQuery } from "@tanstack/react-query";
 import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
 import type { Profesional } from "@/hooks/useProfesionales";
 import * as XLSX from 'xlsx';
+import CenterAttendancePanel from "@/components/dashboard/CenterAttendancePanel";
+import { supabase } from "@/integrations/supabase/client";
 
 interface HealthCentersProps { dashboardFilters?: { distrito_sanitario?: string } }
 const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
@@ -376,6 +378,93 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
     setSelectedCategory(categoria);
   };
 
+  const AperturaResumen: React.FC<{ centerId: string; centerName: string }> = ({ centerId, centerName }) => {
+    const { data } = useQuery({
+      queryKey: ["apertura-solicitud", centerId, centerName],
+      queryFn: async () => {
+        // Primero buscar por centro_id
+        const byId = await supabase
+          .from("solicitudes_establecimientos")
+          .select("id, numero_solicitud, fecha_solicitud, estado, personal_apertura, asesor_tecnico")
+          .eq("centro_id", centerId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (byId.error && byId.error.code !== 'PGRST116') throw byId.error;
+        if (byId.data) return byId.data as any;
+        // Fallback por nombre si no hay vínculo
+        const byName = await supabase
+          .from("solicitudes_establecimientos")
+          .select("id, numero_solicitud, fecha_solicitud, estado, personal_apertura, asesor_tecnico")
+          .ilike("nombre_establecimiento", centerName)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (byName.error && byName.error.code !== 'PGRST116') throw byName.error;
+        return byName.data as any;
+      },
+    });
+
+    if (!data) return null;
+    const categorias: Record<string, number> = data?.personal_apertura?.categorias || {};
+    const personas: { nombre: string; telefono: string; categoria?: string }[] = data?.personal_apertura?.personas || [];
+    const asesor = data?.asesor_tecnico || {};
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Plan de Apertura</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="flex items-center gap-2 text-gray-700">
+            <span className="font-medium">Solicitud:</span>
+            <span>{data.numero_solicitud || '—'}</span>
+            <span className="mx-2">•</span>
+            <span className="font-medium">Estado:</span>
+            <span>{data.estado || '—'}</span>
+          </div>
+          {Object.keys(categorias).length > 0 && (
+            <div>
+              <div className="font-medium">Personal requerido:</div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1">
+                {Object.entries(categorias).map(([k,v]) => (
+                  <div key={k} className="bg-gray-50 rounded p-2">
+                    <span className="text-xs uppercase text-gray-500">{k}</span>
+                    <div className="text-lg font-bold">{v as number}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {personas.length > 0 && (
+            <div>
+              <div className="font-medium mb-1">Listado de personal:</div>
+              <div className="space-y-1">
+                {personas.map((p, i) => (
+                  <div key={i} className="flex justify-between border rounded p-2">
+                    <div>
+                      <div className="font-medium">{p.nombre}</div>
+                      {p.categoria && <div className="text-xs text-gray-500">{p.categoria}</div>}
+                    </div>
+                    <div className="text-sm">{p.telefono}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {(asesor?.nombre || asesor?.formacion || asesor?.telefono) && (
+            <div>
+              <div className="font-medium mb-1">Asesor Técnico</div>
+              <div className="text-sm">
+                {asesor?.nombre} {asesor?.formacion ? `• ${asesor.formacion}` : ''} {asesor?.telefono ? `• ${asesor.telefono}` : ''}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   if (selectedCenter) {
     return (
       <div className="space-y-6">
@@ -450,6 +539,9 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                     </div>
                   </div>
                 </div>
+
+                {/* Resumen de solicitud de apertura (si existe) */}
+                <AperturaResumen centerId={selectedCenter.id} centerName={selectedCenter.nombre} />
               </div>
               <div className="space-y-4">
                 <div>
@@ -513,6 +605,12 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Panel de asistencia y turnos del centro */}
+        <CenterAttendancePanel
+          centerId={selectedCenter.id}
+          professionals={profesionalesDelCentro.map(p => ({ id: p.id, nombre_completo: p.nombre_completo, area_profesional: p.area_profesional })) as any}
+        />
 
         {/* Profesionales del centro */}
         <Card>

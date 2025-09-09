@@ -82,6 +82,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     flowType: 'pkce',
   },
   global: {
+    // Force Supabase to use our resilient fetch to avoid 3rd-party wrappers (e.g., analytics) breaking requests
+    fetch: resilientFetch as any,
     headers: {
       'X-Client-Info': 'guinea-salud-dashboard',
     },

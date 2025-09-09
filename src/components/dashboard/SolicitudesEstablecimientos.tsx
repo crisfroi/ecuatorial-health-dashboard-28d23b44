@@ -351,6 +351,56 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={async () => {
+                                        const el = document.getElementById('est-letter-print');
+                                        if (!el) return;
+                                        const canvas = await html2canvas(el as HTMLElement, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+                                        const imgData = canvas.toDataURL('image/png');
+                                        const pdf = new jsPDF('p', 'mm', 'a4');
+                                        const imgWidth = 210;
+                                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                                        let heightLeft = imgHeight;
+                                        let position = 0;
+                                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                                        heightLeft -= 297;
+                                        while (heightLeft > 0) {
+                                          position = heightLeft - imgHeight;
+                                          pdf.addPage();
+                                          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                                          heightLeft -= 297;
+                                        }
+                                        pdf.save(`carta-solicitud-establecimiento-${solicitudSeleccionada.numero_solicitud || solicitudSeleccionada.id}.pdf`);
+                                      }}
+                                    >
+                                      Carta de Solicitud (PDF)
+                                    </DropdownMenuItem>
+                                    {(solicitudSeleccionada.estado === 'Pendiente de Firma' || solicitudSeleccionada.estado === 'Autorizado') && (
+                                      <DropdownMenuItem
+                                        onClick={async () => {
+                                          const el = document.getElementById('est-resolution-print');
+                                          if (!el) return;
+                                          const canvas = await html2canvas(el as HTMLElement, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+                                          const imgData = canvas.toDataURL('image/png');
+                                          const pdf = new jsPDF('p', 'mm', 'a4');
+                                          const imgWidth = 210;
+                                          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                                          let heightLeft = imgHeight;
+                                          let position = 0;
+                                          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                                          heightLeft -= 297;
+                                          while (heightLeft > 0) {
+                                            position = heightLeft - imgHeight;
+                                            pdf.addPage();
+                                            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                                            heightLeft -= 297;
+                                          }
+                                          pdf.save(`resolucion-alta-establecimiento-${solicitudSeleccionada.numero_solicitud || solicitudSeleccionada.id}.pdf`);
+                                        }}
+                                      >
+                                        Resolución de Aprobación (PDF)
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem asChild>
                                       <a href={`data:text/plain,${encodeURIComponent(JSON.stringify(solicitudSeleccionada, null, 2))}`} download={`solicitud_${solicitudSeleccionada?.numero_solicitud || solicitudSeleccionada?.id}.json`}>
                                         Descargar JSON

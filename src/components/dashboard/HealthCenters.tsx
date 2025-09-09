@@ -43,9 +43,7 @@ import { useQuery } from "@tanstack/react-query";
 import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
 import type { Profesional } from "@/hooks/useProfesionales";
 import * as XLSX from 'xlsx';
-import CenterAttendancePanel from "@/components/dashboard/CenterAttendancePanel";
 import { supabase } from "@/integrations/supabase/client";
-
 interface HealthCentersProps { dashboardFilters?: { distrito_sanitario?: string } }
 const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
   const [searchTerm, setSearchTerm] = useState("");

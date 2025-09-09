@@ -521,7 +521,7 @@ const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: 
                               )}
 
                               {/* Contenido fuera de pantalla para generación de PDF (no usar display:none) */}
-                              <div style={{ position: 'absolute', left: '-10000px', top: 0, visibility: 'hidden', pointerEvents: 'none' }}>
+                              <div style={{ position: 'fixed', left: '-10000px', top: 0, opacity: 0, pointerEvents: 'none', width: '210mm', minHeight: '297mm', zIndex: -1 }}>
                                 <div id="est-letter-print" style={{ backgroundColor: '#ffffff' }}>
                                   <EstablishmentRequestLetter solicitud={solicitudSeleccionada} />
                                 </div>

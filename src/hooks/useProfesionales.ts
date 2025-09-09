@@ -13,6 +13,12 @@ export type Profesional =
     foto_carnet_base64?: string;
     fecha_graduacion?: number;
     codigo_barras?: string;
+    // Campos opcionales para nuevos cálculos
+    estatus_funcionario?: 'nombrado' | 'no_nombrado' | null;
+    fecha_nombramiento?: string | null;
+    fecha_inicio_trabajo?: string | null;
+    fecha_nacimiento?: string | null;
+    funcion_publica?: boolean | null;
   };
 
 export type ProfesionalInsert =
@@ -57,6 +63,14 @@ interface Filtros {
   // Filtros de fecha
   fecha_solicitud_gte?: string;
   fecha_solicitud_lte?: string;
+  // Nuevos filtros calculados (client-side)
+  estatus_funcionario?: 'nombrado' | 'no_nombrado';
+  edad_laboral_min?: number;
+  edad_laboral_max?: number;
+  años_servicio_min?: number;
+  años_servicio_max?: number;
+  años_restantes_jubilacion_min?: number;
+  años_restantes_jubilacion_max?: number;
 }
 
 // Tipo para filtros de navegación - incluye todas las propiedades necesarias
@@ -81,6 +95,27 @@ export interface NavigationFilters {
   fecha_solicitud_lte?: string;
   pais_formacion?: string;
   institucion?: string;
+  // Nuevos filtros navegables
+  estatus_funcionario?: 'nombrado' | 'no_nombrado';
+  edad_laboral_min?: number;
+  edad_laboral_max?: number;
+  años_servicio_min?: number;
+  años_servicio_max?: number;
+  años_restantes_jubilacion_min?: number;
+  años_restantes_jubilacion_max?: number;
+}
+
+function parseISO(dateStr?: string | null): Date | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function yearsDiff(from: Date, to: Date): number {
+  let years = to.getFullYear() - from.getFullYear();
+  const m = to.getMonth() - from.getMonth();
+  if (m < 0 || (m === 0 && to.getDate() < from.getDate())) years--;
+  return years;
 }
 
 export function useProfesionales(filtros: Filtros = {}) {
@@ -223,7 +258,65 @@ export function useProfesionales(filtros: Filtros = {}) {
       }
 
       console.log("Fetched profesionales:", data?.length || 0);
-      return data || [];
+
+      // Aplicar filtros calculados en cliente
+      const now = new Date();
+      const filtered = (data || []).filter((p: any) => {
+        const nacimiento = parseISO(p.fecha_nacimiento);
+        const inicioTrabajo = parseISO(p.fecha_inicio_trabajo);
+        const nombramiento = parseISO(p.fecha_nombramiento);
+
+        const edadActual = nacimiento ? yearsDiff(nacimiento, now) : null;
+
+        // Edad laboral: desde la fecha más antigua disponible entre inicioTrabajo y nombramiento
+        let edadLaboral: number | null = null;
+        const posiblesInicios = [inicioTrabajo, nombramiento].filter(Boolean) as Date[];
+        if (posiblesInicios.length > 0) {
+          const masAntigua = posiblesInicios.reduce((a, b) => (a < b ? a : b));
+          edadLaboral = yearsDiff(masAntigua, now);
+        }
+
+        // Años de servicio: depende del estatus_funcionario
+        let anosServicio: number | null = null;
+        if (p.estatus_funcionario === 'nombrado' && nombramiento) {
+          anosServicio = yearsDiff(nombramiento, now);
+        } else if (p.estatus_funcionario === 'no_nombrado' && inicioTrabajo) {
+          anosServicio = yearsDiff(inicioTrabajo, now);
+        } else if (!p.estatus_funcionario) {
+          // Si no hay estatus, usar el primero disponible
+          const start = inicioTrabajo || nombramiento;
+          if (start) anosServicio = yearsDiff(start, now);
+        }
+
+        // Años restantes hasta jubilación (65)
+        const anosRestantes = typeof edadActual === 'number' ? Math.max(0, 65 - edadActual) : null;
+
+        // Validar contra filtros si existen
+        if (filtros.edad_laboral_min !== undefined) {
+          if (edadLaboral === null || edadLaboral < filtros.edad_laboral_min) return false;
+        }
+        if (filtros.edad_laboral_max !== undefined) {
+          if (edadLaboral === null || edadLaboral > filtros.edad_laboral_max) return false;
+        }
+
+        if (filtros.años_servicio_min !== undefined) {
+          if (anosServicio === null || anosServicio < filtros.años_servicio_min) return false;
+        }
+        if (filtros.años_servicio_max !== undefined) {
+          if (anosServicio === null || anosServicio > filtros.años_servicio_max) return false;
+        }
+
+        if (filtros.años_restantes_jubilacion_min !== undefined) {
+          if (anosRestantes === null || anosRestantes < filtros.años_restantes_jubilacion_min) return false;
+        }
+        if (filtros.años_restantes_jubilacion_max !== undefined) {
+          if (anosRestantes === null || anosRestantes > filtros.años_restantes_jubilacion_max) return false;
+        }
+
+        return true;
+      });
+
+      return filtered;
     },
     retry: (failureCount, error) => {
       // Don't retry on authentication errors

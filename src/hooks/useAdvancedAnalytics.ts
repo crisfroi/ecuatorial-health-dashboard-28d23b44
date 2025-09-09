@@ -580,3 +580,159 @@ export const useTitulacionCategoryStats = (filters?: Partial<{ provincia: string
     },
   });
 };
+
+// --- Nuevas métricas: Edad laboral, Años de servicio, Años restantes hasta jubilación ---
+export interface WorkYearsStats { rango: string; cantidad: number; porcentaje: number; }
+
+function yearsBetween(from: Date, to: Date): number {
+  let years = to.getFullYear() - from.getFullYear();
+  const m = to.getMonth() - from.getMonth();
+  if (m < 0 || (m === 0 && to.getDate() < from.getDate())) years--;
+  return years;
+}
+
+function parseISO(d?: string | null): Date | null {
+  if (!d) return null;
+  const date = new Date(d);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+function buildRanges(values: number[], labels: { label: string; min?: number; max?: number }[]): WorkYearsStats[] {
+  const counts = labels.map(() => 0);
+  values.forEach((v) => {
+    const idx = labels.findIndex((r) => (r.min === undefined || v >= r.min) && (r.max === undefined || v <= r.max));
+    if (idx >= 0) counts[idx] += 1;
+  });
+  const total = values.length || 1;
+  return labels.map((r, i) => ({ rango: r.label, cantidad: counts[i], porcentaje: (counts[i] / total) * 100 }));
+}
+
+export const useWorkAgeStats = (filters?: Partial<{ provincia: string; distrito_sanitario: string; distrito: string; genero: string; tipo_sector: string; centro_id: string; centro_nombre: string; estatus_funcionario: string }>) => {
+  return useQuery({
+    queryKey: ["workAgeStats", filters || null],
+    queryFn: async (): Promise<WorkYearsStats[]> => {
+      let profQuery = supabase
+        .from("profesionales_sanitarios")
+        .select("fecha_inicio_trabajo, fecha_nombramiento, estatus_funcionario, estado_solicitud, provincia, distrito_sanitario, distrito, genero, tipo_sector, centro_salud_id, nombre_centro")
+        .eq("estado_solicitud", "Aprobado");
+
+      if (filters?.provincia) profQuery = profQuery.eq('provincia', filters.provincia);
+      if (filters?.distrito_sanitario) profQuery = profQuery.eq('distrito_sanitario', filters.distrito_sanitario);
+      if (filters?.distrito) profQuery = profQuery.eq('distrito', filters.distrito);
+      if (filters?.genero) profQuery = profQuery.eq('genero', filters.genero);
+      if (filters?.tipo_sector) profQuery = profQuery.eq('tipo_sector', filters.tipo_sector);
+      if ((filters as any)?.centro_id) profQuery = profQuery.eq('centro_salud_id', (filters as any).centro_id);
+      if (!(filters as any)?.centro_id && filters?.centro_nombre) profQuery = profQuery.eq('nombre_centro', filters.centro_nombre);
+      if (filters?.estatus_funcionario) profQuery = profQuery.eq('estatus_funcionario', filters.estatus_funcionario);
+
+      const { data, error } = await profQuery;
+      if (error) throw error;
+
+      const now = new Date();
+      const values: number[] = (data || []).map((p) => {
+        const inicio = parseISO((p as any).fecha_inicio_trabajo);
+        const nombr = parseISO((p as any).fecha_nombramiento);
+        const candidates = [inicio, nombr].filter(Boolean) as Date[];
+        if (candidates.length === 0) return -1; // marcador para excluir
+        const oldest = candidates.reduce((a, b) => (a < b ? a : b));
+        return yearsBetween(oldest, now);
+      }).filter((v) => v >= 0);
+
+      const labels = [
+        { label: "< 1 año", max: 0 },
+        { label: "1-3 años", min: 1, max: 3 },
+        { label: "3-5 años", min: 3, max: 5 },
+        { label: "5-10 años", min: 5, max: 10 },
+        { label: "10+ años", min: 10 },
+      ];
+
+      return buildRanges(values, labels);
+    },
+  });
+};
+
+export const useServiceYearsStats = (filters?: Partial<{ provincia: string; distrito_sanitario: string; distrito: string; genero: string; tipo_sector: string; centro_id: string; centro_nombre: string; estatus_funcionario: string }>) => {
+  return useQuery({
+    queryKey: ["serviceYearsStats", filters || null],
+    queryFn: async (): Promise<WorkYearsStats[]> => {
+      let profQuery = supabase
+        .from("profesionales_sanitarios")
+        .select("fecha_inicio_trabajo, fecha_nombramiento, estatus_funcionario, estado_solicitud, provincia, distrito_sanitario, distrito, genero, tipo_sector, centro_salud_id, nombre_centro")
+        .eq("estado_solicitud", "Aprobado");
+
+      if (filters?.provincia) profQuery = profQuery.eq('provincia', filters.provincia);
+      if (filters?.distrito_sanitario) profQuery = profQuery.eq('distrito_sanitario', filters.distrito_sanitario);
+      if (filters?.distrito) profQuery = profQuery.eq('distrito', filters.distrito);
+      if (filters?.genero) profQuery = profQuery.eq('genero', filters.genero);
+      if (filters?.tipo_sector) profQuery = profQuery.eq('tipo_sector', filters.tipo_sector);
+      if ((filters as any)?.centro_id) profQuery = profQuery.eq('centro_salud_id', (filters as any).centro_id);
+      if (!(filters as any)?.centro_id && filters?.centro_nombre) profQuery = profQuery.eq('nombre_centro', filters.centro_nombre);
+      if (filters?.estatus_funcionario) profQuery = profQuery.eq('estatus_funcionario', filters.estatus_funcionario);
+
+      const { data, error } = await profQuery;
+      if (error) throw error;
+
+      const now = new Date();
+      const values: number[] = (data || []).map((p) => {
+        const inicio = parseISO((p as any).fecha_inicio_trabajo);
+        const nombr = parseISO((p as any).fecha_nombramiento);
+        const estatus = (p as any).estatus_funcionario;
+        const start = estatus === 'nombrado' ? nombr : inicio;
+        if (!start) return -1;
+        return yearsBetween(start, now);
+      }).filter((v) => v >= 0);
+
+      const labels = [
+        { label: "< 1 año", max: 0 },
+        { label: "1-3 años", min: 1, max: 3 },
+        { label: "3-5 años", min: 3, max: 5 },
+        { label: "5-10 años", min: 5, max: 10 },
+        { label: "10+ años", min: 10 },
+      ];
+
+      return buildRanges(values, labels);
+    },
+  });
+};
+
+export const useRetirementRemainingStats = (filters?: Partial<{ provincia: string; distrito_sanitario: string; distrito: string; genero: string; tipo_sector: string; centro_id: string; centro_nombre: string }>) => {
+  return useQuery({
+    queryKey: ["retirementRemainingStats", filters || null],
+    queryFn: async (): Promise<WorkYearsStats[]> => {
+      let profQuery = supabase
+        .from("profesionales_sanitarios")
+        .select("fecha_nacimiento, estado_solicitud, provincia, distrito_sanitario, distrito, genero, tipo_sector, centro_salud_id, nombre_centro")
+        .eq("estado_solicitud", "Aprobado")
+        .not('fecha_nacimiento', 'is', null);
+
+      if (filters?.provincia) profQuery = profQuery.eq('provincia', filters.provincia);
+      if (filters?.distrito_sanitario) profQuery = profQuery.eq('distrito_sanitario', filters.distrito_sanitario);
+      if (filters?.distrito) profQuery = profQuery.eq('distrito', filters.distrito);
+      if (filters?.genero) profQuery = profQuery.eq('genero', filters.genero);
+      if (filters?.tipo_sector) profQuery = profQuery.eq('tipo_sector', filters.tipo_sector);
+      if ((filters as any)?.centro_id) profQuery = profQuery.eq('centro_salud_id', (filters as any).centro_id);
+      if (!(filters as any)?.centro_id && filters?.centro_nombre) profQuery = profQuery.eq('nombre_centro', filters.centro_nombre);
+
+      const { data, error } = await profQuery;
+      if (error) throw error;
+
+      const now = new Date();
+      const values: number[] = (data || []).map((p) => {
+        const nacimiento = parseISO((p as any).fecha_nacimiento);
+        if (!nacimiento) return -1;
+        const edad = yearsBetween(nacimiento, now);
+        return Math.max(0, 65 - edad);
+      }).filter((v) => v >= 0);
+
+      const labels = [
+        { label: "0 años", min: 0, max: 0 },
+        { label: "1-5 años", min: 1, max: 5 },
+        { label: "6-10 años", min: 6, max: 10 },
+        { label: "11-20 años", min: 11, max: 20 },
+        { label: "20+ años", min: 21 },
+      ];
+
+      return buildRanges(values, labels);
+    },
+  });
+};

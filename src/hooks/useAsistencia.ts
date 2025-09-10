@@ -113,31 +113,55 @@ export function useAsistencia() {
 
   // Parser genérico TXT/DAT (ZKTeco-like). Detecta separadores y columnas.
   const parseLines = (text: string) => {
-    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const linesRaw = text.split(/\r?\n/);
+    const lines = linesRaw.map(l => l.replace(/\uFEFF/g, '').trim()).filter(Boolean);
     const entries: Omit<AttendanceLog, 'id' | 'id_dispositivo' | 'created_at'>[] = [];
 
+    let headerMap: Record<string, number> | null = null;
+    if (lines.length) {
+      const headerParts = lines[0].split(/\t+|,|\s{2,}/).map(s => s.trim());
+      const knownHeaders = ['No','TMNo','EnNo','Name','INOUT','Mode','DateTime'];
+      const isHeader = knownHeaders.every(h => headerParts.includes(h));
+      if (isHeader) {
+        headerMap = headerParts.reduce((acc, key, idx) => { acc[key] = idx; return acc; }, {} as Record<string, number>);
+        lines.shift();
+      }
+    }
+
     for (const raw of lines) {
-      // Normalizar separadores: coma, tab o múltiple espacio
-      const parts = raw.split(/\s+|,|\t/).filter(Boolean);
-      if (parts.length < 2) continue;
+      const parts = raw.split(/\t+|,|\s{2,}/).map(p => p.trim());
+      if (!parts.length) continue;
 
-      // Heurística: primer token numérico = EnNo
-      const enToken = parts[0];
-      const en_no = /\d+/.test(enToken) ? enToken : null;
+      let en_no: string | null = null;
+      let fecha_hora: string = new Date().toISOString();
+      let inout: 'IN' | 'OUT' | null = null;
+      let mode: string | null = null;
 
-      // Buscar fecha y hora (YYYY-MM-DD HH:MM[:SS])
-      const joined = raw.replace(/,/g, ' ');
-      const dtMatch = joined.match(/(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?)/);
-      const fecha_hora = dtMatch ? new Date(dtMatch[1]).toISOString() : new Date().toISOString();
+      if (headerMap) {
+        en_no = parts[headerMap['EnNo']] || null;
+        const dtRaw = parts[headerMap['DateTime']] || '';
+        // soportar YYYY/MM/DD HH:mm:ss o YYYY-MM-DD HH:mm:ss
+        const normalized = dtRaw.replace(/\//g, '-');
+        const parsed = new Date(normalized);
+        fecha_hora = isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+        const inoutRaw = parts[headerMap['INOUT']] || '';
+        if (/^in$/i.test(inoutRaw)) inout = 'IN';
+        else if (/^out$/i.test(inoutRaw)) inout = 'OUT';
+        else if (/^[01]$/.test(inoutRaw)) inout = null; // 0/1 desconocido: se derivará en consolidación
+        mode = (parts[headerMap['Mode']] || '') || null;
+      } else {
+        // Fallback heurístico
+        const joined = raw.replace(/,/g, ' ');
+        const dtMatch = joined.match(/(\d{4}[/-]\d{2}[/-]\d{2}[ T]\d{2}:\d{2}(:\d{2})?)/);
+        fecha_hora = dtMatch ? new Date(dtMatch[1].replace(/\//g,'-')).toISOString() : new Date().toISOString();
+        const maybeEn = parts.find(p => /^\d{2,}$/.test(p));
+        en_no = maybeEn || null;
+        const inoutToken = parts.find(p => /^I(n)?$|^O(ut)?$/i.test(p));
+        inout = inoutToken ? (/^I/i.test(inoutToken) ? 'IN' : 'OUT') : null;
+        mode = parts.find(p => /^(M|A|FP|FACE|FINGER|CARD|\d{1,2})$/i.test(p)) || null;
+      }
 
-      // InOut: buscar I/O o IN/OUT
-      const inoutToken = parts.find(p => /^I(n)?$|^O(ut)?$/i.test(p));
-      const inout = inoutToken ? (/^I/i.test(inoutToken) ? 'IN' : 'OUT') : null;
-
-      // Mode: cualquier token tipo M/A/FP
-      const modeToken = parts.find(p => /^(M|A|FP|FACE|FINGER|CARD)$/i.test(p));
-
-      entries.push({ id_profesional: null, en_no, inout: inout as any, mode: modeToken || null, fecha_hora, raw_line: raw, source_file: undefined } as any);
+      entries.push({ id_profesional: null, en_no, inout: inout as any, mode, fecha_hora, raw_line: raw, source_file: undefined } as any);
     }
 
     return entries;

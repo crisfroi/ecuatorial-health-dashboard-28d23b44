@@ -30,6 +30,9 @@ import { PagosGuardias } from './tabs/PagosGuardias';
 import { ReportesGuardias } from './tabs/ReportesGuardias';
 import { AuditoriaGuardias } from './tabs/AuditoriaGuardias';
 import { AjustesGuardias } from './tabs/AjustesGuardias';
+import { AsistenciaBiometrica } from './tabs/AsistenciaBiometrica';
+import { TurnosBiometricos } from './tabs/TurnosBiometricos';
+import { CuadrantesBiometricos } from './tabs/CuadrantesBiometricos';
 import { NetworkStatusSimple } from '@/components/ui/network-status-simple';
 import { GuardiasStatusIndicators } from './GuardiasStatusIndicators';
 import { GuardiasNotificationSystem } from './GuardiasNotificationSystem';
@@ -81,7 +84,10 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
   const getVisibleTabs = () => {
     const allTabs = [
       { id: 'registro', label: 'Registro', icon: Calendar, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
-      { id: 'cuadrantes', label: 'Cuadrantes', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES'] },
+      { id: 'asistencia', label: 'Asistencia', icon: Clock, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
+      { id: 'turnos', label: 'Turnos', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
+      { id: 'cuadrantesbio', label: 'Cuadrantes', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
+      { id: 'cuadrantes', label: 'Cuadrantes Guardias', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES'] },
       { id: 'validacion', label: 'Validación', icon: Shield, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'REVISOR_SOLICITUDES'] },
       { id: 'nomina', label: 'Nómina', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES'] },
       { id: 'pagos', label: 'Pagos', icon: CreditCard, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'REVISOR_SOLICITUDES'] },
@@ -283,6 +289,18 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
               selectedCenter={selectedCenter}
               userRole={userRole}
             />
+          </TabsContent>
+
+          <TabsContent value="asistencia">
+            <AsistenciaBiometrica selectedCenter={selectedCenter} />
+          </TabsContent>
+
+          <TabsContent value="turnos">
+            <TurnosBiometricos selectedCenter={selectedCenter} />
+          </TabsContent>
+
+          <TabsContent value="cuadrantesbio">
+            <CuadrantesBiometricos selectedCenter={selectedCenter} />
           </TabsContent>
 
           <TabsContent value="cuadrantes">

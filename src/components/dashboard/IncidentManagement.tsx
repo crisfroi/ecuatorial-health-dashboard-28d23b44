@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -8,142 +8,87 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Plus, Edit, Eye, Clock, CheckCircle, XCircle, User, Building2 } from 'lucide-react';
+import { AlertTriangle, Plus, Eye, Clock, CheckCircle, XCircle, User, Building2 } from 'lucide-react';
 import { useRoleBasedData } from '@/hooks/useRoleBasedData';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useRole } from '@/contexts/AuthContext';
+import { useProfesionales } from '@/hooks/useProfesionales';
 
 const IncidentManagement = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { filterIncidentsData } = useRoleBasedData();
+  const { user } = useRole();
+
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedIncident, setSelectedIncident] = useState(null);
+  const [selectedIncident, setSelectedIncident] = useState<any>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [incidentType, setIncidentType] = useState<'hospitalaria' | 'profesional'>('hospitalaria');
 
-  // Datos simulados de incidencias hospitalarias
-  const [incidencias, setIncidencias] = useState([
-    {
-      id: 1,
-      titulo: 'Falta de suministros médicos',
-      descripcion: 'Escasez crítica de medicamentos esenciales en farmacia',
-      tipo: 'Suministros',
-      gravedad: 'Alta',
-      estado: 'Abierta',
-      fechaIncidencia: '2024-01-20',
-      reportadoPor: 'Dr. Carlos Obiang',
-      centroAfectado: 'Hospital Regional Malabo',
-      provincia: 'Bioko Norte'
-    },
-    {
-      id: 2,
-      titulo: 'Equipo médico averiado',
-      descripcion: 'Máquina de rayos X fuera de servicio desde hace 3 días',
-      tipo: 'Equipamiento',
-      gravedad: 'Media',
-      estado: 'En Progreso',
-      fechaIncidencia: '2024-01-18',
-      reportadoPor: 'Dra. María Nsue',
-      centroAfectado: 'Centro de Salud Bata',
-      provincia: 'Litoral'
-    },
-    {
-      id: 3,
-      titulo: 'Incidente de seguridad',
-      descripcion: 'Robo de medicamentos en área de farmacia durante la noche',
-      tipo: 'Seguridad',
-      gravedad: 'Alta',
-      estado: 'Resuelta',
-      fechaIncidencia: '2024-01-15',
-      fechaResolucion: '2024-01-22',
-      reportadoPor: 'Farm. Ana Nguema',
-      resuelto: 'Admin. Pedro Nsue',
-      centroAfectado: 'Farmacia Central',
-      provincia: 'Bioko Norte'
+  // Cargar incidencias desde Supabase
+  const { data: incidenciasAll = [], isLoading } = useQuery({
+    queryKey: ['incidencias_hospitalarias_all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('incidencias_hospitalarias')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
     }
-  ]);
+  });
 
-  // Datos de incidencias de profesionales
-  const [incidenciasProfesionales, setIncidenciasProfesionales] = useState([
-    {
-      id: 1,
-      titulo: 'Solicitud de carnet vencida',
-      descripcion: 'Profesional con carnet vencido desde hace 3 meses sin renovar',
-      tipo: 'Documentación',
-      gravedad: 'Media',
-      estado: 'Abierta',
-      fechaIncidencia: '2024-01-25',
-      reportadoPor: 'Sistema Automático',
-      profesionalAfectado: 'Dr. Juan Mba Ela',
-      areaProfesional: 'Medicina General',
-      centroTrabajo: 'Hospital Regional Malabo',
-      provincia: 'Bioko Norte'
-    },
-    {
-      id: 2,
-      titulo: 'Documentación incompleta',
-      descripcion: 'Faltan documentos de titulación académica en el expediente',
-      tipo: 'Documentación',
-      gravedad: 'Alta',
-      estado: 'En Progreso',
-      fechaIncidencia: '2024-01-22',
-      reportadoPor: 'Comité Evaluador',
-      profesionalAfectado: 'Enfermera Rosa Nsue',
-      areaProfesional: 'Enfermería',
-      centroTrabajo: 'Centro de Salud Bata',
-      provincia: 'Litoral'
-    },
-    {
-      id: 3,
-      titulo: 'Cambio no autorizado de centro',
-      descripcion: 'Profesional trabajando en centro diferente al registrado',
-      tipo: 'Cumplimiento',
-      gravedad: 'Media',
-      estado: 'Resuelta',
-      fechaIncidencia: '2024-01-20',
-      fechaResolucion: '2024-01-24',
-      reportadoPor: 'Director Centro',
-      resuelto: 'Coord. Recursos Humanos',
-      profesionalAfectado: 'Dr. Carlos Nguema',
-      areaProfesional: 'Pediatría',
-      centroTrabajo: 'Hospital Infantil',
-      provincia: 'Bioko Norte'
-    },
-    {
-      id: 4,
-      titulo: 'Actividad profesional no autorizada',
-      descripcion: 'Ejercicio de medicina privada sin autorización ministerial',
-      tipo: 'Cumplimiento',
-      gravedad: 'Alta',
-      estado: 'En Progreso',
-      fechaIncidencia: '2024-01-18',
-      reportadoPor: 'Inspector Sanitario',
-      profesionalAfectado: 'Dra. Elena Obiang',
-      areaProfesional: 'Ginecología',
-      centroTrabajo: 'Clínica Privada El Sol',
-      provincia: 'Litoral'
-    }
-  ]);
+  const incidenciasHospitalarias = useMemo(() => (
+    incidenciasAll.filter((i: any) => !i.id_profesional)
+      .map((i: any) => ({
+        id: i.id,
+        titulo: i.titulo_incidencia,
+        descripcion: i.descripcion,
+        tipo: i.tipo_incidencia,
+        gravedad: i.gravedad || 'Media',
+        estado: i.estado || 'Abierta',
+        fechaIncidencia: i.fecha_incidencia ? new Date(i.fecha_incidencia).toISOString().split('T')[0] : '',
+        reportadoPor: i.reportado_por || '—',
+      }))
+  ), [incidenciasAll]);
+
+  const incidenciasProfesionales = useMemo(() => (
+    incidenciasAll.filter((i: any) => !!i.id_profesional)
+      .map((i: any) => ({
+        id: i.id,
+        titulo: i.titulo_incidencia,
+        descripcion: i.descripcion,
+        tipo: i.tipo_incidencia,
+        gravedad: i.gravedad || 'Media',
+        estado: i.estado || 'Abierta',
+        fechaIncidencia: i.fecha_incidencia ? new Date(i.fecha_incidencia).toISOString().split('T')[0] : '',
+        reportadoPor: i.reportado_por || '—',
+        id_profesional: i.id_profesional,
+      }))
+  ), [incidenciasAll]);
+
+  // Profesionales filtrados por centro asignado (para crear incidencias de profesional)
+  const { data: profesionalesCentro = [] } = useProfesionales(
+    user?.assigned_center_id ? { estado_solicitud: 'Aprobado', centro_salud_id: user.assigned_center_id } as any : { estado_solicitud: 'Aprobado' }
+  );
 
   // Aplicar filtros de rol (restricciones por centro para directivos)
-  const roleFilteredIncidencias = filterIncidentsData(incidencias);
+  const roleFilteredIncidencias = filterIncidentsData(incidenciasHospitalarias);
   const roleFilteredIncidenciasProfesionales = filterIncidentsData(incidenciasProfesionales);
 
-  const [newIncident, setNewIncident] = useState({
+  const [newIncident, setNewIncident] = useState<{ titulo: string; descripcion: string; tipo: string; gravedad: string; id_profesional?: string | null }>({
     titulo: '',
     descripcion: '',
     tipo: '',
     gravedad: 'Media',
-    centroAfectado: '',
-    provincia: '',
-    profesionalAfectado: '',
-    areaProfesional: '',
-    centroTrabajo: ''
+    id_profesional: null
   });
 
   const tipos = ['Suministros', 'Equipamiento', 'Personal', 'Seguridad', 'Infraestructura', 'Otro'];
   const tiposProfesionales = ['Documentación', 'Cumplimiento', 'Ética Profesional', 'Capacitación', 'Desempeño', 'Otro'];
   const gravedades = ['Baja', 'Media', 'Alta', 'Crítica'];
-  const estados = ['Abierta', 'En Progreso', 'Resuelta', 'Cerrada'];
 
   const getGravityColor = (gravedad: string) => {
     switch (gravedad) {
@@ -188,48 +133,69 @@ const IncidentManagement = () => {
     }
   };
 
+  // Crear incidencia
+  const createIncident = useMutation({
+    mutationFn: async () => {
+      const payload: any = {
+        titulo_incidencia: newIncident.titulo,
+        descripcion: newIncident.descripcion,
+        tipo_incidencia: newIncident.tipo,
+        gravedad: newIncident.gravedad,
+        estado: 'Abierta',
+        fecha_incidencia: new Date().toISOString(),
+        reportado_por: user?.full_name || 'Usuario Actual'
+      };
+      if (incidentType === 'profesional' && newIncident.id_profesional) {
+        payload.id_profesional = newIncident.id_profesional;
+      }
+      const { error } = await supabase.from('incidencias_hospitalarias').insert([payload]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incidencias_hospitalarias_all'] });
+      setIsAddDialogOpen(false);
+      setNewIncident({ titulo: '', descripcion: '', tipo: '', gravedad: 'Media', id_profesional: null });
+      toast({ title: 'Incidencia creada', description: 'La incidencia ha sido registrada exitosamente' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  });
+
   const handleAddIncident = () => {
     if (!newIncident.titulo || !newIncident.descripcion || !newIncident.tipo) {
-      toast({
-        title: "Error",
-        description: "Todos los campos obligatorios deben ser completados",
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: 'Todos los campos obligatorios deben ser completados', variant: 'destructive' });
       return;
     }
-
-    const newIncidentData = {
-      id: incidentType === 'hospitalaria' ? incidencias.length + 1 : incidenciasProfesionales.length + 1,
-      ...newIncident,
-      estado: 'Abierta',
-      fechaIncidencia: new Date().toISOString().split('T')[0],
-      reportadoPor: 'Usuario Actual'
-    };
-
-    if (incidentType === 'hospitalaria') {
-      setIncidencias([...incidencias, newIncidentData]);
-    } else {
-      setIncidenciasProfesionales([...incidenciasProfesionales, newIncidentData]);
+    if (incidentType === 'profesional' && !newIncident.id_profesional) {
+      toast({ title: 'Selecciona un profesional', description: 'Debes seleccionar el profesional afectado', variant: 'destructive' });
+      return;
     }
-
-    setNewIncident({
-      titulo: '',
-      descripcion: '',
-      tipo: '',
-      gravedad: 'Media',
-      centroAfectado: '',
-      provincia: '',
-      profesionalAfectado: '',
-      areaProfesional: '',
-      centroTrabajo: ''
-    });
-    setIsAddDialogOpen(false);
-
-    toast({
-      title: "Incidencia creada",
-      description: "La nueva incidencia ha sido registrada exitosamente",
-    });
+    createIncident.mutate();
   };
+
+  // Actualizar estado
+  const updateStatus = useMutation({
+    mutationFn: async ({ id, newStatus }: { id: string; newStatus: string }) => {
+      const updates: any = { estado: newStatus };
+      if (newStatus === 'Resuelta') {
+        updates.fecha_resolucion = new Date().toISOString();
+        updates.resuelto_por = user?.full_name || 'Usuario Actual';
+      }
+      const { error } = await supabase
+        .from('incidencias_hospitalarias')
+        .update(updates)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incidencias_hospitalarias_all'] });
+      toast({ title: 'Estado actualizado', description: 'La incidencia ha sido actualizada' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  });
 
   const renderStatsCards = (incidentData: any[], title: string) => (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -313,7 +279,7 @@ const IncidentManagement = () => {
               <TableHead>Tipo</TableHead>
               <TableHead>Gravedad</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead>{type === 'hospitalaria' ? 'Centro Afectado' : 'Profesional'}</TableHead>
+              <TableHead>{type === 'hospitalaria' ? 'Centro / Reportado por' : 'Profesional (ID)'}</TableHead>
               <TableHead>Fecha</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
@@ -339,10 +305,10 @@ const IncidentManagement = () => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  {type === 'hospitalaria' ? incident.centroAfectado : incident.profesionalAfectado}
+                  {type === 'hospitalaria' ? (incident.reportadoPor || '—') : (incident.id_profesional || '—')}
                 </TableCell>
                 <TableCell>{incident.fechaIncidencia}</TableCell>
-                <TableCell>
+                <TableCell className="space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -354,6 +320,9 @@ const IncidentManagement = () => {
                     <Eye className="w-4 h-4 mr-1" />
                     Ver
                   </Button>
+                  <Button variant="outline" size="sm" onClick={() => updateStatus.mutate({ id: incident.id, newStatus: 'En Progreso' })}>Progreso</Button>
+                  <Button variant="outline" size="sm" onClick={() => updateStatus.mutate({ id: incident.id, newStatus: 'Resuelta' })}>Resolver</Button>
+                  <Button variant="outline" size="sm" onClick={() => updateStatus.mutate({ id: incident.id, newStatus: 'Cerrada' })}>Cerrar</Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -370,7 +339,7 @@ const IncidentManagement = () => {
           <h2 className="text-2xl font-bold text-gray-900">Gestión de Incidencias</h2>
           <p className="text-gray-600 mt-1">Gestión de incidencias hospitalarias y de profesionales</p>
         </div>
-        
+
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-guinea-teal hover:bg-guinea-dark-teal">
@@ -395,7 +364,7 @@ const IncidentManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium">Título de la incidencia *</label>
                 <Input
@@ -404,7 +373,7 @@ const IncidentManagement = () => {
                   onChange={(e) => setNewIncident({...newIncident, titulo: e.target.value})}
                 />
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium">Descripción detallada *</label>
                 <Textarea
@@ -414,7 +383,7 @@ const IncidentManagement = () => {
                   rows={3}
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Tipo *</label>
@@ -444,53 +413,19 @@ const IncidentManagement = () => {
                 </div>
               </div>
 
-              {incidentType === 'hospitalaria' ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Centro afectado</label>
-                    <Input
-                      placeholder="Nombre del centro"
-                      value={newIncident.centroAfectado}
-                      onChange={(e) => setNewIncident({...newIncident, centroAfectado: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Provincia</label>
-                    <Input
-                      placeholder="Provincia"
-                      value={newIncident.provincia}
-                      onChange={(e) => setNewIncident({...newIncident, provincia: e.target.value})}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium">Profesional afectado</label>
-                    <Input
-                      placeholder="Nombre del profesional"
-                      value={newIncident.profesionalAfectado}
-                      onChange={(e) => setNewIncident({...newIncident, profesionalAfectado: e.target.value})}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium">Área profesional</label>
-                      <Input
-                        placeholder="Área de trabajo"
-                        value={newIncident.areaProfesional}
-                        onChange={(e) => setNewIncident({...newIncident, areaProfesional: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Centro de trabajo</label>
-                      <Input
-                        placeholder="Centro actual"
-                        value={newIncident.centroTrabajo}
-                        onChange={(e) => setNewIncident({...newIncident, centroTrabajo: e.target.value})}
-                      />
-                    </div>
-                  </div>
+              {incidentType === 'profesional' && (
+                <div>
+                  <label className="text-sm font-medium">Profesional afectado *</label>
+                  <Select value={newIncident.id_profesional || ''} onValueChange={(value) => setNewIncident({ ...newIncident, id_profesional: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={user?.assigned_center_id ? 'Seleccione profesional del centro asignado' : 'Seleccione profesional'} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      {profesionalesCentro.map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>{p.nombre_completo} • {p.area_profesional || '—'}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
@@ -498,8 +433,8 @@ const IncidentManagement = () => {
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleAddIncident}>
-                  Reportar Incidencia
+                <Button onClick={handleAddIncident} disabled={createIncident.isLoading}>
+                  {createIncident.isLoading ? 'Creando...' : 'Reportar Incidencia'}
                 </Button>
               </div>
             </div>
@@ -563,34 +498,20 @@ const IncidentManagement = () => {
                   <p className="text-sm">{selectedIncident.tipo}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">
-                    {selectedIncident.centroAfectado ? 'Centro:' : 'Profesional:'}
-                  </label>
-                  <p className="text-sm">
-                    {selectedIncident.centroAfectado || selectedIncident.profesionalAfectado}
-                  </p>
+                  <label className="text-sm font-medium">Reportado por:</label>
+                  <p className="text-sm">{selectedIncident.reportadoPor}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium">Reportado por:</label>
-                  <p className="text-sm">{selectedIncident.reportadoPor}</p>
-                </div>
-                <div>
                   <label className="text-sm font-medium">Fecha:</label>
                   <p className="text-sm">{selectedIncident.fechaIncidencia}</p>
                 </div>
-              </div>
-              {selectedIncident.estado === 'Resuelta' && selectedIncident.fechaResolucion && (
-                <div className="border-t pt-4 mt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium">Resuelto:</label>
-                      <p className="text-sm">{selectedIncident.fechaResolucion} por {selectedIncident.resuelto}</p>
-                    </div>
-                  </div>
+                <div>
+                  <label className="text-sm font-medium">Estado:</label>
+                  <p className="text-sm">{selectedIncident.estado}</p>
                 </div>
-              )}
+              </div>
             </div>
           )}
         </DialogContent>

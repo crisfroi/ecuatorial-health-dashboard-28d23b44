@@ -382,46 +382,48 @@ const ProfessionalRegistration = () => {
       // Preparar lista de documentos (se suben después de crear el profesional con su ID real)
       let documentosUrls: string[] = [];
 
-      // Crear objeto con los datos del formulario
+      // Helper para uppercasing seguro
+      const U = (v: any) => (typeof v === 'string' ? v.toUpperCase() : v);
+
+      // Crear objeto con los datos del formulario (texto en MAYÚSCULAS, excepto distrito_sanitario)
       const submissionData = {
-        nombre_completo: `${data.nombre} ${data.apellidos}`,
-        nombre: data.nombre,
-        apellidos: data.apellidos,
-        genero: data.genero,
+        nombre_completo: `${U(data.nombre)} ${U(data.apellidos)}`,
+        nombre: U(data.nombre),
+        apellidos: U(data.apellidos),
+        genero: U(data.genero),
         fecha_nacimiento: data.fecha_nacimiento,
         edad: age,
-        nacionalidad: data.nacionalidad,
+        nacionalidad: U(data.nacionalidad),
         numero_dip: data.numero_dip || null,
         numero_pasaporte: data.numero_pasaporte || null,
         telefono: normalizeTelefono(data.telefono),
-        domicilio: data.domicilio,
-        provincia: data.provincia,
-        distrito: data.distrito,
-        area_profesional: data.area_profesional,
-        especialidad: data.especialidad || null,
-        categoria_titulacion: data.categoria_titulacion,
-        titulacion_especifica_1: data.titulacion_especifica_1,
-        institucion_1: data.institucion_1,
-        periodo_formacion: data.periodo_formacion,
-        pais_formacion_1: data.pais_formacion_1,
-        situacion_laboral: data.situacion_laboral,
-        nombre_centro: data.nombre_centro || null,
-        centro_salud_id: data.centro_salud_id || null, // Añadir ID del centro
-        categoria_centro: data.categoria_centro || null,
-        tipo_sector: data.tipo_sector || null,
-        distrito_sanitario: data.distrito_sanitario || null,
-        funcion_publica: data.funcion_publica || false, // Nueva categorización
+        domicilio: U(data.domicilio),
+        provincia: U(data.provincia),
+        distrito: U(data.distrito),
+        area_profesional: U(data.area_profesional),
+        especialidad: data.especialidad ? U(data.especialidad) : null,
+        categoria_titulacion: U(data.categoria_titulacion),
+        titulacion_especifica_1: U(data.titulacion_especifica_1),
+        institucion_1: U(data.institucion_1),
+        periodo_formacion: U(data.periodo_formacion),
+        pais_formacion_1: U(data.pais_formacion_1),
+        situacion_laboral: U(data.situacion_laboral),
+        nombre_centro: data.nombre_centro ? U(data.nombre_centro) : null,
+        centro_salud_id: data.centro_salud_id || null, // ID del centro
+        categoria_centro: data.categoria_centro ? U(data.categoria_centro) : null,
+        tipo_sector: data.tipo_sector ? U(data.tipo_sector) : null,
+        distrito_sanitario: data.distrito_sanitario || null, // se mantiene desde catálogo
+        funcion_publica: data.funcion_publica || false,
         estatus_funcionario: data.funcion_publica ? (data.funcionario_estatus || null) : null,
         numero_funcionario: data.funcion_publica && data.funcionario_estatus === 'nombrado' ? (data.numero_funcionario || null) : null,
         fecha_nombramiento: data.funcion_publica && data.funcionario_estatus === 'nombrado' ? (data.fecha_nombramiento || null) : null,
         fecha_inicio_trabajo: data.funcion_publica && data.funcionario_estatus === 'no_nombrado' ? (data.fecha_inicio_trabajo || null) : null,
         pertenece_brigada_medica: data.pertenece_brigada_medica,
-        tipo_cooperacion: data.tipo_cooperacion || null,
+        tipo_cooperacion: data.tipo_cooperacion ? U(data.tipo_cooperacion) : null,
         // URLs de documentos adicionales subidos al bucket
-        documentos_adicionales: documentosUrls, // URLs de los documentos subidos
-        foto_carnet: fotoUrl, // URL de la foto subida
+        documentos_adicionales: documentosUrls,
+        foto_carnet: fotoUrl,
         institucion_formacion_id_1: institucionFormacionId,
-        // Eliminamos codigo_barras de la inserción inicial, ya que usaremos codigo_expediente de la DB
         estado_solicitud: "Recibido" as const,
         fecha_solicitud: new Date().toISOString().split("T")[0],
       };
@@ -440,6 +442,27 @@ const ProfessionalRegistration = () => {
       }
 
       console.log("Resultado exitoso de Supabase:", result);
+
+      // Fallback: generar URL de código de barras del expediente si no vino del trigger
+      let urlCodigoBarrasExp = result.url_codigo_barras_expediente;
+      if (!urlCodigoBarrasExp && result.codigo_expediente) {
+        try {
+          const { data: rpcData, error: rpcError } = await supabase.rpc('generar_url_codigo_barras_expediente', {
+            codigo_expediente_param: result.codigo_expediente,
+            categoria_titulacion_param: submissionData.categoria_titulacion
+          });
+          if (rpcError) throw rpcError;
+          if (rpcData && typeof rpcData === 'string') {
+            urlCodigoBarrasExp = rpcData;
+            await supabase
+              .from('profesionales_sanitarios')
+              .update({ url_codigo_barras_expediente: rpcData })
+              .eq('id', result.id);
+          }
+        } catch (e) {
+          console.warn('No se pudo generar URL de código de barras via RPC:', e);
+        }
+      }
 
       // Subir documentos adicionales ahora que tenemos el ID real del profesional
       if (uploadedFiles.length > 0 && result?.id) {
@@ -554,8 +577,8 @@ const ProfessionalRegistration = () => {
         photoFile,
         foto_carnet: fotoUrl,
         foto_carnet_base64: fotoCarnetBase64,
-        url_codigo_barras_expediente: result.url_codigo_barras_expediente, // CAMBIO: Usamos el codigo_expediente de la DB
-        codigo_expediente: result.codigo_expediente, // Mantenemos para claridad
+        url_codigo_barras_expediente: urlCodigoBarrasExp || result.url_codigo_barras_expediente || '',
+        codigo_expediente: result.codigo_expediente,
         edad: age,
         submittedData: result,
       });

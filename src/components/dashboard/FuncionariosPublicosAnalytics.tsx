@@ -39,11 +39,12 @@ import {
 } from "lucide-react";
 import { useProfesionales } from "@/hooks/useProfesionales";
 import * as XLSX from 'xlsx';
+import ChartActions from "./ChartActions";
 
 // Colores para los gráficos
 const COLORS = [
   "#0088FE",
-  "#00C49F", 
+  "#00C49F",
   "#FFBB28",
   "#FF8042",
   "#8884D8",
@@ -56,14 +57,15 @@ interface FuncionariosPublicosAnalyticsProps {
   onNavigateToTab?: (tab: string, filters?: any) => void;
 }
 
-const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps> = ({ 
-  onNavigateToTab 
+const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps> = ({
+  onNavigateToTab
 }) => {
   const [selectedDistrict, setSelectedDistrict] = useState("all");
-  
+
   // Obtener datos de funcionarios públicos
-  const { data: funcionarios = [], isLoading } = useProfesionales({ 
-    funcion_publica: true 
+  const { data: funcionarios = [], isLoading } = useProfesionales({
+    funcion_publica: true,
+    estado_solicitud: 'Aprobado'
   });
 
   if (isLoading) {
@@ -75,7 +77,7 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
     );
   }
 
-  // Función para calcular edad laboral
+  // Utilidades de cálculo
   const calcularEdadLaboral = (profesional: any) => {
     const inicioTrabajo = profesional.fecha_inicio_trabajo ? new Date(profesional.fecha_inicio_trabajo) : null;
     const nombramiento = profesional.fecha_nombramiento ? new Date(profesional.fecha_nombramiento) : null;
@@ -85,7 +87,13 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
     return Math.max(0, años);
   };
 
-  // Función para calcular años restantes hasta jubilación
+  const calcularAñosServicio = (profesional: any) => {
+    const nombramiento = profesional.fecha_nombramiento ? new Date(profesional.fecha_nombramiento) : null;
+    if (!nombramiento) return null;
+    const años = Math.floor((new Date().getTime() - nombramiento.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    return Math.max(0, años);
+  };
+
   const calcularAñosRestantesJubilacion = (profesional: any) => {
     if (!profesional.edad) return null;
     return Math.max(0, 65 - profesional.edad);
@@ -95,6 +103,7 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
   const funcionariosProcesados = funcionarios.map(f => ({
     ...f,
     edadLaboral: calcularEdadLaboral(f),
+    añosServicio: calcularAñosServicio(f),
     añosRestantesJubilacion: calcularAñosRestantesJubilacion(f)
   }));
 
@@ -136,7 +145,7 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
                   f.edadLaboral < 15 ? '10-15 años' :
                   f.edadLaboral < 20 ? '15-20 años' :
                   f.edadLaboral < 25 ? '20-25 años' : '25+ años';
-    
+
     const existing = acc.find(item => item.name === rango);
     if (existing) {
       existing.value += 1;
@@ -160,13 +169,13 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
 
   // Años restantes para jubilación
   const jubilacionData = funcionariosProcesados.reduce((acc: any[], f) => {
-    if (!f.añosRestantesJubilacion) return acc;
+    if (typeof f.añosRestantesJubilacion !== 'number') return acc;
     const rango = f.añosRestantesJubilacion <= 5 ? '0-5 años' :
                   f.añosRestantesJubilacion <= 10 ? '5-10 años' :
                   f.añosRestantesJubilacion <= 15 ? '10-15 años' :
                   f.añosRestantesJubilacion <= 20 ? '15-20 años' :
                   f.añosRestantesJubilacion <= 25 ? '20-25 años' : '25+ años';
-    
+
     const existing = acc.find(item => item.name === rango);
     if (existing) {
       existing.value += 1;
@@ -176,16 +185,44 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
     return acc;
   }, []);
 
-  // Exportar datos a Excel
+  // Derivados para "próximos a jubilación" y 30+ años servicio
+  const proximos = funcionariosProcesados.filter(f => typeof f.añosRestantesJubilacion === 'number' && f.añosRestantesJubilacion <= 5);
+  const servicio30Mas = funcionariosProcesados
+    .filter(f => f.estatus_funcionario === 'nombrado' && typeof f.añosServicio === 'number' && f.añosServicio >= 30)
+    .sort((a,b) => (b.añosServicio || 0) - (a.añosServicio || 0));
+
+  const topAreasProximos = proximos.reduce((acc: Record<string, number>, f) => {
+    const area = f.area_profesional || 'Sin especificar';
+    acc[area] = (acc[area] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const topAreasProximosArr = Object.entries(topAreasProximos)
+    .map(([nombre, total]) => ({ nombre, total }))
+    .sort((a,b) => b.total - a.total)
+    .slice(0,3);
+
+  const topDistritosProximos = proximos.reduce((acc: Record<string, number>, f) => {
+    const d = f.distrito_sanitario || 'Sin asignar';
+    acc[d] = (acc[d] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const topDistritosProximosArr = Object.entries(topDistritosProximos)
+    .map(([nombre, total]) => ({ nombre, total }))
+    .sort((a,b) => b.total - a.total)
+    .slice(0,3);
+
+  // Exportar datos a Excel (extendido)
   const exportToExcel = () => {
     try {
       const funcionariosExport = funcionariosProcesados.map(f => ({
         'Nombre Completo': f.nombre_completo,
+        'Género': f.genero || '',
         'Área Profesional': f.area_profesional,
         'Estatus': f.estatus_funcionario,
         'Fecha Nombramiento': f.fecha_nombramiento ? new Date(f.fecha_nombramiento).toLocaleDateString('es-ES') : '',
         'Edad': f.edad,
         'Edad Laboral': f.edadLaboral,
+        'Años Servicio (si nombrado)': f.añosServicio,
         'Años Restantes Jubilación': f.añosRestantesJubilacion,
         'Distrito Sanitario': f.distrito_sanitario,
         'Centro de Trabajo': f.nombre_centro,
@@ -194,22 +231,40 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
         'Número Funcionario': f.numero_funcionario,
       }));
 
-      const ws = XLSX.utils.json_to_sheet(funcionariosExport);
       const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(funcionariosExport);
       XLSX.utils.book_append_sheet(wb, ws, 'Funcionarios Públicos');
-      
-      // Agregar hoja de estadísticas
+
+      // Estadísticas generales
       const estadisticas = [
         ['Métrica', 'Valor'],
         ['Total Funcionarios', totalFuncionarios],
         ['Nombrados', nombrados],
         ['No Nombrados', noNombrados],
         ['Próximos a Jubilación (60+)', proximosJubilacion],
-        ['Edad Promedio', Math.round(funcionarios.filter(f => f.edad).reduce((sum, f) => sum + f.edad, 0) / funcionarios.filter(f => f.edad).length)],
+        ['Edad Promedio', Math.round(funcionarios.filter(f => f.edad).reduce((sum, f) => sum + f.edad, 0) / (funcionarios.filter(f => f.edad).length || 1))],
       ];
-      
       const wsStats = XLSX.utils.aoa_to_sheet(estadisticas);
       XLSX.utils.book_append_sheet(wb, wsStats, 'Estadísticas');
+
+      // Desglose por género
+      const generoMap = funcionarios.reduce((acc: Record<string, number>, f) => {
+        const g = f.genero || 'Sin especificar';
+        acc[g] = (acc[g] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      const generoRows = [['Género','Cantidad'], ...Object.entries(generoMap)];
+      const wsGenero = XLSX.utils.aoa_to_sheet(generoRows);
+      XLSX.utils.book_append_sheet(wb, wsGenero, 'Género');
+
+      // Áreas con más profesionales (Top 10)
+      const wsAreas = XLSX.utils.json_to_sheet(areaProfesionalData.map(a => ({
+        'Área Profesional': a.name,
+        'Total': a.total,
+        'Nombrados': a.nombrados,
+        'No Nombrados': a.noNombrados
+      })));
+      XLSX.utils.book_append_sheet(wb, wsAreas, 'Areas_Top');
 
       XLSX.writeFile(wb, `Funcionarios_Publicos_${new Date().toISOString().split('T')[0]}.xlsx`);
     } catch (error) {
@@ -237,7 +292,7 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
 
       {/* Tarjetas de métricas clave */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card 
+        <Card
           className="cursor-pointer hover:shadow-lg transition-shadow"
           onClick={() => onNavigateToTab && onNavigateToTab("professionals", { funcion_publica: true })}
         >
@@ -306,7 +361,10 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => onNavigateToTab && onNavigateToTab("professionals", { funcion_publica: true, años_restantes_jubilacion_min: 0, años_restantes_jubilacion_max: 5 })}
+        >
           <CardContent className="p-6">
             <div className="flex items-center space-x-3">
               <div className="p-3 rounded-lg bg-red-100">
@@ -328,6 +386,46 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
         </Card>
       </div>
 
+      {/* Carta detallada de Próximos a Jubilación */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2"><Award className="w-5 h-5 text-red-600" /> Detalle Próximos a Jubilación (≤ 5 años)</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onNavigateToTab && onNavigateToTab('professionals', { funcion_publica: true, años_restantes_jubilacion_min: 0, años_restantes_jubilacion_max: 5 })}
+            >
+              Ver profesionales
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 border rounded-lg">
+              <div className="text-sm text-gray-600">Total próximos</div>
+              <div className="text-2xl font-bold text-red-600">{proximos.length}</div>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <div className="text-sm text-gray-600 mb-2">Áreas principales</div>
+              <div className="flex flex-wrap gap-2">
+                {topAreasProximosArr.map(a => (
+                  <Badge key={a.nombre} variant="secondary" className="text-xs">{a.nombre} ({a.total})</Badge>
+                ))}
+              </div>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <div className="text-sm text-gray-600 mb-2">Distritos principales</div>
+              <div className="flex flex-wrap gap-2">
+                {topDistritosProximosArr.map(d => (
+                  <Badge key={d.nombre} variant="secondary" className="text-xs">{d.nombre} ({d.total})</Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Gráficos principales */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Distribución por estatus */}
@@ -339,25 +437,27 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={estatusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {estatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <ChartActions title="Distribución por Estatus">
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={estatusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {estatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartActions>
           </CardContent>
         </Card>
 
@@ -370,21 +470,28 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={distritoData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 12 }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#0088FE" />
-              </BarChart>
-            </ResponsiveContainer>
+            <ChartActions title="Distribución por Distrito Sanitario">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={distritoData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 12 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar
+                    dataKey="value"
+                    fill="#0088FE"
+                    className="cursor-pointer hover:opacity-80"
+                    onClick={(d: any) => onNavigateToTab && onNavigateToTab('professionals', { funcion_publica: true, distrito_sanitario: d.name, estado_solicitud: 'Aprobado' })}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartActions>
           </CardContent>
         </Card>
 
@@ -397,15 +504,33 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={edadLaboralData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#00C49F" />
-              </BarChart>
-            </ResponsiveContainer>
+            <ChartActions title="Distribución por Edad Laboral">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={edadLaboralData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar
+                    dataKey="value"
+                    fill="#00C49F"
+                    className="cursor-pointer hover:opacity-80"
+                    onClick={(d: any) => {
+                      const map: Record<string, {min?: number; max?: number}> = {
+                        '0-5 años': { min: 0, max: 5 },
+                        '5-10 años': { min: 5, max: 10 },
+                        '10-15 años': { min: 10, max: 15 },
+                        '15-20 años': { min: 15, max: 20 },
+                        '20-25 años': { min: 20, max: 25 },
+                        '25+ años': { min: 25 },
+                      };
+                      const r = map[d.name] || {};
+                      onNavigateToTab && onNavigateToTab('professionals', { funcion_publica: true, edad_laboral_min: r.min, edad_laboral_max: r.max });
+                    }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartActions>
           </CardContent>
         </Card>
 
@@ -418,50 +543,110 @@ const FuncionariosPublicosAnalytics: React.FC<FuncionariosPublicosAnalyticsProps
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={jubilacionData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Area 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#FF8042" 
-                  fill="#FF8042" 
-                  fillOpacity={0.6}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <ChartActions title="Años Restantes para Jubilación">
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={jubilacionData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#FF8042"
+                    fill="#FF8042"
+                    fillOpacity={0.6}
+                    onClick={(d: any) => {
+                      const map: Record<string, {min?: number; max?: number}> = {
+                        '0-5 años': { min: 0, max: 5 },
+                        '5-10 años': { min: 5, max: 10 },
+                        '10-15 años': { min: 10, max: 15 },
+                        '15-20 años': { min: 15, max: 20 },
+                        '20-25 años': { min: 20, max: 25 },
+                        '25+ años': { min: 25 },
+                      };
+                      const r = map[d.activeLabel as string] || {};
+                      onNavigateToTab && onNavigateToTab('professionals', { funcion_publica: true, años_restantes_jubilacion_min: r.min, años_restantes_jubilacion_max: r.max });
+                    }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartActions>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabla de áreas profesionales */}
+      {/* Áreas profesionales */}
       <Card>
-        <CardHeader>  
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="w-5 h-5" />
             Funcionarios por Área Profesional
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={areaProfesionalData} layout="horizontal">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis 
-                dataKey="name" 
-                type="category" 
-                tick={{ fontSize: 12 }}
-                width={120}
-              />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="nombrados" stackId="a" fill="#0088FE" name="Nombrados" />
-              <Bar dataKey="noNombrados" stackId="a" fill="#00C49F" name="No Nombrados" />
-            </BarChart>
-          </ResponsiveContainer>
+          <ChartActions title="Funcionarios por Área Profesional">
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={areaProfesionalData} layout="horizontal">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  tick={{ fontSize: 12 }}
+                  width={120}
+                />
+                <Tooltip />
+                <Legend />
+                <Bar
+                  dataKey="nombrados"
+                  stackId="a"
+                  fill="#0088FE"
+                  name="Nombrados"
+                  className="cursor-pointer hover:opacity-80"
+                  onClick={(d: any) => onNavigateToTab && onNavigateToTab('professionals', { funcion_publica: true, area_profesional: d.name, estado_solicitud: 'Aprobado' })}
+                />
+                <Bar
+                  dataKey="noNombrados"
+                  stackId="a"
+                  fill="#00C49F"
+                  name="No Nombrados"
+                  className="cursor-pointer hover:opacity-80"
+                  onClick={(d: any) => onNavigateToTab && onNavigateToTab('professionals', { funcion_publica: true, area_profesional: d.name })}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartActions>
+        </CardContent>
+      </Card>
+
+      {/* Lista de funcionarios nombrados con 30+ años de servicio */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            Funcionarios nombrados con 30+ años de servicio
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {servicio30Mas.length === 0 ? (
+            <div className="text-sm text-gray-500">No hay funcionarios con más de 30 años de servicio.</div>
+          ) : (
+            <div className="max-h-72 overflow-y-auto divide-y">
+              {servicio30Mas.slice(0, 20).map((f) => (
+                <div key={f.id} className="py-2 flex items-center justify-between">
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{f.nombre_completo}</div>
+                    <div className="text-xs text-gray-500 truncate">{f.area_profesional || 'Sin área'} • {f.nombre_centro || 'Sin centro'} • {f.distrito_sanitario || 'Sin distrito'}</div>
+                  </div>
+                  <Badge variant="outline" className="ml-4 whitespace-nowrap">{f.añosServicio} años</Badge>
+                </div>
+              ))}
+              {servicio30Mas.length > 20 && (
+                <div className="text-xs text-gray-500 py-2">... y {servicio30Mas.length - 20} más</div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

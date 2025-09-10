@@ -161,7 +161,7 @@ export const EducationStep = ({ form }: EducationStepProps) => {
         render={({ field }) => (
           <FormItem className="md:col-span-2">
             <FormLabel>País de Formación *</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingPaises}>
+            <Select onValueChange={(v) => field.onChange(String(v).toUpperCase())} defaultValue={field.value ? String(field.value).toUpperCase() : field.value} disabled={isLoadingPaises}>
               <FormControl>
                 <SelectTrigger>
                   <SelectValue placeholder={isLoadingPaises ? "Cargando países..." : "Seleccione el país donde obtuvo la titulación"} />
@@ -169,8 +169,8 @@ export const EducationStep = ({ form }: EducationStepProps) => {
               </FormControl>
               <SelectContent>
                 {paises.map((pais) => (
-                  <SelectItem key={pais} value={pais}>
-                    {pais}
+                  <SelectItem key={pais} value={String(pais).toUpperCase()}>
+                    {String(pais).toUpperCase()}
                   </SelectItem>
                 ))}
               </SelectContent>

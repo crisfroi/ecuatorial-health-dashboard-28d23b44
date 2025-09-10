@@ -101,6 +101,47 @@ export const useDashboardNavigation = (
     [onNavigateToTab],
   );
 
+  const navigateToRetirementRange = useCallback(
+    (range: string) => {
+      // Map "años restantes hasta jubilación" to age-based filters
+      let años_restantes_jubilacion_min: number | undefined;
+      let años_restantes_jubilacion_max: number | undefined;
+
+      switch (range) {
+        case "0-5 años":
+          años_restantes_jubilacion_min = 0;
+          años_restantes_jubilacion_max = 5;
+          break;
+        case "5-10 años":
+          años_restantes_jubilacion_min = 5;
+          años_restantes_jubilacion_max = 10;
+          break;
+        case "10-15 años":
+          años_restantes_jubilacion_min = 10;
+          años_restantes_jubilacion_max = 15;
+          break;
+        case "15-20 años":
+          años_restantes_jubilacion_min = 15;
+          años_restantes_jubilacion_max = 20;
+          break;
+        case "20-25 años":
+          años_restantes_jubilacion_min = 20;
+          años_restantes_jubilacion_max = 25;
+          break;
+        case "25+ años":
+          años_restantes_jubilacion_min = 25;
+          break;
+      }
+
+      onNavigateToTab("professionals", {
+        estado_solicitud: "Aprobado",
+        años_restantes_jubilacion_min,
+        años_restantes_jubilacion_max,
+      } as any);
+    },
+    [onNavigateToTab],
+  );
+
   const navigateToGraduationYear = useCallback(
     (year: number) => {
       onNavigateToTab("professionals", {
@@ -155,6 +196,7 @@ export const useDashboardNavigation = (
     navigateToCenter,
     navigateToInstitution,
     navigateToAgeRange,
+    navigateToRetirementRange,
     navigateToGraduationYear,
     navigateToCountry,
     navigateToRenewals,

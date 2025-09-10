@@ -86,7 +86,7 @@ export const PersonalInfoStep = ({ form, nacionalidades, watchedValues }: Person
         render={({ field }) => (
           <FormItem className="md:col-span-2">
             <FormLabel>Nacionalidad *</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <Select onValueChange={(v) => field.onChange(String(v).toUpperCase())} defaultValue={field.value ? String(field.value).toUpperCase() : field.value}>
               <FormControl>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione su nacionalidad" />
@@ -94,7 +94,7 @@ export const PersonalInfoStep = ({ form, nacionalidades, watchedValues }: Person
               </FormControl>
               <SelectContent>
                 {Array.from(
-                  new Set((nacionalidades || []).map((n: any) => String(n.nacionalidad || '').trim()))
+                  new Set((nacionalidades || []).map((n: any) => String(n.nacionalidad || '').trim().toUpperCase()))
                 )
                   .filter((v) => !!v)
                   .map((val, idx) => (

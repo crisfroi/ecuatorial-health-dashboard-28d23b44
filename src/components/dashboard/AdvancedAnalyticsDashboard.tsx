@@ -1209,15 +1209,22 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={retirementRemainingStats}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="rango" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="cantidad" fill="#F59E0B" />
-                </BarChart>
-              </ResponsiveContainer>
+              <ChartActions title="Años restantes hasta jubilación">
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={retirementRemainingStats}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="rango" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar
+                      dataKey="cantidad"
+                      fill="#F59E0B"
+                      className="cursor-pointer hover:opacity-80"
+                      onClick={(data: any) => navigateToRetirementRange(data.rango)}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartActions>
             </CardContent>
           </Card>
         </TabsContent>

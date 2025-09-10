@@ -240,8 +240,9 @@ export const useSolicitudesEstablecimientos = () => {
     const { data, error } = await query.order("created_at", { ascending: false });
 
     if (error) {
-      console.error("❌ Error al obtener solicitudes:", error);
-      throw error;
+      const message = getErrorMessage(error);
+      console.error("❌ Error al obtener solicitudes:", message, error);
+      throw new Error(message);
     }
 
     return data as SolicitudEstablecimiento[];

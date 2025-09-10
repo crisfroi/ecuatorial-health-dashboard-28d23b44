@@ -40,11 +40,21 @@ export const AsistenciaBiometrica: React.FC<{ selectedCenter: string | null }>
   useEffect(() => { refreshDevices(); }, [centerId]);
 
   const handleCreateDevice = async () => {
-    if (!newDeviceName.trim()) return;
-    const d = await create({ nombre: newDeviceName.trim(), ubicacion: newDeviceUbicacion.trim(), centro_salud_id: centerId || undefined, activo: true });
-    setNewDeviceName(''); setNewDeviceUbicacion('');
-    await refreshDevices();
-    setDeviceId(d.id);
+    if (!newDeviceName.trim()) {
+      toast({ title: 'Nombre requerido', description: 'Ingrese un nombre para el dispositivo', variant: 'destructive' });
+      return;
+    }
+    setSavingDevice(true);
+    try {
+      const d = await create({ nombre: newDeviceName.trim(), ubicacion: newDeviceUbicacion.trim(), centro_salud_id: centerId || undefined, activo: true });
+      setNewDeviceName(''); setNewDeviceUbicacion('');
+      await refreshDevices();
+      setDeviceId(d.id);
+    } catch (e: any) {
+      toast({ title: 'Error al registrar dispositivo', description: e?.message || 'Revise los permisos/tablas en Supabase', variant: 'destructive' });
+    } finally {
+      setSavingDevice(false);
+    }
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {

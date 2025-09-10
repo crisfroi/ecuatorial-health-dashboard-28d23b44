@@ -1,0 +1,77 @@
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+export interface TurnoBio {
+  id: string;
+  nombre_turno: string;
+  hora_inicio: string; // HH:MM:SS
+  hora_fin: string; // HH:MM:SS
+  tolerancia_minutos: number;
+  tipo: 'diurno'|'nocturno'|'festivo';
+  centro_salud_id?: string | null;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useTurnosBio() {
+  const { toast } = useToast();
+
+  const list = async (centroId?: string|null): Promise<TurnoBio[]> => {
+    let qb = supabase.from('turnos_biometricos').select('*').order('nombre_turno');
+    if (centroId) qb = qb.eq('centro_salud_id', centroId);
+    const { data, error } = await qb;
+    if (error) throw error;
+    return data || [];
+  };
+
+  const create = async (payload: Partial<TurnoBio>) => {
+    const { data, error } = await supabase.from('turnos_biometricos').insert({
+      nombre_turno: payload.nombre_turno,
+      hora_inicio: payload.hora_inicio,
+      hora_fin: payload.hora_fin,
+      tolerancia_minutos: payload.tolerancia_minutos ?? 0,
+      tipo: payload.tipo || 'diurno',
+      centro_salud_id: payload.centro_salud_id || null,
+      activo: payload.activo ?? true,
+    }).select().single();
+    if (error) throw error;
+    toast({ title: 'Turno creado', description: payload.nombre_turno });
+    return data as TurnoBio;
+  };
+
+  const update = async (id: string, patch: Partial<TurnoBio>) => {
+    const { data, error } = await supabase.from('turnos_biometricos').update(patch).eq('id', id).select().single();
+    if (error) throw error;
+    toast({ title: 'Turno actualizado' });
+    return data as TurnoBio;
+  };
+
+  const remove = async (id: string) => {
+    const { error } = await supabase.from('turnos_biometricos').delete().eq('id', id);
+    if (error) throw error;
+    toast({ title: 'Turno eliminado' });
+  };
+
+  // Export a Turno.xls-like TSV using known columns order (adjust mapping as needed)
+  const exportTurnosXls = (turnos: TurnoBio[]) => {
+    // Columns example: TNo\tName\tStart\tEnd\tType\tTolerance
+    const headers = ['TNo','Name','Start','End','Type','Tolerance'];
+    const rows = turnos.map((t, idx) => [
+      String(idx + 1),
+      t.nombre_turno,
+      t.hora_inicio.slice(0,5),
+      t.hora_fin.slice(0,5),
+      t.tipo,
+      String(t.tolerancia_minutos)
+    ]);
+    const lines = [headers, ...rows].map(r => r.join('\t')).join('\r\n');
+    const blob = new Blob([lines], { type: 'application/vnd.ms-excel' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Turno.xls';
+    a.click();
+  };
+
+  return { list, create, update, remove, exportTurnosXls };
+}

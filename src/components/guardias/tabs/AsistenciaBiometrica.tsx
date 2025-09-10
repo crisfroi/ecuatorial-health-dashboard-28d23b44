@@ -25,6 +25,9 @@ export const AsistenciaBiometrica: React.FC<{ selectedCenter: string | null }>
   const [rangeFrom, setRangeFrom] = useState<string>(() => new Date(Date.now()-7*86400000).toISOString().slice(0,16));
   const [rangeTo, setRangeTo] = useState<string>(() => new Date().toISOString().slice(0,16));
   const [consolidated, setConsolidated] = useState<any[]>([]);
+  const [savingDevice, setSavingDevice] = useState(false);
+  const [consolidating, setConsolidating] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const centerId = selectedCenter || user?.assigned_center_id || null;
 

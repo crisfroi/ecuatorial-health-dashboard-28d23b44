@@ -58,17 +58,41 @@ export const AsistenciaBiometrica: React.FC<{ selectedCenter: string | null }>
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files; if (!files?.length || !deviceId) return;
+    const files = e.target.files; if (!files?.length) return;
+    if (!deviceId) {
+      toast({ title: 'Seleccione un dispositivo', description: 'Elija un dispositivo para asociar los fichajes', variant: 'destructive' });
+      return;
+    }
     const f = files[0];
-    await importFile(deviceId, f);
+    try {
+      await importFile(deviceId, f);
+      // Permitir re-seleccionar el mismo archivo
+      e.currentTarget.value = '';
+    } catch (err: any) {
+      toast({ title: 'Error al importar', description: err?.message || 'Revise el formato del archivo y el dispositivo', variant: 'destructive' });
+    }
   };
 
   const handleConsolidate = async () => {
-    const fromISO = new Date(rangeFrom).toISOString();
-    const toISO = new Date(rangeTo).toISOString();
-    const logs = await fetchLogsByRange(fromISO, toISO, { deviceId });
-    const entries = consolidateDaily(logs);
-    setConsolidated(entries);
+    if (!deviceId) {
+      toast({ title: 'Seleccione un dispositivo', description: 'Necesita un dispositivo para filtrar los fichajes', variant: 'destructive' });
+      return;
+    }
+    setConsolidating(true);
+    try {
+      const fromISO = new Date(rangeFrom).toISOString();
+      const toISO = new Date(rangeTo).toISOString();
+      const logs = await fetchLogsByRange(fromISO, toISO, { deviceId });
+      const entries = consolidateDaily(logs);
+      setConsolidated(entries);
+      if (!entries.length) {
+        toast({ title: 'Sin datos', description: 'No se encontraron fichajes en el rango seleccionado' });
+      }
+    } catch (err: any) {
+      toast({ title: 'Error al consolidar', description: err?.message || 'Verifique migraciones/tablas en Supabase', variant: 'destructive' });
+    } finally {
+      setConsolidating(false);
+    }
   };
 
   return (

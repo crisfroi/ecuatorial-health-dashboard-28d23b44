@@ -229,14 +229,19 @@ export function useAsistencia() {
     for (const l of logs) {
       const day = l.fecha_hora.slice(0, 10);
       const key = `${l.id_profesional || l.en_no || 'unknown'}_${day}`;
-      const entry = byKey[key] || { id_profesional: l.id_profesional, en_no: l.en_no, fecha: day };
-      // earliest IN as entrada, latest OUT as salida
+      const entry = byKey[key] || { id_profesional: l.id_profesional, en_no: l.en_no, fecha: day } as ConsolidatedDayEntry;
+
+      // Derivar entrada/salida por min/max si INOUT no viene indicado
+      if (!entry.entrada || l.fecha_hora < entry.entrada) entry.entrada = l.fecha_hora;
+      if (!entry.salida || l.fecha_hora > entry.salida) entry.salida = l.fecha_hora;
+
+      // Si viene marcado IN/OUT, refinar
       if (l.inout === 'IN') {
         if (!entry.entrada || l.fecha_hora < entry.entrada) entry.entrada = l.fecha_hora;
-      }
-      if (l.inout === 'OUT') {
+      } else if (l.inout === 'OUT') {
         if (!entry.salida || l.fecha_hora > entry.salida) entry.salida = l.fecha_hora;
       }
+
       byKey[key] = entry;
     }
     return Object.values(byKey).map(e => ({

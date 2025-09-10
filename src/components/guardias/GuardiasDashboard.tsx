@@ -287,6 +287,10 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
             />
           </TabsContent>
 
+          <TabsContent value="asistencia">
+            <AsistenciaBiometrica selectedCenter={selectedCenter} />
+          </TabsContent>
+
           <TabsContent value="cuadrantes">
             <CuadrantesGuardias
               selectedMonth={selectedMonth}

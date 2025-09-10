@@ -139,8 +139,15 @@ export const AsistenciaBiometrica: React.FC<{ selectedCenter: string | null }>
             <Input type="datetime-local" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)} className="w-56"/>
             <label className="text-sm">Hasta</label>
             <Input type="datetime-local" value={rangeTo} onChange={e => setRangeTo(e.target.value)} className="w-56"/>
-            <Button onClick={handleConsolidate}><Upload className="w-4 h-4 mr-1"/>Consolidar</Button>
-            <Button variant="outline" onClick={() => exportDAT(consolidated)} disabled={!consolidated.length}><Save className="w-4 h-4 mr-1"/>Exportar .DAT</Button>
+            <Button onClick={handleConsolidate} disabled={consolidating}><Upload className="w-4 h-4 mr-1"/>{consolidating ? 'Consolidando...' : 'Consolidar'}</Button>
+            <Button variant="outline" onClick={() => {
+              if (!consolidated.length) {
+                toast({ title: 'No hay datos para exportar', description: 'Consolide primero para generar el archivo' });
+                return;
+              }
+              setExporting(true);
+              try { exportDAT(consolidated); } finally { setExporting(false); }
+            }} disabled={!consolidated.length || exporting}><Save className="w-4 h-4 mr-1"/>{exporting ? 'Exportando...' : 'Exportar .DAT'}</Button>
           </div>
 
           <div className="overflow-auto">

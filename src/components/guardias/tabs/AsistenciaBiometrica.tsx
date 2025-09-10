@@ -119,7 +119,7 @@ export const AsistenciaBiometrica: React.FC<{ selectedCenter: string | null }>
           <div className="flex items-center gap-2 flex-wrap">
             <Input placeholder="Nombre del dispositivo" value={newDeviceName} onChange={e => setNewDeviceName(e.target.value)} className="w-60" />
             <Input placeholder="Ubicación (opcional)" value={newDeviceUbicacion} onChange={e => setNewDeviceUbicacion(e.target.value)} className="w-60" />
-            <Button onClick={handleCreateDevice}><Plus className="w-4 h-4 mr-1"/>Registrar</Button>
+            <Button onClick={handleCreateDevice} disabled={savingDevice}><Plus className="w-4 h-4 mr-1"/>{savingDevice ? 'Registrando...' : 'Registrar'}</Button>
           </div>
         </CardContent>
       </Card>

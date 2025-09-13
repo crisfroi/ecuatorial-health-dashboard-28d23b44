@@ -212,10 +212,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     try {
-      const attempt = async (pwd: string) => supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password: pwd
-      });
+      const withTimeout = (p: Promise<any>, ms: number) => Promise.race([
+        p,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Tiempo de espera agotado')), ms))
+      ]);
+      const attempt = async (pwd: string) => await withTimeout(
+        supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password: pwd
+        }),
+        15000
+      ) as any;
 
       let { data, error } = await attempt(password);
 

@@ -162,7 +162,6 @@ const UserRoleManagement = () => {
     if (result.success) {
       // Si el usuario editado es el mismo que el actual, aplicar el cambio localmente
       if (editingUser.id === currentUser?.id) {
-        const { switchRole } = useAuth();
         switchRole(editingUser.role as UserRole);
       }
       setIsEditDialogOpen(false);

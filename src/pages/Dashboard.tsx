@@ -69,6 +69,7 @@ import ConnectionDebugPanel from "@/components/dashboard/ConnectionDebugPanel";
 import { OfflineNotification } from "@/components/ui/offline-notification";
 import { DatabaseDiagnostic } from "@/components/dashboard/DatabaseDiagnostic";
 import { GuardiasDashboard } from "@/components/guardias/GuardiasDashboard";
+import AsistenciaDashboard from "@/components/asistencia/AsistenciaDashboard";
 import { GuardiasStatsWidget } from "@/components/guardias/GuardiasStatsWidget";
 import { FuncionariosStatsWidget } from "@/components/dashboard/FuncionariosStatsWidget";
 import ResizeObserverTestIndicator from "@/components/dashboard/ResizeObserverTestIndicator";
@@ -497,6 +498,7 @@ const Dashboard = () => {
     ...(userRole && canAccessTab("requests") ? [{ id: "requests", label: "Solicitudes", icon: FileText }] : []),
     ...(userRole && canAccessTab("renewals") ? [{ id: "renewals", label: "Renovaciones", icon: Calendar }] : []),
     ...(userRole && canAccessTab("guardias") ? [{ id: "guardias", label: "Guardias", icon: Clock }] : []),
+    ...(userRole && canAccessTab("asistencia") ? [{ id: "asistencia", label: "Asistencia", icon: Clock }] : []),
     ...(userRole && canAccessTab("analytics") ? [{ id: "analytics", label: "Analíticas", icon: TrendingUp }] : []),
     ...(userRole && canAccessTab("iachat") ? [{ id: "iachat", label: "IA Chat", icon: MessageSquare }] : []),
     ...(userRole && canAccessTab("ministerial") ? [{ id: "ministerial", label: "Ministerial", icon: Settings }] : []),
@@ -753,6 +755,10 @@ const Dashboard = () => {
 
           <TabsContent value="guardias" className="space-y-6">
             <GuardiasDashboard userRole={userRole} />
+          </TabsContent>
+
+          <TabsContent value="asistencia" className="space-y-6">
+            <AsistenciaDashboard />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">

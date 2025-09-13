@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export const TurnosBiometricos: React.FC<{ selectedCenter: string | null }>= ({ selectedCenter }) => {
   const { user } = useAuth();
   const centerId = selectedCenter || user?.assigned_center_id || null;
-  const { list, create, update, remove, exportTurnosXls } = useTurnosBio();
+  const { list, create, update, remove, exportTurnosXls, importTurnosXls } = useTurnosBio();
 
   const [turnos, setTurnos] = useState<TurnoBio[]>([]);
   const [nombre, setNombre] = useState('');

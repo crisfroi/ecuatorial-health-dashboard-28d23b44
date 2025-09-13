@@ -30,7 +30,6 @@ import { PagosGuardias } from './tabs/PagosGuardias';
 import { ReportesGuardias } from './tabs/ReportesGuardias';
 import { AuditoriaGuardias } from './tabs/AuditoriaGuardias';
 import { AjustesGuardias } from './tabs/AjustesGuardias';
-import { AsistenciaBiometrica } from './tabs/AsistenciaBiometrica';
 import { TurnosBiometricos } from './tabs/TurnosBiometricos';
 import { CuadrantesBiometricos } from './tabs/CuadrantesBiometricos';
 import { NetworkStatusSimple } from '@/components/ui/network-status-simple';

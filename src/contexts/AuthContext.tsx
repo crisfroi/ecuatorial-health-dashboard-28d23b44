@@ -76,7 +76,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       setUserRole(info.role);
     };
 
+    const fetchRoleFromAdminFn = async (uid: string, email?: string | null) => {
+      try {
+        const { data, error } = await supabase.functions.invoke('admin-users', {
+          body: { action: 'listUsers' },
+        });
+        if (error) return null;
+        const users: Array<{ id: string; email: string; role: string; full_name?: string; department?: string; assigned_center_id?: string | null }> = data?.users || [];
+        const found = users.find((u) => u.id === uid || (email && u.email?.toLowerCase() === email.toLowerCase()));
+        if (!found) return null;
+        return {
+          role: found.role as UserRole,
+          full_name: found.full_name || null,
+          department: found.department || null,
+          assigned_center_id: (found.assigned_center_id as string | null) || null,
+        };
+      } catch {
+        return null;
+      }
+    };
+
     const resolveRoleAndProfile = async (baseUser: User) => {
+      const email = baseUser.email || '';
       const dbProfile = await getProfileFromDb(baseUser.id);
       if (dbProfile?.role) {
         applyUserState(baseUser, {
@@ -88,11 +109,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         return;
       }
       const metaRole = (baseUser.user_metadata?.role as UserRole | undefined) || null;
+      if (metaRole) {
+        applyUserState(baseUser, {
+          role: metaRole,
+          full_name: baseUser.user_metadata?.full_name || baseUser.email?.split('@')[0] || undefined,
+          department: baseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
+          assigned_center_id: (baseUser.user_metadata?.assigned_center_id as string | undefined) || undefined,
+        });
+        return;
+      }
+      const adminInfo = await fetchRoleFromAdminFn(baseUser.id, email);
       applyUserState(baseUser, {
-        role: metaRole || 'OBSERVADOR',
-        full_name: baseUser.user_metadata?.full_name || baseUser.email?.split('@')[0] || undefined,
-        department: baseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
-        assigned_center_id: (baseUser.user_metadata?.assigned_center_id as string | undefined) || undefined,
+        role: (adminInfo?.role as UserRole) || 'OBSERVADOR',
+        full_name: adminInfo?.full_name || baseUser.email?.split('@')[0] || undefined,
+        department: adminInfo?.department || 'Ministerio de Sanidad y Bienestar Social',
+        assigned_center_id: (adminInfo?.assigned_center_id as string | undefined) || undefined,
       });
     };
 

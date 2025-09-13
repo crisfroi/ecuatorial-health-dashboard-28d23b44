@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface TurnoBio {
   id: string;
@@ -73,5 +74,33 @@ export function useTurnosBio() {
     a.click();
   };
 
-  return { list, create, update, remove, exportTurnosXls };
+  // Import Turno.xls-like TSV
+  const importTurnosXls = async (file: File, centerId?: string | null) => {
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    if (!lines.length) return 0;
+    const header = lines[0].split(/\t|,/).map(s => s.trim());
+    const idx = {
+      name: header.findIndex(h => /name/i.test(h)),
+      start: header.findIndex(h => /start|inicio/i.test(h)),
+      end: header.findIndex(h => /end|fin/i.test(h)),
+      type: header.findIndex(h => /type|tipo/i.test(h)),
+      tol: header.findIndex(h => /toler|tol/i.test(h)),
+    };
+    let created = 0;
+    for (const line of lines.slice(1)) {
+      const parts = line.split(/\t|,/).map(s => s.trim());
+      const nombre_turno = parts[idx.name] || '';
+      if (!nombre_turno) continue;
+      const hora_inicio = ((parts[idx.start] || '08:00') + ':00').slice(0,8);
+      const hora_fin = ((parts[idx.end] || '16:00') + ':00').slice(0,8);
+      const tipo = (parts[idx.type] || 'diurno').toLowerCase() as any;
+      const tolerancia_minutos = parseInt(parts[idx.tol] || '0', 10);
+      await create({ nombre_turno, hora_inicio, hora_fin, tipo, tolerancia_minutos, centro_salud_id: centerId || undefined });
+      created++;
+    }
+    return created;
+  };
+
+  return { list, create, update, remove, exportTurnosXls, importTurnosXls };
 }

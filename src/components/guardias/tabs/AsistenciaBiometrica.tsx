@@ -9,13 +9,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useGuardiasStore } from '@/stores/useGuardiasStore';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Upload, Save, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export const AsistenciaBiometrica: React.FC<{ selectedCenter: string | null }>
 = ({ selectedCenter }) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
-  const { importFile, fetchLogsByRange, consolidateDaily, exportDAT } = useAsistencia();
-  const { list, create } = useDispositivosFichaje();
+  const { importFile, importReporteXls, importPersonalXls, fetchLogsByRange, consolidateDaily, generateAttendanceStats, exportDAT } = useAsistencia();
+  const { list, create, listMappings, upsertMapping } = useDispositivosFichaje();
   const { centros } = useGuardiasStore();
 
   const [devices, setDevices] = useState<Dispositivo[]>([]);
@@ -28,6 +29,9 @@ export const AsistenciaBiometrica: React.FC<{ selectedCenter: string | null }>
   const [savingDevice, setSavingDevice] = useState(false);
   const [consolidating, setConsolidating] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [mappings, setMappings] = useState<any[]>([]);
+  const [professionals, setProfessionals] = useState<any[]>([]);
+  const [stats, setStats] = useState<any|null>(null);
 
   const centerId = selectedCenter || user?.assigned_center_id || null;
 
@@ -37,7 +41,20 @@ export const AsistenciaBiometrica: React.FC<{ selectedCenter: string | null }>
     if (!deviceId && data[0]?.id) setDeviceId(data[0].id);
   };
 
-  useEffect(() => { refreshDevices(); }, [centerId]);
+  const refreshMappings = async () => {
+    if (!deviceId) return setMappings([]);
+    setMappings(await listMappings(deviceId));
+  };
+
+  const refreshProfessionals = async () => {
+    let qb = supabase.from('profesionales_sanitarios').select('id, nombre_completo, id_profesional_unico, centro_salud_id').eq('estado_solicitud','Aprobado');
+    if (centerId) qb = qb.eq('centro_salud_id', centerId);
+    const { data } = await qb.order('nombre_completo');
+    setProfessionals(data || []);
+  };
+
+  useEffect(() => { refreshDevices(); refreshProfessionals(); }, [centerId]);
+  useEffect(() => { refreshMappings(); }, [deviceId]);
 
   const handleCreateDevice = async () => {
     if (!newDeviceName.trim()) {
@@ -73,6 +90,27 @@ export const AsistenciaBiometrica: React.FC<{ selectedCenter: string | null }>
     }
   };
 
+  const handleImportPersonal = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files; if (!files?.length) return;
+    if (!deviceId) { toast({ title:'Seleccione un dispositivo', variant:'destructive' }); return; }
+    try {
+      await importPersonalXls(deviceId, files[0], centerId || undefined);
+      await refreshMappings();
+    } catch (err: any) {
+      toast({ title: 'Error al importar Personal.xls', description: err?.message, variant: 'destructive' });
+    } finally { e.currentTarget.value = ''; }
+  };
+
+  const handleImportReporte = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files; if (!files?.length) return;
+    if (!deviceId) { toast({ title:'Seleccione un dispositivo', variant:'destructive' }); return; }
+    try {
+      await importReporteXls(deviceId, files[0]);
+    } catch (err: any) {
+      toast({ title: 'Error al importar Reporte.xls', description: err?.message, variant: 'destructive' });
+    } finally { e.currentTarget.value = ''; }
+  };
+
   const handleConsolidate = async () => {
     if (!deviceId) {
       toast({ title: 'Seleccione un dispositivo', description: 'Necesita un dispositivo para filtrar los fichajes', variant: 'destructive' });
@@ -85,6 +123,7 @@ export const AsistenciaBiometrica: React.FC<{ selectedCenter: string | null }>
       const logs = await fetchLogsByRange(fromISO, toISO, { deviceId });
       const entries = consolidateDaily(logs);
       setConsolidated(entries);
+      setStats(generateAttendanceStats(entries));
       if (!entries.length) {
         toast({ title: 'Sin datos', description: 'No se encontraron fichajes en el rango seleccionado' });
       }
@@ -134,6 +173,11 @@ export const AsistenciaBiometrica: React.FC<{ selectedCenter: string | null }>
             <span className="text-sm text-gray-600">Asociaremos cada línea al dispositivo seleccionado.</span>
           </div>
 
+          <div className="flex items-center gap-3 flex-wrap">
+            <Input type="file" accept=".xls,.xlsx" onChange={handleImportReporte} className="max-w-sm" />
+            <span className="text-sm text-gray-600">Cargar Reporte.xls (3 hojas) para consolidar registros.</span>
+          </div>
+
           <div className="flex items-center gap-2 flex-wrap">
             <label className="text-sm">Desde</label>
             <Input type="datetime-local" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)} className="w-56"/>
@@ -149,6 +193,13 @@ export const AsistenciaBiometrica: React.FC<{ selectedCenter: string | null }>
               try { exportDAT(consolidated); } finally { setExporting(false); }
             }} disabled={!consolidated.length || exporting}><Save className="w-4 h-4 mr-1"/>{exporting ? 'Exportando...' : 'Exportar .DAT'}</Button>
           </div>
+
+          {stats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="p-3 rounded border bg-white"><div className="text-xs text-gray-500">Días</div><div className="text-xl font-semibold">{stats.totals.dias}</div></div>
+              <div className="p-3 rounded border bg-white"><div className="text-xs text-gray-500">Horas totales</div><div className="text-xl font-semibold">{stats.totals.horasTotales.toFixed(2)}</div></div>
+            </div>
+          )}
 
           <div className="overflow-auto">
             <Table>
@@ -169,6 +220,45 @@ export const AsistenciaBiometrica: React.FC<{ selectedCenter: string | null }>
                     <TableCell>{c.entrada ? new Date(c.entrada).toLocaleTimeString() : '-'}</TableCell>
                     <TableCell>{c.salida ? new Date(c.salida).toLocaleTimeString() : '-'}</TableCell>
                     <TableCell>{typeof c.total_horas === 'number' ? c.total_horas.toFixed(2) : '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Asignación de Profesionales al Dispositivo (Personal.xls)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Input type="file" accept=".xls,.xlsx" onChange={handleImportPersonal} className="max-w-sm" />
+            <span className="text-sm text-gray-600">Importe Personal.xls para crear mapeos ENNO → Profesional</span>
+          </div>
+          <div className="overflow-auto max-h-[360px] border rounded">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>EN No</TableHead>
+                  <TableHead>Profesional</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mappings.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell className="font-mono text-xs">{m.en_no}</TableCell>
+                    <TableCell>
+                      <Select value={m.id_profesional || ''} onValueChange={async (val) => { await upsertMapping(deviceId, m.en_no, val); await refreshMappings(); }}>
+                        <SelectTrigger className="w-[360px]"><SelectValue placeholder="Seleccionar profesional"/></SelectTrigger>
+                        <SelectContent>
+                          {professionals.map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.nombre_completo} — {p.id_profesional_unico}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -30,19 +30,19 @@ export function useCuadrantesBio() {
   };
 
   // Export Personal.xls-like TSV: use profesionales_sanitarios
-  const exportPersonalXls = async (centerId?: string | null) => {
-    let qb = supabase.from('profesionales_sanitarios').select('id, id_profesional_unico, nombre_completo, centro_salud_id, especialidad, genero, telefono, email, estado_solicitud');
-    if (centerId) qb = qb.eq('centro_salud_id', centerId);
-    const { data, error } = await qb;
+  const exportPersonalXls = async (centerId?: string | null, ids?: string[] ) => {
+    let qb = supabase.from('profesionales_sanitarios').select('id, id_profesional_unico, nombre_completo, centro_salud_id, especialidad, area_profesional, nombre_centro, genero, telefono, email, estado_solicitud');
+    if (ids && ids.length) qb = qb.in('id', ids);
+    else if (centerId) qb = qb.eq('centro_salud_id', centerId);
+    const { data, error } = await qb.order('nombre_completo');
     if (error) throw error;
-    const headers = ['EmpNo','Name','Gender','Phone','Email','Department','Active'];
+    const headers = ['EmpNo','Name','Department','Phone','Email','Active'];
     const rows = (data || []).map((p, idx) => [
       p.id_profesional_unico || '',
       p.nombre_completo || '',
-      p.genero || '',
+      p.nombre_centro || p.area_profesional || p.especialidad || '',
       p.telefono || '',
       p.email || '',
-      p.especialidad || '',
       p.estado_solicitud === 'Aprobado' ? '1' : '0'
     ]);
     const tsv = [headers, ...rows].map(r => r.join('\t')).join('\r\n');

@@ -58,7 +58,7 @@ const UserRoleManagement = () => {
 
   const { inviteUser, getUserProfiles, updateUserRole, deleteUser, isLoading } = useUserManagement();
   const { testInvite, isLoading: isTestLoading } = useTestInvite();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, switchRole } = useAuth();
   const { data: centrosSalud = [] } = useCentrosSalud();
 
   const roles: Array<{ value: UserRole; label: string }> = [

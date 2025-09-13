@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAsistencia, useDispositivosFichaje, Dispositivo } from '@/hooks/useAsistencia';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState, useEffect } from 'react';
 import { useGuardiasStore } from '@/stores/useGuardiasStore';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Upload, Save, RefreshCw } from 'lucide-react';

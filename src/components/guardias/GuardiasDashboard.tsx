@@ -30,7 +30,6 @@ import { PagosGuardias } from './tabs/PagosGuardias';
 import { ReportesGuardias } from './tabs/ReportesGuardias';
 import { AuditoriaGuardias } from './tabs/AuditoriaGuardias';
 import { AjustesGuardias } from './tabs/AjustesGuardias';
-import { AsistenciaBiometrica } from './tabs/AsistenciaBiometrica';
 import { TurnosBiometricos } from './tabs/TurnosBiometricos';
 import { CuadrantesBiometricos } from './tabs/CuadrantesBiometricos';
 import { NetworkStatusSimple } from '@/components/ui/network-status-simple';
@@ -84,7 +83,6 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
   const getVisibleTabs = () => {
     const allTabs = [
       { id: 'registro', label: 'Registro', icon: Calendar, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
-      { id: 'asistencia', label: 'Asistencia', icon: Clock, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
       { id: 'turnos', label: 'Turnos', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
       { id: 'cuadrantesbio', label: 'Cuadrantes', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
       { id: 'cuadrantes', label: 'Cuadrantes Guardias', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES'] },

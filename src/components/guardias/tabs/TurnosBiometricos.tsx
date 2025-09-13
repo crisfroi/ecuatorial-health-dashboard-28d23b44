@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export const TurnosBiometricos: React.FC<{ selectedCenter: string | null }>= ({ selectedCenter }) => {
   const { user } = useAuth();
   const centerId = selectedCenter || user?.assigned_center_id || null;
-  const { list, create, update, remove, exportTurnosXls } = useTurnosBio();
+  const { list, create, update, remove, exportTurnosXls, importTurnosXls } = useTurnosBio();
 
   const [turnos, setTurnos] = useState<TurnoBio[]>([]);
   const [nombre, setNombre] = useState('');
@@ -21,6 +21,13 @@ export const TurnosBiometricos: React.FC<{ selectedCenter: string | null }>= ({ 
 
   const refresh = async () => { setTurnos(await list(centerId)); };
   useEffect(() => { refresh(); }, [centerId]);
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files; if (!files?.length) return;
+    await importTurnosXls(files[0], centerId);
+    await refresh();
+    e.currentTarget.value = '';
+  };
 
   const handleCreate = async () => {
     if (!nombre.trim()) return;
@@ -62,6 +69,7 @@ export const TurnosBiometricos: React.FC<{ selectedCenter: string | null }>= ({ 
             </Select>
             <Button onClick={handleCreate}>Agregar</Button>
             <Button variant="outline" onClick={() => exportTurnosXls(turnos)}>Exportar Turno.xls</Button>
+            <Input type="file" accept=".xls,.xlsx" onChange={handleImport} className="w-56" />
           </div>
 
           <div className="overflow-auto">

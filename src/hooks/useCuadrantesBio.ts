@@ -1,5 +1,5 @@
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface CuadranteBio {
   id: string;
@@ -30,19 +30,39 @@ export function useCuadrantesBio() {
   };
 
   // Export Personal.xls-like TSV: use profesionales_sanitarios
-  const exportPersonalXls = async (centerId?: string | null) => {
-    let qb = supabase.from('profesionales_sanitarios').select('id, id_profesional_unico, nombre_completo, centro_salud_id, especialidad, genero, telefono, email, estado_solicitud');
-    if (centerId) qb = qb.eq('centro_salud_id', centerId);
-    const { data, error } = await qb;
+  const exportPersonalXls = async (centerId?: string | null, ids?: string[], fecha?: string) => {
+    let qb = supabase.from('profesionales_sanitarios').select('id, id_profesional_unico, nombre_completo, centro_salud_id, especialidad, area_profesional, nombre_centro, genero, telefono, email, estado_solicitud');
+    if (ids && ids.length) qb = qb.in('id', ids);
+    else if (centerId) qb = qb.eq('centro_salud_id', centerId);
+    const { data, error } = await qb.order('nombre_completo');
     if (error) throw error;
-    const headers = ['EmpNo','Name','Gender','Phone','Email','Department','Active'];
-    const rows = (data || []).map((p, idx) => [
+
+    // If fecha provided, fetch assigned turno for each professional on that fecha
+    const profs = (data || []);
+    let turnoMap = new Map<string, string>();
+    if (fecha && profs.length) {
+      const profIds = profs.map((p: any) => p.id);
+      const { data: cuad, error: cuadErr } = await supabase.from('cuadrantes_biometricos').select('id_profesional, turno_id').in('id_profesional', profIds).eq('fecha', fecha);
+      if (!cuadErr && cuad && cuad.length) {
+        const turnoIds = Array.from(new Set(cuad.map((c: any) => c.turno_id).filter(Boolean)));
+        if (turnoIds.length) {
+          const { data: turnos } = await supabase.from('turnos_biometricos').select('id, nombre_turno').in('id', turnoIds);
+          const tMap = new Map((turnos||[]).map((t: any) => [t.id, t.nombre_turno]));
+          cuad.forEach((c: any) => {
+            if (c.id_profesional && c.turno_id) turnoMap.set(c.id_profesional, tMap.get(c.turno_id) || '');
+          });
+        }
+      }
+    }
+
+    const headers = ['EmpNo','Name','Department','Phone','Email','Turno','Active'];
+    const rows = profs.map((p: any) => [
       p.id_profesional_unico || '',
       p.nombre_completo || '',
-      p.genero || '',
+      p.nombre_centro || p.area_profesional || p.especialidad || '',
       p.telefono || '',
       p.email || '',
-      p.especialidad || '',
+      turnoMap.get(p.id) || '',
       p.estado_solicitud === 'Aprobado' ? '1' : '0'
     ]);
     const tsv = [headers, ...rows].map(r => r.join('\t')).join('\r\n');

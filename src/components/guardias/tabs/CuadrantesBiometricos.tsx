@@ -8,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTurnosBio, TurnoBio } from '@/hooks/useTurnosBio';
 import { useCuadrantesBio } from '@/hooks/useCuadrantesBio';
 import { supabase } from '@/integrations/supabase/client';
-import { useState, useEffect } from 'react';
 
 export const CuadrantesBiometricos: React.FC<{ selectedCenter: string | null }>= ({ selectedCenter }) => {
   const { user } = useAuth();

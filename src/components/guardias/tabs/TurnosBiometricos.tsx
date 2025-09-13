@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useTurnosBio, TurnoBio } from '@/hooks/useTurnosBio';
 import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect } from 'react';
 
 export const TurnosBiometricos: React.FC<{ selectedCenter: string | null }>= ({ selectedCenter }) => {
   const { user } = useAuth();

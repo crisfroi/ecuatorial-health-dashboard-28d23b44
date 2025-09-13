@@ -76,28 +76,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       setUserRole(info.role);
     };
 
-    const fetchRoleFromAdminFn = async (uid: string, email?: string | null) => {
-      try {
-        const { data, error } = await supabase.functions.invoke('admin-users', {
-          body: { action: 'listUsers' },
-        });
-        if (error) return null;
-        const users: Array<{ id: string; email: string; role: string; full_name?: string; department?: string; assigned_center_id?: string | null }> = data?.users || [];
-        const found = users.find((u) => u.id === uid || (email && u.email?.toLowerCase() === email.toLowerCase()));
-        if (!found) return null;
-        return {
-          role: found.role as UserRole,
-          full_name: found.full_name || null,
-          department: found.department || null,
-          assigned_center_id: (found.assigned_center_id as string | null) || null,
-        };
-      } catch {
-        return null;
-      }
+    const normalizeRole = (raw?: string | null): UserRole | null => {
+      if (!raw) return null;
+      const r = raw.toString().trim().toUpperCase();
+      const map: Record<string, UserRole> = {
+        'SUPER_ADMINISTRADOR': 'SUPER_ADMINISTRADOR',
+        'SUPER-ADMINISTRADOR': 'SUPER_ADMINISTRADOR',
+        'SUPER_ADMIN': 'SUPER_ADMINISTRADOR',
+        'ADMINISTRADOR': 'SUPER_ADMINISTRADOR',
+        'RRHH_MINISTERIO': 'RRHH_MINISTERIO',
+        'RRHH': 'RRHH_MINISTERIO',
+        'MIEMBRO_GOBIERNO': 'MIEMBRO_GOBIERNO',
+        'GOBIERNO': 'MIEMBRO_GOBIERNO',
+        'HABILITACION': 'HABILITACION',
+        'ADMIN_CENTRO_SANITARIO': 'ADMIN_CENTRO_SANITARIO',
+        'DIRECTIVO_CENTRO_SANITARIO': 'DIRECTIVO_CENTRO_SANITARIO',
+        'REVISOR_SOLICITUDES': 'REVISOR_SOLICITUDES',
+        'PERSONALIDAD_MINISTERIAL': 'PERSONALIDAD_MINISTERIAL',
+        'OBSERVADOR': 'OBSERVADOR',
+      };
+      return map[r] || null;
     };
 
     const resolveRoleAndProfile = async (baseUser: User) => {
-      const email = baseUser.email || '';
       const dbProfile = await getProfileFromDb(baseUser.id);
       if (dbProfile?.role) {
         applyUserState(baseUser, {
@@ -108,23 +109,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         });
         return;
       }
-      const metaRole = (baseUser.user_metadata?.role as UserRole | undefined) || null;
-      if (metaRole) {
+      const normalized = normalizeRole((baseUser.user_metadata as any)?.role);
+      if (normalized) {
         applyUserState(baseUser, {
-          role: metaRole,
+          role: normalized,
           full_name: baseUser.user_metadata?.full_name || baseUser.email?.split('@')[0] || undefined,
           department: baseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
           assigned_center_id: (baseUser.user_metadata?.assigned_center_id as string | undefined) || undefined,
         });
         return;
       }
-      const adminInfo = await fetchRoleFromAdminFn(baseUser.id, email);
-      applyUserState(baseUser, {
-        role: (adminInfo?.role as UserRole) || 'OBSERVADOR',
-        full_name: adminInfo?.full_name || baseUser.email?.split('@')[0] || undefined,
-        department: adminInfo?.department || 'Ministerio de Sanidad y Bienestar Social',
-        assigned_center_id: (adminInfo?.assigned_center_id as string | undefined) || undefined,
-      });
+      // Sin fallback: marcar sin permisos para que el usuario y el admin corrijan datos en Supabase
+      setUser({ ...(baseUser as any), role: 'OBSERVADOR' } as UserProfile);
+      setUserRole(null);
     };
 
     const subscribeToProfile = (uid: string) => {

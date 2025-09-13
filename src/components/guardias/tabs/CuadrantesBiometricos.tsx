@@ -63,7 +63,7 @@ export const CuadrantesBiometricos: React.FC<{ selectedCenter: string | null }>=
             </div>
             <Button onClick={assignSelected} disabled={!turnoId || !selectedProfIds.length}>Asignar a seleccionados</Button>
             <div className="flex-1"/>
-            <Button variant="outline" onClick={() => exportPersonalXls(centerId, selectedProfIds.length ? selectedProfIds : undefined)}>{selectedProfIds.length ? `Exportar Personal.xls (selección ${selectedProfIds.length})` : 'Exportar Personal.xls'}</Button>
+            <Button variant="outline" onClick={() => exportPersonalXls(centerId, selectedProfIds.length ? selectedProfIds : undefined, fecha)}>{selectedProfIds.length ? `Exportar Personal.xls (selección ${selectedProfIds.length})` : 'Exportar Personal.xls'}</Button>
           </div>
 
           <div className="overflow-auto max-h-[420px] border rounded-md">

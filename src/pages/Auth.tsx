@@ -31,33 +31,21 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🔑 Auth.tsx: Starting login process');
     setLoading(true);
     setError('');
 
     try {
-      console.log('🔑 Auth.tsx: Calling authLogin...');
       const result = await authLogin(email, password);
-      console.log('🔑 Auth.tsx: authLogin result:', result);
-
       if (!result.success) {
-        console.log('❌ Auth.tsx: Login failed:', result.error);
         setError(result.error || 'Error al iniciar sesión');
         return;
       }
 
-      console.log('✅ Auth.tsx: Login successful, showing toast');
-      toast({
-        title: "¡Bienvenido!",
-        description: "Has iniciado sesión correctamente.",
-      });
-
-      // La navegación la maneja el useEffect cuando user cambia
+      toast({ title: '¡Bienvenido!', description: 'Has iniciado sesión correctamente.' });
+      navigate('/dashboard');
     } catch (err: any) {
-      console.error('❌ Auth.tsx: Unexpected error:', err);
       setError('Error inesperado al iniciar sesión');
     } finally {
-      console.log('🔄 Auth.tsx: Setting local loading(false)');
       setLoading(false);
     }
   };
@@ -193,9 +181,9 @@ const Auth = () => {
                   <Button
                     type="submit"
                     className="w-full bg-guinea-teal hover:bg-guinea-dark-teal"
-                    disabled={loading || isLoading}
+                    disabled={loading}
                   >
-                    {(loading || isLoading) ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                    {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                   </Button>
                 </form>
               </TabsContent>

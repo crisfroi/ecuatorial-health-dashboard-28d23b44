@@ -205,19 +205,33 @@ export const useUserManagement = () => {
   const updateUserRole = async (userId: string, updates: any) => {
     try {
       const { data, error } = await supabase.functions.invoke('admin-users', {
-        body: { 
+        body: {
           action: 'updateUser',
           userId,
           updates
         }
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error || 'Error updating user');
 
-      if (!data.success) {
-        throw new Error(data.error || 'Error updating user');
+      // Mantener sincronizado el perfil en la BD pública (si existe)
+      const fields: any = {
+        role: updates.role,
+        full_name: updates.full_name,
+        department: updates.department,
+      };
+      if (typeof updates.assigned_center_id !== 'undefined') {
+        fields.assigned_center_id = updates.assigned_center_id;
+      }
+      await supabase.from('user_profiles').update(fields).eq('id', userId);
+
+      // Si el usuario actualizado es el actual, intentar refrescar metadatos/estado
+      const me = await supabase.auth.getUser();
+      if (me.data.user?.id === userId && updates.role) {
+        // El AuthContext escucha cambios en user_profiles, esto actualizará pestañas/permisos
+        // Además, intentamos obtener el usuario para refrescar metadatos
+        await supabase.auth.getUser();
       }
 
       toast({

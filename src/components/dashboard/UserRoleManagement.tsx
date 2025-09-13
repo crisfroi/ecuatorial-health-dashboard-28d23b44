@@ -58,7 +58,7 @@ const UserRoleManagement = () => {
 
   const { inviteUser, getUserProfiles, updateUserRole, deleteUser, isLoading } = useUserManagement();
   const { testInvite, isLoading: isTestLoading } = useTestInvite();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, switchRole } = useAuth();
   const { data: centrosSalud = [] } = useCentrosSalud();
 
   const roles: Array<{ value: UserRole; label: string }> = [
@@ -160,6 +160,10 @@ const UserRoleManagement = () => {
     const result = await updateUserRole(editingUser.id, updates);
 
     if (result.success) {
+      // Si el usuario editado es el mismo que el actual, aplicar el cambio localmente
+      if (editingUser.id === currentUser?.id) {
+        switchRole(editingUser.role as UserRole);
+      }
       setIsEditDialogOpen(false);
       setEditingUser(null);
       loadUsers(); // Recargar la lista de usuarios

@@ -77,23 +77,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     };
 
     const resolveRoleAndProfile = async (baseUser: User) => {
-      const metaRole = (baseUser.user_metadata?.role as UserRole | undefined) || null;
-      if (metaRole) {
+      const dbProfile = await getProfileFromDb(baseUser.id);
+      if (dbProfile?.role) {
         applyUserState(baseUser, {
-          role: metaRole,
-          full_name: baseUser.user_metadata?.full_name,
-          department: baseUser.user_metadata?.department,
-          assigned_center_id: baseUser.user_metadata?.assigned_center_id,
+          role: dbProfile.role as UserRole,
+          full_name: dbProfile.full_name || baseUser.user_metadata?.full_name,
+          department: dbProfile.department || baseUser.user_metadata?.department,
+          assigned_center_id: dbProfile.assigned_center_id || baseUser.user_metadata?.assigned_center_id,
         });
-      } else {
-        const dbProfile = await getProfileFromDb(baseUser.id);
-        applyUserState(baseUser, {
-          role: (dbProfile?.role as UserRole) || 'OBSERVADOR',
-          full_name: dbProfile?.full_name || baseUser.email?.split('@')[0] || undefined,
-          department: dbProfile?.department || 'Ministerio de Sanidad y Bienestar Social',
-          assigned_center_id: dbProfile?.assigned_center_id || undefined,
-        });
+        return;
       }
+      const metaRole = (baseUser.user_metadata?.role as UserRole | undefined) || null;
+      applyUserState(baseUser, {
+        role: metaRole || 'OBSERVADOR',
+        full_name: baseUser.user_metadata?.full_name || baseUser.email?.split('@')[0] || undefined,
+        department: baseUser.user_metadata?.department || 'Ministerio de Sanidad y Bienestar Social',
+        assigned_center_id: (baseUser.user_metadata?.assigned_center_id as string | undefined) || undefined,
+      });
     };
 
     const subscribeToProfile = (uid: string) => {

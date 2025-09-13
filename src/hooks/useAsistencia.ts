@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
 
 export interface Dispositivo {
   id: string;
@@ -215,6 +216,74 @@ export function useAsistencia() {
     }
   };
 
+  // Importar Reporte.xls (multi-hoja) con cabeceras estándar
+  const importReporteXls = async (deviceId: string, file: File) => {
+    setImporting(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      let total = 0;
+      for (const sheetName of wb.SheetNames) {
+        const ws = wb.Sheets[sheetName];
+        if (!ws) continue;
+        const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        const parsed = rows.map((r) => {
+          const en = r.EnNo || r.EmpNo || r.EmpID || r.Enno || r.enno || r.enNo || '';
+          const dt = r.DateTime || r.Datetime || r.TIME || r.Time || '';
+          const io = r.INOUT || r.InOut || r.Dir || r.Direction || '';
+          const md = r.Mode || r.method || r.Method || '';
+          const normalized = String(dt).replace(/\//g,'-');
+          const fecha_hora = new Date(normalized).toISOString();
+          let inout: 'IN'|'OUT'|null = null;
+          if (/^in$/i.test(io)) inout = 'IN';
+          else if (/^out$/i.test(io)) inout = 'OUT';
+          else if (/^[01]$/.test(String(io))) inout = null;
+          return { id_profesional: null, en_no: String(en)||null, inout, mode: md?String(md):null, fecha_hora, raw_line: JSON.stringify(r), source_file: file.name } as any;
+        }).filter((e: any) => e.en_no && e.fecha_hora);
+        total += await insertLogs(deviceId, `${file.name}#${sheetName}`, parsed);
+      }
+      toast({ title: 'Reporte importado', description: `${total} registros procesados` });
+      return total;
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  // Importar Personal.xls para mapear EnNo -> id_profesional del centro
+  const importPersonalXls = async (deviceId: string, file: File, centerId?: string | null) => {
+    setImporting(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      let qb = supabase.from('profesionales_sanitarios').select('id, nombre_completo, id_profesional_unico, centro_salud_id');
+      if (centerId) qb = qb.eq('centro_salud_id', centerId);
+      const { data: profs, error: profErr } = await qb;
+      if (profErr) throw profErr;
+      const byEmpNo = new Map((profs||[]).map((p: any) => [String(p.id_profesional_unico||'').trim(), p.id] as const));
+      const byName = new Map((profs||[]).map((p: any) => [String(p.nombre_completo||'').trim().toLowerCase(), p.id] as const));
+
+      let count = 0;
+      for (const r of rows) {
+        const en = String(r.EmpNo || r.EnNo || r.EmpID || r.enno || r.ENNO || '').trim();
+        if (!en) continue;
+        const name = String(r.Name || r.Nombre || r.EmpName || '').trim();
+        let profId: string | undefined = byEmpNo.get(en);
+        if (!profId && name) profId = byName.get(name.toLowerCase());
+        if (!profId) continue;
+        const { error } = await supabase.from('empleado_dispositivo_map').upsert({ id_dispositivo: deviceId, en_no: en, id_profesional: profId }, { onConflict: 'id_dispositivo,en_no' });
+        if (error) throw error;
+        count++;
+      }
+      toast({ title: 'Asignaciones guardadas', description: `${count} mapeos creados/actualizados` });
+      return count;
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const fetchLogsByRange = async (fromISO: string, toISO: string, options: { centerId?: string | null, deviceId?: string | null } = {}) => {
     let qb = supabase.from('attendance_logs').select('*').gte('fecha_hora', fromISO).lte('fecha_hora', toISO);
     if (options.deviceId) qb = qb.eq('id_dispositivo', options.deviceId);
@@ -250,6 +319,21 @@ export function useAsistencia() {
     }));
   };
 
+  const generateAttendanceStats = (entries: ConsolidatedDayEntry[]) => {
+    const totals = {
+      dias: entries.length,
+      horasTotales: entries.reduce((s, e) => s + (e.total_horas || 0), 0),
+    };
+    const byProf: Record<string, { dias: number; horas: number }> = {};
+    for (const e of entries) {
+      const k = e.id_profesional || e.en_no || 'unknown';
+      byProf[k] = byProf[k] || { dias: 0, horas: 0 };
+      byProf[k].dias += 1;
+      byProf[k].horas += e.total_horas || 0;
+    }
+    return { totals, byProf };
+  };
+
   const exportDAT = (entries: ConsolidatedDayEntry[]) => {
     // DAT sencillo: ENNO,YYYYMMDD,HHMM,IN/OUT
     const lines: string[] = [];
@@ -273,5 +357,5 @@ export function useAsistencia() {
     a.click();
   };
 
-  return { importing, importFile, fetchLogsByRange, consolidateDaily, exportDAT };
+  return { importing, importFile, importReporteXls, importPersonalXls, fetchLogsByRange, consolidateDaily, generateAttendanceStats, exportDAT };
 }

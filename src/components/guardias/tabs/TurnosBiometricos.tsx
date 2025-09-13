@@ -22,6 +22,13 @@ export const TurnosBiometricos: React.FC<{ selectedCenter: string | null }>= ({ 
   const refresh = async () => { setTurnos(await list(centerId)); };
   useEffect(() => { refresh(); }, [centerId]);
 
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files; if (!files?.length) return;
+    await importTurnosXls(files[0], centerId);
+    await refresh();
+    e.currentTarget.value = '';
+  };
+
   const handleCreate = async () => {
     if (!nombre.trim()) return;
     await create({ nombre_turno: nombre.trim(), hora_inicio: `${inicio}:00`, hora_fin: `${fin}:00`, tolerancia_minutos: tol, tipo, centro_salud_id: centerId || undefined });
@@ -62,6 +69,7 @@ export const TurnosBiometricos: React.FC<{ selectedCenter: string | null }>= ({ 
             </Select>
             <Button onClick={handleCreate}>Agregar</Button>
             <Button variant="outline" onClick={() => exportTurnosXls(turnos)}>Exportar Turno.xls</Button>
+            <Input type="file" accept=".xls,.xlsx" onChange={handleImport} className="w-56" />
           </div>
 
           <div className="overflow-auto">

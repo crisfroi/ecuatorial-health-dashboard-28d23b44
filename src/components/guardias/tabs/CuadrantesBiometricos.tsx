@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTurnosBio, TurnoBio } from '@/hooks/useTurnosBio';
 import { useCuadrantesBio } from '@/hooks/useCuadrantesBio';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export const CuadrantesBiometricos: React.FC<{ selectedCenter: string | null }>= ({ selectedCenter }) => {
   const { user } = useAuth();
@@ -22,6 +23,14 @@ export const CuadrantesBiometricos: React.FC<{ selectedCenter: string | null }>=
   const [rangeFrom, setRangeFrom] = useState(() => new Date().toISOString().slice(0,10));
   const [rangeTo, setRangeTo] = useState(() => new Date(Date.now()+6*86400000).toISOString().slice(0,10));
   const [selectedProfIds, setSelectedProfIds] = useState<string[]>([]);
+  const [showCreateTurno, setShowCreateTurno] = useState(false);
+  const [newTurnoName, setNewTurnoName] = useState('');
+  const [newHoraInicio, setNewHoraInicio] = useState('08:00');
+  const [newHoraFin, setNewHoraFin] = useState('16:00');
+  const [newTolerancia, setNewTolerancia] = useState(0);
+  const [newTipo, setNewTipo] = useState<'diurno'|'nocturno'|'festivo'>('diurno');
+
+  const { toast } = useToast();
 
   const refresh = async () => {
     setTurnos(await listTurnos(centerId));
@@ -43,6 +52,19 @@ export const CuadrantesBiometricos: React.FC<{ selectedCenter: string | null }>=
     setSelectedProfIds([]);
   };
 
+  const handleCreateTurno = async () => {
+    if (!newTurnoName) return toast({ title: 'Nombre requerido', variant: 'destructive' });
+    try {
+      await (await import('@/hooks/useTurnosBio')).useTurnosBio().create({ nombre_turno: newTurnoName, hora_inicio: `${newHoraInicio}:00`, hora_fin: `${newHoraFin}:00`, tolerancia_minutos: newTolerancia, tipo: newTipo, centro_salud_id: centerId || undefined });
+      toast({ title: 'Turno creado' });
+      setShowCreateTurno(false);
+      setNewTurnoName('');
+      await refresh();
+    } catch (err: any) {
+      toast({ title: 'Error creando turno', description: err?.message, variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -51,12 +73,37 @@ export const CuadrantesBiometricos: React.FC<{ selectedCenter: string | null }>=
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <Select value={turnoId} onValueChange={setTurnoId}>
-              <SelectTrigger className="w-60"><SelectValue placeholder="Seleccionar turno"/></SelectTrigger>
-              <SelectContent>
-                {turnos.map(t => (<SelectItem key={t.id} value={t.id}>{t.nombre_turno} ({t.hora_inicio.slice(0,5)}-{t.hora_fin.slice(0,5)})</SelectItem>))}
-              </SelectContent>
-            </Select>
+            {turnos.length === 0 ? (
+              <div className="flex items-center gap-2">
+                <div className="text-sm text-gray-600">No hay turnos definidos para este centro.</div>
+                <Button onClick={() => setShowCreateTurno(true)}>Crear Turno</Button>
+              </div>
+            ) : (
+              <Select value={turnoId} onValueChange={setTurnoId}>
+                <SelectTrigger className="w-60"><SelectValue placeholder="Seleccionar turno"/></SelectTrigger>
+                <SelectContent>
+                  {turnos.map(t => (<SelectItem key={t.id} value={t.id}>{t.nombre_turno} ({t.hora_inicio.slice(0,5)}-{t.hora_fin.slice(0,5)})</SelectItem>))}
+                </SelectContent>
+              </Select>
+            )}
+            {showCreateTurno && (
+              <div className="flex items-center gap-2">
+                <Input placeholder="Nombre turno" value={newTurnoName} onChange={e => setNewTurnoName(e.target.value)} />
+                <Input type="time" value={newHoraInicio} onChange={e => setNewHoraInicio(e.target.value)} />
+                <Input type="time" value={newHoraFin} onChange={e => setNewHoraFin(e.target.value)} />
+                <Input type="number" min={0} value={String(newTolerancia)} onChange={e => setNewTolerancia(Number(e.target.value))} className="w-24" />
+                <Select value={newTipo} onValueChange={(v: any) => setNewTipo(v)}>
+                  <SelectTrigger className="w-40"><SelectValue placeholder="Tipo"/></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="diurno">Diurno</SelectItem>
+                    <SelectItem value="nocturno">Nocturno</SelectItem>
+                    <SelectItem value="festivo">Festivo</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleCreateTurno}>Guardar</Button>
+                <Button variant="ghost" onClick={() => setShowCreateTurno(false)}>Cancelar</Button>
+              </div>
+            )}
             <div className="flex items-center gap-1">
               <span className="text-sm">Fecha</span>
               <Input type="date" value={fecha} onChange={e => setFecha(e.target.value)} />

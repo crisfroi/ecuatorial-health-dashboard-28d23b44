@@ -21,6 +21,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect, useRef } from 'react';
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';

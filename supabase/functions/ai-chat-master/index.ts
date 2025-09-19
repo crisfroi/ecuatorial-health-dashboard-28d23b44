@@ -29,6 +29,38 @@ serve(async (req) => {
     }
 
     const { messages = [], filters = {}, healthCheck = false } = body
+    const globalFilters = filters || {}
+
+    // Extrae filtros desde la última consulta del usuario (NL -> JSON)
+    const lastUserMessage = (Array.isArray(messages) ? messages : []).filter((m: any) => m?.role === 'user').slice(-1)[0]?.content || ''
+
+    async function extractFiltersFromQuery(query: string): Promise<Record<string, any>> {
+      if (!OPENAI_API_KEY || !query) return {}
+      const sys = `Eres un extractor de filtros. Devuelve SOLO un JSON con claves válidas si las detectas en la consulta.
+Claves: area_profesional, estado_solicitud, provincia, distrito_sanitario, genero,
+ categoria_titulacion, pais_formacion, institucion, rango_edad, rango_graduacion,
+ dias_vencimiento, carnet_vencido, tipo_sector, categoria, sector, centro_salud_id,
+ nombre_centro, funcion_publica.
+Mapeos: "aprobados"->estado_solicitud:"Aprobado"; "rechazados"->"Rechazado"; "hospital"->categoria:"HOSPITAL"; "clínica"->"CLINICA"; "centro de salud"->"CENTRO DE SALUD"; "público"->tipo_sector:"Público"; "privado"->"Privado"; "mixto"->"Mixto"; "ong"->"ONG"; "función pública"->funcion_publica:true; "en [Provincia]"->provincia:"[Provincia]".`
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: sys },
+            { role: 'user', content: query }
+          ],
+          temperature: 0,
+          max_tokens: 200
+        })
+      })
+      if (!res.ok) return {}
+      const j = await res.json()
+      try { return JSON.parse(j.choices?.[0]?.message?.content || '{}') } catch { return {} }
+    }
+
+    const nlpFilters = await extractFiltersFromQuery(lastUserMessage)
 
     // Health check: do not call OpenAI, just report readiness
     if (healthCheck) {
@@ -174,7 +206,7 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "get_education_analysis",
-          description: "Análisis completo de formación académica y países de origen",
+          description: "Análisis completo de formación acad��mica y países de origen",
           parameters: {
             type: "object", 
             properties: {
@@ -244,22 +276,25 @@ serve(async (req) => {
     // **CONTEXTO COMPLETO DEL SCHEMA**
     const { data: schemaData } = await supabase.rpc('get_comprehensive_analytics')
     
-    const systemPrompt = `Eres el ASISTENTE DE IA MÁS AVANZADO para el Sistema de Salud de Guinea Ecuatorial. 
+    const systemPrompt = `Eres el ASISTENTE DE IA MÁS AVANZADO para el Sistema de Salud de Guinea Ecuatorial.
 
 CAPACIDADES SUPERINTELIGENTES:
 ✅ Acceso COMPLETO a las 26 tablas de la base de datos
-✅ Análisis cross-table con relaciones complejas  
+✅ Análisis cross-table con relaciones complejas
 ✅ Estadísticas demográficas, geográficas y temporales
 ✅ Análisis de profesionales, centros, guardias y carnets
 ✅ Filtros relacionales múltiples y agregaciones avanzadas
 ✅ Respuestas en lenguaje natural con datos precisos
+
+FILTROS DETECTADOS/APLICADOS (GLOBALES + CONSULTA):
+${JSON.stringify({ ...(globalFilters || {}), ...(nlpFilters || {}) }, null, 2)}
 
 SCHEMA COMPLETO DISPONIBLE:
 ${JSON.stringify(schemaData, null, 2)}
 
 TABLAS PRINCIPALES:
 - profesionales_sanitarios (80+ campos): Datos completos de profesionales
-- centros_salud: Centros de trabajo y asignaciones  
+- centros_salud: Centros de trabajo y asignaciones
 - guardias, nominas_guardias, pagos_guardias: Sistema completo de guardias
 - carnets_generados, cola_generacion_carnets: Gestión de carnets
 - categorias_titulacion, distrito_sanitario, nacionalidades_mundo: Catálogos
@@ -267,7 +302,7 @@ TABLAS PRINCIPALES:
 
 ESTADÍSTICAS ACTUALES:
 - Total Profesionales: ${schemaData?.total_profesionales || 0}
-- Total Centros: ${schemaData?.total_centros || 0}  
+- Total Centros: ${schemaData?.total_centros || 0}
 - Total Guardias: ${schemaData?.total_guardias || 0}
 
 INSTRUCCIONES:
@@ -277,10 +312,11 @@ INSTRUCCIONES:
 4. Sugiere navegación a secciones relevantes del dashboard
 5. Responde SIEMPRE en español con datos reales del sistema
 6. Para consultas complejas, usa execute_complex_query
+7. APLICA SIEMPRE los filtros globales proporcionados a las consultas, salvo que el usuario indique lo contrario.
 
 Ejemplo de capacidades:
 - "Profesionales de UNGE graduados 2015-2020 en hospitales públicos de Bata"
-- "Distribución por género de enfermeros en centros rurales del Litoral"  
+- "Distribución por género de enfermeros en centros rurales del Litoral"
 - "Carnets que vencen en 30 días por provincia y área profesional"
 - "Análisis temporal de solicitudes por distrito sanitario"
 - "Correlación entre país de formación y área profesional"
@@ -332,7 +368,13 @@ Ejemplo de capacidades:
       for (const toolCall of assistantMessage.tool_calls) {
         const toolName = toolCall.function.name
         const args = JSON.parse(toolCall.function.arguments)
-        
+
+        // Integrar filtros globales + filtros extraídos por NL + locales
+        if (args && typeof args === 'object') {
+          const localFilters = (args as any).filters || {}
+          ;(args as any).filters = { ...(globalFilters || {}), ...(nlpFilters || {}), ...(localFilters || {}) }
+        }
+
         try {
           switch (toolName) {
             case 'get_professionals_analytics':
@@ -430,6 +472,7 @@ Ejemplo de capacidades:
       diagnostics: {
         toolsUsed: assistantMessage.tool_calls?.map((tc: any) => tc.function.name) || [],
         dataPoints: Object.keys(toolResults).length,
+        appliedFilters: { ...(globalFilters || {}), ...(nlpFilters || {}) },
         timestamp: new Date().toISOString()
       }
     }), {

@@ -260,6 +260,19 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         </CardHeader>
         
         <CardContent className="space-y-4">
+          {/* Filtros Globales Activos */}
+          {filters && Object.keys(filters || {}).length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(filters || {})
+                .filter(([_, v]) => v !== undefined && v !== null && v !== '' && v !== 'todos')
+                .map(([k, v]) => (
+                  <Badge key={k} variant="secondary" className="text-xs">
+                    {k}: {String(v)}
+                  </Badge>
+                ))}
+            </div>
+          )}
+
           {/* Chat Messages */}
           <div className="h-96 overflow-y-auto border rounded-lg p-4 bg-background/50 backdrop-blur-sm space-y-4">
             {messages.map((message, index) => (

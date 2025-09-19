@@ -31,6 +31,37 @@ serve(async (req) => {
     const { messages = [], filters = {}, healthCheck = false } = body
     const globalFilters = filters || {}
 
+    // Extrae filtros desde la última consulta del usuario (NL -> JSON)
+    const lastUserMessage = (Array.isArray(messages) ? messages : []).filter((m: any) => m?.role === 'user').slice(-1)[0]?.content || ''
+
+    async function extractFiltersFromQuery(query: string): Promise<Record<string, any>> {
+      if (!OPENAI_API_KEY || !query) return {}
+      const sys = `Eres un extractor de filtros. Devuelve SOLO un JSON con claves válidas si las detectas en la consulta.
+Claves: area_profesional, estado_solicitud, provincia, distrito_sanitario, genero,
+ categoria_titulacion, pais_formacion, institucion, rango_edad, rango_graduacion,
+ dias_vencimiento, carnet_vencido, tipo_sector, categoria, sector, centro_salud_id,
+ nombre_centro, funcion_publica.
+Mapeos: "aprobados"->estado_solicitud:"Aprobado"; "rechazados"->"Rechazado"; "hospital"->categoria:"HOSPITAL"; "clínica"->"CLINICA"; "centro de salud"->"CENTRO DE SALUD"; "público"->tipo_sector:"Público"; "privado"->"Privado"; "mixto"->"Mixto"; "ong"->"ONG"; "función pública"->funcion_publica:true; "en [Provincia]"->provincia:"[Provincia]".`
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: sys },
+            { role: 'user', content: query }
+          ],
+          temperature: 0,
+          max_tokens: 200
+        })
+      })
+      if (!res.ok) return {}
+      const j = await res.json()
+      try { return JSON.parse(j.choices?.[0]?.message?.content || '{}') } catch { return {} }
+    }
+
+    const nlpFilters = await extractFiltersFromQuery(lastUserMessage)
+
     // Health check: do not call OpenAI, just report readiness
     if (healthCheck) {
       const needsOpenAI = !OPENAI_API_KEY

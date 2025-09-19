@@ -369,10 +369,10 @@ Ejemplo de capacidades:
         const toolName = toolCall.function.name
         const args = JSON.parse(toolCall.function.arguments)
 
-        // Integrar filtros globales en la ejecución de herramientas
+        // Integrar filtros globales + filtros extraídos por NL + locales
         if (args && typeof args === 'object') {
           const localFilters = (args as any).filters || {}
-          ;(args as any).filters = { ...(globalFilters || {}), ...(localFilters || {}) }
+          ;(args as any).filters = { ...(globalFilters || {}), ...(nlpFilters || {}), ...(localFilters || {}) }
         }
 
         try {

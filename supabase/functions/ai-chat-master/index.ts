@@ -472,6 +472,7 @@ Ejemplo de capacidades:
       diagnostics: {
         toolsUsed: assistantMessage.tool_calls?.map((tc: any) => tc.function.name) || [],
         dataPoints: Object.keys(toolResults).length,
+        appliedFilters: { ...(globalFilters || {}), ...(nlpFilters || {}) },
         timestamp: new Date().toISOString()
       }
     }), {

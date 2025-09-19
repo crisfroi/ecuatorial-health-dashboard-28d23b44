@@ -59,6 +59,7 @@ const UserRoleManagement = () => {
   });
 
   const { inviteUser, getUserProfiles, updateUserRole, deleteUser, isLoading } = useUserManagement();
+  const { loading: loadingPerms, getPermissionsForRole, getAvailablePermissions, setPermissionsForRole } = useRolePermissions();
   const { testInvite, isLoading: isTestLoading } = useTestInvite();
   const { user: currentUser, switchRole } = useAuth();
   const { data: centrosSalud = [] } = useCentrosSalud();

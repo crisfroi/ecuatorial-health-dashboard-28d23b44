@@ -286,8 +286,8 @@ CAPACIDADES SUPERINTELIGENTES:
 ✅ Filtros relacionales múltiples y agregaciones avanzadas
 ✅ Respuestas en lenguaje natural con datos precisos
 
-FILTROS GLOBALES ACTIVOS (APLICA SIEMPRE A MENOS QUE EL USUARIO LOS CAMBIE):
-${JSON.stringify(globalFilters || {}, null, 2)}
+FILTROS DETECTADOS/APLICADOS (GLOBALES + CONSULTA):
+${JSON.stringify({ ...(globalFilters || {}), ...(nlpFilters || {}) }, null, 2)}
 
 SCHEMA COMPLETO DISPONIBLE:
 ${JSON.stringify(schemaData, null, 2)}

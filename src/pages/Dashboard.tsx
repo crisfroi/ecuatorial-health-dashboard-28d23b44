@@ -262,38 +262,12 @@ const Dashboard = () => {
 
   const handleLogout = async () => {
     try {
-      console.log("Dashboard: Cerrando sesión...");
-
-      // Cerrar sesión en Supabase
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        console.error("Error al cerrar sesión:", error);
-        toast({
-          title: "Error al cerrar sesión",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Auth state is handled automatically by Supabase client
-
-      toast({
-        title: "Sesión cerrada",
-        description: "Has cerrado sesión exitosamente.",
-      });
-
-      // Navegar al login
-      navigate("/");
-
+      await logout();
+      toast({ title: 'Sesión cerrada', description: 'Has cerrado sesión exitosamente.' });
+      navigate('/');
     } catch (error) {
-      console.error("Error inesperado al cerrar sesión:", error);
-      toast({
-        title: "Error inesperado",
-        description: "Ocurrió un error al cerrar sesi���n.",
-        variant: "destructive",
-      });
+      console.error('Error al cerrar sesión:', error);
+      navigate('/');
     }
   };
 

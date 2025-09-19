@@ -37,6 +37,9 @@ import {
   Plus
 } from 'lucide-react';
 import { UserRole } from '@/types/roles';
+import { useAdvancedRoleManagement } from '@/hooks/useAdvancedRoleManagement';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TrasladosProfesionalesPanelProps {
   userRole: UserRole;
@@ -71,42 +74,70 @@ const TrasladosProfesionalesPanel: React.FC<TrasladosProfesionalesPanelProps> = 
     observaciones: ''
   });
 
-  // Datos reales deben provenir de la base de datos; eliminar mocks
-  const solicitudesTraslado: SolicitudTraslado[] = [];
+  const { user } = useAuth();
+  const { traslados, createTrasladoSolicitud, processTrasladoSolicitud, loadTraslados } = useAdvancedRoleManagement();
 
-  const profesionalesDisponibles = [
-    { id: 'prof-1', nombre: 'Dr. Juan Pérez', area: 'Medicina General', centro: 'Centro Malabo' },
-    { id: 'prof-2', nombre: 'Dra. Ana López', area: 'Pediatría', centro: 'Centro Malabo' },
-    { id: 'prof-3', nombre: 'Enf. Carlos Ruiz', area: 'Enfermería', centro: 'Centro Malabo' }
-  ];
+  const [profesionalesDisponibles, setProfesionalesDisponibles] = useState<{ id: string; nombre: string; area?: string }[]>([]);
+  const [centrosDestino, setCentrosDestino] = useState<{ id: string; nombre: string; distrito?: string }[]>([]);
 
-  const centrosDestino = [
-    { id: 'hosp-1', nombre: 'Hospital Nacional', distrito: 'Malabo' },
-    { id: 'cent-1', nombre: 'Centro Bata', distrito: 'Bata' },
-    { id: 'clin-1', nombre: 'Clínica Especializada', distrito: 'Ebebiyín' }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Profesionales del centro asignado (si aplica)
+        let profQuery = supabase
+          .from('profesionales_sanitarios')
+          .select('id, nombre_completo, area_profesional, centro_salud_id')
+          .eq('estado_solicitud', 'Aprobado');
 
-  const handleCreateSolicitud = () => {
-    console.log('Creating traslado solicitud:', newTraslado);
-    // Aquí iría la lógica para crear la solicitud
+        if (userRole === 'ADMIN_CENTRO_SANITARIO' && (user?.assigned_center_id || centroAsignado)) {
+          profQuery = profQuery.eq('centro_salud_id', (centroAsignado || user?.assigned_center_id) as string);
+        }
+
+        const [{ data: profs }, { data: centros }] = await Promise.all([
+          profQuery.order('nombre_completo', { ascending: true }),
+          supabase
+            .from('centros_salud')
+            .select('id, nombre, distrito_sanitario')
+            .order('nombre', { ascending: true })
+        ]);
+
+        setProfesionalesDisponibles(
+          (profs || []).map((p: any) => ({ id: p.id, nombre: p.nombre_completo, area: p.area_profesional || undefined }))
+        );
+        setCentrosDestino((centros || []).map((c: any) => ({ id: c.id, nombre: c.nombre, distrito: c.distrito_sanitario || undefined })));
+      } catch (e) {
+        console.error('Error cargando datos para traslados:', e);
+      }
+    };
+
+    fetchData();
+  }, [userRole, user?.assigned_center_id, centroAsignado]);
+
+  const handleCreateSolicitud = async () => {
+    if (!newTraslado.centroDestino || !newTraslado.motivo || selectedProfesionals.length === 0) return;
+
+    for (const profesionalId of selectedProfesionals) {
+      await createTrasladoSolicitud({
+        profesional_id: profesionalId,
+        centro_destino_id: newTraslado.centroDestino,
+        motivo: newTraslado.motivo,
+        observaciones: newTraslado.observaciones,
+        centro_origen_id: (user?.assigned_center_id || centroAsignado) as string | undefined
+      });
+    }
+
     setIsCreateOpen(false);
-    setNewTraslado({
-      profesionalIds: [],
-      centroDestino: '',
-      motivo: '',
-      observaciones: ''
-    });
+    setNewTraslado({ profesionalIds: [], centroDestino: '', motivo: '', observaciones: '' });
     setSelectedProfesionals([]);
+    loadTraslados();
   };
 
-  const handleApproveTraslado = (solicitudId: string) => {
-    console.log('Approving traslado:', solicitudId);
-    // Aquí iría la lógica para aprobar el traslado
+  const handleApproveTraslado = async (solicitudId: string) => {
+    await processTrasladoSolicitud(solicitudId, 'aprobado');
   };
 
-  const handleRejectTraslado = (solicitudId: string) => {
-    console.log('Rejecting traslado:', solicitudId);
-    // Aquí iría la lógica para rechazar el traslado
+  const handleRejectTraslado = async (solicitudId: string) => {
+    await processTrasladoSolicitud(solicitudId, 'rechazado');
   };
 
   const getStatusBadge = (estado: string) => {
@@ -155,7 +186,7 @@ const TrasladosProfesionalesPanel: React.FC<TrasladosProfesionalesPanelProps> = 
             </CardTitle>
             <div className="flex items-center gap-2">
               <Badge variant="outline">
-                {solicitudesTraslado.filter(s => s.estado === 'pendiente').length} pendientes
+                {traslados.filter((s: any) => s.estado === 'pendiente').length} pendientes
               </Badge>
               {canCreateTraslado && (
                 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -188,7 +219,7 @@ const TrasladosProfesionalesPanel: React.FC<TrasladosProfesionalesPanelProps> = 
                                   }
                                 }}
                               />
-                              <span>{prof.nombre} - {prof.area}</span>
+                              <span>{prof.nombre}{prof.area ? ` - ${prof.area}` : ''}</span>
                             </label>
                           ))}
                         </div>
@@ -207,7 +238,7 @@ const TrasladosProfesionalesPanel: React.FC<TrasladosProfesionalesPanelProps> = 
                           <SelectContent>
                             {centrosDestino.map((centro) => (
                               <SelectItem key={centro.id} value={centro.id}>
-                                {centro.nombre} - {centro.distrito}
+                                {centro.nombre}{centro.distrito ? ` - ${centro.distrito}` : ''}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -267,7 +298,7 @@ const TrasladosProfesionalesPanel: React.FC<TrasladosProfesionalesPanelProps> = 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {solicitudesTraslado.length === 0 ? (
+                {traslados.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={canApproveTraslado ? 7 : 6} className="text-center py-8">
                       <div className="flex flex-col items-center justify-center text-gray-500">
@@ -283,24 +314,24 @@ const TrasladosProfesionalesPanel: React.FC<TrasladosProfesionalesPanelProps> = 
                     </TableCell>
                   </TableRow>
                 ) : (
-                  solicitudesTraslado.map((solicitud) => (
+                  traslados.map((solicitud: any) => (
                     <TableRow key={solicitud.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{solicitud.nombreProfesional}</div>
-                          <div className="text-sm text-gray-500">{solicitud.areaProfesional}</div>
+                          <div className="font-medium">{solicitud.profesional?.nombre_completo || 'Profesional'}</div>
+                          <div className="text-sm text-gray-500">{solicitud.profesional?.area_profesional || ''}</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Building className="w-4 h-4 text-gray-400" />
-                          {solicitud.centroOrigen}
+                          {solicitud.centro_origen?.nombre || ''}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Building className="w-4 h-4 text-blue-400" />
-                          {solicitud.centroDestino}
+                          {solicitud.centro_destino?.nombre || ''}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -313,10 +344,10 @@ const TrasladosProfesionalesPanel: React.FC<TrasladosProfesionalesPanelProps> = 
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          <div>Sol: {new Date(solicitud.fechaSolicitud).toLocaleDateString()}</div>
-                          {solicitud.fechaRespuesta && (
+                          <div>Sol: {new Date(solicitud.fecha_solicitud).toLocaleDateString()}</div>
+                          {solicitud.fecha_aprobacion && (
                             <div className="text-gray-500">
-                              Resp: {new Date(solicitud.fechaRespuesta).toLocaleDateString()}
+                              Resp: {new Date(solicitud.fecha_aprobacion).toLocaleDateString()}
                             </div>
                           )}
                         </div>

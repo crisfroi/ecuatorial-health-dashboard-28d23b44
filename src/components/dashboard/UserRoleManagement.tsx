@@ -43,6 +43,8 @@ import { useUserManagement } from "@/hooks/useUserManagement";
 import { useTestInvite } from "@/hooks/useTestInvite";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCentrosSalud } from "@/hooks/useCentrosSalud";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { PERMISSIONS } from "@/types/roles";
 
 const UserRoleManagement = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -57,6 +59,7 @@ const UserRoleManagement = () => {
   });
 
   const { inviteUser, getUserProfiles, updateUserRole, deleteUser, isLoading } = useUserManagement();
+  const { loading: loadingPerms, getPermissionsForRole, getAvailablePermissions, setPermissionsForRole } = useRolePermissions();
   const { testInvite, isLoading: isTestLoading } = useTestInvite();
   const { user: currentUser, switchRole } = useAuth();
   const { data: centrosSalud = [] } = useCentrosSalud();
@@ -72,6 +75,8 @@ const UserRoleManagement = () => {
   useEffect(() => {
     loadUsers();
   }, []);
+
+  const [activeTab, setActiveTab] = useState<'users' | 'permissions'>('users');
 
   const loadUsers = async () => {
     const userProfiles = await getUserProfiles();

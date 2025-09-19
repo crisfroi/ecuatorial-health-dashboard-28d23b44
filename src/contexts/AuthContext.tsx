@@ -257,15 +257,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const logout = async () => {
     setIsLoading(true);
     console.log('👋 Cerrando sesión...');
-    
+
     try {
+      // Intentar cerrar sesión en el servidor
       await supabase.auth.signOut();
+    } catch (error) {
+      console.warn('⚠️ Error al cerrar sesión en servidor, limpiando sesión local igualmente:', error);
+    } finally {
+      // Asegurar limpieza local de la sesión aunque falle el servidor
+      try {
+        await supabase.auth.signOut({ scope: 'local' as any });
+      } catch {}
       setUser(null);
       setUserRole(null);
-      console.log('✅ Sesión cerrada exitosamente');
-    } catch (error) {
-      console.error('❌ Error during logout:', error);
-    } finally {
+      console.log('✅ Sesión cerrada localmente');
       setIsLoading(false);
     }
   };

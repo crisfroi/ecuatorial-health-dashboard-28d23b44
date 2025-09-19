@@ -65,13 +65,19 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
   const { filterCentersData } = useRoleBasedData();
   const { toast } = useToast();
 
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
   const {
     data: centros = [],
     isLoading,
     isError,
     error,
   } = useBuscarCentros({
-    nombreParcial: searchTerm || undefined,
+    nombreParcial: debouncedSearch || undefined,
     categoria: selectedCategory === "all" ? undefined : selectedCategory,
     distritoSanitario:
       selectedDistrito === "all" ? undefined : selectedDistrito,

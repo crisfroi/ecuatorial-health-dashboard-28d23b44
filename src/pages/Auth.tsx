@@ -35,7 +35,11 @@ const Auth = () => {
     setError('');
 
     try {
-      const result = await authLogin(email, password);
+      const finalEmail = email.includes('@') ? email.trim().toLowerCase() : `${email.trim().toLowerCase()}@sanidad.gq`;
+      const isDev = import.meta.env.DEV;
+      const finalPassword = (isDev && (!password || password.trim() === '')) ? '123456' : password;
+
+      const result = await authLogin(finalEmail, finalPassword);
       if (!result.success) {
         setError(result.error || 'Error al iniciar sesión');
         return;
@@ -45,6 +49,29 @@ const Auth = () => {
       navigate('/dashboard');
     } catch (err: any) {
       setError('Error inesperado al iniciar sesión');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickDevLogin = async () => {
+    if (!email) {
+      setError('Introduce tu usuario o email');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const finalEmail = email.includes('@') ? email.trim().toLowerCase() : `${email.trim().toLowerCase()}@sanidad.gq`;
+      const result = await authLogin(finalEmail, '');
+      if (!result.success) {
+        setError(result.error || 'No se pudo iniciar sesión');
+        return;
+      }
+      toast({ title: 'Acceso rápido (DEV)', description: 'Sesión iniciada.' });
+      navigate('/dashboard');
+    } catch (e) {
+      setError('Error de acceso rápido');
     } finally {
       setLoading(false);
     }
@@ -178,13 +205,20 @@ const Auth = () => {
                       />
                     </div>
                   </div>
-                  <Button
-                    type="submit"
-                    className="w-full bg-guinea-teal hover:bg-guinea-dark-teal"
-                    disabled={loading}
-                  >
-                    {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      type="submit"
+                      className="w-full bg-guinea-teal hover:bg-guinea-dark-teal"
+                      disabled={loading}
+                    >
+                      {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                    </Button>
+                    {import.meta.env.DEV && (
+                      <Button type="button" variant="outline" className="w-full" onClick={handleQuickDevLogin} disabled={loading}>
+                        Entrar sin contraseña (DEV)
+                      </Button>
+                    )}
+                  </div>
                 </form>
               </TabsContent>
 

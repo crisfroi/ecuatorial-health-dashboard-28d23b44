@@ -28,8 +28,10 @@ export const useCentrosSalud = () => {
   const buscarCentros = async (params: BuscarCentrosParams) => {
     console.log("🔍 Buscando centros con parámetros:", params);
     
-    // Get all centers with basic filters
-    let query = supabase.from("centros_salud").select("*");
+    // Get all centers with basic filters (select only required columns)
+    let query = supabase
+      .from("centros_salud")
+      .select("id, nombre, categoria, sector, distrito_sanitario, provincia, distrito, director, telefono");
 
     if (params.nombreParcial) {
       query = query.ilike("nombre", `%${params.nombreParcial}%`);
@@ -321,8 +323,9 @@ export const useBuscarCentros = (params: BuscarCentrosParams) => {
     queryKey: ["centros", params],
     queryFn: () => buscarCentros(params),
     enabled: true,
-    refetchInterval: 10000, // Refrescar cada 10 segundos para datos en tiempo real
-    staleTime: 5000, // Considerar datos obsoletos después de 5 segundos
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
   });
 };
 

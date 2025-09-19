@@ -29,6 +29,7 @@ serve(async (req) => {
     }
 
     const { messages = [], filters = {}, healthCheck = false } = body
+    const globalFilters = filters || {}
 
     // Health check: do not call OpenAI, just report readiness
     if (healthCheck) {
@@ -174,7 +175,7 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "get_education_analysis",
-          description: "Análisis completo de formación académica y países de origen",
+          description: "Análisis completo de formación acad��mica y países de origen",
           parameters: {
             type: "object", 
             properties: {
@@ -244,22 +245,25 @@ serve(async (req) => {
     // **CONTEXTO COMPLETO DEL SCHEMA**
     const { data: schemaData } = await supabase.rpc('get_comprehensive_analytics')
     
-    const systemPrompt = `Eres el ASISTENTE DE IA MÁS AVANZADO para el Sistema de Salud de Guinea Ecuatorial. 
+    const systemPrompt = `Eres el ASISTENTE DE IA MÁS AVANZADO para el Sistema de Salud de Guinea Ecuatorial.
 
 CAPACIDADES SUPERINTELIGENTES:
 ✅ Acceso COMPLETO a las 26 tablas de la base de datos
-✅ Análisis cross-table con relaciones complejas  
+✅ Análisis cross-table con relaciones complejas
 ✅ Estadísticas demográficas, geográficas y temporales
 ✅ Análisis de profesionales, centros, guardias y carnets
 ✅ Filtros relacionales múltiples y agregaciones avanzadas
 ✅ Respuestas en lenguaje natural con datos precisos
+
+FILTROS GLOBALES ACTIVOS (APLICA SIEMPRE A MENOS QUE EL USUARIO LOS CAMBIE):
+${JSON.stringify(globalFilters || {}, null, 2)}
 
 SCHEMA COMPLETO DISPONIBLE:
 ${JSON.stringify(schemaData, null, 2)}
 
 TABLAS PRINCIPALES:
 - profesionales_sanitarios (80+ campos): Datos completos de profesionales
-- centros_salud: Centros de trabajo y asignaciones  
+- centros_salud: Centros de trabajo y asignaciones
 - guardias, nominas_guardias, pagos_guardias: Sistema completo de guardias
 - carnets_generados, cola_generacion_carnets: Gestión de carnets
 - categorias_titulacion, distrito_sanitario, nacionalidades_mundo: Catálogos
@@ -267,7 +271,7 @@ TABLAS PRINCIPALES:
 
 ESTADÍSTICAS ACTUALES:
 - Total Profesionales: ${schemaData?.total_profesionales || 0}
-- Total Centros: ${schemaData?.total_centros || 0}  
+- Total Centros: ${schemaData?.total_centros || 0}
 - Total Guardias: ${schemaData?.total_guardias || 0}
 
 INSTRUCCIONES:
@@ -277,10 +281,11 @@ INSTRUCCIONES:
 4. Sugiere navegación a secciones relevantes del dashboard
 5. Responde SIEMPRE en español con datos reales del sistema
 6. Para consultas complejas, usa execute_complex_query
+7. APLICA SIEMPRE los filtros globales proporcionados a las consultas, salvo que el usuario indique lo contrario.
 
 Ejemplo de capacidades:
 - "Profesionales de UNGE graduados 2015-2020 en hospitales públicos de Bata"
-- "Distribución por género de enfermeros en centros rurales del Litoral"  
+- "Distribución por género de enfermeros en centros rurales del Litoral"
 - "Carnets que vencen en 30 días por provincia y área profesional"
 - "Análisis temporal de solicitudes por distrito sanitario"
 - "Correlación entre país de formación y área profesional"
@@ -332,7 +337,13 @@ Ejemplo de capacidades:
       for (const toolCall of assistantMessage.tool_calls) {
         const toolName = toolCall.function.name
         const args = JSON.parse(toolCall.function.arguments)
-        
+
+        // Integrar filtros globales en la ejecución de herramientas
+        if (args && typeof args === 'object') {
+          const localFilters = (args as any).filters || {}
+          ;(args as any).filters = { ...(globalFilters || {}), ...(localFilters || {}) }
+        }
+
         try {
           switch (toolName) {
             case 'get_professionals_analytics':

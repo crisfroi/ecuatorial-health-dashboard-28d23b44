@@ -147,9 +147,8 @@ export const useAdvancedRoleManagement = () => {
         .order('fecha_solicitud', { ascending: false });
 
       // Filtrar por centro si es admin de centro
-      if (userRole === 'ADMIN_CENTRO_SANITARIO') {
-        // Aquí se aplicaría el filtro por centro asignado
-        // query = query.eq('centro_origen_id', user?.assigned_center_id);
+      if (userRole === 'ADMIN_CENTRO_SANITARIO' && user?.assigned_center_id) {
+        query = query.eq('centro_origen_id', user.assigned_center_id);
       }
 
       const { data, error } = await query;
@@ -181,6 +180,7 @@ export const useAdvancedRoleManagement = () => {
         .from('solicitudes_traslado')
         .insert([{
           ...trasladoData,
+          centro_origen_id: trasladoData.centro_origen_id || (userRole === 'ADMIN_CENTRO_SANITARIO' ? user?.assigned_center_id : undefined),
           solicitante_id: user?.id,
           estado: 'pendiente'
         }])

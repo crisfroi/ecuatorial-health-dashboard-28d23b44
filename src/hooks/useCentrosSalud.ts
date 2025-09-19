@@ -49,42 +49,45 @@ export const useCentrosSalud = () => {
 
     console.log(`📋 Encontrados ${centros?.length || 0} centros`);
 
-    // For each center, count professionals using multiple matching strategies
-    const centrosConConteo = await Promise.all(
-      (centros || []).map(async (centro) => {
-        console.log(`🔢 Contando profesionales para centro: ${centro.nombre}`);
-        
-        // Strategy 1: Match by centro_salud_id
-        const { count: countById } = await supabase
-          .from("profesionales_sanitarios")
-          .select("*", { count: "exact", head: true })
-          .eq("centro_salud_id", centro.id);
+    // Batch compute professional counts per center in 2 queries (by id and by name)
+    const centerIds = (centros || []).map((c: any) => c.id).filter(Boolean);
+    const centerNames = (centros || []).map((c: any) => c.nombre).filter(Boolean);
 
-        // Strategy 2: Match by nombre_centro
-        const { count: countByName } = await supabase
-          .from("profesionales_sanitarios")
-          .select("*", { count: "exact", head: true })
-          .eq("nombre_centro", centro.nombre);
+    const [byIdRes, byNameRes] = await Promise.all([
+      centerIds.length
+        ? supabase
+            .from("profesionales_sanitarios")
+            .select("id, centro_salud_id")
+            .in("centro_salud_id", centerIds)
+        : Promise.resolve({ data: [] as any[] }),
+      centerNames.length
+        ? supabase
+            .from("profesionales_sanitarios")
+            .select("id, nombre_centro")
+            .in("nombre_centro", centerNames)
+        : Promise.resolve({ data: [] as any[] })
+    ]);
 
-        // Strategy 3: Match by nombre_centro (workplace)
-        const { count: countByLugarTrabajo } = await supabase
-          .from("profesionales_sanitarios")
-          .select("*", { count: "exact", head: true })
-          .eq("nombre_centro", centro.nombre);
+    const countsById = new Map<string, number>();
+    (byIdRes.data || []).forEach((p: any) => {
+      if (p.centro_salud_id) countsById.set(p.centro_salud_id, (countsById.get(p.centro_salud_id) || 0) + 1);
+    });
 
-        // Use the maximum count from all strategies
-        const totalProfesionales = Math.max(countById || 0, countByName || 0, countByLugarTrabajo || 0);
+    const nameToId = new Map<string, string>();
+    (centros || []).forEach((c: any) => nameToId.set(c.nombre, c.id));
 
-        console.log(`📊 Centro ${centro.nombre}: ${totalProfesionales} profesionales (ID: ${countById}, Nombre: ${countByName}, Lugar: ${countByLugarTrabajo})`);
+    const countsByName = new Map<string, number>();
+    (byNameRes.data || []).forEach((p: any) => {
+      const cid = nameToId.get(p.nombre_centro);
+      if (cid) countsByName.set(cid, (countsByName.get(cid) || 0) + 1);
+    });
 
-        return {
-          ...centro,
-          total_profesionales: totalProfesionales,
-        };
-      }),
-    );
+    const centrosConConteo = (centros || []).map((centro: any) => {
+      const total = Math.max(countsById.get(centro.id) || 0, countsByName.get(centro.id) || 0);
+      return { ...centro, total_profesionales: total };
+    });
 
-    console.log("✅ Centros con conteo completado");
+    console.log("✅ Centros con conteo completado (batched)");
     return centrosConConteo;
   };
 

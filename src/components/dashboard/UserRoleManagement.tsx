@@ -43,6 +43,8 @@ import { useUserManagement } from "@/hooks/useUserManagement";
 import { useTestInvite } from "@/hooks/useTestInvite";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCentrosSalud } from "@/hooks/useCentrosSalud";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { PERMISSIONS } from "@/types/roles";
 
 const UserRoleManagement = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);

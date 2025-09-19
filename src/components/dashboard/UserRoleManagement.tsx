@@ -76,6 +76,8 @@ const UserRoleManagement = () => {
     loadUsers();
   }, []);
 
+  const [activeTab, setActiveTab] = useState<'users' | 'permissions'>('users');
+
   const loadUsers = async () => {
     const userProfiles = await getUserProfiles();
     setUsers(userProfiles);

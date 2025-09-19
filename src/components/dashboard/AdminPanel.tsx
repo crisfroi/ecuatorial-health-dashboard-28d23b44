@@ -76,25 +76,16 @@ const AdminPanel = () => {
     });
   };
 
+  const { logout } = useAuth();
+
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        toast({
-          title: "Error al cerrar sesión",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Sesión cerrada",
-          description: "Has cerrado sesión exitosamente.",
-        });
-        navigate("/");
-      }
+      await logout();
+      toast({ title: 'Sesión cerrada', description: 'Has cerrado sesión exitosamente.' });
+      navigate('/');
     } catch (err) {
-      console.error("Error during logout:", err);
-      navigate("/");
+      console.error('Error durante logout:', err);
+      navigate('/');
     }
   };
 

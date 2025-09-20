@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import { 
   MessageSquare, 
   Send, 
@@ -74,13 +74,57 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
-  const checkSystemHealth = async () => {
+  // Robust invoker with fallback when supabase-js fails to send the request
+  const invokeAI = async (
+    payload: Record<string, any>
+  ): Promise<{ data: any; error: any; fetchError: any }> => {
     try {
       const { data, error } = await supabase.functions.invoke('ai-chat-master', {
-        body: {
-          messages: [{ role: 'user', content: 'test' }],
-          healthCheck: true
-        }
+        body: payload,
+      });
+      return { data, error, fetchError: null };
+    } catch (err: any) {
+      const msg = String(err?.message || '');
+      const name = String(err?.name || '');
+      const isFetchError = name.includes('FunctionsFetchError') || msg.includes('Failed to send a request');
+      if (!isFetchError) throw err;
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/ai-chat-master`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      let json: any = null;
+      try {
+        json = await resp.json();
+      } catch (_) {
+        json = null;
+      }
+
+      if (!resp.ok) {
+        return {
+          data: json,
+          error: { message: `Edge Function returned ${resp.status}`, context: json },
+          fetchError: err,
+        };
+      }
+
+      return { data: json, error: null, fetchError: err };
+    }
+  };
+
+  const checkSystemHealth = async () => {
+    try {
+      const { data, error } = await invokeAI({
+        messages: [{ role: 'user', content: 'test' }],
+        healthCheck: true,
       });
 
       if (error) {
@@ -126,11 +170,9 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     try {
       console.log('🚀 Enviando consulta al sistema superinteligente...');
       
-      const { data, error } = await supabase.functions.invoke('ai-chat-master', {
-        body: {
-          messages: [...messages, userMessage].slice(-10),
-          filters: filters || {}
-        }
+      const { data, error } = await invokeAI({
+        messages: [...messages, userMessage].slice(-10),
+        filters: filters || {},
       });
 
       if (data?.needsOpenAI) {

@@ -1,7 +1,9 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ShieldAlert } from 'lucide-react';
 import { Button } from './button';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
+import { StorageCleanup } from '@/utils/storageCleanup';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   children: ReactNode;
@@ -89,7 +91,7 @@ class ErrorBoundary extends Component<Props, State> {
                 </details>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 onClick={this.handleReset}
                 size="sm"
@@ -104,6 +106,21 @@ class ErrorBoundary extends Component<Props, State> {
                 size="sm"
               >
                 Recargar Página
+              </Button>
+              <Button
+                onClick={async () => {
+                  try {
+                    await supabase.auth.signOut({ scope: 'local' as any });
+                  } catch {}
+                  StorageCleanup.cleanAuthStorage();
+                  window.location.href = '/auth';
+                }}
+                variant="destructive"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <ShieldAlert className="w-4 h-4" />
+                Restablecer sesión
               </Button>
             </div>
           </CardContent>

@@ -12,6 +12,7 @@ import PublicSearch from "./pages/PublicSearch";
 import NotFound from "./pages/NotFound";
 import SolicitudEstablecimiento from "./pages/SolicitudEstablecimiento";
 import Auth from "./pages/Auth";
+import ErrorBoundary from "@/components/ui/error-boundary";
 import "./utils/authErrorHandler"; // Initialize global auth error handling
 import "./utils/storageCleanup"; // Initialize storage cleanup
 import { initResizeObserverErrorHandling } from "./utils/resizeObserverHandler";

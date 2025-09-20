@@ -66,24 +66,26 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider defaultRole="SUPER_ADMINISTRADOR">
-        <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/old-home" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/register" element={<ProfessionalRegistration />} />
-            <Route path="/search" element={<PublicSearch />} />
-            <Route path="/solicitud-establecimiento" element={<SolicitudEstablecimiento />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider defaultRole="SUPER_ADMINISTRADOR">
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/old-home" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/register" element={<ProfessionalRegistration />} />
+                <Route path="/search" element={<PublicSearch />} />
+                <Route path="/solicitud-establecimiento" element={<SolicitudEstablecimiento />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }

@@ -629,9 +629,9 @@ const Dashboard = () => {
         </div>
 
         {showFilters && (
-          <Card className="mb-6">
+          <Card className="mb-6" data-tour="dashboard-filters">
             <CardHeader>
-              <CardTitle className="text-lg">Filtros de B��squeda</CardTitle>
+              <CardTitle className="text-lg">Filtros de Búsqueda</CardTitle>
               <CardDescription>
                 Filtra los datos del dashboard según tus criterios
               </CardDescription>
@@ -646,7 +646,7 @@ const Dashboard = () => {
         )}
 
         {showStatsCards && activeTab === "overview" && (
-          <div className="mb-6">
+          <div className="mb-6" data-tour="dashboard-stats-cards">
             <StatsCards
               filters={dashboardFilters}
               onNavigateToProfessionals={handleNavigateToProfessionals}
@@ -687,7 +687,7 @@ const Dashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="professionals" className="space-y-6">
+          <TabsContent value="professionals" className="space-y-6" data-tour="dashboard-professionals">
             {selectedProfessional ? (
               <div className="space-y-4">
                 <Button
@@ -720,7 +720,7 @@ const Dashboard = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="requests" className="space-y-6">
+          <TabsContent value="requests" className="space-y-6" data-tour="dashboard-requests">
             <RequestsPanel
               userRole={currentRole}
               initialStatusFilter={dashboardFilters.estado_solicitud}
@@ -728,7 +728,7 @@ const Dashboard = () => {
             />
           </TabsContent>
 
-          <TabsContent value="renewals" className="space-y-6">
+          <TabsContent value="renewals" className="space-y-6" data-tour="dashboard-renewals">
             <RenewalAlerts
               dashboardFilters={dashboardFilters}
               onSelectProfessional={handleSelectProfessional}
@@ -736,22 +736,22 @@ const Dashboard = () => {
             />
           </TabsContent>
 
-          <TabsContent value="guardias" className="space-y-6">
+          <TabsContent value="guardias" className="space-y-6" data-tour="dashboard-guardias">
             <GuardiasDashboard userRole={userRole} />
           </TabsContent>
 
-          <TabsContent value="asistencia" className="space-y-6">
+          <TabsContent value="asistencia" className="space-y-6" data-tour="dashboard-asistencia">
             <AsistenciaDashboard />
           </TabsContent>
 
-          <TabsContent value="analytics" className="space-y-6">
+          <TabsContent value="analytics" className="space-y-6" data-tour="dashboard-analytics">
             <AdvancedAnalyticsDashboard
               onNavigateToTab={handleNavigateFromAnalytics}
               filters={dashboardFilters}
             />
           </TabsContent>
 
-          <TabsContent value="iachat" className="space-y-6">
+          <TabsContent value="iachat" className="space-y-6" data-tour="dashboard-iachat">
             <IAChatOrchestrator
               filters={dashboardFilters}
               onNavigateToTab={(tab, filters) => {
@@ -761,29 +761,29 @@ const Dashboard = () => {
             />
           </TabsContent>
 
-          <TabsContent value="ministerial" className="space-y-6">
+          <TabsContent value="ministerial" className="space-y-6" data-tour="dashboard-ministerial">
             {(hasPermission("view_ministerial_panel")) && (
               <MinisterialPanel />
             )}
           </TabsContent>
 
-          <TabsContent value="incidents" className="space-y-6">
+          <TabsContent value="incidents" className="space-y-6" data-tour="dashboard-incidents">
             <IncidentManagement />
           </TabsContent>
 
-          <TabsContent value="health-centers" className="space-y-6">
+          <TabsContent value="health-centers" className="space-y-6" data-tour="dashboard-centros">
             <HealthCenters dashboardFilters={dashboardFilters} />
           </TabsContent>
 
-          <TabsContent value="establecimientos" className="space-y-6">
+          <TabsContent value="establecimientos" className="space-y-6" data-tour="dashboard-establecimientos">
             <SolicitudesEstablecimientos userRole={userRole as string} />
           </TabsContent>
 
-          <TabsContent value="users" className="space-y-6">
+          <TabsContent value="users" className="space-y-6" data-tour="dashboard-users">
             {hasPermission("manage_users") && <AdminPanel />}
           </TabsContent>
 
-          <TabsContent value="admin" className="space-y-6">
+          <TabsContent value="admin" className="space-y-6" data-tour="dashboard-admin">
             {(userRole === 'RRHH_MINISTERIO' || userRole === 'SUPER_ADMINISTRADOR') && (
               <PanelRRHH userRole={userRole} />
             )}
@@ -795,6 +795,51 @@ const Dashboard = () => {
             <TrasladosProfesionalesPanel userRole={userRole} />
           </TabsContent>
         </Tabs>
+
+        <button
+          onClick={handleFullPageScreenshot}
+          aria-label="Capturar pantalla"
+          className="fixed bottom-6 right-6 z-50 rounded-full bg-guinea-teal text-white shadow-lg hover:opacity-90 transition-opacity p-4"
+          title="Capturar pantalla"
+        >
+          📷
+        </button>
+
+        {ENABLE_INTERACTIVE_TOURS && !isTourCompleted('dashboard') && (
+          <>
+            <button
+              onClick={() => setOpenTour(true)}
+              className="fixed bottom-24 right-6 z-50 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors p-3"
+              aria-label="Ayuda"
+              title="Guía rápida"
+            >
+              ?
+            </button>
+            <CoachMarks
+              open={openTour}
+              steps={[
+                { id: 'tabs', target: '[data-tour="dashboard-tabs"]', title: 'Módulos del Dashboard', content: 'Navega entre módulos: General, Profesionales, Renovaciones, Analíticas, IA, y más según tus permisos.' },
+                { id: 'search', target: '[data-tour="dashboard-global-search"]', title: 'Búsqueda Global', content: 'Busca profesionales o datos en todo el sistema y navega directamente a los resultados.' },
+                { id: 'filters-toggle', target: '[data-tour="dashboard-filters-toggle"]', title: 'Filtros Globales', content: 'Muestra u oculta los filtros. Los filtros aplican a múltiples módulos.' },
+                { id: 'stats-toggle', target: '[data-tour="dashboard-stats-toggle"]', title: 'Tarjetas de Estadísticas', content: 'Muestra/oculta el resumen general y navega con un clic aplicando filtros.' },
+                ...(activeTab === 'overview' ? [{ id: 'stats-cards', target: '[data-tour="dashboard-stats-cards"]', title: 'Resumen General', content: 'Panel con métricas clave y acceso rápido a vistas filtradas.' } as CoachMarkStep] : []),
+                ...(canAccessTab('professionals') ? [{ id: 'tab-prof', target: '[data-tour="tab-professionals"]', title: 'Profesionales', content: 'Lista y detalle de profesionales. Aplica filtros y selecciona para ver información completa.' } as CoachMarkStep] : []),
+                ...(canAccessTab('requests') ? [{ id: 'tab-req', target: '[data-tour="tab-requests"]', title: 'Solicitudes', content: 'Gestiona solicitudes en trámite y estados pendientes.' } as CoachMarkStep] : []),
+                ...(canAccessTab('renewals') ? [{ id: 'tab-ren', target: '[data-tour="tab-renewals"]', title: 'Renovaciones', content: 'Gestiona carnets próximos a vencer y vencidos. Envía recordatorios por SMS.' } as CoachMarkStep] : []),
+                ...(canAccessTab('analytics') ? [{ id: 'tab-ana', target: '[data-tour="tab-analytics"]', title: 'Analíticas', content: 'Explora estadísticas avanzadas y navega aplicando filtros desde los gráficos.' } as CoachMarkStep] : []),
+                ...(canAccessTab('iachat') ? [{ id: 'tab-ia', target: '[data-tour="tab-iachat"]', title: 'IA Chat', content: 'Asistente de IA para consultas y acciones dentro del sistema.' } as CoachMarkStep] : []),
+                ...(canAccessTab('ministerial') ? [{ id: 'tab-min', target: '[data-tour="tab-ministerial"]', title: 'Ministerial', content: 'Panel para autoridades con indicadores y acciones ministeriales.' } as CoachMarkStep] : []),
+                ...(canAccessTab('incidents') ? [{ id: 'tab-inc', target: '[data-tour="tab-incidents"]', title: 'Incidencias', content: 'Registro y seguimiento de incidencias del sistema.' } as CoachMarkStep] : []),
+                ...(canAccessTab('health-centers') ? [{ id: 'tab-cent', target: '[data-tour="tab-health-centers"]', title: 'Centros de Salud', content: 'Gestión y directorio de centros de salud.' } as CoachMarkStep] : []),
+                ...(canAccessTab('establecimientos') ? [{ id: 'tab-est', target: '[data-tour="tab-establecimientos"]', title: 'Solicitudes Establecimientos', content: 'Gestiona solicitudes de establecimientos sanitarios.' } as CoachMarkStep] : []),
+                ...(hasPermission('manage_users') ? [{ id: 'tab-users', target: '[data-tour="tab-users"]', title: 'Usuarios', content: 'Administración de usuarios del sistema.' } as CoachMarkStep] : []),
+                ...(hasPermission('system_configuration') ? [{ id: 'tab-admin', target: '[data-tour="tab-admin"]', title: 'Admin', content: 'Configuración avanzada del sistema.' } as CoachMarkStep] : []),
+              ]}
+              onClose={() => setOpenTour(false)}
+              onFinish={() => setTourCompleted('dashboard')}
+            />
+          </>
+        )}
 
         <button
           onClick={handleFullPageScreenshot}

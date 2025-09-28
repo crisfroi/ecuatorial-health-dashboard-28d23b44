@@ -176,13 +176,13 @@ const Auth = () => {
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div>
-                    <Label htmlFor="signin-email">Correo Electrónico</Label>
+                    <Label htmlFor="signin-identifier">Usuario o Correo</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <Input
-                        id="signin-email"
-                        type="email"
-                        placeholder="admin@sanidad.gq"
+                        id="signin-identifier"
+                        type="text"
+                        placeholder="usuario o correo (ej: juan | juan@sanidad.gq)"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="pl-10"

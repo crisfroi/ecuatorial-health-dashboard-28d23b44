@@ -16,8 +16,46 @@ import {
   Search,
   Shield,
 } from "lucide-react";
+import { useState } from "react";
+import { ENABLE_INTERACTIVE_TOURS, isTourCompleted, setTourCompleted } from "@/config/featureFlags";
+import CoachMarks, { CoachMarkStep } from "@/components/onboarding/CoachMarks";
 
 const Home = () => {
+  const [openTour, setOpenTour] = useState(false);
+
+  const steps: CoachMarkStep[] = [
+    {
+      id: 'hero',
+      target: '[data-tour="home-hero"]',
+      title: 'Bienvenido',
+      content: 'Aquí verás una breve descripción del sistema y sus objetivos.',
+    },
+    {
+      id: 'verify',
+      target: '[data-tour="home-verify"]',
+      title: 'Verificar Profesional',
+      content: 'Accede a la verificación pública para validar la acreditación de un profesional.',
+    },
+    {
+      id: 'dashboard',
+      target: '[data-tour="home-dashboard"]',
+      title: 'Panel de Control',
+      content: 'Ingresa al panel para gestionar profesionales, ver estadísticas y más.',
+    },
+    {
+      id: 'register',
+      target: '[data-tour="home-register"]',
+      title: 'Registro de Profesionales',
+      content: 'Inicia el proceso de registro paso a paso para nuevos profesionales.',
+    },
+    {
+      id: 'cards',
+      target: '[data-tour="home-cards"]',
+      title: 'Accesos Rápidos',
+      content: 'Desde estas tarjetas puedes ir directo a Registro, Verificación y Panel.',
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -35,13 +73,13 @@ const Home = () => {
               </h1>
             </div>
             <nav className="flex items-center space-x-4">
-              <Link to="/search">
+              <Link to="/search" data-tour="home-verify">
                 <Button variant="outline">
                   <Search className="w-4 h-4 mr-2" />
                   Verificar Profesional
                 </Button>
               </Link>
-              <Link to="/auth">
+              <Link to="/auth" data-tour="home-dashboard">
                 <Button variant="outline">Panel de Control</Button>
               </Link>
             </nav>
@@ -51,7 +89,7 @@ const Home = () => {
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16">
-        <div className="text-center mb-16">
+        <div className="text-center mb-16" data-tour="home-hero">
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
             Sistema de Gestión de Profesionales Sanitarios
           </h1>
@@ -65,6 +103,7 @@ const Home = () => {
               <Button
                 size="lg"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+                data-tour="home-register"
               >
                 <UserPlus className="w-5 h-5 mr-2" />
                 Registrarse como Profesional
@@ -117,7 +156,7 @@ const Home = () => {
         </div>
 
         {/* Features */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16" data-tour="home-cards">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <Users className="w-12 h-12 text-blue-600 mb-4" />
@@ -268,6 +307,25 @@ const Home = () => {
           </div>
         </div>
       </footer>
+
+      {ENABLE_INTERACTIVE_TOURS && !isTourCompleted('home') && (
+        <>
+          <button
+            onClick={() => setOpenTour(true)}
+            className="fixed bottom-6 right-6 z-50 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors p-3"
+            aria-label="Ayuda"
+            title="Guía rápida"
+          >
+            ?
+          </button>
+          <CoachMarks
+            open={openTour}
+            steps={steps}
+            onClose={() => setOpenTour(false)}
+            onFinish={() => setTourCompleted('home')}
+          />
+        </>
+      )}
     </div>
   );
 };

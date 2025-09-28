@@ -35,11 +35,65 @@ serve(async (req) => {
     });
 
     const requestBody = await req.json();
-    const { action, userId, updates } = requestBody;
+    const { action, userId, updates, username, password, email, role, full_name, department, assigned_center_id } = requestBody;
 
     console.log('📋 Request details:', { action, userId: !!userId, hasUpdates: !!updates });
 
     switch (action) {
+      case 'createUser':
+        console.log('👤 Creating user via admin API');
+
+        if ((!username && !email) || !password || !role) {
+          throw new Error('Missing required fields: username/email, password, role');
+        }
+
+        const sanitizedUsername = username ? String(username).trim().toLowerCase() : null;
+        const finalEmail = (email && String(email).trim()) || (sanitizedUsername ? `${sanitizedUsername}@sanidad.gq` : null);
+        if (!finalEmail) {
+          throw new Error('Unable to resolve email');
+        }
+
+        const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+          email: finalEmail,
+          password: String(password),
+          email_confirm: true,
+          user_metadata: {
+            role,
+            full_name: full_name || (finalEmail?.split('@')[0] || ''),
+            department: department || 'Ministerio de Sanidad y Bienestar Social',
+            assigned_center_id: assigned_center_id || null,
+            username: sanitizedUsername || null
+          }
+        });
+        if (createErr) {
+          console.error('❌ Error creating user:', createErr);
+          throw new Error(`Error creating user: ${createErr.message}`);
+        }
+
+        const uid = created.user?.id;
+        if (uid) {
+          // Mirror in public.user_profiles for role-based access
+          const profileInsert = await supabaseAdmin.from('user_profiles').insert({
+            id: uid,
+            email: finalEmail,
+            role,
+            full_name: full_name || (finalEmail?.split('@')[0] || ''),
+            department: department || 'Ministerio de Sanidad y Bienestar Social',
+            assigned_center_id: assigned_center_id || null,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          if ((profileInsert as any)?.error) {
+            console.warn('⚠️ Could not insert user_profiles row:', (profileInsert as any).error);
+          }
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, user: { id: created.user?.id, email: created.user?.email } }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+
       case 'listUsers':
         console.log('👥 Listing users...');
         

@@ -41,6 +41,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCenterSync } from "@/hooks/useCenterSync";
 import { useQuery } from "@tanstack/react-query";
 import ProfessionalDetail from "@/components/dashboard/ProfessionalDetail";
+import CenterAttendancePanel from "@/components/dashboard/CenterAttendancePanel";
 import type { Profesional } from "@/hooks/useProfesionales";
 import * as XLSX from 'xlsx';
 import { supabase } from "@/integrations/supabase/client";

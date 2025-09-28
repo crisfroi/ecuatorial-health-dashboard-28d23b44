@@ -207,15 +207,57 @@ const UserRoleManagement = () => {
               <DialogTitle>Agregar Usuario</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Email *</label>
-                <Input
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  placeholder="usuario@cualquierdominio.com"
-                />
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Modo</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => setDirectMode(false)}
+                    className={`px-3 py-1 rounded ${!directMode ? 'bg-guinea-teal text-white' : 'bg-gray-100'}`}
+                  >Invitación por email</button>
+                  <button
+                    type="button"
+                    onClick={() => setDirectMode(true)}
+                    className={`px-3 py-1 rounded ${directMode ? 'bg-guinea-teal text-white' : 'bg-gray-100'}`}
+                  >Crear con usuario/contraseña</button>
+                </div>
               </div>
+
+              {!directMode && (
+                <div>
+                  <label className="text-sm font-medium">Email *</label>
+                  <Input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="usuario@cualquierdominio.com"
+                  />
+                </div>
+              )}
+
+              {directMode && (
+                <>
+                  <div>
+                    <label className="text-sm font-medium">Nombre de usuario *</label>
+                    <Input
+                      type="text"
+                      value={directUsername}
+                      onChange={(e) => setDirectUsername(e.target.value)}
+                      placeholder="ej: juanfr"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Contraseña *</label>
+                    <Input
+                      type="password"
+                      value={directPassword}
+                      onChange={(e) => setDirectPassword(e.target.value)}
+                      placeholder="Mínimo 6 caracteres con mayúscula y símbolo"
+                    />
+                  </div>
+                </>
+              )}
+
               <div>
                 <label className="text-sm font-medium">Nombre Completo</label>
                 <Input
@@ -234,8 +276,8 @@ const UserRoleManagement = () => {
               </div>
               <div>
                 <label className="text-sm font-medium">Rol *</label>
-                <Select 
-                  value={newUser.role} 
+                <Select
+                  value={newUser.role}
                   onValueChange={(value) => setNewUser({ ...newUser, role: value as UserRole })}
                 >
                   <SelectTrigger>
@@ -256,8 +298,8 @@ const UserRoleManagement = () => {
               {newUser.role === 'DIRECTIVO_CENTRO_SANITARIO' && (
                 <div>
                   <label className="text-sm font-medium">Centro Asignado</label>
-                  <Select 
-                    value={newUser.assigned_center_id} 
+                  <Select
+                    value={newUser.assigned_center_id}
                     onValueChange={(value) => setNewUser({ ...newUser, assigned_center_id: value })}
                   >
                     <SelectTrigger>
@@ -280,20 +322,48 @@ const UserRoleManagement = () => {
                 >
                   Cancelar
                 </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => testInvite(newUser.email || 'test@test.com', newUser.role || 'OBSERVADOR')}
-                  disabled={isTestLoading || !newUser.email?.trim()}
-                >
-                  🧪 {isTestLoading ? 'Probando...' : 'Test'}
-                </Button>
-                <Button
-                  onClick={handleInviteUser}
-                  disabled={isLoading || !newUser.email?.trim() || !newUser.role}
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  {isLoading ? 'Enviando...' : 'Enviar Invitación'}
-                </Button>
+                {!directMode && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      onClick={() => testInvite(newUser.email || 'test@test.com', newUser.role || 'OBSERVADOR')}
+                      disabled={isTestLoading || !newUser.email?.trim()}
+                    >
+                      🧪 {isTestLoading ? 'Probando...' : 'Test'}
+                    </Button>
+                    <Button
+                      onClick={handleInviteUser}
+                      disabled={isLoading || !newUser.email?.trim() || !newUser.role}
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      {isLoading ? 'Enviando...' : 'Enviar Invitación'}
+                    </Button>
+                  </>
+                )}
+                {directMode && (
+                  <Button
+                    onClick={async () => {
+                      const res = await createUserWithCredentials({
+                        username: directUsername.trim(),
+                        password: directPassword,
+                        role: (newUser.role as UserRole) || 'OBSERVADOR',
+                        full_name: newUser.full_name?.trim(),
+                        department: newUser.department?.trim(),
+                        assigned_center_id: newUser.assigned_center_id
+                      });
+                      if (res.success) {
+                        setDirectUsername('');
+                        setDirectPassword('');
+                        setNewUser({ email: '', role: 'OBSERVADOR', full_name: '', department: 'Ministerio de Sanidad y Bienestar Social' });
+                        setIsAddDialogOpen(false);
+                        loadUsers();
+                      }
+                    }}
+                    disabled={isLoading || !directUsername.trim() || !directPassword.trim() || !newUser.role}
+                  >
+                    Crear Usuario
+                  </Button>
+                )}
               </div>
             </div>
           </DialogContent>

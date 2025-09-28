@@ -204,7 +204,7 @@ const UserRoleManagement = () => {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Invitar Nuevo Usuario</DialogTitle>
+              <DialogTitle>Agregar Usuario</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>

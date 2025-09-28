@@ -497,7 +497,7 @@ const Dashboard = () => {
             onValueChange={handleTabChange}
             className="space-y-0"
           >
-            <div className="w-full overflow-x-auto whitespace-nowrap">
+            <div className="w-full overflow-x-auto whitespace-nowrap" data-tour="dashboard-tabs">
               <TabsList className="min-w-max flex gap-2 p-2 bg-muted rounded-md no-scrollbar">
               {tabsConfig.map((tab) => {
                 const Icon = tab.icon;
@@ -505,6 +505,7 @@ const Dashboard = () => {
                   <TabsTrigger
                     key={tab.id}
                     value={tab.id}
+                    data-tour={`tab-${tab.id}`}
                     className={`
                       whitespace-nowrap flex items-center gap-2 px-3 py-2 text-sm
                       ${

@@ -7,6 +7,45 @@ export const useUserManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  const createUserWithCredentials = async (params: {
+    username?: string;
+    email?: string;
+    password: string;
+    role: string;
+    full_name?: string;
+    department?: string;
+    assigned_center_id?: string;
+  }) => {
+    setIsLoading(true);
+    try {
+      if ((!params.username && !params.email) || !params.password || !params.role) {
+        throw new Error('Usuario/email, contraseña y rol son obligatorios');
+      }
+      const { data, error } = await supabase.functions.invoke('admin-users', {
+        body: {
+          action: 'createUser',
+          username: params.username,
+          email: params.email,
+          password: params.password,
+          role: params.role,
+          full_name: params.full_name,
+          department: params.department,
+          assigned_center_id: params.assigned_center_id
+        },
+        method: 'POST'
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(typeof data?.error === 'string' ? data.error : 'Error creando usuario');
+      toast({ title: 'Usuario creado', description: 'Credenciales generadas correctamente' });
+      return { success: true, data };
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message || 'No se pudo crear el usuario', variant: 'destructive' });
+      return { success: false, error: e.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const inviteUser = async (invitation: UserInvitation) => {
     setIsLoading(true);
     console.log('🚀 Starting user invitation process:', {
@@ -304,6 +343,7 @@ export const useUserManagement = () => {
 
   return {
     inviteUser,
+    createUserWithCredentials,
     getUserProfiles,
     updateUserRole,
     deleteUser,

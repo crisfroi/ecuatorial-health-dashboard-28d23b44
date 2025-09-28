@@ -73,6 +73,8 @@ import AsistenciaDashboard from "@/components/asistencia/AsistenciaDashboard";
 import { GuardiasStatsWidget } from "@/components/guardias/GuardiasStatsWidget";
 import { FuncionariosStatsWidget } from "@/components/dashboard/FuncionariosStatsWidget";
 import ResizeObserverTestIndicator from "@/components/dashboard/ResizeObserverTestIndicator";
+import CoachMarks, { CoachMarkStep } from "@/components/onboarding/CoachMarks";
+import { ENABLE_INTERACTIVE_TOURS, isTourCompleted, setTourCompleted } from "@/config/featureFlags";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -109,6 +111,7 @@ const Dashboard = () => {
   const [dashboardFilters, setDashboardFilters] = useState<Filtros>({});
   const [activeTab, setActiveTab] = useState("overview");
   const [showStatsCards, setShowStatsCards] = useState(true);
+  const [openTour, setOpenTour] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 

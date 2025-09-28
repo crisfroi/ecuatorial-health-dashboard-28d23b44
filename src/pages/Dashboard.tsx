@@ -540,10 +540,12 @@ const Dashboard = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <GlobalSearch onNavigate={(tab, filters) => {
-              setActiveTab(tab);
-              if (filters) setAppliedFilters(filters as any);
-            }} />
+            <div data-tour="dashboard-global-search">
+              <GlobalSearch onNavigate={(tab, filters) => {
+                setActiveTab(tab);
+                if (filters) setAppliedFilters(filters as any);
+              }} />
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -554,6 +556,7 @@ const Dashboard = () => {
                 );
               }}
               className="flex items-center gap-2"
+              data-tour="dashboard-stats-toggle"
             >
               {showStatsCards ? (
                 <ChevronUp className="w-4 h-4" />
@@ -575,6 +578,7 @@ const Dashboard = () => {
                 );
               }}
               className="flex items-center gap-2"
+              data-tour="dashboard-filters-toggle"
             >
               <Filter className="w-4 h-4" />
               {showFilters ? "Ocultar Filtros" : "Mostrar Filtros"}
@@ -586,6 +590,7 @@ const Dashboard = () => {
                 size="sm"
                 onClick={handleClearFilters}
                 className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                data-tour="dashboard-filters-clear"
               >
                 <X className="w-4 h-4" />
                 Limpiar Filtros

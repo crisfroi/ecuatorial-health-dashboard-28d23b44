@@ -57,8 +57,11 @@ const UserRoleManagement = () => {
     full_name: '',
     department: 'Ministerio de Sanidad y Bienestar Social'
   });
+  const [directMode, setDirectMode] = useState<boolean>(false);
+  const [directUsername, setDirectUsername] = useState<string>('');
+  const [directPassword, setDirectPassword] = useState<string>('');
 
-  const { inviteUser, getUserProfiles, updateUserRole, deleteUser, isLoading } = useUserManagement();
+  const { inviteUser, createUserWithCredentials, getUserProfiles, updateUserRole, deleteUser, isLoading } = useUserManagement();
   const { loading: loadingPerms, getPermissionsForRole, getAvailablePermissions, setPermissionsForRole } = useRolePermissions();
   const { testInvite, isLoading: isTestLoading } = useTestInvite();
   const { user: currentUser, switchRole } = useAuth();

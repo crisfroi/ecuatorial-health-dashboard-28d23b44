@@ -66,13 +66,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       
       if (error) {
         console.error('❌ Supabase DB Profile Error (getProfileFromDb):', error);
-        // Lanza un error para que el 'catch' de initializeAuth pueda capturarlo y limpiar/finalizar.
-        throw new Error(`Database error: ${error.message}`); 
+        throw new Error(`Database error: ${error.message}`);
       }
       return data as { role: UserRole; full_name?: string | null; department?: string | null; assigned_center_id?: string | null };
     } catch (dbError) {
       console.error('❌ FATAL: Error during DB profile fetch for user', uid, ':', dbError);
-      // Si falla la base de datos, devuelve null para que resolveRoleAndProfile intente con metadata.
       return null; 
     }
   };
@@ -212,13 +210,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
         if (supabaseUser) {
           console.log(`✅ Session found. User ID: ${supabaseUser.id}.`);
-          // Carga el rol y perfil. Debe estar envuelto en try/catch para evitar bloquear finally.
+          // Carga el rol y perfil. Envuelto para asegurar que el finally se ejecute.
           try {
             await resolveRoleAndProfile(supabaseUser);
             subscribeToProfile(supabaseUser.id);
           } catch (e) {
             console.error('Error resolving role during initial load:', e);
-            // El usuario está logueado pero el rol falló, se limpia el user para forzar login
             setUser(null);
             setUserRole(null);
           }
@@ -243,7 +240,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       } finally {
         if (mounted) {
           console.log('🏁 Auth Initialization Complete.');
-          setIsLoading(false); // 2. Finaliza la carga SIEMPRE (CLAVE)
+          setIsLoading(false); // 2. Finaliza la carga SIEMPRE
         }
       }
     };
@@ -253,16 +250,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       if (!mounted) return;
       console.log(`🔥 Auth state changed: ${event}`);
 
-      // 💡 CAMBIO CRÍTICO: Eliminamos setIsLoading(true) y setIsLoading(false) para no entrar en conflicto con initializeAuth o login/logout.
+      // 💡 CAMBIO CLAVE: NO HACER NADA en SIGNED_IN para la carga inicial.
+      // Dejamos que initializeAuth maneje la primera carga del rol.
       if (event === 'SIGNED_IN' && session?.user) {
-        // Si la sesión fue iniciada por un evento (no la carga inicial), solo actualizamos el estado.
-        try {
-          await resolveRoleAndProfile(session.user);
-          subscribeToProfile(session.user.id);
-        } catch (e) {
-          console.error('Error resolving role from SIGNED_IN listener:', e);
-          // Si falla, la función login (que llamó a esto) debe manejar la finalización de la carga.
-        }
+        console.log('Listener detected SIGNED_IN. Relying on initial load or login flow to set user state.');
+        
+        // Si el usuario local se perdió por alguna razón (por ejemplo, desde otra pestaña)
+        // Y el evento de SIGNED_IN se dispara, lo resolvemos, pero sin tocar isLoading.
+        if (!user) {
+            try {
+                await resolveRoleAndProfile(session.user);
+                subscribeToProfile(session.user.id);
+            } catch (e) {
+                console.error('Error resolving role from SIGNED_IN listener:', e);
+            }
+        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setUserRole(null);
@@ -287,7 +289,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       profileChannel?.unsubscribe();
       console.log('🛑 Auth cleanup completed.');
     };
-  }, []);
+  }, [user]); // 💡 Agregamos 'user' para que el listener pueda chequear su estado correctamente.
 
   // --- AUTH METHODS ---
 
@@ -330,7 +332,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
 
       if (data?.user) {
-        // El estado de carga se actualiza una vez que el listener SIGNED_IN ha resuelto el rol.
         console.log('✅ Login successful. State will be updated via onAuthStateChange.');
         return { success: true };
       }
@@ -345,7 +346,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
       return { success: false, error: 'Error de conexión. Intente nuevamente.' }; 
     } finally {
-      setIsLoading(false); // ✅ Esta línea garantiza que la carga finalice tras un login.
+      setIsLoading(false);
     }
   };
 

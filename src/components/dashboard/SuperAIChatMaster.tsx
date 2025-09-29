@@ -15,42 +15,42 @@ import {
   Code,
   Table2,
   Users,
-  ArrowRight, // Clave para las sugerencias de navegación
+  ArrowRight,
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast'; 
 
 // --- INTERFACES PARA MEMORIA Y NAVEGACIÓN ---
 
 interface NavigationSuggestion {
-  type: 'navigate';
-  tab: string;
-  label: string;
-  filters?: Record<string, any>;
+  type: 'navigate';
+  tab: string;
+  label: string;
+  filters?: Record<string, any>;
 }
 
 interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-  sql?: string;
-  result?: any[];
-  error?: string;
-  navigationSuggestions?: NavigationSuggestion[];
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  sql?: string;
+  result?: any[];
+  error?: string;
+  navigationSuggestions?: NavigationSuggestion[];
 }
 
 interface SuperAIChatMasterProps {
-  onNavigateToTab?: (tab: string, filters?: any) => void;
+  onNavigateToTab?: (tab: string, filters?: any) => void;
 }
 
 // ---------------------------------------------
 
 const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
-  onNavigateToTab,
+  onNavigateToTab,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content: '🚀 **¡SISTEMA SQL IA ACTIVADO!**\n\nSoy tu asistente avanzado con **memoria** de consulta. Pregúntame sobre profesionales, centros, o estadísticas y te devolveré la consulta SQL y el resultado.\n\n**Ejemplo de memoria y acción:**\n1. *"Número de médicos en Bata."*\n2. *"Ahora, dame sus nombres completos y especialidades."*\n\n¡Comienza tu consulta! 🎯',
+      content: '🚀 **¡SISTEMA SQL IA ACTIVADO!**\n\nSoy tu asistente avanzado con **memoria** de consulta. Pregúntame sobre profesionales, centros, o estadísticas y te devolveré la respuesta en **lenguaje natural**, además de la previsualización del SQL ejecutado.\n\n**Ejemplo de memoria:**\n1. *"Número de médicos en Bata."*\n2. *"Ahora, dame sus nombres completos y especialidades."*\n\n¡Comienza tu consulta! 🎯',
       timestamp: new Date().toISOString(),
     }
   ]);
@@ -58,15 +58,12 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [systemReady, setSystemReady] = useState(true);
-  const [needsOpenAI, setNeedsOpenAI] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Las sugerencias a renderizar se extraen del último mensaje
   const currentSuggestions = messages[messages.length - 1]?.navigationSuggestions || [];
 
   useEffect(() => {
-    // Lógica de health check simplificada
     setSystemReady(true);
     scrollToBottom();
   }, [messages]);
@@ -75,7 +72,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
     setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
-  // --- FUNCIÓN DE ENVÍO CON MEMORIA Y ESPERA DE SUGERENCIAS ---
+  // --- FUNCIÓN DE ENVÍO CON MEMORIA Y LENGUAJE NATURAL ---
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
@@ -92,19 +89,17 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
     setLoading(true);
 
     try {
-      console.log('🚀 Enviando consulta con memoria y esperando acciones...');
-
       // Enviar todo el historial para la memoria
       const historyToPass = [...messages, userMessage].slice(-10).map(m => ({
         role: m.role,
         content: m.content
       }));
       
-      // La Edge Function debe ser actualizada para manejar la memoria y devolver el JSON completo
+      const payload = { messages: historyToPass };
+
+      // Llamada a la Edge Function
       const { data, error } = await supabase.functions.invoke('ai-chat-master', {
-        body: {
-          messages: historyToPass, 
-        }
+        body: payload,
       });
 
       if (error) {
@@ -115,11 +110,13 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
       let assistantSql = data?.sql;
       let assistantResult = data?.result;
       let assistantError = data?.error;
-      // Capturamos las sugerencias si la Edge Function las devuelve
-      const assistantSuggestions: NavigationSuggestion[] = data?.navigationSuggestions || []; 
-
+      const assistantSuggestions: NavigationSuggestion[] = data?.navigationSuggestions || [];
+      
+      // Capturamos la respuesta en lenguaje natural
+      const naturalResponse = data?.natural_language_response;
 
       if (assistantError) {
+        // Manejo de errores de ejecución SQL
         assistantContent = `❌ **Error al ejecutar la consulta:** El motor SQL devolvió un error.
         
 **Mensaje de error:** ${assistantError.slice(0, 150)}...
@@ -131,11 +128,10 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
         });
       } else {
         const rowCount = assistantResult?.length ?? 0;
-        assistantContent = `✅ **Consulta Exitosa.** La IA generó y ejecutó una consulta SQL basada en el contexto.
         
-Se obtuvieron **${rowCount}** filas como resultado.
-
-A continuación se muestra una previsualización.`;
+        // CRÍTICO: Usamos la respuesta natural como contenido principal
+        assistantContent = naturalResponse || 
+        `✅ **Consulta Exitosa.** (La IA no pudo generar una respuesta natural). Se obtuvieron **${rowCount}** filas.`;
 
         if (assistantSuggestions.length > 0) {
             assistantContent += "\n\n**¡Acciones Sugeridas disponibles debajo!**";
@@ -147,15 +143,15 @@ A continuación se muestra una previsualización.`;
         });
       }
 
-      // Añadir mensaje del asistente con todos los metadatos, incluyendo las sugerencias
+      // Añadir mensaje del asistente con todos los metadatos
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: assistantContent,
+        content: assistantContent, 
         timestamp: new Date().toISOString(),
         sql: assistantSql,
         result: assistantResult,
         error: assistantError,
-        navigationSuggestions: assistantSuggestions, // Se adjuntan aquí
+        navigationSuggestions: assistantSuggestions,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -207,24 +203,35 @@ A continuación se muestra una previsualización.`;
     },
   ];
 
-  const renderResultTable = (data: any[], error?: string) => {
+  // Renderiza la previsualización del SQL y los resultados
+  const renderResultTable = (data: any[], sql?: string, error?: string) => {
     if (error) {
         return (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm font-mono whitespace-pre-wrap">
                 <AlertTriangle className="w-4 h-4 inline mr-2"/>
                 <strong>Error de Ejecución:</strong> {error}
+                {sql && <div className='mt-2 text-xs text-red-500'>SQL fallido: <code>{sql}</code></div>}
             </div>
         );
     }
 
     if (!data || data.length === 0) {
-        return <p className="text-sm text-gray-500 italic">La consulta devolvió 0 resultados.</p>;
+        return <p className="text-sm text-gray-500 italic">La consulta devolvió 0 resultados. SQL ejecutado: <code>{sql}</code></p>;
     }
     
     const columns = Object.keys(data[0]);
 
     return (
         <div className="overflow-x-auto max-h-64 border rounded-lg mt-2">
+            <h4 className="text-sm font-medium flex items-center gap-1 p-2 bg-gray-50 border-b text-gray-700 sticky top-0">
+                 <Table2 className="w-4 h-4"/> Previsualización de Datos ({data.length} filas):
+            </h4>
+            <div className="p-2">
+                <h5 className="text-xs font-mono text-gray-500 mb-1 flex items-center gap-1">
+                    <Code className="w-3 h-3"/> SQL: <code>{sql}</code>
+                </h5>
+            </div>
+            
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50 sticky top-0">
                     <tr>
@@ -274,12 +281,12 @@ A continuación se muestra una previsualización.`;
           <div>
             <CardTitle className="text-xl text-primary">SQL IA CON MEMORIA Y ACCIONES</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Traduce, recuerda el contexto, ejecuta y sugiere acciones
+              Traduce, recuerda el contexto, ejecuta y resume en lenguaje natural
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <Badge variant={systemReady ? "default" : needsOpenAI ? "destructive" : "secondary"}>
-              {systemReady ? "✅ Activo" : needsOpenAI ? "⚙️ Config" : "⏳ Cargando"}
+            <Badge variant={systemReady ? "default" : "secondary"}>
+              {systemReady ? "✅ Activo" : "⏳ Cargando"}
             </Badge>
           </div>
         </CardHeader>
@@ -316,10 +323,7 @@ A continuación se muestra una previsualización.`;
                 {/* Mostrar la tabla de resultados solo si es un mensaje de asistente con datos */}
                 {message.role === 'assistant' && (message.result || message.error) && (
                     <div className="mt-2 p-2 border rounded-lg bg-white shadow-sm">
-                         <h4 className="text-sm font-medium flex items-center gap-1 text-gray-700">
-                            <Table2 className="w-4 h-4"/> Previsualización de Datos:
-                        </h4>
-                        {renderResultTable(message.result || [], message.error)}
+                        {renderResultTable(message.result || [], message.sql, message.error)}
                     </div>
                 )}
               </div>
@@ -328,7 +332,7 @@ A continuación se muestra una previsualización.`;
             {loading && (
               <div className="flex items-center gap-2 text-primary">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Analizando contexto y generando SQL...</span>
+                <span className="text-sm">Analizando contexto y generando respuesta natural...</span>
               </div>
             )}
             
@@ -423,8 +427,8 @@ A continuación se muestra una previsualización.`;
                 <span>Modelo GPT-4o-mini con **Memoria**</span>
               </div>
               <div className="flex items-center gap-1">
-                <ArrowRight className="w-3 h-3" />
-                <span>Enlaces de Navegación</span>
+                <Sparkles className="w-3 h-3" />
+                <span>Respuesta en **Lenguaje Natural**</span>
               </div>
             </div>
           )}

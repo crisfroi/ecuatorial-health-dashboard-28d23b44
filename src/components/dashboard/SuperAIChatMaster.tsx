@@ -15,31 +15,45 @@ import {
   Code,
   Table2,
   Users,
+  ArrowRight, // Clave para las sugerencias de navegación
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// --- INTERFACES ADAPTADAS PARA MEMORIA Y RESULTADOS ---
+// --- INTERFACES PARA MEMORIA Y NAVEGACIÓN ---
 
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-  // METADATA para mostrar el SQL y el resultado asociado al mensaje del asistente
-  sql?: string; 
-  result?: any[];
-  error?: string; // Para mostrar errores de query específicos
+interface NavigationSuggestion {
+  type: 'navigate';
+  tab: string;
+  label: string;
+  filters?: Record<string, any>;
 }
 
-const SuperAIChatMaster: React.FC = () => {
-  // --- ESTADO DE MENSAJES (HISTORIAL) ---
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  sql?: string;
+  result?: any[];
+  error?: string;
+  navigationSuggestions?: NavigationSuggestion[];
+}
+
+interface SuperAIChatMasterProps {
+  onNavigateToTab?: (tab: string, filters?: any) => void;
+}
+
+// ---------------------------------------------
+
+const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
+  onNavigateToTab,
+}) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content: '🚀 **¡SISTEMA SQL IA ACTIVADO!**\n\nSoy tu asistente avanzado con **memoria** de consulta. Pregúntame sobre profesionales, centros, o estadísticas y te devolveré la consulta SQL y el resultado.\n\n**Ejemplo de memoria:**\n1. *"Número de médicos en Bata."*\n2. *"Ahora, dame sus nombres completos y especialidades."*\n\n¡Comienza tu consulta! 🎯',
+      content: '🚀 **¡SISTEMA SQL IA ACTIVADO!**\n\nSoy tu asistente avanzado con **memoria** de consulta. Pregúntame sobre profesionales, centros, o estadísticas y te devolveré la consulta SQL y el resultado.\n\n**Ejemplo de memoria y acción:**\n1. *"Número de médicos en Bata."*\n2. *"Ahora, dame sus nombres completos y especialidades."*\n\n¡Comienza tu consulta! 🎯',
       timestamp: new Date().toISOString(),
     }
   ]);
-  // ----------------------------------------
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,7 +62,12 @@ const SuperAIChatMaster: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Las sugerencias a renderizar se extraen del último mensaje
+  const currentSuggestions = messages[messages.length - 1]?.navigationSuggestions || [];
+
   useEffect(() => {
+    // Lógica de health check simplificada
+    setSystemReady(true);
     scrollToBottom();
   }, [messages]);
 
@@ -56,16 +75,7 @@ const SuperAIChatMaster: React.FC = () => {
     setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
-  const checkSystemHealth = async () => {
-    // Lógica simplificada
-    setSystemReady(true);
-  };
-
-  useEffect(() => {
-    checkSystemHealth();
-  }, []);
-
-  // --- FUNCIÓN DE ENVÍO CON MEMORIA ---
+  // --- FUNCIÓN DE ENVÍO CON MEMORIA Y ESPERA DE SUGERENCIAS ---
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
@@ -77,23 +87,23 @@ const SuperAIChatMaster: React.FC = () => {
       timestamp: new Date().toISOString(),
     };
 
-    // 1. Añadir mensaje del usuario al historial y limpiar input
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
 
     try {
-      console.log('🚀 Enviando consulta con memoria...');
+      console.log('🚀 Enviando consulta con memoria y esperando acciones...');
 
-      // 2. Invocar la Edge Function enviando el historial completo
+      // Enviar todo el historial para la memoria
+      const historyToPass = [...messages, userMessage].slice(-10).map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+      
+      // La Edge Function debe ser actualizada para manejar la memoria y devolver el JSON completo
       const { data, error } = await supabase.functions.invoke('ai-chat-master', {
         body: {
-          // Se envía todo el historial (limitado a los últimos 10 mensajes, por ejemplo, para evitar payloads grandes)
-          messages: [...messages, userMessage].slice(-10).map(m => ({
-            role: m.role,
-            // Importante: para la memoria, solo se envía el contenido, no los metadatos (sql/result)
-            content: m.content
-          })), 
+          messages: historyToPass, 
         }
       });
 
@@ -105,10 +115,11 @@ const SuperAIChatMaster: React.FC = () => {
       let assistantSql = data?.sql;
       let assistantResult = data?.result;
       let assistantError = data?.error;
+      // Capturamos las sugerencias si la Edge Function las devuelve
+      const assistantSuggestions: NavigationSuggestion[] = data?.navigationSuggestions || []; 
 
-      // 3. Manejar respuesta
+
       if (assistantError) {
-        console.error('Error de Query/IA:', assistantError, 'SQL:', assistantSql);
         assistantContent = `❌ **Error al ejecutar la consulta:** El motor SQL devolvió un error.
         
 **Mensaje de error:** ${assistantError.slice(0, 150)}...
@@ -120,12 +131,15 @@ const SuperAIChatMaster: React.FC = () => {
         });
       } else {
         const rowCount = assistantResult?.length ?? 0;
-        // Se crea el mensaje que se mostrará en el chat
         assistantContent = `✅ **Consulta Exitosa.** La IA generó y ejecutó una consulta SQL basada en el contexto.
         
 Se obtuvieron **${rowCount}** filas como resultado.
 
 A continuación se muestra una previsualización.`;
+
+        if (assistantSuggestions.length > 0) {
+            assistantContent += "\n\n**¡Acciones Sugeridas disponibles debajo!**";
+        }
 
         toast({
           title: "✅ Consulta Ejecutada",
@@ -133,7 +147,7 @@ A continuación se muestra una previsualización.`;
         });
       }
 
-      // 4. Añadir mensaje del asistente con metadata
+      // Añadir mensaje del asistente con todos los metadatos, incluyendo las sugerencias
       const assistantMessage: ChatMessage = {
         role: 'assistant',
         content: assistantContent,
@@ -141,6 +155,7 @@ A continuación se muestra una previsualización.`;
         sql: assistantSql,
         result: assistantResult,
         error: assistantError,
+        navigationSuggestions: assistantSuggestions, // Se adjuntan aquí
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -174,7 +189,6 @@ A continuación se muestra una previsualización.`;
     }
   };
 
-  // Consultas Rápidas 
   const quickActions = [
     {
       icon: Database,
@@ -189,11 +203,10 @@ A continuación se muestra una previsualización.`;
     {
       icon: Code,
       label: "Memoria de Prueba",
-      query: "De la consulta anterior, ¿cuántos tienen especialidad en Pediatría?", // Ejemplo de consulta que requiere memoria
+      query: "De la consulta anterior, ¿cuántos tienen especialidad en Pediatría?", 
     },
   ];
 
-  // --- Renderización del resultado de la consulta (dentro del chat) ---
   const renderResultTable = (data: any[], error?: string) => {
     if (error) {
         return (
@@ -248,7 +261,6 @@ A continuación se muestra una previsualización.`;
         </div>
     );
   };
-  // ----------------------------------------------------
 
 
   return (
@@ -260,9 +272,9 @@ A continuación se muestra una previsualización.`;
             <Sparkles className="w-4 h-4 text-accent" />
           </div>
           <div>
-            <CardTitle className="text-xl text-primary">SQL IA CON MEMORIA</CardTitle>
+            <CardTitle className="text-xl text-primary">SQL IA CON MEMORIA Y ACCIONES</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Traduce tu pregunta a SQL de PostgreSQL, recuerda el contexto y ejecuta la consulta
+              Traduce, recuerda el contexto, ejecuta y sugiere acciones
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -323,6 +335,31 @@ A continuación se muestra una previsualización.`;
             <div ref={scrollRef} />
           </div>
 
+          {/* --- Navigation Suggestions (Muestra las sugerencias del último mensaje) --- */}
+          {currentSuggestions.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <ArrowRight className="w-4 h-4" />
+                Acciones Sugeridas
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {currentSuggestions.map((suggestion, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onNavigateToTab?.(suggestion.tab, suggestion.filters)}
+                    className="text-xs"
+                  >
+                    <ArrowRight className="w-3 h-3 mr-1" />
+                    {suggestion.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* ------------------------------------------- */}
+
           {/* Quick Actions */}
           <div className="space-y-3 pt-2">
             <h4 className="text-sm font-medium flex items-center gap-2">
@@ -375,19 +412,6 @@ A continuación se muestra una previsualización.`;
             </Button>
           </div>
 
-          {/* System Status */}
-          {needsOpenAI && (
-            <div className="flex items-start gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-orange-800">Configuración Requerida</p>
-                <p className="text-orange-700 mt-1">
-                  Para activar la memoria de la IA, configura la API key de OpenAI en la configuración de Supabase Edge Functions.
-                </p>
-              </div>
-            </div>
-          )}
-          
           {systemReady && (
             <div className="text-xs text-muted-foreground flex items-center gap-4">
               <div className="flex items-center gap-1">
@@ -399,8 +423,8 @@ A continuación se muestra una previsualización.`;
                 <span>Modelo GPT-4o-mini con **Memoria**</span>
               </div>
               <div className="flex items-center gap-1">
-                <BarChart3 className="w-3 h-3" />
-                <span>Ejecución en Tiempo Real</span>
+                <ArrowRight className="w-3 h-3" />
+                <span>Enlaces de Navegación</span>
               </div>
             </div>
           )}

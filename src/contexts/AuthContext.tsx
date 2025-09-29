@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'; // Agregamos useRef y useCallback
 import { UserRole, hasPermission, canAccessTab, getRoleRestrictions, ROLE_DEFINITIONS } from '@/types/roles';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
@@ -53,10 +53,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const [user, setUser] = useState<UserProfile | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Usamos useRef para mantener el estado actual de isLoading sin depender de él en useEffect.
+  const isInitializedRef = useRef(false); 
+
 
   // --- HELPER FUNCTIONS ---
 
-  const getProfileFromDb = async (uid: string) => {
+  const getProfileFromDb = useCallback(async (uid: string) => {
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -73,9 +76,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       console.error('❌ FATAL: Error during DB profile fetch for user', uid, ':', dbError);
       return null; 
     }
-  };
+  }, []);
 
-  const applyUserState = (
+  const applyUserState = useCallback((
     baseUser: User,
     info: { role: UserRole; full_name?: string | null; department?: string | null; assigned_center_id?: string | null }
   ) => {
@@ -89,9 +92,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     setUser(userProfile);
     setUserRole(info.role);
     console.log(`✅ User state applied: Role is ${info.role}`);
-  };
+  }, []);
 
-  const normalizeRole = (raw?: string | null): UserRole | null => {
+  const normalizeRole = useCallback((raw?: string | null): UserRole | null => {
     if (!raw) return null;
     const r = raw.toString().trim().toUpperCase();
     const map: Record<string, UserRole> = {
@@ -111,9 +114,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       'OBSERVADOR': 'OBSERVADOR',
     };
     return map[r] || null;
-  };
+  }, []);
 
-  const resolveRoleAndProfile = async (baseUser: User) => {
+  // Se utiliza useCallback para evitar que se cree una nueva instancia en cada render.
+  const resolveRoleAndProfile = useCallback(async (baseUser: User) => {
     console.log('🔄 Attempting to resolve role from DB...');
     const dbProfile = await getProfileFromDb(baseUser.id);
     
@@ -121,9 +125,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       console.log('✅ Role found in DB.');
       applyUserState(baseUser, {
         role: dbProfile.role as UserRole,
-        full_name: dbProfile.full_name || baseUser.user_metadata?.full_name,
-        department: dbProfile.department || baseUser.user_metadata?.department,
-        assigned_center_id: dbProfile.assigned_center_id || baseUser.user_metadata?.assigned_center_id,
+        full_name: dbProfile.full_name,
+        department: dbProfile.department,
+        assigned_center_id: dbProfile.assigned_center_id,
       });
       return;
     }
@@ -142,14 +146,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       return;
     }
 
-    // Sin fallback: marcar sin permisos para que el usuario y el admin corrijan datos en Supabase
     console.warn('❌ CRITICAL: No role found in DB or metadata. Defaulting to OBSERVADOR/null role.');
     setUser({ ...(baseUser as any), role: 'OBSERVADOR' } as UserProfile);
     setUserRole(null);
-  };
+  }, [getProfileFromDb, applyUserState, normalizeRole]);
 
-  const subscribeToProfile = (uid: string) => {
-    // Si ya existe un canal, lo desuscribimos primero
+  const subscribeToProfile = useCallback((uid: string) => {
     if (profileChannel) {
         profileChannel.unsubscribe();
         profileChannel = null;
@@ -164,7 +166,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         (payload) => {
           const newRow = payload.new as any;
           const newRole = newRow?.role as UserRole | undefined;
-          if (newRole) {
+          if (newRole && user) {
             console.log(`📡 Profile update received. Switching role to ${newRole}.`);
             setUserRole(newRole);
             setUser((prev) => (
@@ -182,7 +184,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
       )
       .subscribe();
-  };
+  }, [user]);
 
 
   // --- USE EFFECT (INITIALIZATION) ---
@@ -192,7 +194,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     
     // Inicialización principal de la autenticación
     const initializeAuth = async () => {
-      if (!mounted) return;
+      if (!mounted || isInitializedRef.current) return;
+      isInitializedRef.current = true; // Bloquea la re-ejecución
+
       setIsLoading(true); // 1. Inicia la carga
       
       try {
@@ -201,7 +205,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         
         if (sessionError) {
              console.error('❌ Error fetching session:', sessionError);
-             throw sessionError; // Capturar en el bloque catch principal
+             throw sessionError;
         }
         
         const supabaseUser = sessionData?.session?.user || null;
@@ -210,7 +214,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
         if (supabaseUser) {
           console.log(`✅ Session found. User ID: ${supabaseUser.id}.`);
-          // Carga el rol y perfil. Envuelto para asegurar que el finally se ejecute.
           try {
             await resolveRoleAndProfile(supabaseUser);
             subscribeToProfile(supabaseUser.id);
@@ -219,7 +222,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             setUser(null);
             setUserRole(null);
           }
-          // Background refresh (non-blocking)
           supabase.auth.getUser().catch(() => {});
         } else {
           console.log('😴 No active session found.');
@@ -250,19 +252,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       if (!mounted) return;
       console.log(`🔥 Auth state changed: ${event}`);
 
-      // 💡 CAMBIO CLAVE: NO HACER NADA en SIGNED_IN para la carga inicial.
-      // Dejamos que initializeAuth maneje la primera carga del rol.
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('Listener detected SIGNED_IN. Relying on initial load or login flow to set user state.');
-        
-        // Si el usuario local se perdió por alguna razón (por ejemplo, desde otra pestaña)
-        // Y el evento de SIGNED_IN se dispara, lo resolvemos, pero sin tocar isLoading.
-        if (!user) {
+        // Si no tenemos usuario cargado, es un evento de otra pestaña o una sesión que se recupera
+        if (!user) {
             try {
-                await resolveRoleAndProfile(session.user);
-                subscribeToProfile(session.user.id);
+                console.log('Listener detected SIGNED_IN (Cross-tab/Initial). Resolving state...');
+                // 💡 No llamamos a resolveRoleAndProfile aquí. initializeAuth o login lo harán.
+                // Solo nos aseguramos de que el estado isLoading se mantenga hasta que termine.
             } catch (e) {
-                console.error('Error resolving role from SIGNED_IN listener:', e);
+                console.error('Error resolving state from SIGNED_IN listener:', e);
             }
         }
       } else if (event === 'SIGNED_OUT') {
@@ -271,7 +269,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         setIsLoading(false); 
         profileChannel?.unsubscribe();
         profileChannel = null;
-      } else if (event === 'TOKEN_REFRESHED' && session?.user && user) {
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
         console.log('✅ Token refreshed successfully.');
       } else if (event === 'TOKEN_REFRESH_FAILED') {
         console.error('❌ Token refresh failed. User logged out.');
@@ -285,11 +283,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
     return () => {
       mounted = false;
+      // 💡 Si el componente se desmonta, reiniciamos isInitializedRef para permitir una nueva inicialización si se monta de nuevo.
+      isInitializedRef.current = false;
       subscription.unsubscribe();
       profileChannel?.unsubscribe();
       console.log('🛑 Auth cleanup completed.');
     };
-  }, [user]); // 💡 Agregamos 'user' para que el listener pueda chequear su estado correctamente.
+  }, [resolveRoleAndProfile, subscribeToProfile, user]); // Se añade 'user' aquí para el listener, pero se usa un Ref para el bloqueo de initializeAuth.
 
   // --- AUTH METHODS ---
 
@@ -332,7 +332,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
 
       if (data?.user) {
-        console.log('✅ Login successful. State will be updated via onAuthStateChange.');
+        // 💡 CAMBIO CLAVE: Mantenemos la resolución de rol síncrona aquí
+        console.log('✅ Login successful. Forcing state resolution (blocking load finish).');
+        await resolveRoleAndProfile(data.user);
+        // Eliminamos subscribeToProfile de aquí; initializeAuth (si es carga inicial) o el listener (si es cross-tab) lo manejarán.
         return { success: true };
       }
       
@@ -346,7 +349,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
       return { success: false, error: 'Error de conexión. Intente nuevamente.' }; 
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // ✅ Finaliza la carga DESPUÉS de que el perfil está cargado.
     }
   };
 
@@ -395,40 +398,3 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   };
 
   const value: AuthContextType = {
-    user,
-    userRole,
-    isLoading,
-    login,
-    logout,
-    hasPermission: checkPermission,
-    canAccessTab: checkTabAccess,
-    getRestrictions,
-    switchRole
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-// Hook para obtener información del rol actual
-export const useRole = () => {
-  const { user, userRole, hasPermission, canAccessTab, getRestrictions } = useAuth();
-  
-  return {
-    currentRole: userRole,
-    user,
-    hasPermission,
-    canAccessTab,
-    restrictions: getRestrictions(),
-    isAdmin: userRole === 'SUPER_ADMINISTRADOR',
-    isRevisor: userRole === 'REVISOR_SOLICITUDES',
-    isMinisterial: userRole === 'PERSONALIDAD_MINISTERIAL',
-    isObserver: userRole === 'OBSERVADOR',
-    isCenterDirector: userRole === 'DIRECTIVO_CENTRO_SANITARIO'
-  };
-};
-
-export default AuthProvider;

@@ -19,25 +19,27 @@ import { useToast } from '@/hooks/use-toast';
 
 // --- INTERFACES PARA MEMORIA Y NAVEGACIÓN ---
 
+// La IA debe devolver un array con este formato si genera sugerencias
 interface NavigationSuggestion {
   type: 'navigate';
-  tab: string;
-  label: string;
-  filters?: Record<string, any>;
+  tab: string; // Nombre de la pestaña (ej: 'profesionales', 'centros-salud')
+  label: string; // Texto del botón (ej: 'Ver profesionales en la tabla')
+  filters?: Record<string, any>; // Filtros opcionales para aplicar a la nueva vista
 }
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
-  // Hacemos opcionales los metadatos SQL/Result, ya no se renderizan
   sql?: string; 
   result?: any[];
   error?: string;
+  // Campo que trae las sugerencias de la Edge Function
   navigationSuggestions?: NavigationSuggestion[];
 }
 
 interface SuperAIChatMasterProps {
+  // Función para manejar la navegación o el cambio de pestaña
   onNavigateToTab?: (tab: string, filters?: any) => void;
 }
 
@@ -60,6 +62,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Obtiene las sugerencias del último mensaje del asistente
   const currentSuggestions = messages[messages.length - 1]?.navigationSuggestions || [];
 
   useEffect(() => {
@@ -88,6 +91,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
     setLoading(true);
 
     try {
+      // Pasamos los últimos 10 mensajes para mantener la memoria
       const historyToPass = [...messages, userMessage].slice(-10).map(m => ({
         role: m.role,
         content: m.content
@@ -95,6 +99,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
       
       const payload = { messages: historyToPass };
 
+      // Llamada a la Edge Function (Edge Function maneja OpenAI/Gemini)
       const { data, error } = await supabase.functions.invoke('ai-chat-master', {
         body: payload,
       });
@@ -107,6 +112,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
       let assistantSql = data?.sql;
       let assistantResult = data?.result;
       let assistantError = data?.error;
+      // Capturamos las sugerencias de navegación devueltas por el backend
       const assistantSuggestions: NavigationSuggestion[] = data?.navigationSuggestions || [];
       
       const naturalResponse = data?.natural_language_response;
@@ -128,6 +134,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
         assistantContent = naturalResponse || 
         `✅ **Consulta Exitosa.** (La IA no pudo generar una respuesta natural). Se obtuvieron **${rowCount}** filas.`;
 
+        // Añadimos una nota en el contenido si hay sugerencias (se renderizan abajo)
         if (assistantSuggestions.length > 0) {
             assistantContent += "\n\n**¡Acciones Sugeridas disponibles debajo!**";
         }
@@ -180,6 +187,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
     }
   };
 
+  // Consultas rápidas
   const quickActions = [
     {
       icon: Database,
@@ -197,8 +205,6 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
       query: "De la consulta anterior, ¿cuántos tienen especialidad en Pediatría?", 
     },
   ];
-
-  // Eliminamos la función renderResultTable ya que no se usará.
 
   return (
     <div className="space-y-4">
@@ -250,7 +256,30 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
                   <div className="whitespace-pre-wrap text-sm">{message.content}</div>
                 </div>
 
-                {/* NO RENDERIZAMOS LA PREVISUALIZACIÓN DE LA TABLA AQUÍ */}
+                {/* --- Bloque de Sugerencias de Navegación --- */}
+                {message.role === 'assistant' && message.navigationSuggestions && message.navigationSuggestions.length > 0 && (
+                    <div className="space-y-2 p-3 mt-1 rounded-md bg-accent/5 border border-dashed border-accent/30">
+                        <h4 className="text-xs font-semibold flex items-center gap-2 text-accent-foreground">
+                            <ArrowRight className="w-3 h-3 text-accent" />
+                            Acciones Rápidas
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                            {message.navigationSuggestions.map((suggestion, suggestionIndex) => (
+                                <Button
+                                    key={suggestionIndex}
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => onNavigateToTab?.(suggestion.tab, suggestion.filters)}
+                                    className="text-xs h-8"
+                                >
+                                    {suggestion.label}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                {/* ------------------------------------------- */}
+
 
               </div>
             ))}
@@ -265,30 +294,6 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
             <div ref={scrollRef} />
           </div>
 
-          {/* --- Navigation Suggestions --- */}
-          {currentSuggestions.length > 0 && (
-            <div className="space-y-2 pt-2">
-              <h4 className="text-sm font-medium flex items-center gap-2">
-                <ArrowRight className="w-4 h-4" />
-                Acciones Sugeridas
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {currentSuggestions.map((suggestion, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onNavigateToTab?.(suggestion.tab, suggestion.filters)}
-                    className="text-xs"
-                  >
-                    <ArrowRight className="w-3 h-3 mr-1" />
-                    {suggestion.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-          {/* ------------------------------------------- */}
 
           {/* Quick Actions */}
           <div className="space-y-3 pt-2">
@@ -350,7 +355,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
               </div>
               <div className="flex items-center gap-1">
                 <Brain className="w-3 h-3" />
-                <span>Modelo GPT-4o-mini con **Memoria**</span>
+                <span>Modelo GPT-4o-mini con **Memoria** y **Fallback a Gemini**</span>
               </div>
               <div className="flex items-center gap-1">
                 <Sparkles className="w-3 h-3" />

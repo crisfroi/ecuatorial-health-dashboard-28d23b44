@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'; // Agregamos useRef y useCallback
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { UserRole, hasPermission, canAccessTab, getRoleRestrictions, ROLE_DEFINITIONS } from '@/types/roles';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
@@ -257,8 +257,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         if (!user) {
             try {
                 console.log('Listener detected SIGNED_IN (Cross-tab/Initial). Resolving state...');
-                // 💡 No llamamos a resolveRoleAndProfile aquí. initializeAuth o login lo harán.
-                // Solo nos aseguramos de que el estado isLoading se mantenga hasta que termine.
+                // Si el estado local está vacío, forzamos la carga del perfil.
+                await resolveRoleAndProfile(session.user); 
+                subscribeToProfile(session.user.id);
             } catch (e) {
                 console.error('Error resolving state from SIGNED_IN listener:', e);
             }
@@ -283,13 +284,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
     return () => {
       mounted = false;
-      // 💡 Si el componente se desmonta, reiniciamos isInitializedRef para permitir una nueva inicialización si se monta de nuevo.
+      // Si el componente se desmonta, reiniciamos isInitializedRef para permitir una nueva inicialización si se monta de nuevo.
       isInitializedRef.current = false;
       subscription.unsubscribe();
       profileChannel?.unsubscribe();
       console.log('🛑 Auth cleanup completed.');
     };
-  }, [resolveRoleAndProfile, subscribeToProfile, user]); // Se añade 'user' aquí para el listener, pero se usa un Ref para el bloqueo de initializeAuth.
+  }, [resolveRoleAndProfile, subscribeToProfile, user]); 
 
   // --- AUTH METHODS ---
 
@@ -332,10 +333,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
 
       if (data?.user) {
-        // 💡 CAMBIO CLAVE: Mantenemos la resolución de rol síncrona aquí
+        // Mantenemos la resolución de rol síncrona aquí para el login manual.
         console.log('✅ Login successful. Forcing state resolution (blocking load finish).');
         await resolveRoleAndProfile(data.user);
-        // Eliminamos subscribeToProfile de aquí; initializeAuth (si es carga inicial) o el listener (si es cross-tab) lo manejarán.
+        subscribeToProfile(data.user.id);
         return { success: true };
       }
       
@@ -349,7 +350,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
       return { success: false, error: 'Error de conexión. Intente nuevamente.' }; 
     } finally {
-      setIsLoading(false); // ✅ Finaliza la carga DESPUÉS de que el perfil está cargado.
+      setIsLoading(false);
     }
   };
 
@@ -398,3 +399,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   };
 
   const value: AuthContextType = {
+    user,
+    userRole,
+    isLoading,
+    login,
+    logout,
+    hasPermission: checkPermission,
+    canAccessTab: checkTabAccess,
+    getRestrictions,
+    switchRole
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}; // <-- Cierre del componente AuthProvider
+
+// Hook para obtener información del rol actual
+export const useRole = () => {
+  const { user, userRole, hasPermission, canAccessTab, getRestrictions } = useAuth();
+  
+  return {
+    currentRole: userRole,
+    user,
+    hasPermission,
+    canAccessTab,
+    restrictions: getRestrictions(),
+    isAdmin: userRole === 'SUPER_ADMINISTRADOR',
+    isRevisor: userRole === 'REVISOR_SOLICITUDES',
+    isMinisterial: userRole === 'PERSONALIDAD_MINISTERIAL',
+    isObserver: userRole === 'OBSERVADOR',
+    isCenterDirector: userRole === 'DIRECTIVO_CENTRO_SANITARIO'
+  };
+};
+
+export default AuthProvider; // <-- Final del archivo

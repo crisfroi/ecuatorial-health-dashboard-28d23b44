@@ -42,7 +42,7 @@ import { UserRole } from "@/types/roles";
 import { useUserManagement } from "@/hooks/useUserManagement";
 import { useTestInvite } from "@/hooks/useTestInvite";
 import { useAuth } from "@/contexts/AuthContext";
-import { useBuscarCentros } from "@/hooks/useCentrosSalud";
+import { useBuscarCentros } from "@/hooks/useCentrosSalud"; // CAMBIO: Usando useBuscarCentros
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { PERMISSIONS } from "@/types/roles";
 
@@ -60,13 +60,12 @@ const UserRoleManagement = () => {
   const [directMode, setDirectMode] = useState<boolean>(false);
   const [directUsername, setDirectUsername] = useState<string>('');
   const [directPassword, setDirectPassword] = useState<string>('');
-  const [directEmail, setDirectEmail] = useState<string>(''); 
 
   const { inviteUser, createUserWithCredentials, getUserProfiles, updateUserRole, deleteUser, isLoading } = useUserManagement();
   const { loading: loadingPerms, getPermissionsForRole, getAvailablePermissions, setPermissionsForRole } = useRolePermissions();
   const { testInvite, isLoading: isTestLoading } = useTestInvite();
   const { user: currentUser, switchRole } = useAuth();
-  const { data: centrosSalud = [] } = useBuscarCentros({});
+  const { data: centrosSalud = [] } = useBuscarCentros(); // CAMBIO: Usando useBuscarCentros
 
   const roles: Array<{ value: UserRole; label: string }> = [
     { value: 'SUPER_ADMINISTRADOR', label: 'Super Administrador' },
@@ -246,19 +245,6 @@ const UserRoleManagement = () => {
                       onChange={(e) => setDirectUsername(e.target.value)}
                       placeholder="ej: juanfr"
                     />
-                    <p className='text-xs text-yellow-600 mt-1'>
-                      Este será el identificador principal si el Email opcional está vacío.
-                    </p>
-                  </div>
-                  {/* NUEVO CAMPO EMAIL OPCIONAL */}
-                  <div>
-                    <label className="text-sm font-medium">Email (Opcional)</label>
-                    <Input
-                      type="email"
-                      value={directEmail}
-                      onChange={(e) => setDirectEmail(e.target.value)}
-                      placeholder="ej: juanfr@sanidad.gq (opcional)"
-                    />
                   </div>
                   <div>
                     <label className="text-sm font-medium">Contraseña *</label>
@@ -357,27 +343,8 @@ const UserRoleManagement = () => {
                 {directMode && (
                   <Button
                     onClick={async () => {
-                      const usernamePrefix = directUsername.trim();
-                      const optionalEmail = directEmail.trim();
-
-                      // 1. Determinar el identificador final (debe ser un email válido)
-                      let finalIdentifier: string;
-
-                      if (optionalEmail) {
-                        // Opción 1: Si el email opcional se proporciona, se usa directamente
-                        finalIdentifier = optionalEmail;
-                      } else {
-                        // Opción 2: Usar el nombre de usuario y aplicar dominio de contingencia.
-                        finalIdentifier = usernamePrefix.includes('@') 
-                          ? usernamePrefix 
-                          : `${usernamePrefix}@sanidad.gq`; // Dominio solicitado
-                      }
-                      
-                      // Se mantiene la validación de campos obligatorios
-                      if (!usernamePrefix || !directPassword.trim() || !newUser.role) return;
-
                       const res = await createUserWithCredentials({
-                        username: finalIdentifier,
+                        username: directUsername.trim(),
                         password: directPassword,
                         role: (newUser.role as UserRole) || 'OBSERVADOR',
                         full_name: newUser.full_name?.trim(),
@@ -387,7 +354,6 @@ const UserRoleManagement = () => {
                       if (res.success) {
                         setDirectUsername('');
                         setDirectPassword('');
-                        setDirectEmail(''); 
                         setNewUser({ email: '', role: 'OBSERVADOR', full_name: '', department: 'Ministerio de Sanidad y Bienestar Social' });
                         setIsAddDialogOpen(false);
                         loadUsers();
@@ -418,7 +384,7 @@ const UserRoleManagement = () => {
                   <div>
                     <p className="text-xs font-medium text-gray-600">{role.label}</p>
                     <p className="text-xl font-bold">{count}</p>
-                </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

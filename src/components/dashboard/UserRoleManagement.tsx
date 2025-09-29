@@ -60,7 +60,6 @@ const UserRoleManagement = () => {
   const [directMode, setDirectMode] = useState<boolean>(false);
   const [directUsername, setDirectUsername] = useState<string>('');
   const [directPassword, setDirectPassword] = useState<string>('');
-  // 👇 NUEVO ESTADO PARA EL EMAIL OPCIONAL
   const [directEmail, setDirectEmail] = useState<string>(''); 
 
   const { inviteUser, createUserWithCredentials, getUserProfiles, updateUserRole, deleteUser, isLoading } = useUserManagement();
@@ -248,20 +247,19 @@ const UserRoleManagement = () => {
                       placeholder="ej: juanfr"
                     />
                     <p className='text-xs text-yellow-600 mt-1'>
-                      Este será el identificador principal. Si el email opcional está vacío, se usará este campo con un dominio interno.
+                      Este será el identificador principal si el Email opcional está vacío.
                     </p>
                   </div>
-                  {/* 👇 NUEVO CAMPO EMAIL OPCIONAL */}
+                  {/* NUEVO CAMPO EMAIL OPCIONAL */}
                   <div>
                     <label className="text-sm font-medium">Email (Opcional)</label>
                     <Input
                       type="email"
                       value={directEmail}
                       onChange={(e) => setDirectEmail(e.target.value)}
-                      placeholder="ej: juanfr@sanidad.gq (anulará el nombre de usuario como identificador)"
+                      placeholder="ej: juanfr@sanidad.gq (opcional)"
                     />
                   </div>
-                  {/* 👆 FIN NUEVO CAMPO */}
                   <div>
                     <label className="text-sm font-medium">Contraseña *</label>
                     <Input
@@ -362,18 +360,17 @@ const UserRoleManagement = () => {
                       const usernamePrefix = directUsername.trim();
                       const optionalEmail = directEmail.trim();
 
-                      // 1. Determinar el identificador final que debe ser un email válido
+                      // 1. Determinar el identificador final (debe ser un email válido)
                       let finalIdentifier: string;
 
                       if (optionalEmail) {
                         // Opción 1: Si el email opcional se proporciona, se usa directamente
                         finalIdentifier = optionalEmail;
                       } else {
-                        // Opción 2: Si el email opcional está vacío, se usa el nombre de usuario
-                        // y se le aplica el dominio de contingencia si no tiene formato de email.
+                        // Opción 2: Usar el nombre de usuario y aplicar dominio de contingencia.
                         finalIdentifier = usernamePrefix.includes('@') 
                           ? usernamePrefix 
-                          : `${usernamePrefix}@sanidad.gq`; // ✅ Dominio solicitado
+                          : `${usernamePrefix}@sanidad.gq`; // Dominio solicitado
                       }
                       
                       // Se mantiene la validación de campos obligatorios
@@ -390,7 +387,7 @@ const UserRoleManagement = () => {
                       if (res.success) {
                         setDirectUsername('');
                         setDirectPassword('');
-                        setDirectEmail(''); // Limpiar el nuevo campo
+                        setDirectEmail(''); 
                         setNewUser({ email: '', role: 'OBSERVADOR', full_name: '', department: 'Ministerio de Sanidad y Bienestar Social' });
                         setIsAddDialogOpen(false);
                         loadUsers();
@@ -407,4 +404,191 @@ const UserRoleManagement = () => {
         </Dialog>
       </div>
 
-{/* ... resto del componente sin cambios ... */}
+      {/* Estadísticas de roles */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {roles.map((role) => {
+          const count = users.filter(user => user.role === role.value && user.is_active).length;
+          return (
+            <Card key={role.value}>
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-3">
+                  <div className={`p-2 rounded-lg ${getRoleColor(role.value)}`}>
+                    {getRoleIcon(role.value)}
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-600">{role.label}</p>
+                    <p className="text-xl font-bold">{count}</p>
+                </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Tabla de usuarios */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Usuarios del Sistema ({users.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Usuario</TableHead>
+                <TableHead>Rol</TableHead>
+                <TableHead>Departamento</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Fecha Registro</TableHead>
+                <TableHead>Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{user.full_name || user.email}</div>
+                      <div className="text-sm text-gray-500">{user.email}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={getRoleColor(user.role)}>
+                      <div className="flex items-center gap-1">
+                        {getRoleIcon(user.role)}
+                        {roles.find(r => r.value === user.role)?.label}
+                      </div>
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">{user.department}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.is_active ? "default" : "secondary"}>
+                      {user.is_active ? "Activo" : "Inactivo"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {new Date(user.created_at).toLocaleDateString('es-ES')}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingUser(user);
+                          setIsEditDialogOpen(true);
+                        }}
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      {user.role !== 'SUPER_ADMINISTRADOR' && user.id !== currentUser?.id && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive">
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción no se puede deshacer. El usuario será eliminado permanentemente del sistema.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteUser(user.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {users.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No hay usuarios registrados en el sistema
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Dialog para editar usuario */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuario</DialogTitle>
+          </DialogHeader>
+          {editingUser && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Email</label>
+                <Input value={editingUser.email} disabled />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Nombre Completo</label>
+                <Input
+                  value={editingUser.full_name || ''}
+                  onChange={(e) => setEditingUser({...editingUser, full_name: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Departamento</label>
+                <Input
+                  value={editingUser.department || ''}
+                  onChange={(e) => setEditingUser({...editingUser, department: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Rol</label>
+                <Select 
+                  value={editingUser.role} 
+                  onValueChange={(value) => setEditingUser({...editingUser, role: value as UserRole})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        <div className="flex items-center gap-2">
+                          {getRoleIcon(role.value)}
+                          {role.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={handleUpdateUser} disabled={isLoading}>
+                  {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default UserRoleManagement;

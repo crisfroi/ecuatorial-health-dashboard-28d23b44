@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase"; // 👈 Asegúrate de que esta ruta sea correcta
+import { supabase } from "@/integrations/supabase/client"; // 👈 Asegúrate de que esta ruta sea correcta
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

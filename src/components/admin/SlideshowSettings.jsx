@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client"; // 👈 Asegúrate de que esta ruta sea correcta
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/card";
 import { Trash2, Plus, Clock, Loader2 } from "lucide-react";
 
-// ID de la única fila de configuración (podría ser un valor constante)
-const CONFIG_ID = 1; 
-const STORAGE_BUCKET = 'background-images'; 
+// Constantes
+const CONFIG_ID = 1;
+const STORAGE_BUCKET = 'background-images';
 
 const SlideshowSettings = () => {
     const [settings, setSettings] = useState({ duration: 5000, images: [] });
@@ -22,7 +22,36 @@ const SlideshowSettings = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
-    // 1. Cargar Configuración Inicial de la BD
+    // --- FUNCIÓN DE GUARDADO (UPDATED) ---
+    // Guarda la Configuración de Duración y URLs en la BD.
+    // Recibe la configuración a guardar para ser utilizada en handleAddImage.
+    const handleSave = useCallback(async (currentSettings = settings) => {
+        // Solo activamos isSaving si no está ya activo (ej: si viene de handleAddImage)
+        if (!isSaving) {
+            setIsSaving(true);
+        }
+
+        const { error } = await supabase
+            .from('slideshow_settings')
+            .upsert({ 
+                id: CONFIG_ID, 
+                duration: currentSettings.duration, 
+                images: currentSettings.images 
+            }, { 
+                onConflict: 'id' 
+            });
+
+        if (error) {
+            console.error("Error al guardar la configuración:", error);
+            alert("Error al guardar la configuración.");
+        } else {
+            console.log("Configuración guardada en Supabase.");
+        }
+        
+        setIsSaving(false); // 👈 SIEMPRE se desactiva al finalizar la BD
+    }, [isSaving, settings.duration, settings.images]);
+
+    // --- CARGAR CONFIGURACIÓN INICIAL ---
     const fetchSettings = useCallback(async () => {
         setIsLoading(true);
         const { data, error } = await supabase
@@ -31,10 +60,9 @@ const SlideshowSettings = () => {
             .eq('id', CONFIG_ID)
             .single();
 
-        if (error) {
+        if (error && error.code !== 'PGRST116') { // PGRST116 es "no results"
             console.error("Error al cargar la configuración:", error);
-            // Si no existe, usamos valores por defecto
-            setSettings({ duration: 5000, images: [] }); 
+            setSettings({ duration: 5000, images: [] }); 
         } else if (data) {
             setSettings(data);
         }
@@ -50,17 +78,17 @@ const SlideshowSettings = () => {
         setSettings({ ...settings, duration: Number(e.target.value) });
     };
 
-    // 2. Subir imagen a Supabase Storage y actualizar la lista
+    // --- FUNCIÓN DE AÑADIR IMAGEN (CORREGIDA) ---
     const handleAddImage = async () => {
         if (!newImageFile) return;
 
-        setIsSaving(true);
+        setIsSaving(true); // 👈 Activar el estado de guardado
         const file = newImageFile;
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}.${fileExt}`;
-        const filePath = `${fileName}`; 
+        const filePath = `${fileName}`; 
 
-        // 2a. Subir el archivo al Storage
+        // 1. Subir el archivo al Storage
         const { error: uploadError } = await supabase.storage
             .from(STORAGE_BUCKET)
             .upload(filePath, file);
@@ -68,28 +96,35 @@ const SlideshowSettings = () => {
         if (uploadError) {
             console.error("Error al subir la imagen:", uploadError);
             alert("Error al subir la imagen.");
-            setIsSaving(false);
+            setIsSaving(false); // 👈 Desactivar en caso de error de subida
             return;
         }
 
-        // 2b. Obtener la URL pública de la imagen
+        // 2. Obtener la URL pública de la imagen
         const { data: publicUrlData } = supabase.storage
             .from(STORAGE_BUCKET)
             .getPublicUrl(filePath);
 
         const imageUrl = publicUrlData.publicUrl;
+        
+        // 3. Crear el nuevo estado de imágenes
+        const updatedImages = [...settings.images, imageUrl];
 
-        // 2c. Actualizar el estado con la nueva URL
+        // 4. Actualizar el estado local (asíncrono)
         setSettings((prevSettings) => ({
             ...prevSettings,
-            images: [...prevSettings.images, imageUrl] 
+            images: updatedImages
         }));
         
         setNewImageFile(null); // Limpia la selección
-        await handleSave({ ...settings, images: [...settings.images, imageUrl] }); // Guarda inmediatamente el cambio
+
+        // 5. Guardar el nuevo estado COMPLETO en la BD
+        // Pasamos el nuevo objeto settings para que handleSave lo use inmediatamente
+        await handleSave({ ...settings, images: updatedImages });
+        // handleSave se encarga de llamar a setIsSaving(false)
     };
 
-    // 3. Eliminar imagen del Storage y de la lista
+    // --- FUNCIÓN DE ELIMINAR IMAGEN ---
     const handleRemoveImage = async (urlToRemove) => {
         const confirmDelete = window.confirm("¿Estás seguro de que quieres eliminar esta imagen?");
         if (!confirmDelete) return;
@@ -97,9 +132,10 @@ const SlideshowSettings = () => {
         setIsSaving(true);
 
         // Extraer el nombre del archivo de la URL
+        // Esto asume que el nombre del archivo es la última parte de la URL
         const fileName = urlToRemove.split('/').pop();
         
-        // 3a. Eliminar del Storage
+        // 1. Eliminar del Storage
         const { error: deleteError } = await supabase.storage
             .from(STORAGE_BUCKET)
             .remove([fileName]);
@@ -111,40 +147,20 @@ const SlideshowSettings = () => {
             return;
         }
 
-        // 3b. Actualizar el estado y la BD
+        // 2. Actualizar el estado y la BD
         const updatedImages = settings.images.filter(url => url !== urlToRemove);
         setSettings(prevSettings => ({ ...prevSettings, images: updatedImages }));
+        
+        // Guardar el nuevo estado de imágenes en la BD
         await handleSave({ ...settings, images: updatedImages });
-    };
-
-    // 4. Guardar la Configuración de Duración y URLs en la BD
-    const handleSave = async (currentSettings = settings) => {
-        setIsSaving(true);
-
-        const { error } = await supabase
-            .from('slideshow_settings')
-            .upsert({ 
-                id: CONFIG_ID, 
-                duration: currentSettings.duration, 
-                images: currentSettings.images 
-            }, { 
-                onConflict: 'id' 
-            });
-
-        if (error) {
-            console.error("Error al guardar la configuración:", error);
-            alert("Error al guardar la configuración.");
-        } else {
-            console.log("Configuración guardada en Supabase.");
-        }
-        setIsSaving(false);
+        // handleSave se encarga de llamar a setIsSaving(false)
     };
 
     if (isLoading) {
         return (
             <Card>
                 <CardContent className="flex justify-center items-center h-48">
-                    <Loader2 className="h-8 w-8 animate-spin mr-2" /> 
+                    <Loader2 className="h-8 w-8 animate-spin mr-2" /> 
                     Cargando configuración...
                 </CardContent>
             </Card>
@@ -177,14 +193,21 @@ const SlideshowSettings = () => {
                             onChange={handleDurationChange}
                             placeholder="Ej: 8000"
                         />
-                         <Button 
-                            onClick={() => handleSave()} 
+                         <Button 
+                            onClick={() => handleSave()} 
                             disabled={isSaving}
                         >
-                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> 
+                                    Guardando...
+                                </>
+                            ) : (
+                                "Guardar"
+                            )}
                         </Button>
                     </div>
-                   
+                    
                     <p className="text-sm text-gray-500">
                         ({settings.duration / 1000} segundos). Este es el tiempo que cada imagen permanece visible.
                     </p>
@@ -205,9 +228,9 @@ const SlideshowSettings = () => {
                                         className="w-full h-32 object-cover"
                                     />
                                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button 
-                                            variant="destructive" 
-                                            size="icon" 
+                                        <Button 
+                                            variant="destructive" 
+                                            size="icon" 
                                             onClick={() => handleRemoveImage(url)}
                                             aria-label="Eliminar imagen"
                                             disabled={isSaving}
@@ -222,7 +245,6 @@ const SlideshowSettings = () => {
                         <p className="text-gray-500">No hay imágenes configuradas para el carrusel.</p>
                     )}
 
-
                     {/* Subida de Nueva Imagen */}
                     <div className="pt-4 border-t border-gray-200">
                         <Label htmlFor="new-image">Añadir nueva imagen de fondo</Label>
@@ -234,14 +256,19 @@ const SlideshowSettings = () => {
                                 onChange={(e) => setNewImageFile(e.target.files[0])}
                                 className="flex-grow"
                             />
-                            <Button 
-                                onClick={handleAddImage} 
+                            <Button 
+                                onClick={handleAddImage} 
                                 disabled={!newImageFile || isSaving}
                             >
-                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                                {isSaving ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Plus className="w-4 h-4 mr-2" />
+                                )}
                                 Añadir
                             </Button>
                         </div>
+                         {newImageFile && <p className="text-sm text-gray-500 mt-2">Archivo seleccionado: {newImageFile.name}</p>}
                     </div>
                 </div>
 

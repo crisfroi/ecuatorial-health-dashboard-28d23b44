@@ -41,7 +41,6 @@ interface AuthProviderProps {
   defaultRole?: UserRole;
 }
 
-// Se declara aquí para que sea visible en el useEffect y en la función de cleanup.
 let profileChannel: ReturnType<typeof supabase.channel> | null = null;
 
 
@@ -53,7 +52,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const [user, setUser] = useState<UserProfile | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  // Usamos useRef para mantener el estado actual de isLoading sin depender de él en useEffect.
   const isInitializedRef = useRef(false); 
 
 
@@ -116,7 +114,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     return map[r] || null;
   }, []);
 
-  // Se utiliza useCallback para evitar que se cree una nueva instancia en cada render.
   const resolveRoleAndProfile = useCallback(async (baseUser: User) => {
     console.log('🔄 Attempting to resolve role from DB...');
     const dbProfile = await getProfileFromDb(baseUser.id);
@@ -151,6 +148,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     setUserRole(null);
   }, [getProfileFromDb, applyUserState, normalizeRole]);
 
+  // 💡 CRÍTICO: Eliminamos la dependencia [user] aquí para estabilizar la función
   const subscribeToProfile = useCallback((uid: string) => {
     if (profileChannel) {
         profileChannel.unsubscribe();
@@ -166,9 +164,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         (payload) => {
           const newRow = payload.new as any;
           const newRole = newRow?.role as UserRole | undefined;
-          if (newRole && user) {
+          if (newRole) {
             console.log(`📡 Profile update received. Switching role to ${newRole}.`);
             setUserRole(newRole);
+            // Usamos el functional update para no depender de 'user' del closure
             setUser((prev) => (
               prev
                 ? {
@@ -184,7 +183,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
       )
       .subscribe();
-  }, [user]);
+  }, []); // <-- CRÍTICO: Arreglo el array de dependencias para estabilizar la función
 
 
   // --- USE EFFECT (INITIALIZATION) ---
@@ -253,17 +252,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       console.log(`🔥 Auth state changed: ${event}`);
 
       if (event === 'SIGNED_IN' && session?.user) {
-        // Si no tenemos usuario cargado, es un evento de otra pestaña o una sesión que se recupera
-        if (!user) {
-            try {
-                console.log('Listener detected SIGNED_IN (Cross-tab/Initial). Resolving state...');
-                // Si el estado local está vacío, forzamos la carga del perfil.
-                await resolveRoleAndProfile(session.user); 
-                subscribeToProfile(session.user.id);
-            } catch (e) {
-                console.error('Error resolving state from SIGNED_IN listener:', e);
+        // 💡 Mejora: Usamos un método más seguro para la sincronización entre pestañas.
+        supabase.auth.getSession().then(({ data }) => {
+            if (data?.session?.user && !user) {
+                // Si la sesión existe en Supabase, pero el estado local 'user' está vacío (sincronización cross-tab),
+                // forzamos la carga del perfil.
+                console.log('Listener detected SIGNED_IN (Cross-tab sync). Resolving state...');
+                resolveRoleAndProfile(data.session.user);
+                subscribeToProfile(data.session.user.id);
             }
-        }
+        });
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setUserRole(null);
@@ -284,13 +282,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
     return () => {
       mounted = false;
-      // Si el componente se desmonta, reiniciamos isInitializedRef para permitir una nueva inicialización si se monta de nuevo.
       isInitializedRef.current = false;
       subscription.unsubscribe();
       profileChannel?.unsubscribe();
       console.log('🛑 Auth cleanup completed.');
     };
-  }, [resolveRoleAndProfile, subscribeToProfile, user]); 
+  }, [resolveRoleAndProfile, subscribeToProfile]); // CRÍTICO: Eliminamos 'user' de aquí
+
 
   // --- AUTH METHODS ---
 
@@ -333,8 +331,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
 
       if (data?.user) {
-        // Mantenemos la resolución de rol síncrona aquí para el login manual.
         console.log('✅ Login successful. Forcing state resolution (blocking load finish).');
+        // El login manual fuerza el estado y la suscripción.
         await resolveRoleAndProfile(data.user);
         subscribeToProfile(data.user.id);
         return { success: true };
@@ -415,7 +413,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       {children}
     </AuthContext.Provider>
   );
-}; // <-- Cierre del componente AuthProvider
+};
 
 // Hook para obtener información del rol actual
 export const useRole = () => {
@@ -435,4 +433,4 @@ export const useRole = () => {
   };
 };
 
-export default AuthProvider; // <-- Final del archivo
+export default AuthProvider;

@@ -138,11 +138,11 @@ const Auth = () => {
     <div className="min-h-screen bg-gradient-to-br from-guinea-teal to-guinea-dark-teal flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4">
+          <div className="mx-auto w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4">
             <img
               src="/logofavi.png"
               alt="Logo"
-              className="w-10 h-10 object-contain"
+              className="w-16 h-16 object-contain"
               />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">RENAPROSA</h1>

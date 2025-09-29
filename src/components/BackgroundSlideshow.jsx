@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 // 💡 Mock data (Simularemos que esto vendrá de un estado global o una API más adelante)
 // Las imágenes deben estar en la carpeta /public/backgrounds/
 const IMAGES = [
-    '/backgrounds/imagen1.png',
+    '/backgrounds/imagen1.jpg',
     '/backgrounds/imagen2.png',
    
     // Asegúrate de crear estos archivos en public/backgrounds/

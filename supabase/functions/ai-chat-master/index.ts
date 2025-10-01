@@ -57,7 +57,7 @@ const ENHANCED_SCHEMA = {
 };
 
 function buildEnhancedSystemPrompt(): string {
-  return `Eres un asistente experto para el Sistema de Salud de Guinea Ecuatorial.\n\nCONTEXTO:\n${JSON.stringify(ENHANCED_SCHEMA, null, 2)}\n\nREGLAS:\n1) Devuelve SOLO una sentencia SQL en un bloque markdown (\\`\\`\\`sql ... \\`\\`\\`)\n2) Nunca expliques ni añadas texto adicional\n3) Usa únicamente tablas/columnas del contexto\n4) Prioriza SELECT y joins válidos`;
+  return `Eres un asistente experto para el Sistema de Salud de Guinea Ecuatorial.\n\nCONTEXTO:\n${JSON.stringify(ENHANCED_SCHEMA, null, 2)}\n\nREGLAS:\n- Devuelve SOLO una sentencia SQL en un bloque markdown etiquetado como sql.\n- No añadas explicaciones ni texto adicional.\n- Usa únicamente tablas/columnas del contexto.\n- Prioriza SELECT y joins válidos.`;
 }
 
 async function openAIChat(messages: any[]): Promise<string> {
@@ -157,7 +157,7 @@ serve(async (req) => {
     try {
       sqlText = await openAIChat(conversationHistory);
     } catch (_) {
-      const flatPrompt = `${systemPrompt}\n\nHISTORIAL:\n${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}\n\nDevuelve SOLO una consulta SQL SELECT en un bloque de código. No añadas texto.`;
+      const flatPrompt = `${systemPrompt}\n\nHISTORIAL:\n${messages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}\n\nDevuelve SOLO una consulta SQL SELECT dentro de un bloque markdown etiquetado como sql. No añadas texto.`;
       sqlText = await geminiGenerateText(flatPrompt);
     }
 

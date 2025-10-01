@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client'; // Importación real para tu entorno
 import {
   Brain,
   Send,
@@ -176,7 +176,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
               // Simular "Guardar" y luego navegar
               saveHistory(messages);
               onNavigateToTab(suggestion.tab, suggestion.filters);
-              // No mostrar un toast de éxito, ya que el toast actual se cerrará.
+              // Notificación de guardado quitada para evitar conflicto con el cierre del Toast
             }}
             className="w-full justify-start"
           >
@@ -195,7 +195,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     });
   };
 
-  // --- 3. FUNCIÓN DE ENVÍO Y COMUNICACIÓN CON BACKEND ---
+  // --- 3. FUNCIÓN DE ENVÍO Y COMUNICACIÓN CON BACKEND (CORREGIDA) ---
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -208,8 +208,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       timestamp: new Date().toISOString(),
     };
     
-    // --- CORRECCIÓN CRÍTICA: Construir el historial para el payload ANTES de actualizar el estado ---
-    // Usamos el estado 'messages' actual (previo) y el nuevo 'userMessage'.
+    // Construir el historial para el payload (incluyendo el nuevo mensaje del usuario)
     const fullHistory = [...messages, userMessage];
 
     const historyToPass = fullHistory.slice(-10).map(m => ({
@@ -227,7 +226,6 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
 
     try {
       // Llamada a la Edge Function (Backend con Gemini/OpenAI Fallback)
-      // La variable 'supabase' se mantiene de la importación original.
       const { data, error } = await supabase.functions.invoke('ai-chat-master', {
         body: payload, 
       });
@@ -236,16 +234,20 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         throw new Error((error as any)?.message || 'Error en la llamada a la Edge Function.');
       }
 
-      let assistantContent = '';
-      let assistantResult = data?.result;
-      let assistantError = data?.error;
-      let assistantSQL = data?.sql; // CAPTURA DEL SQL
-      const assistantSuggestions: NavigationSuggestion[] = data?.navigationSuggestions || [];
-      const naturalResponse = data?.natural_language_response;
+      // CORRECCIÓN CLAVE: Extraer los campos según la estructura de la Edge Function
+      const { 
+        natural_language_response: naturalResponse, 
+        sql: assistantSQL, 
+        result: assistantResult, 
+        error: assistantError,
+        navigationSuggestions: assistantSuggestions = [],
+      } = data as any || {}; // Usar 'as any || {}' para seguridad si 'data' es null
 
+      let assistantContent = '';
       let toastTitle = "✅ Consulta Exitosa";
 
       if (assistantError) {
+        // Manejo de Error SQL
         toastTitle = "❌ Error SQL";
         assistantContent = `❌ **Error al ejecutar la consulta:** El motor SQL devolvió un error.
         
@@ -257,17 +259,21 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
           variant: "destructive"
         });
       } else {
+        // Manejo de Respuesta Exitosa
+        
+        // 1. Contar filas (para mostrar en el toast, si es un COUNT será 1)
         const rowCount = assistantResult?.length ?? 0;
 
-        // CRÍTICO: Usamos la respuesta natural como contenido principal
+        // 2. Usar la respuesta natural como contenido principal
         assistantContent = naturalResponse ||
-          `✅ **Consulta Exitosa.** (La IA no pudo generar una respuesta natural). Se obtuvieron **${rowCount}** filas.`;
+          `✅ **Consulta Exitosa.** (No se recibió una respuesta natural). Se obtuvieron **${rowCount}** filas.`;
 
-        // Añadimos una nota en el contenido si hay sugerencias 
+        // 3. Añadir nota si hay sugerencias
         if (assistantSuggestions.length > 0) {
           assistantContent += "\n\n**¡Acciones Sugeridas disponibles debajo!**";
         }
-
+        
+        // 4. Mostrar el toast (si el resultado es una agregación, rowCount será 1, lo cual es correcto)
         toast({
           title: toastTitle,
           description: `Se obtuvieron ${rowCount} filas.`,
@@ -475,7 +481,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
                 ? "Escribe tu pregunta..."
                 : "Cargando sistema..."
               }
-              disabled={loading || !systemReady} // Input is disabled if not ready or loading
+              disabled={loading || !input.trim() || !systemReady}
               className="flex-1"
             />
             <Button

@@ -524,7 +524,12 @@ function extractSqlFromText(text: string): { sql: string | null, action: string 
 
   // 2. Extraer el bloque de código SQL
   const sqlMatch = sqlActionPart.match(/```sql\s*([\s\S]*?)```/);
-  const sql = sqlMatch && sqlMatch[1] ? sqlMatch[1].trim() : null;
+  let sql = sqlMatch && sqlMatch[1] ? sqlMatch[1].trim() : null;
+
+  // CORRECCIÓN CRUCIAL: Eliminar el punto y coma final, que causa un error de sintaxis en el RPC de Supabase.
+  if (sql) {
+    sql = sql.replace(/;$/, '').trim();
+  }
 
   // 3. Extraer el comentario de acción
   const actionMatch = sqlActionPart.match(/-- ACTION: (GENERATE_XLSX_URL)/);
@@ -566,7 +571,7 @@ serve(async (req) => {
 
     if (sql) {
       // 5. Si se genera SQL, ejecutarlo
-      // CORRECCIÓN: Cambiado 'execute_sql' por 'exec_sql' basado en el log de error de Postgres.
+      // Se mantiene 'exec_sql' ya corregido.
       const { data: dbData, error: dbError } = await supabase.rpc('exec_sql', { query: sql });
 
       if (dbError) {

@@ -113,17 +113,22 @@ const ApprovalLetter = ({ formData }: ApprovalLetterProps) => {
           {formData.funcion_publica && (
             <>
               <p>
-                <strong>Condición:</strong> Funcionario Público del Sistema Sanitario
+                <strong>Condición Laboral:</strong> {formData.estatus_funcionario === 'nombrado' ? 'Funcionario Público Nombrado del Sistema Sanitario Nacional' : 'Personal Contratado del Sector Público Sanitario'}
               </p>
               {formData.estatus_funcionario === 'nombrado' && formData.fecha_nombramiento && (
                 <p>
-                  <strong>Fecha de Nombramiento:</strong>{" "}
+                  <strong>Fecha de Nombramiento Oficial:</strong>{" "}
                   {new Date(formData.fecha_nombramiento).toLocaleDateString('es-ES')}
                 </p>
               )}
               {formData.numero_funcionario && (
                 <p>
-                  <strong>Número de Funcionario:</strong> {formData.numero_funcionario}
+                  <strong>Número de Registro de Funcionario:</strong> {formData.numero_funcionario}
+                </p>
+              )}
+              {formData.estatus_funcionario === 'no_nombrado' && (
+                <p>
+                  <strong>Régimen de Contratación:</strong> Temporal - Sector Público
                 </p>
               )}
             </>
@@ -153,8 +158,11 @@ const ApprovalLetter = ({ formData }: ApprovalLetterProps) => {
           territorio nacional de Guinea Ecuatorial, con todas las
           responsabilidades y derechos que ello conlleva, en estricto
           cumplimiento del código deontológico de su profesión
-          {formData.funcion_publica && (
-            <> y del régimen estatutario del funcionario público sanitario</>
+          {formData.funcion_publica && formData.estatus_funcionario === 'nombrado' && (
+            <>, del régimen estatutario del funcionario público de carrera del sistema sanitario nacional, y de las obligaciones inherentes a su condición de servidor público nombrado</>
+          )}
+          {formData.funcion_publica && formData.estatus_funcionario === 'no_nombrado' && (
+            <>, del marco regulatorio del personal contratado del sector público sanitario, conforme a la normativa laboral vigente</>
           )}.
         </p>
 

@@ -76,19 +76,20 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
             <p>
               Actualmente, mi situación laboral es <span className="font-semibold">{formData.situacion_laboral}</span>
               {formData.funcion_publica && (
-                <>, desempeñándome como funcionario público 
+                <>, desempeñándome como funcionario público del sistema sanitario nacional
                 {formData.estatus_funcionario === 'nombrado' && formData.fecha_nombramiento && (
-                  <> con nombramiento oficial desde el <span className="font-semibold">{new Date(formData.fecha_nombramiento).toLocaleDateString('es-ES')}</span></>
+                  <>, con nombramiento oficial otorgado en fecha <span className="font-semibold">{new Date(formData.fecha_nombramiento).toLocaleDateString('es-ES')}</span>
+                  {formData.numero_funcionario && <>, bajo el número de funcionario <span className="font-semibold">{formData.numero_funcionario}</span></>}</>
                 )}
                 {formData.estatus_funcionario === 'no_nombrado' && (
-                  <> en condición de contratado temporal</>
+                  <>, en condición de personal contratado temporal del sector público sanitario</>
                 )}</>
               )}
               {formData.nombre_centro && (
-                <>, prestando servicios en <span className="font-semibold">{formData.nombre_centro}</span> 
-                ({formData.categoria_centro}) en el sector <span className="font-semibold">{formData.tipo_sector}</span>
+                <>, prestando mis servicios profesionales en <span className="font-semibold">{formData.nombre_centro}</span> 
+                (categoría: {formData.categoria_centro}), perteneciente al sector <span className="font-semibold">{formData.tipo_sector}</span>
                 {formData.distrito_sanitario && (
-                  <>, correspondiente al distrito sanitario de <span className="font-semibold">{formData.distrito_sanitario}</span></>
+                  <>, correspondiente al Distrito Sanitario de <span className="font-semibold">{formData.distrito_sanitario}</span></>
                 )}</>
               )}.
             </p>
@@ -103,15 +104,21 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
               )}
 
               <p>
-                Mi formación académica en el campo de la salud
-                {formData.funcion_publica && (
-                  <> y mi condición de funcionario público del sistema sanitario nacional</>
+                Mi formación académica en el campo de la salud pública
+                {formData.funcion_publica && formData.estatus_funcionario === 'nombrado' && (
+                  <>, mi condición de funcionario público nombrado del sistema sanitario nacional,</>
+                )}
+                {formData.funcion_publica && formData.estatus_funcionario === 'no_nombrado' && (
+                  <>, mi participación como personal contratado en el servicio público de salud,</>
                 )} 
-                y mi compromiso con el ejercicio ético y profesional de la medicina me motivan a solicitar esta acreditación oficial, que me permitirá 
-                continuar contribuyendo al desarrollo del sistema sanitario de Guinea Ecuatorial con la 
-                debida autorización y reconocimiento profesional
-                {formData.funcion_publica && (
-                  <> en mi calidad de servidor público</>
+                {' '}y mi firme compromiso con el ejercicio ético y profesional de la medicina me motivan a solicitar esta acreditación oficial, 
+                la cual me permitirá continuar contribuyendo al desarrollo del sistema sanitario de Guinea Ecuatorial 
+                con la debida autorización y reconocimiento profesional
+                {formData.funcion_publica && formData.estatus_funcionario === 'nombrado' && (
+                  <> en mi calidad de servidor público de carrera</>
+                )}
+                {formData.funcion_publica && formData.estatus_funcionario === 'no_nombrado' && (
+                  <> en el marco del servicio público sanitario</>
                 )}.
               </p>
 

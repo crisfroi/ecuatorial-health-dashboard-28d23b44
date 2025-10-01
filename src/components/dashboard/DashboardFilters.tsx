@@ -13,7 +13,7 @@ interface Filtros {
   provincia?: string;
   genero?: string;
   tipo_sector?: string;
-  funcion_publica?: string; // string 'true'/'false' as used by UI
+  funcion_publica?: string;
   estatus_funcionario?: 'nombrado' | 'no_nombrado';
   distrito?: string;
   distrito_sanitario?: string;
@@ -22,7 +22,8 @@ interface Filtros {
   edad_minima?: number;
   edad_maxima?: number;
   año_graduacion?: number;
-  // Nuevos filtros calculados (client-side)
+  pais_formacion?: string;
+  institucion_formacion?: string;
   edad_laboral_min?: number;
   edad_laboral_max?: number;
   años_servicio_min?: number;
@@ -47,6 +48,8 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
   const [distritos, setDistritos] = useState<string[]>([]);
   const [anios, setAnios] = useState<number[]>([]);
   const [centros, setCentros] = useState<{ id: string; nombre: string }[]>([]);
+  const [paises, setPaises] = useState<string[]>([]);
+  const [instituciones, setInstituciones] = useState<string[]>([]);
 
   const updateFilter = (key: keyof Filtros, value: string | number | undefined) => {
     let normalized: any = value;
@@ -99,6 +102,34 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
         .order('nombre');
       if (!centrosError && centrosData) {
         setCentros(centrosData as any);
+      }
+
+      // Fetch países de formación
+      const { data: paisesData } = await supabase
+        .from('profesionales_sanitarios')
+        .select('pais_formacion_1, pais_formacion_2')
+        .not('pais_formacion_1', 'is', null);
+      if (paisesData) {
+        const paisesSet = new Set<string>();
+        paisesData.forEach((p: any) => {
+          if (p.pais_formacion_1) paisesSet.add(p.pais_formacion_1);
+          if (p.pais_formacion_2) paisesSet.add(p.pais_formacion_2);
+        });
+        setPaises(Array.from(paisesSet).sort());
+      }
+
+      // Fetch instituciones de formación directamente de profesionales
+      const { data: institucionesProfs } = await supabase
+        .from('profesionales_sanitarios')
+        .select('institucion_1, institucion_2')
+        .not('institucion_1', 'is', null);
+      if (institucionesProfs) {
+        const instSet = new Set<string>();
+        institucionesProfs.forEach((p: any) => {
+          if (p.institucion_1) instSet.add(p.institucion_1);
+          if (p.institucion_2) instSet.add(p.institucion_2);
+        });
+        setInstituciones(Array.from(instSet).sort());
       }
     };
     fetchDistinct();
@@ -274,6 +305,36 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
               <SelectContent>
                 <SelectItem value="todos">Todos los distritos</SelectItem>
                 {distritos.map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">País de Formación</label>
+            <Select value={filters.pais_formacion || 'todos'} onValueChange={(value) => updateFilter('pais_formacion', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los países" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los países</SelectItem>
+                {paises.map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Centro de Formación</label>
+            <Select value={String(filters.institucion_formacion || 'todos')} onValueChange={(value) => updateFilter('institucion_formacion', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todas las instituciones" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas las instituciones</SelectItem>
+                {instituciones.map((v) => (
                   <SelectItem key={v} value={v}>{v}</SelectItem>
                 ))}
               </SelectContent>

@@ -448,27 +448,27 @@ async function geminiGenerateText(prompt: string): Promise<string> {
   }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
+  
   try {
     const resp = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        // CORRECCIÓN CRUCIAL: Cambiar 'config' por 'generationConfig' para la API HTTP
-        generationConfig: {
+        // La corrección anterior cambió 'config' por 'generationConfig' para evitar el 400.
+        generationConfig: { 
           temperature: 0,
           maxOutputTokens: 1024
         }
       })
     });
-
+    
     if (!resp.ok) {
       const errorText = await resp.text();
       // REGISTRO DE ERROR CLAVE: Status HTTP y cuerpo de la respuesta para el diagnóstico.
       console.error(`ERROR GEMINI HTTP: Status ${resp.status}`);
       console.error(`Cuerpo del Error Gemini: ${errorText}`);
-
+      
       // Clasificación del error para el usuario
       if (resp.status === 400) {
         throw new Error(`Error 400 (Bad Request): Revisa el formato del prompt o modelo (ej. Alternancia de roles). Cuerpo: ${errorText}`);
@@ -480,7 +480,7 @@ async function geminiGenerateText(prompt: string): Promise<string> {
         throw new Error(`Gemini error ${resp.status}: ${errorText}`);
       }
     }
-
+    
     const json = await resp.json();
     const text = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     return text;
@@ -566,7 +566,8 @@ serve(async (req) => {
 
     if (sql) {
       // 5. Si se genera SQL, ejecutarlo
-      const { data: dbData, error: dbError } = await supabase.rpc('execute_sql', { query: sql });
+      // CORRECCIÓN: Cambiado 'execute_sql' por 'exec_sql' basado en el log de error de Postgres.
+      const { data: dbData, error: dbError } = await supabase.rpc('exec_sql', { query: sql });
 
       if (dbError) {
         console.error('Error ejecutando SQL en DB:', dbError);
@@ -579,7 +580,7 @@ serve(async (req) => {
       } else {
         // 6. Preparar la respuesta final con los datos de la DB
         const explanationPart = geminiResponseText.split('-- RESULT_SEPARATOR --')[0].trim();
-
+        
         finalResponse = {
           content: explanationPart,
           sql: sql,
@@ -589,14 +590,14 @@ serve(async (req) => {
       }
     } else {
       // 7. Si no hay SQL (por ejemplo, si Gemini devuelve solo una explicación simple), usar la respuesta directa.
-      finalResponse = {
+       finalResponse = {
         content: geminiResponseText,
         sql: null,
         action: null,
         db_result: null
       };
     }
-
+    
     // Devolver la respuesta al cliente
     return new Response(JSON.stringify(finalResponse), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -610,7 +611,7 @@ serve(async (req) => {
       detail: error.message,
       stack: error.stack
     };
-
+    
     console.error("Error en el Edge Function:", error.message);
 
     return new Response(JSON.stringify(errorBody), {

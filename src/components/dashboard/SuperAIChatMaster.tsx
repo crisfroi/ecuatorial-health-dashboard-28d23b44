@@ -1,537 +1,688 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client'; // Importación real para tu entorno
-import {
-  Brain,
-  Send,
-  Loader2,
-  Sparkles,
-  Database,
-  BarChart3,
-  Code,
-  Users,
-  ArrowRight,
-  Clock,
-  Save,
-  AlertTriangle,
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// --- CONSTANTES DE CACHÉ ---
-const CACHE_KEY = 'renaprosa_chat_history';
-const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 horas
+// --- 1. CONFIGURACIÓN Y VARIABLES DE ENTORNO ---
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
-// --- INTERFACES PARA MEMORIA Y NAVEGACIÓN ---
-interface NavigationSuggestion {
-  type: 'navigate';
-  tab: string; // Nombre de la pestaña (ej: 'professionals', 'health-centers')
-  label: string;
-  filters?: Record<string, any>;
-}
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-  sql?: string;
-  result?: any[];
-  error?: string;
-  navigationSuggestions?: NavigationSuggestion[];
-}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+};
 
-interface SavedHistory {
-  messages: ChatMessage[];
-  timestamp: number;
-}
-
-interface SuperAIChatMasterProps {
-  onNavigateToTab?: (tab: string, filters?: any) => void;
-}
-
-// --- HELPERS VISUALES ---
-const getNavigationIcon = (tab: string) => {
-  switch (tab) {
-    case 'professionals':
-      return Users;
-    case 'health-centers':
-      return Database;
-    case 'guardias':
-      return Clock;
-    case 'analytics':
-      return BarChart3;
-    default:
-      return ArrowRight;
+// --- 2. ESQUEMA DETALLADO (Manteniendo el schema completo) ---
+const ENHANCED_SCHEMA = {
+  domain: "Sistema de Salud de Guinea Ecuatorial",
+  context: "Gestión de profesionales sanitarios, centros de salud, guardias médicas y acreditaciones",
+  tables: {
+    profesionales_sanitarios: {
+      description: "Profesionales de la salud registrados en el sistema",
+      purpose: "Gestión de acreditaciones y seguimiento de profesionales",
+      mainColumns: {
+        id: {
+          type: "uuid",
+          description: "Identificador único"
+        },
+        nombre_completo: {
+          type: "text",
+          description: "Nombre completo del profesional",
+          indexed: true
+        },
+        area_profesional: {
+          type: "text",
+          description: "Especialidad médica (Medicina, Enfermería, etc.)",
+          indexed: true
+        },
+        estado_solicitud: {
+          type: "varchar",
+          description: "Estado de acreditación: Recibido, Aprobado, Rechazado, Pendiente de Firma",
+          indexed: true
+        },
+        funcion_publica: {
+          type: "boolean",
+          description: "Si pertenece a la función pública",
+          indexed: true
+        },
+        estatus_funcionario: {
+          type: "text",
+          description: "Nombrado o no_nombrado (para función pública)"
+        },
+        nacionalidad: {
+          type: "text",
+          description: "Nacionalidad del profesional",
+          indexed: true
+        },
+        provincia: {
+          type: "text",
+          description: "Provincia de trabajo",
+          indexed: true
+        },
+        distrito_sanitario: {
+          type: "text",
+          description: "Distrito sanitario asignado",
+          indexed: true
+        },
+        edad: {
+          type: "integer",
+          description: "Edad del profesional"
+        },
+        genero: {
+          type: "text",
+          description: "Género: Masculino/Femenino"
+        },
+        pais_formacion_1: {
+          type: "text",
+          description: "País donde obtuvo su primera titulación",
+          indexed: true
+        },
+        pais_formacion_2: {
+          type: "text",
+          description: "País donde obtuvo su segunda titulación"
+        },
+        institucion_1: {
+          type: "text",
+          description: "Institución de primera formación",
+          indexed: true
+        },
+        institucion_2: {
+          type: "text",
+          description: "Institución de segunda formación"
+        },
+        año_graduacion: {
+          type: "integer",
+          description: "Año de graduación",
+          indexed: true
+        },
+        fecha_caducidad: {
+          type: "date",
+          description: "Fecha de vencimiento del carnet"
+        },
+        id_profesional_unico: {
+          type: "text",
+          description: "Código único de carnet profesional"
+        }
+      },
+      relations: [
+        {
+          to: "centros_salud",
+          via: "centro_salud_id",
+          description: "Centro donde trabaja"
+        },
+        {
+          to: "instituciones_formacion",
+          via: "institucion_formacion_id_1",
+          description: "Institución educativa"
+        }
+      ],
+      commonQueries: [
+        "Profesionales por área profesional",
+        "Profesionales con carnets próximos a vencer (30 días)",
+        "Funcionarios públicos nombrados vs no nombrados",
+        "Profesionales por país de formación",
+        "Distribución por género y edad"
+      ]
+    },
+    centros_salud: {
+      description: "Centros de salud y hospitales",
+      purpose: "Gestión de infraestructura sanitaria",
+      mainColumns: {
+        id: {
+          type: "uuid",
+          description: "Identificador único"
+        },
+        nombre: {
+          type: "text",
+          description: "Nombre del centro",
+          indexed: true
+        },
+        categoria: {
+          type: "text",
+          description: "Hospital, Clínica, Centro de Salud, etc.",
+          indexed: true
+        },
+        sector: {
+          type: "text",
+          description: "Público, Privado, Mixto",
+          indexed: true
+        },
+        provincia: {
+          type: "text",
+          description: "Provincia",
+          indexed: true
+        },
+        distrito_sanitario: {
+          type: "text",
+          description: "Distrito sanitario",
+          indexed: true
+        },
+        estado: {
+          type: "text",
+          description: "Activo/Inactivo"
+        }
+      },
+      relations: [
+        {
+          from: "profesionales_sanitarios",
+          via: "centro_salud_id",
+          description: "Profesionales asignados"
+        },
+        {
+          from: "guardias",
+          via: "centro_salud_id",
+          description: "Guardias programadas"
+        }
+      ],
+      commonQueries: [
+        "Centros por categoría y sector",
+        "Centros con mayor número de profesionales",
+        "Distribución geográfica de centros"
+      ]
+    },
+    guardias: {
+      description: "Turnos de guardia médica",
+      purpose: "Gestión de guardias y turnos hospitalarios",
+      mainColumns: {
+        id: {
+          type: "uuid",
+          description: "Identificador único"
+        },
+        profesional_guardia_id: {
+          type: "uuid",
+          description: "Profesional asignado"
+        },
+        centro_salud_id: {
+          type: "uuid",
+          description: "Centro donde se realiza"
+        },
+        fecha_inicio: {
+          type: "timestamp",
+          description: "Inicio del turno"
+        },
+        fecha_fin: {
+          type: "timestamp",
+          description: "Fin del turno"
+        },
+        tipo: {
+          type: "enum",
+          description: "fisica, administrativa, localizable"
+        },
+        tipo_dia: {
+          type: "enum",
+          description: "ordinario, fin_semana, festivo"
+        },
+        estado: {
+          type: "enum",
+          description: "planificada, confirmada, completada, cancelada"
+        }
+      },
+      relations: [
+        {
+          to: "profesionales_guardias",
+          via: "profesional_guardia_id",
+          description: "Profesional"
+        },
+        {
+          to: "centros_salud",
+          via: "centro_salud_id",
+          description: "Centro"
+        },
+        {
+          to: "nominas_guardias",
+          via: "nomina_id",
+          description: "Nómina asociada"
+        }
+      ]
+    },
+    nominas_guardias: {
+      description: "Nóminas de pago por guardias",
+      purpose: "Gestión financiera de guardias",
+      mainColumns: {
+        id: {
+          type: "uuid",
+          description: "Identificador único"
+        },
+        mes: {
+          type: "integer",
+          description: "Mes de la nómina"
+        },
+        anio: {
+          type: "integer",
+          description: "Año de la nómina"
+        },
+        centro_salud_id: {
+          type: "uuid",
+          description: "Centro"
+        },
+        total_importe: {
+          type: "numeric",
+          description: "Total a pagar"
+        },
+        estado: {
+          type: "text",
+          description: "borrador, aprobada, pagada"
+        }
+      },
+      relations: [
+        {
+          to: "centros_salud",
+          via: "centro_salud_id"
+        },
+        {
+          from: "nominas_guardias_lineas",
+          description: "Líneas de detalle"
+        }
+      ]
+    },
+    instituciones_formacion: {
+      description: "Instituciones educativas de formación médica",
+      purpose: "Registro de universidades y centros de formación",
+      mainColumns: {
+        id: {
+          type: "uuid",
+          description: "Identificador único"
+        },
+        nombre: {
+          type: "text",
+          description: "Nombre de la institución",
+          indexed: true
+        },
+        pais: {
+          type: "text",
+          description: "País de ubicación",
+          indexed: true
+        },
+        categoria: {
+          type: "text",
+          description: "Tipo de institución"
+        }
+      },
+      relations: [
+        {
+          from: "profesionales_sanitarios",
+          via: "institucion_formacion_id_1"
+        }
+      ]
+    },
+    carnets_generados: {
+      description: "Carnets profesionales generados",
+      purpose: "Seguimiento de emisión de carnets",
+      mainColumns: {
+        id: {
+          type: "uuid",
+          description: "Identificador único"
+        },
+        profesional_id: {
+          type: "uuid",
+          description: "Profesional asociado"
+        },
+        url_carnet: {
+          type: "text",
+          description: "URL del carnet PDF"
+        },
+        fecha_generacion: {
+          type: "timestamp",
+          description: "Fecha de creación"
+        }
+      }
+    },
+    categorias_titulacion: {
+      description: "Categorías de títulos profesionales",
+      mainColumns: {
+        nombre: {
+          type: "text",
+          description: "Nombre de la categoría"
+        },
+        codigo_color: {
+          type: "text",
+          description: "Color distintivo"
+        }
+      }
+    },
+    distrito_sanitario: {
+      description: "Distritos sanitarios administrativos",
+      mainColumns: {
+        nombre_distrito: {
+          type: "text",
+          description: "Nombre del distrito"
+        },
+        nombre_provincia: {
+          type: "text",
+          description: "Provincia"
+        }
+      }
+    }
+  },
+  semanticMappings: {
+    professions: [
+      "Medicina",
+      "Enfermería",
+      "Farmacia",
+      "Laboratorio",
+      "Odontología"
+    ],
+    statuses: [
+      "Recibido",
+      "Aprobado",
+      "Rechazado",
+      "Pendiente de Firma",
+      "En Revisión"
+    ],
+    publicFunctionStatuses: [
+      "nombrado",
+      "no_nombrado"
+    ],
+    provinces: [
+      "Bioko Norte",
+      "Bioko Sur",
+      "Litoral",
+      "Wele-Nzas",
+      "Centro Sur",
+      "Kié-Ntem",
+      "Annobón"
+    ],
+    sectors: [
+      "Público",
+      "Privado",
+      "Mixto"
+    ],
+    guardTypes: [
+      "fisica",
+      "administrativa",
+      "localizable"
+    ]
+  },
+  intelligentJoins: {
+    "profesionales con centros": "SELECT p.*, c.nombre as centro_nombre, c.categoria as centro_categoria FROM profesionales_sanitarios p LEFT JOIN centros_salud c ON p.centro_salud_id = c.id",
+    "profesionales con formación": "SELECT p.*, i.nombre as institucion_nombre, i.pais as pais_institucion FROM profesionales_sanitarios p LEFT JOIN instituciones_formacion i ON p.institucion_formacion_id_1 = i.id",
+    "guardias con profesionales": "SELECT g.*, pg.categoria, ps.nombre_completo, c.nombre as centro_nombre FROM guardias g LEFT JOIN profesionales_guardias pg ON g.profesional_guardia_id = pg.id LEFT JOIN profesionales_sanitarios ps ON pg.profesional_id = ps.id LEFT JOIN centros_salud c ON g.centro_salud_id = c.id"
   }
 };
 
-// ---------------------------------------------
+// --- 3. PROMPT DEL SISTEMA ACTUALIZADO (Con Explicación y Acción de XLSX) ---
+function buildEnhancedSystemPrompt() {
+  const schemaString = JSON.stringify(ENHANCED_SCHEMA, null, 2);
+  const toolDefinition = `
+  ACCIÓN DISPONIBLE: GENERAR_REPORTE_XLSX
+  
+  1. Uso: Si el usuario solicita EXPRESAMENTE un reporte, tabla o listado para descargar en formato Excel (XLSX, XLS).
+  2. Respuesta de la IA: Siempre debe constar de DOS PARTES SEPARADAS por la línea \`-- RESULT_SEPARATOR --\`:
+    a) **Explicación (Lenguaje Natural):** Una explicación profesional, detallada y amigable de lo que la consulta va a obtener y cómo interpreta los resultados.
+    b) **SQL + Acción:** La sentencia SQL (dentro de un bloque \`\`\`sql) para obtener los datos, seguida inmediatamente por el comentario de acción en una nueva línea, si aplica.
+    
+  Ejemplo de respuesta de la IA para un reporte de Guardias por Centro (si se pide descarga):
+  \`\`\`
+  El siguiente reporte muestra el total de guardias realizadas por cada centro de salud durante el mes actual. Estos datos le permitirán analizar la distribución de la carga de trabajo de manera detallada.
+  -- RESULT_SEPARATOR --
+  \`\`\`sql
+  SELECT c.nombre AS centro, COUNT(g.id) AS total_guardias_mes 
+  FROM guardias g
+  LEFT JOIN centros_salud c ON g.centro_salud_id = c.id
+  WHERE g.fecha_inicio >= date_trunc('month', NOW())
+  GROUP BY 1
+  ORDER BY 2 DESC;
+  -- ACTION: GENERATE_XLSX_URL
+  \`\`\`
+  \`\`\`
+  
+  REGLAS ESTRICTAS:
+  1. **SIEMPRE incluye una explicación y el separador.**
+  2. Si NO se pide un Excel, la IA devuelve el SQL sin el comentario \`-- ACTION: GENERATE_XLSX_URL\`.
+  3. Si SÍ se pide una descarga, incluye el comentario de acción \`-- ACTION: GENERATE_XLSX_URL\`.
+  4. Utiliza EXCLUSIVAMENTE las tablas y columnas del schema.
+  5. Asegura búsquedas de texto insensibles a mayúsculas y acentos: utiliza ILIKE.
+  `;
+  return `Eres un asistente SQL experto. Tu respuesta debe incluir SIEMPRE una explicación y la consulta SQL. Sigue estrictamente el formato y las reglas:\n\n${toolDefinition}\n\nCONTEXTO DEL DOMINIO:\n${schemaString}`;
+}
 
-const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
-  onNavigateToTab,
-}) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [systemReady, setSystemReady] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const isInitialLoad = useRef(true);
-  const { toast } = useToast();
+// --- 4. FUNCIONES MODULARES (Gemini y OpenAI sin restricción de solo SQL) ---
+async function geminiGenerateText(prompt: string) {
+  if (!GEMINI_API_KEY) {
+    console.error('ERROR: GEMINI_API_KEY ausente. Esto causará un fallo de autenticación.');
+    throw new Error('GEMINI_API_KEY ausente');
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
-  // --- 1. LÓGICA DE PERSISTENCIA Y CACHE ---
-
-  const initialAssistantMessage: ChatMessage = {
-    role: 'assistant',
-    content: 'Bienvenido/a. Soy RENAPROSA, tu asistente para consultas sobre profesionales, centros y estadísticas. Responderé en lenguaje claro y te ofreceré accesos directos cuando aplique.',
-    timestamp: new Date().toISOString(),
-  };
-
-  // 1a. Función para guardar el historial
-  const saveHistory = useCallback((currentMessages: ChatMessage[]) => {
-    if (currentMessages.length > 1) { // No guardar solo el mensaje inicial
-      const historyToSave: SavedHistory = {
-        messages: currentMessages,
-        timestamp: Date.now(),
-      };
-      localStorage.setItem(CACHE_KEY, JSON.stringify(historyToSave));
-    } else {
-      localStorage.removeItem(CACHE_KEY);
-    }
-  }, []);
-
-  // 1b. Función para cargar el historial (con política de 24h)
-  const loadHistory = useCallback(() => {
-    const cachedHistory = localStorage.getItem(CACHE_KEY);
-    if (cachedHistory) {
-      try {
-        const parsed: SavedHistory = JSON.parse(cachedHistory);
-        const age = Date.now() - parsed.timestamp;
-
-        if (age < CACHE_DURATION_MS) {
-          // Historial reciente y válido
-          setMessages(parsed.messages);
-          toast({
-            title: "Historial Recuperado",
-            description: "Se cargó la conversación anterior. Se borrará automáticamente tras 24h de inactividad.",
-            variant: "default",
-          });
-          return;
-        } else {
-          // Historial caducado
-          localStorage.removeItem(CACHE_KEY);
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens: 1024
         }
-      } catch (e) {
-        console.error("Error al parsear el historial de chat:", e);
-        localStorage.removeItem(CACHE_KEY);
+      })
+    });
+
+    if (!resp.ok) {
+      const errorText = await resp.text();
+      console.error(`ERROR GEMINI HTTP: Status ${resp.status}`);
+      console.error(`Cuerpo del Error Gemini: ${errorText}`);
+
+      if (resp.status === 400) {
+        throw new Error(`Error 400 (Bad Request): Revisa el formato del prompt o modelo (ej. Alternancia de roles). Cuerpo: ${errorText}`);
+      } else if (resp.status === 403 || resp.status === 401) {
+        throw new Error(`Error 401/403 (Autenticación/Acceso denegado): Revisa la GEMINI_API_KEY. Cuerpo: ${errorText}`);
+      } else if (resp.status === 429) {
+        throw new Error(`Error 429 (Límite de Tasa/Cuota agotada): Has superado el límite de uso. Cuerpo: ${errorText}`);
+      } else {
+        throw new Error(`Gemini error ${resp.status}: ${errorText}`);
       }
     }
-    // Si no hay caché o está caducada, usar mensaje inicial
-    setMessages([initialAssistantMessage]);
-  }, [toast]); // Añadido 'toast' a dependencias
 
-  // 1c. useEffect para cargar y guardar
-  useEffect(() => {
-    loadHistory();
-    setSystemReady(true);
-    isInitialLoad.current = false;
-  }, [loadHistory]);
+    const json = await resp.json();
+    const text = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    return text;
+  } catch (error) {
+    console.error("Fallo de red o error de proceso de Gemini:", (error as Error).message);
+    throw error;
+  }
+}
 
-  useEffect(() => {
-    // Guardar el historial en localStorage cada vez que los mensajes cambian
-    if (!isInitialLoad.current) {
-      saveHistory(messages);
-    }
-    scrollToBottom();
-  }, [messages, saveHistory]);
+async function openAIChat(messages: { role: string, content: string }[]) {
+  if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY ausente');
+  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages,
+      temperature: 0,
+      max_tokens: 1024
+    })
+  });
+  if (!resp.ok) throw new Error(`OpenAI error ${resp.status}: ${await resp.text()}`);
+  const json = await resp.json();
+  return json.choices?.[0]?.message?.content ?? '';
+}
 
-  // -------------------------------------------
+// Función para extraer el SQL limpio y el comando de acción
+function extractSqlFromText(text: string) {
+  // 1. Separar la explicación del SQL/Acción
+  const parts = text.split('-- RESULT_SEPARATOR --');
+  if (parts.length < 2) {
+    return {
+      sql: null,
+      action: null
+    };
+  }
 
-  const scrollToBottom = () => {
-    setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+  const sqlActionPart = parts[1];
+
+  // 2. Extraer el bloque de código SQL
+  const sqlMatch = sqlActionPart.match(/```sql\s*([\s\S]*?)```/);
+  let sql = sqlMatch && sqlMatch[1] ? sqlMatch[1].trim() : null;
+
+  // CORRECCIÓN CRUCIAL: Eliminar el punto y coma final
+  if (sql) {
+    sql = sql.replace(/;$/, '').trim();
+  }
+
+  // 3. Extraer el comentario de acción
+  const actionMatch = sqlActionPart.match(/-- ACTION: (GENERATE_XLSX_URL)/);
+  const action = actionMatch ? actionMatch[1] : null;
+
+  return {
+    sql,
+    action
   };
+}
 
-  // --- 2. LÓGICA DE NAVEGACIÓN CON ADVERTENCIA ---
+// NUEVA FUNCIÓN: Genera sugerencias de navegación
+function getNavigationSuggestions(query: string) {
+  const lowerCaseQuery = query.toLowerCase();
+  const suggestions = [];
 
-  const handleNavigation = (suggestion: NavigationSuggestion) => {
-    if (!onNavigateToTab) return;
-
-    // Si el historial es solo el mensaje inicial, navegar directamente
-    if (messages.length <= 1) {
-      onNavigateToTab(suggestion.tab, suggestion.filters);
-      return;
-    }
-
-    // Mostrar advertencia si hay historial
-    toast({
-      title: <div className='flex items-center gap-2'><AlertTriangle className='w-5 h-5 text-yellow-500' /> Advertencia de Navegación</div>,
-      description: `¿Estás seguro de que quieres salir de la pestaña? El historial de chat (últimas ${messages.length - 1} entradas) se perderá si no lo guardas o si pasa el límite de 24h.`,
-      variant: "default",
-      action: (
-        <div className="flex flex-col gap-2 p-1">
-          <Button
-            variant="default"
-            onClick={() => {
-              // Simular "Guardar" y luego navegar
-              saveHistory(messages);
-              onNavigateToTab(suggestion.tab, suggestion.filters);
-              // Notificación de guardado quitada para evitar conflicto con el cierre del Toast
-            }}
-            className="w-full justify-start"
-          >
-            <Save className="w-4 h-4 mr-2" /> Guardar y Continuar
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => onNavigateToTab(suggestion.tab, suggestion.filters)}
-            className="w-full justify-start"
-          >
-            Continuar (sin guardar)
-          </Button>
-        </div>
-      ),
-      duration: 9000
+  // Sugerencia 1: Profesionales
+  if (lowerCaseQuery.includes("profesional") || lowerCaseQuery.includes("medico") || lowerCaseQuery.includes("enfermero")) {
+    suggestions.push({
+      type: "navigate",
+      tab: "professionals",
+      label: "Ver Listado de Profesionales",
+      filters: {}
     });
-  };
+  }
 
-  // --- 3. FUNCIÓN DE ENVÍO Y COMUNICACIÓN CON BACKEND (CORREGIDA) ---
+  // Sugerencia 2: Centros de Salud
+  if (lowerCaseQuery.includes("centro") || lowerCaseQuery.includes("hospital") || lowerCaseQuery.includes("clinica")) {
+    suggestions.push({
+      type: "navigate",
+      tab: "health-centers",
+      label: "Ver Centros de Salud",
+      filters: {}
+    });
+  }
 
-  const sendMessage = async () => {
-    if (!input.trim() || loading) return;
+  // Sugerencia 3: Guardias
+  if (lowerCaseQuery.includes("guardia") || lowerCaseQuery.includes("turno")) {
+    suggestions.push({
+      type: "navigate",
+      tab: "guardias",
+      label: "Ver Planificación de Guardias",
+      filters: {}
+    });
+  }
 
-    const questionToSend = input.trim();
+  return suggestions;
+}
 
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: questionToSend,
-      timestamp: new Date().toISOString(),
+// Función principal de manejo de la función
+serve(async (req) => {
+  // Manejo de CORS (Preflight request)
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders
+    });
+  }
+
+  try {
+    const { messages } = await req.json();
+
+    // 1. Obtener el prompt del sistema y el último mensaje del usuario
+    const systemPrompt = buildEnhancedSystemPrompt();
+    const latestUserMessage = messages[messages.length - 1].content;
+
+    // 2. Crear el prompt completo para Gemini
+    const fullGeminiPrompt = `${systemPrompt}\n\nUSER QUERY:\n${latestUserMessage}`;
+
+    // 3. Generar la respuesta de Gemini
+    const geminiResponseText = await geminiGenerateText(fullGeminiPrompt);
+
+    // 4. Extraer el SQL y la acción
+    const { sql, action } = extractSqlFromText(geminiResponseText);
+
+    // 5. Generar sugerencias de navegación
+    const navigationSuggestions = getNavigationSuggestions(latestUserMessage);
+
+    let finalResponse;
+
+    if (sql) {
+      // 6. Si se genera SQL, ejecutarlo
+      const { data: dbData, error: dbError } = await supabase.rpc('exec_sql', {
+        query: sql
+      });
+
+      if (dbError) {
+        console.error('Error ejecutando SQL en DB:', dbError);
+        // OBJETO DE RESPUESTA PARA ERROR DE DB (claves alineadas)
+        finalResponse = {
+          natural_language_response: `❌ Error de Base de Datos: La consulta SQL falló. Por favor, reformula tu pregunta.`, // <-- CLAVE RENOMBRADA
+          sql: sql,
+          action: null,
+          error: dbError.message, // <-- CLAVE RENOMBRADA
+          result: null,
+          navigationSuggestions: navigationSuggestions,
+        };
+      } else {
+        // OBJETO DE RESPUESTA PARA ÉXITO (claves alineadas)
+        const explanationPart = geminiResponseText.split('-- RESULT_SEPARATOR --')[0].trim();
+        finalResponse = {
+          natural_language_response: explanationPart, // <-- CLAVE RENOMBRADA
+          sql: sql,
+          action: action,
+          result: dbData, // <-- CLAVE RENOMBRADA
+          error: null,
+          navigationSuggestions: navigationSuggestions,
+        };
+      }
+
+    } else {
+      // OBJETO DE RESPUESTA SI NO HAY SQL (claves alineadas)
+      finalResponse = {
+        natural_language_response: geminiResponseText, // <-- CLAVE RENOMBRADA
+        sql: null,
+        action: null,
+        result: null, // <-- CLAVE RENOMBRADA
+        error: null,
+        navigationSuggestions: navigationSuggestions,
+      };
+    }
+
+    // Devolver la respuesta al cliente
+    return new Response(JSON.stringify(finalResponse), {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      },
+      status: 200
+    });
+
+  } catch (error) {
+    // Manejo de errores de la función
+    const errorBody = {
+      message: "Error interno del servidor",
+      detail: (error as Error).message,
+      stack: (error as Error).stack
     };
 
-    // Construir el historial para el payload (incluyendo el nuevo mensaje del usuario)
-    const fullHistory = [...messages, userMessage];
+    console.error("Error en el Edge Function:", (error as Error).message);
 
-    const historyToPass = fullHistory.slice(-10).map(m => ({
-      role: m.role,
-      content: m.content
-    }));
-
-    const payload = { messages: historyToPass };
-    // ------------------------------------------------------------------------------------------------
-
-    // 1. Actualizar la UI inmediatamente con el mensaje del usuario
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setLoading(true);
-
-    try {
-      // Llamada a la Edge Function (Backend con Gemini/OpenAI Fallback)
-      const { data, error } = await supabase.functions.invoke('ai-chat-master', {
-        body: payload,
-      });
-
-      if (error) {
-        throw new Error((error as any)?.message || 'Error en la llamada a la Edge Function.');
-      }
-
-      // CORRECCIÓN CLAVE: Extraer los campos según la estructura de la Edge Function
-      const {
-        natural_language_response: naturalResponse,
-        sql: assistantSQL,
-        result: assistantResult,
-        error: assistantError,
-        navigationSuggestions: assistantSuggestions = [],
-      } = data as any || {}; // Usar 'as any || {}' para seguridad si 'data' es null
-
-      let assistantContent = '';
-      let toastTitle = "✅ Consulta Exitosa";
-
-      if (assistantError) {
-        // Manejo de Error SQL
-        toastTitle = "❌ Error SQL";
-        assistantContent = `❌ **Error al ejecutar la consulta:** El motor SQL devolvió un error.
-        
-**Mensaje de error:** ${assistantError.slice(0, 150)}...
-`;
-        toast({
-          title: toastTitle,
-          description: `El SQL generado no se pudo ejecutar.`,
-          variant: "destructive"
-        });
-      } else {
-        // Manejo de Respuesta Exitosa
-
-        // 1. Contar filas (para mostrar en el toast, si es un COUNT será 1)
-        const rowCount = assistantResult?.length ?? 0;
-
-        // 2. Usar la respuesta natural como contenido principal
-        assistantContent = naturalResponse ||
-          `✅ **Consulta Exitosa.** (No se recibió una respuesta natural). Se obtuvieron **${rowCount}** filas.`;
-
-        // 3. Añadir nota si hay sugerencias
-        if (assistantSuggestions.length > 0) {
-          assistantContent += "\n\n**¡Acciones Sugeridas disponibles debajo!**";
-        }
-
-        // 4. Mostrar el toast (si el resultado es una agregación, rowCount será 1, lo cual es correcto)
-        toast({
-          title: toastTitle,
-          description: `Se obtuvieron ${rowCount} filas.`,
-        });
-      }
-
-      // Añadir mensaje del asistente con todos los metadatos
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: assistantContent,
-        timestamp: new Date().toISOString(),
-        sql: assistantSQL, // GUARDADO DEL SQL
-        result: assistantResult,
-        error: assistantError,
-        navigationSuggestions: assistantSuggestions,
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-
-    } catch (error: any) {
-      const friendly = error.message || 'Error del sistema de IA. Revise logs de Edge Function.';
-
-      const errorMessage: ChatMessage = {
-        role: 'assistant',
-        content: `❌ **Error irrecuperable:** ${friendly}`,
-        timestamp: new Date().toISOString(),
-        error: friendly,
-      };
-      setMessages(prev => [...prev, errorMessage]);
-
-      toast({
-        title: "Error de Sistema",
-        description: friendly,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  // ----------------------------------------------------
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey && !loading && input.trim()) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  const quickActions = [
-    {
-      icon: Database,
-      label: "Contar Profesionales",
-      query: "Dime el número total de profesionales sanitarios registrados",
-    },
-    {
-      icon: BarChart3,
-      label: "Por Provincia",
-      query: "Distribución de profesionales por provincia de residencia",
-    },
-    {
-      icon: Code,
-      label: "Memoria de Prueba",
-      query: "De la consulta anterior, ¿cuántos tienen especialidad en Pediatría?",
-    },
-  ];
-
-  return (
-    <div className="space-y-4">
-      <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
-        <CardHeader className="flex flex-row items-center gap-3 pb-4">
-          <div className="flex items-center gap-2">
-            <Brain className="w-6 h-6 text-primary animate-pulse" />
-            <Sparkles className="w-4 h-4 text-accent" />
-          </div>
-          <div>
-            <CardTitle className="text-xl text-primary">RENAPROSA · Asistente Inteligente</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Traduce, recuerda el contexto, ejecuta y resume en lenguaje natural
-            </p>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <Badge variant={systemReady ? "default" : "secondary"}>
-              {systemReady ? "✅ Activo" : "⏳ Cargando"}
-            </Badge>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-
-          {/* Chat Messages and Results */}
-          <div className="h-96 overflow-y-auto border rounded-lg p-4 bg-background/50 backdrop-blur-sm space-y-4">
-            {messages.map((message, index) => (
-              <div key={index} className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {message.role === 'user' ? (
-                    <>
-                      <Users className="w-3 h-3" />
-                      <span className="font-medium">Tú</span>
-                    </>
-                  ) : (
-                    <>
-                      <Brain className="w-3 h-3 text-primary" />
-                      <span className="font-medium text-primary">RENAPROSA</span>
-                    </>
-                  )}
-                  <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
-                </div>
-
-                <div className="prose prose-sm max-w-none rounded-lg p-3 whitespace-pre-wrap" style={{
-                  marginLeft: message.role === 'user' ? '1.5rem' : 0,
-                  marginRight: message.role === 'assistant' ? '1.5rem' : 0,
-                  backgroundColor: message.role === 'user'
-                    ? 'var(--primary-100)' // Tailwind bg-primary/10
-                    : (message.error
-                      ? 'var(--red-50)' // Tailwind bg-red-50/10
-                      : 'var(--accent-100)'), // Tailwind bg-accent/10
-                  border: message.error ? '1px solid var(--red-300)' : 'none',
-                  color: message.role === 'user' ? 'inherit' : (message.error ? 'var(--red-700)' : 'inherit'),
-                }}>
-                  <div className="text-sm" dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br/>') }} />
-                </div>
-
-                {/* --- Bloque de Sugerencias de Navegación (Mejora: Iconos Dinámicos) --- */}
-                {message.role === 'assistant' && message.navigationSuggestions && message.navigationSuggestions.length > 0 && (
-                  <div className="space-y-2 p-3 mt-1 rounded-md bg-accent/5 border border-dashed border-accent/30">
-                    <h4 className="text-xs font-semibold flex items-center gap-2 text-accent-foreground">
-                      <ArrowRight className="w-3 h-3 text-accent" />
-                      Acciones Rápidas
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {message.navigationSuggestions.map((suggestion, suggestionIndex) => {
-                        const NavIcon = getNavigationIcon(suggestion.tab); // USANDO HELPER
-                        return (
-                          <Button
-                            key={suggestionIndex}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleNavigation(suggestion)} // USANDO HANDLER CON ADVERTENCIA
-                            className="text-xs h-8"
-                          >
-                            <NavIcon className="w-4 h-4 mr-1 shrink-0" />
-                            {suggestion.label}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                {/* ------------------------------------------- */}
-
-                {/* --- Bloque de Visualización de SQL (Mejora: Debug) --- */}
-                {message.role === 'assistant' && message.sql && (
-                  <details className="mt-1 text-xs text-muted-foreground cursor-pointer ml-auto">
-                    <summary className="font-medium p-1 flex items-center gap-1 hover:bg-background/80 rounded">
-                      <Code className="w-3 h-3" />
-                      Ver SQL Ejecutado
-                    </summary>
-                    <pre className="bg-gray-50 dark:bg-gray-800 p-2 rounded mt-1 overflow-x-auto text-[10px]">
-                      <code>{message.sql}</code>
-                    </pre>
-                  </details>
-                )}
-                {/* ------------------------------------------------ */}
-
-              </div>
-            ))}
-
-            {loading && (
-              <div className="flex items-center gap-2 text-primary">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Analizando contexto y generando respuesta natural...</span>
-              </div>
-            )}
-
-            <div ref={scrollRef} />
-          </div>
-
-
-          {/* Quick Actions */}
-          <div className="space-y-3 pt-2">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-accent" />
-              Consultas Rápidas
-            </h4>
-            <div className="grid grid-cols-3 gap-2">
-              {quickActions.map((action, index) => (
-                <Button
-                  key={index}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setInput(action.query);
-                    setTimeout(() => sendMessage(), 100);
-                  }}
-                  className="justify-start h-auto p-3 text-left"
-                  disabled={loading || !systemReady}
-                >
-                  <action.icon className="w-4 h-4 mr-2 shrink-0" />
-                  <span className="text-xs">{action.label}</span>
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Input Area */}
-          <div className="flex gap-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={systemReady
-                ? "Escribe tu pregunta..."
-                : "Cargando sistema..."
-              }
-              // --- CORRECCIÓN CLAVE AQUÍ ---
-              // La entrada NO debe deshabilitarse solo porque está vacía.
-              // El botón de enviar SÍ debe deshabilitarse si está vacía.
-              disabled={loading || !systemReady}
-              // -----------------------------
-              className="flex-1"
-            />
-            <Button
-              onClick={sendMessage}
-              disabled={loading || !input.trim() || !systemReady}
-              size="icon"
-            >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
-
-          {systemReady && (
-            <div className="text-xs text-muted-foreground flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-1">
-                <Database className="w-3 h-3" />
-                <span>Base de Datos de Supabase</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Brain className="w-3 h-3" />
-                <span>Asistente impulsado por IA con respaldo automático</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Sparkles className="w-3 h-3" />
-                <span>Respuestas en lenguaje natural</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Save className="w-3 h-3" />
-                <span>Historial: Guardado y Reinicio cada 24h</span>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-export default SuperAIChatMaster;
+    return new Response(JSON.stringify(errorBody), {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      },
+      status: 500
+    });
+  }
+});

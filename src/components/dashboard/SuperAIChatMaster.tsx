@@ -129,7 +129,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     }
     // Si no hay caché o está caducada, usar mensaje inicial
     setMessages([initialAssistantMessage]);
-  }, []);
+  }, [toast]); // Añadido 'toast' a dependencias
 
   // 1c. useEffect para cargar y guardar
   useEffect(() => {
@@ -207,7 +207,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       content: questionToSend,
       timestamp: new Date().toISOString(),
     };
-    
+
     // Construir el historial para el payload (incluyendo el nuevo mensaje del usuario)
     const fullHistory = [...messages, userMessage];
 
@@ -227,7 +227,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     try {
       // Llamada a la Edge Function (Backend con Gemini/OpenAI Fallback)
       const { data, error } = await supabase.functions.invoke('ai-chat-master', {
-        body: payload, 
+        body: payload,
       });
 
       if (error) {
@@ -235,10 +235,10 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       }
 
       // CORRECCIÓN CLAVE: Extraer los campos según la estructura de la Edge Function
-      const { 
-        natural_language_response: naturalResponse, 
-        sql: assistantSQL, 
-        result: assistantResult, 
+      const {
+        natural_language_response: naturalResponse,
+        sql: assistantSQL,
+        result: assistantResult,
         error: assistantError,
         navigationSuggestions: assistantSuggestions = [],
       } = data as any || {}; // Usar 'as any || {}' para seguridad si 'data' es null
@@ -260,7 +260,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         });
       } else {
         // Manejo de Respuesta Exitosa
-        
+
         // 1. Contar filas (para mostrar en el toast, si es un COUNT será 1)
         const rowCount = assistantResult?.length ?? 0;
 
@@ -272,7 +272,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         if (assistantSuggestions.length > 0) {
           assistantContent += "\n\n**¡Acciones Sugeridas disponibles debajo!**";
         }
-        
+
         // 4. Mostrar el toast (si el resultado es una agregación, rowCount será 1, lo cual es correcto)
         toast({
           title: toastTitle,
@@ -382,11 +382,18 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
                   <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
                 </div>
 
-                <div className={`prose prose-sm max-w-none rounded-lg p-3 ${message.role === 'user'
-                    ? 'bg-primary/10 ml-6'
-                    : (message.error ? 'bg-red-50/10 mr-6 border border-red-300' : 'bg-accent/10 mr-6')
-                  }`}>
-                  <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                <div className="prose prose-sm max-w-none rounded-lg p-3 whitespace-pre-wrap" style={{
+                  marginLeft: message.role === 'user' ? '1.5rem' : 0,
+                  marginRight: message.role === 'assistant' ? '1.5rem' : 0,
+                  backgroundColor: message.role === 'user'
+                    ? 'var(--primary-100)' // Tailwind bg-primary/10
+                    : (message.error
+                      ? 'var(--red-50)' // Tailwind bg-red-50/10
+                      : 'var(--accent-100)'), // Tailwind bg-accent/10
+                  border: message.error ? '1px solid var(--red-300)' : 'none',
+                  color: message.role === 'user' ? 'inherit' : (message.error ? 'var(--red-700)' : 'inherit'),
+                }}>
+                  <div className="text-sm" dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br/>') }} />
                 </div>
 
                 {/* --- Bloque de Sugerencias de Navegación (Mejora: Iconos Dinámicos) --- */}
@@ -481,7 +488,11 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
                 ? "Escribe tu pregunta..."
                 : "Cargando sistema..."
               }
-              disabled={loading || !input.trim() || !systemReady}
+              // --- CORRECCIÓN CLAVE AQUÍ ---
+              // La entrada NO debe deshabilitarse solo porque está vacía.
+              // El botón de enviar SÍ debe deshabilitarse si está vacía.
+              disabled={loading || !systemReady}
+              // -----------------------------
               className="flex-1"
             />
             <Button

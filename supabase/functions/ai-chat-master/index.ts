@@ -6,6 +6,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 const corsHeaders = {
@@ -404,15 +405,14 @@ const ENHANCED_SCHEMA = {
 // --- 3. PROMPT DEL SISTEMA ACTUALIZADO (Con Explicación y Acción de XLSX) ---
 function buildEnhancedSystemPrompt() {
   const schemaString = JSON.stringify(ENHANCED_SCHEMA, null, 2);
-
   const toolDefinition = `
   ACCIÓN DISPONIBLE: GENERAR_REPORTE_XLSX
   
   1. Uso: Si el usuario solicita EXPRESAMENTE un reporte, tabla o listado para descargar en formato Excel (XLSX, XLS).
   2. Respuesta de la IA: Siempre debe constar de DOS PARTES SEPARADAS por la línea \`-- RESULT_SEPARATOR --\`:
-     a) **Explicación (Lenguaje Natural):** Una explicación profesional, detallada y amigable de lo que la consulta va a obtener y cómo interpreta los resultados.
-     b) **SQL + Acción:** La sentencia SQL (dentro de un bloque \`\`\`sql) para obtener los datos, seguida inmediatamente por el comentario de acción en una nueva línea, si aplica.
-     
+    a) **Explicación (Lenguaje Natural):** Una explicación profesional, detallada y amigable de lo que la consulta va a obtener y cómo interpreta los resultados.
+    b) **SQL + Acción:** La sentencia SQL (dentro de un bloque \`\`\`sql) para obtener los datos, seguida inmediatamente por el comentario de acción en una nueva línea, si aplica.
+    
   Ejemplo de respuesta de la IA para un reporte de Guardias por Centro (si se pide descarga):
   \`\`\`
   El siguiente reporte muestra el total de guardias realizadas por cada centro de salud durante el mes actual. Estos datos le permitirán analizar la distribución de la carga de trabajo de manera detallada.
@@ -439,37 +439,42 @@ function buildEnhancedSystemPrompt() {
 }
 
 // --- 4. FUNCIONES MODULARES (Gemini y OpenAI sin restricción de solo SQL) ---
-
-// Se actualiza el prompt de Gemini para que respete el formato del systemPrompt
-async function geminiGenerateText(prompt: string): Promise<string> {
+async function geminiGenerateText(prompt: string) {
   if (!GEMINI_API_KEY) {
     console.error('ERROR: GEMINI_API_KEY ausente. Esto causará un fallo de autenticación.');
     throw new Error('GEMINI_API_KEY ausente');
   }
-
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-  
+
   try {
     const resp = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        // La corrección anterior cambió 'config' por 'generationConfig' para evitar el 400.
-        generationConfig: { 
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
           temperature: 0,
           maxOutputTokens: 1024
         }
       })
     });
-    
+
     if (!resp.ok) {
       const errorText = await resp.text();
-      // REGISTRO DE ERROR CLAVE: Status HTTP y cuerpo de la respuesta para el diagnóstico.
       console.error(`ERROR GEMINI HTTP: Status ${resp.status}`);
       console.error(`Cuerpo del Error Gemini: ${errorText}`);
-      
-      // Clasificación del error para el usuario
+
       if (resp.status === 400) {
         throw new Error(`Error 400 (Bad Request): Revisa el formato del prompt o modelo (ej. Alternancia de roles). Cuerpo: ${errorText}`);
       } else if (resp.status === 403 || resp.status === 401) {
@@ -480,18 +485,17 @@ async function geminiGenerateText(prompt: string): Promise<string> {
         throw new Error(`Gemini error ${resp.status}: ${errorText}`);
       }
     }
-    
+
     const json = await resp.json();
     const text = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     return text;
   } catch (error) {
-    console.error("Fallo de red o error de proceso de Gemini:", error.message);
+    console.error("Fallo de red o error de proceso de Gemini:", (error as Error).message);
     throw error;
   }
 }
 
-// Se actualiza la función de OpenAI para usar el historial de conversación (messages)
-async function openAIChat(messages) {
+async function openAIChat(messages: { role: string, content: string }[]) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY ausente');
   const resp = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -512,12 +516,14 @@ async function openAIChat(messages) {
 }
 
 // Función para extraer el SQL limpio y el comando de acción
-function extractSqlFromText(text: string): { sql: string | null, action: string | null } {
+function extractSqlFromText(text: string) {
   // 1. Separar la explicación del SQL/Acción
   const parts = text.split('-- RESULT_SEPARATOR --');
   if (parts.length < 2) {
-    // Si no hay separador, asumimos que no hay SQL válido o que es solo explicación.
-    return { sql: null, action: null };
+    return {
+      sql: null,
+      action: null
+    };
   }
 
   const sqlActionPart = parts[1];
@@ -526,7 +532,7 @@ function extractSqlFromText(text: string): { sql: string | null, action: string 
   const sqlMatch = sqlActionPart.match(/```sql\s*([\s\S]*?)```/);
   let sql = sqlMatch && sqlMatch[1] ? sqlMatch[1].trim() : null;
 
-  // CORRECCIÓN CRUCIAL: Eliminar el punto y coma final, que causa un error de sintaxis en el RPC de Supabase.
+  // CORRECCIÓN CRUCIAL: Eliminar el punto y coma final
   if (sql) {
     sql = sql.replace(/;$/, '').trim();
   }
@@ -535,9 +541,49 @@ function extractSqlFromText(text: string): { sql: string | null, action: string 
   const actionMatch = sqlActionPart.match(/-- ACTION: (GENERATE_XLSX_URL)/);
   const action = actionMatch ? actionMatch[1] : null;
 
-  return { sql, action };
+  return {
+    sql,
+    action
+  };
 }
 
+// NUEVA FUNCIÓN: Genera sugerencias de navegación
+function getNavigationSuggestions(query: string) {
+  const lowerCaseQuery = query.toLowerCase();
+  const suggestions = [];
+
+  // Sugerencia 1: Profesionales
+  if (lowerCaseQuery.includes("profesional") || lowerCaseQuery.includes("medico") || lowerCaseQuery.includes("enfermero")) {
+    suggestions.push({
+      type: "navigate",
+      tab: "professionals",
+      label: "Ver Listado de Profesionales",
+      filters: {}
+    });
+  }
+
+  // Sugerencia 2: Centros de Salud
+  if (lowerCaseQuery.includes("centro") || lowerCaseQuery.includes("hospital") || lowerCaseQuery.includes("clinica")) {
+    suggestions.push({
+      type: "navigate",
+      tab: "health-centers",
+      label: "Ver Centros de Salud",
+      filters: {}
+    });
+  }
+
+  // Sugerencia 3: Guardias
+  if (lowerCaseQuery.includes("guardia") || lowerCaseQuery.includes("turno")) {
+    suggestions.push({
+      type: "navigate",
+      tab: "guardias",
+      label: "Ver Planificación de Guardias",
+      filters: {}
+    });
+  }
+
+  return suggestions;
+}
 
 // Función principal de manejo de la función
 serve(async (req) => {
@@ -557,73 +603,86 @@ serve(async (req) => {
     const latestUserMessage = messages[messages.length - 1].content;
 
     // 2. Crear el prompt completo para Gemini
-    // En el caso de una llamada de texto simple a la API HTTP (no SDK),
-    // se envía el systemPrompt como parte del prompt del usuario para forzar la respuesta.
     const fullGeminiPrompt = `${systemPrompt}\n\nUSER QUERY:\n${latestUserMessage}`;
 
-    // 3. Generar la respuesta de Gemini (esto es lo que falla)
+    // 3. Generar la respuesta de Gemini
     const geminiResponseText = await geminiGenerateText(fullGeminiPrompt);
 
     // 4. Extraer el SQL y la acción
     const { sql, action } = extractSqlFromText(geminiResponseText);
 
+    // 5. Generar sugerencias de navegación
+    const navigationSuggestions = getNavigationSuggestions(latestUserMessage);
+
     let finalResponse;
 
     if (sql) {
-      // 5. Si se genera SQL, ejecutarlo
-      // Se mantiene 'exec_sql' ya corregido.
-      const { data: dbData, error: dbError } = await supabase.rpc('exec_sql', { query: sql });
+      // 6. Si se genera SQL, ejecutarlo
+      const { data: dbData, error: dbError } = await supabase.rpc('exec_sql', {
+        query: sql
+      });
 
       if (dbError) {
         console.error('Error ejecutando SQL en DB:', dbError);
+        // OBJETO DE RESPUESTA PARA ERROR DE DB (claves alineadas)
         finalResponse = {
-          content: `Lo siento, hubo un error al ejecutar la consulta SQL en la base de datos: ${dbError.message}. Por favor, reformula tu pregunta.`,
+          natural_language_response: `❌ Error de Base de Datos: La consulta SQL falló. Por favor, reformula tu pregunta.`, // <-- CLAVE RENOMBRADA
           sql: sql,
           action: null,
-          db_error: dbError.message
+          error: dbError.message, // <-- CLAVE RENOMBRADA
+          result: null,
+          navigationSuggestions: navigationSuggestions,
         };
       } else {
-        // 6. Preparar la respuesta final con los datos de la DB
+        // OBJETO DE RESPUESTA PARA ÉXITO (claves alineadas)
         const explanationPart = geminiResponseText.split('-- RESULT_SEPARATOR --')[0].trim();
-        
         finalResponse = {
-          content: explanationPart,
+          natural_language_response: explanationPart, // <-- CLAVE RENOMBRADA
           sql: sql,
           action: action,
-          db_result: dbData
+          result: dbData, // <-- CLAVE RENOMBRADA
+          error: null,
+          navigationSuggestions: navigationSuggestions,
         };
       }
+
     } else {
-      // 7. Si no hay SQL (por ejemplo, si Gemini devuelve solo una explicación simple), usar la respuesta directa.
-       finalResponse = {
-        content: geminiResponseText,
+      // OBJETO DE RESPUESTA SI NO HAY SQL (claves alineadas)
+      finalResponse = {
+        natural_language_response: geminiResponseText, // <-- CLAVE RENOMBRADA
         sql: null,
         action: null,
-        db_result: null
+        result: null, // <-- CLAVE RENOMBRADA
+        error: null,
+        navigationSuggestions: navigationSuggestions,
       };
     }
-    
+
     // Devolver la respuesta al cliente
     return new Response(JSON.stringify(finalResponse), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      },
+      status: 200
     });
 
   } catch (error) {
     // Manejo de errores de la función
     const errorBody = {
       message: "Error interno del servidor",
-      detail: error.message,
-      stack: error.stack
+      detail: (error as Error).message,
+      stack: (error as Error).stack
     };
-    
-    console.error("Error en el Edge Function:", error.message);
+
+    console.error("Error en el Edge Function:", (error as Error).message);
 
     return new Response(JSON.stringify(errorBody), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      },
+      status: 500
     });
   }
 });
-
-// Nota: Hemos eliminado las importaciones del SDK de Gemini y OpenAI que no se utilizan en este archivo.

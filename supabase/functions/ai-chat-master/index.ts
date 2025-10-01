@@ -187,8 +187,9 @@ serve(async (req) => {
     // 4) Acciones de navegación derivadas del SQL
     const navigationSuggestions = deriveNavigationSuggestions(cleanSql);
 
-    // 5) Respuesta: NO exponemos SQL al cliente
+    // 5) Respuesta: incluimos SQL en la respuesta (el frontend decide si mostrarlo)
     return new Response(JSON.stringify({
+      sql: cleanSql,
       result,
       natural_language_response: naturalText || 'No se pudo generar una respuesta en lenguaje natural.',
       navigationSuggestions

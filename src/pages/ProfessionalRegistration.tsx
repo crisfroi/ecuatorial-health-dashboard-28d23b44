@@ -97,7 +97,7 @@ const formSchema = z
     institucion_formacion_id_1: z.string().optional(),
     periodo_formacion: z
       .string()
-      .min(1, "El período de formación es requerido"),
+      .min(1, "El per��odo de formación es requerido"),
     pais_formacion_1: z.string().min(1, "El país de formación es requerido"),
     situacion_laboral: z.string().min(1, "La situación laboral es requerida"),
     nombre_centro: z.string().min(1, "El centro de trabajo es requerido"),
@@ -446,13 +446,20 @@ const ProfessionalRegistration = () => {
 
       // Helper para uppercasing seguro
       const U = (v: any) => (typeof v === 'string' ? v.toUpperCase() : v);
+      const toGenero = (g: any) => {
+        const s = String(g || '').trim().toLowerCase();
+        if (!s) return null;
+        if (s.startsWith('m')) return 'Masculino';
+        if (s.startsWith('f')) return 'Femenino';
+        return s.charAt(0).toUpperCase() + s.slice(1);
+      };
 
       // Crear objeto con los datos del formulario (texto en MAYÚSCULAS, excepto distrito_sanitario)
       const submissionData = {
         nombre_completo: `${U(data.nombre)} ${U(data.apellidos)}`,
         nombre: U(data.nombre),
         apellidos: U(data.apellidos),
-        genero: U(data.genero),
+        genero: toGenero(data.genero),
         fecha_nacimiento: data.fecha_nacimiento,
         edad: age,
         nacionalidad: U(data.nacionalidad),

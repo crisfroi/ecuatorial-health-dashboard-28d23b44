@@ -17,8 +17,11 @@ import {
   Clock,
   Save,
   AlertTriangle,
+  Download, // <-- NUEVA: Icono de Descarga
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import * as XLSX from "xlsx"; // <-- NUEVA: Importamos la librería XLSX
+import { saveAs } from "file-saver"; // <-- NUEVA: Importamos file-saver
 
 // --- CONSTANTES DE CACHÉ ---
 const CACHE_KEY = 'renaprosa_chat_history';
@@ -39,6 +42,7 @@ interface ChatMessage {
   sql?: string;
   result?: any[];
   error?: string;
+  action?: string; // <-- NUEVA: Campo para la acción (ej: 'GENERATE_XLSX_URL')
   navigationSuggestions?: NavigationSuggestion[];
 }
 
@@ -67,6 +71,34 @@ const getNavigationIcon = (tab: string) => {
   }
 };
 
+// --- HELPERS DE EXPORTACIÓN XLSX (NUEVA FUNCIÓN) ---
+
+/**
+ * Función para exportar datos JSON a XLSX y disparar la descarga en el navegador.
+ * @param data Array de objetos JSON a exportar.
+ * @param fileName Nombre base del archivo.
+ */
+const exportToXLSX = (data: any[], fileName: string = "reporte_datos") => {
+  if (!data || data.length === 0) return;
+
+  // 1. Crear la hoja de cálculo a partir del JSON
+  const ws = XLSX.utils.json_to_sheet(data);
+
+  // 2. Crear el libro (Workbook)
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Datos");
+
+  // 3. Escribir el archivo como un ArrayBuffer (formato binario)
+  const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+  // 4. Crear un Blob y guardar el archivo usando file-saver
+  const dataBlob = new Blob([excelBuffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+
+  saveAs(dataBlob, `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+};
+
 // ---------------------------------------------
 
 const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
@@ -80,7 +112,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
   const isInitialLoad = useRef(true);
   const { toast } = useToast();
 
-  // --- 1. LÓGICA DE PERSISTENCIA Y CACHE ---
+  // --- 1. LÓGICA DE PERSISTENCIA Y CACHE (Manteniendo la original) ---
 
   const initialAssistantMessage: ChatMessage = {
     role: 'assistant',
@@ -88,9 +120,8 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     timestamp: new Date().toISOString(),
   };
 
-  // 1a. Función para guardar el historial
   const saveHistory = useCallback((currentMessages: ChatMessage[]) => {
-    if (currentMessages.length > 1) { // No guardar solo el mensaje inicial
+    if (currentMessages.length > 1) {
       const historyToSave: SavedHistory = {
         messages: currentMessages,
         timestamp: Date.now(),
@@ -101,7 +132,6 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     }
   }, []);
 
-  // 1b. Función para cargar el historial (con política de 24h)
   const loadHistory = useCallback(() => {
     const cachedHistory = localStorage.getItem(CACHE_KEY);
     if (cachedHistory) {
@@ -110,7 +140,6 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         const age = Date.now() - parsed.timestamp;
 
         if (age < CACHE_DURATION_MS) {
-          // Historial reciente y válido
           setMessages(parsed.messages);
           toast({
             title: "Historial Recuperado",
@@ -119,7 +148,6 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
           });
           return;
         } else {
-          // Historial caducado
           localStorage.removeItem(CACHE_KEY);
         }
       } catch (e) {
@@ -127,11 +155,9 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         localStorage.removeItem(CACHE_KEY);
       }
     }
-    // Si no hay caché o está caducada, usar mensaje inicial
     setMessages([initialAssistantMessage]);
-  }, [toast]); // Añadido 'toast' a dependencias
+  }, [toast]);
 
-  // 1c. useEffect para cargar y guardar
   useEffect(() => {
     loadHistory();
     setSystemReady(true);
@@ -139,7 +165,6 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
   }, [loadHistory]);
 
   useEffect(() => {
-    // Guardar el historial en localStorage cada vez que los mensajes cambian
     if (!isInitialLoad.current) {
       saveHistory(messages);
     }
@@ -152,18 +177,16 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
-  // --- 2. LÓGICA DE NAVEGACIÓN CON ADVERTENCIA ---
+  // --- 2. LÓGICA DE NAVEGACIÓN CON ADVERTENCIA (Manteniendo la original) ---
 
   const handleNavigation = (suggestion: NavigationSuggestion) => {
     if (!onNavigateToTab) return;
 
-    // Si el historial es solo el mensaje inicial, navegar directamente
     if (messages.length <= 1) {
       onNavigateToTab(suggestion.tab, suggestion.filters);
       return;
     }
 
-    // Mostrar advertencia si hay historial
     toast({
       title: <div className='flex items-center gap-2'><AlertTriangle className='w-5 h-5 text-yellow-500' /> Advertencia de Navegación</div>,
       description: `¿Estás seguro de que quieres salir de la pestaña? El historial de chat (últimas ${messages.length - 1} entradas) se perderá si no lo guardas o si pasa el límite de 24h.`,
@@ -173,10 +196,8 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
           <Button
             variant="default"
             onClick={() => {
-              // Simular "Guardar" y luego navegar
               saveHistory(messages);
               onNavigateToTab(suggestion.tab, suggestion.filters);
-              // Notificación de guardado quitada para evitar conflicto con el cierre del Toast
             }}
             className="w-full justify-start"
           >
@@ -207,8 +228,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       content: questionToSend,
       timestamp: new Date().toISOString(),
     };
-    
-    // Construir el historial para el payload (incluyendo el nuevo mensaje del usuario)
+
     const fullHistory = [...messages, userMessage];
 
     const historyToPass = fullHistory.slice(-10).map(m => ({
@@ -225,23 +245,24 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     setLoading(true);
 
     try {
-      // Llamada a la Edge Function (Backend con Gemini/OpenAI Fallback)
+      // Llamada a la Edge Function
       const { data, error } = await supabase.functions.invoke('ai-chat-master', {
-        body: payload, 
+        body: payload,
       });
 
       if (error) {
         throw new Error((error as any)?.message || 'Error en la llamada a la Edge Function.');
       }
 
-      // CORRECCIÓN CLAVE: Extraer los campos según la estructura de la Edge Function
-      const { 
-        natural_language_response: naturalResponse, 
-        sql: assistantSQL, 
-        result: assistantResult, 
+      // CORRECCIÓN CLAVE: Extraer todos los campos, incluido 'action'
+      const {
+        natural_language_response: naturalResponse,
+        sql: assistantSQL,
+        result: assistantResult,
         error: assistantError,
+        action: assistantAction, // <-- NUEVO: Capturar la acción del backend
         navigationSuggestions: assistantSuggestions = [],
-      } = data as any || {}; // Usar 'as any || {}' para seguridad si 'data' es null
+      } = data as any || {};
 
       let assistantContent = '';
       let toastTitle = "✅ Consulta Exitosa";
@@ -250,7 +271,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         // Manejo de Error SQL
         toastTitle = "❌ Error SQL";
         assistantContent = `❌ **Error al ejecutar la consulta:** El motor SQL devolvió un error.
-        
+                
 **Mensaje de error:** ${assistantError.slice(0, 150)}...
 `;
         toast({
@@ -260,24 +281,29 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         });
       } else {
         // Manejo de Respuesta Exitosa
-        
-        // 1. Contar filas (para mostrar en el toast, si es un COUNT será 1)
+
         const rowCount = assistantResult?.length ?? 0;
 
-        // 2. Usar la respuesta natural como contenido principal
+        // Si se solicita un XLSX, el contenido natural debe explicar el resultado y la descarga.
+        if (assistantAction === 'GENERATE_XLSX_URL') {
+          toastTitle = "🗂️ Reporte XLSX Listo";
+          toast({
+            title: toastTitle,
+            description: `El archivo con ${rowCount} filas está listo para descargar.`,
+          });
+        } else {
+          toast({
+            title: toastTitle,
+            description: `Se obtuvieron ${rowCount} filas.`,
+          });
+        }
+
         assistantContent = naturalResponse ||
           `✅ **Consulta Exitosa.** (No se recibió una respuesta natural). Se obtuvieron **${rowCount}** filas.`;
 
-        // 3. Añadir nota si hay sugerencias
         if (assistantSuggestions.length > 0) {
           assistantContent += "\n\n**¡Acciones Sugeridas disponibles debajo!**";
         }
-        
-        // 4. Mostrar el toast (si el resultado es una agregación, rowCount será 1, lo cual es correcto)
-        toast({
-          title: toastTitle,
-          description: `Se obtuvieron ${rowCount} filas.`,
-        });
       }
 
       // Añadir mensaje del asistente con todos los metadatos
@@ -285,9 +311,10 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         role: 'assistant',
         content: assistantContent,
         timestamp: new Date().toISOString(),
-        sql: assistantSQL, // GUARDADO DEL SQL
+        sql: assistantSQL,
         result: assistantResult,
         error: assistantError,
+        action: assistantAction, // <-- GUARDADO DE LA ACCIÓN
         navigationSuggestions: assistantSuggestions,
       };
 
@@ -383,35 +410,59 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
                 </div>
 
                 <div className="prose prose-sm max-w-none rounded-lg p-3 whitespace-pre-wrap" style={{
-                    marginLeft: message.role === 'user' ? '1.5rem' : 0,
-                    marginRight: message.role === 'assistant' ? '1.5rem' : 0,
-                    backgroundColor: message.role === 'user' 
-                        ? 'var(--primary-100)' // Tailwind bg-primary/10
-                        : (message.error 
-                            ? 'var(--red-50)' // Tailwind bg-red-50/10
-                            : 'var(--accent-100)'), // Tailwind bg-accent/10
-                    border: message.error ? '1px solid var(--red-300)' : 'none',
-                    color: message.role === 'user' ? 'inherit' : (message.error ? 'var(--red-700)' : 'inherit'),
+                  marginLeft: message.role === 'user' ? '1.5rem' : 0,
+                  marginRight: message.role === 'assistant' ? '1.5rem' : 0,
+                  backgroundColor: message.role === 'user'
+                    ? 'var(--primary-100)'
+                    : (message.error
+                      ? 'var(--red-50)'
+                      : 'var(--accent-100)'),
+                  border: message.error ? '1px solid var(--red-300)' : 'none',
+                  color: message.role === 'user' ? 'inherit' : (message.error ? 'var(--red-700)' : 'inherit'),
                 }}>
                   <div className="text-sm" dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br/>') }} />
                 </div>
 
-                {/* --- Bloque de Sugerencias de Navegación (Mejora: Iconos Dinámicos) --- */}
+                {/* --- Bloque de Descarga XLSX (NUEVA LÓGICA) --- */}
+                {message.role === 'assistant' &&
+                  message.action === 'GENERATE_XLSX_URL' &&
+                  message.result &&
+                  message.result.length > 0 && (
+                    <div className="space-y-2 p-3 mt-1 rounded-md bg-green-50/50 border border-dashed border-green-300 ml-3">
+                      <h4 className="text-xs font-semibold flex items-center gap-2 text-green-700">
+                        <Download className="w-3 h-3 text-green-500" /> Reporte Listo para Descarga
+                      </h4>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        // Llama a la función de exportación
+                        onClick={() => exportToXLSX(message.result!, "reporte_renaprosa")}
+                        className="text-xs h-8 bg-green-600 hover:bg-green-700"
+                      >
+                        <Download className="w-4 h-4 mr-1 shrink-0" />
+                        Descargar Reporte (.xlsx) ({message.result.length} filas)
+                      </Button>
+                    </div>
+                  )}
+                {/* --------------------------------------------- */}
+
+
+                {/* --- Bloque de Sugerencias de Navegación --- */}
                 {message.role === 'assistant' && message.navigationSuggestions && message.navigationSuggestions.length > 0 && (
-                  <div className="space-y-2 p-3 mt-1 rounded-md bg-accent/5 border border-dashed border-accent/30">
+                  <div className="space-y-2 p-3 mt-1 rounded-md bg-accent/5 border border-dashed border-accent/30 ml-3">
                     <h4 className="text-xs font-semibold flex items-center gap-2 text-accent-foreground">
                       <ArrowRight className="w-3 h-3 text-accent" />
                       Acciones Rápidas
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {message.navigationSuggestions.map((suggestion, suggestionIndex) => {
-                        const NavIcon = getNavigationIcon(suggestion.tab); // USANDO HELPER
+                        const NavIcon = getNavigationIcon(suggestion.tab);
                         return (
                           <Button
                             key={suggestionIndex}
                             variant="outline"
                             size="sm"
-                            onClick={() => handleNavigation(suggestion)} // USANDO HANDLER CON ADVERTENCIA
+                            onClick={() => handleNavigation(suggestion)}
                             className="text-xs h-8"
                           >
                             <NavIcon className="w-4 h-4 mr-1 shrink-0" />
@@ -424,7 +475,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
                 )}
                 {/* ------------------------------------------- */}
 
-                {/* --- Bloque de Visualización de SQL (Mejora: Debug) --- */}
+                {/* --- Bloque de Visualización de SQL --- */}
                 {message.role === 'assistant' && message.sql && (
                   <details className="mt-1 text-xs text-muted-foreground cursor-pointer ml-auto">
                     <summary className="font-medium p-1 flex items-center gap-1 hover:bg-background/80 rounded">
@@ -488,11 +539,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
                 ? "Escribe tu pregunta..."
                 : "Cargando sistema..."
               }
-              // --- CORRECCIÓN CLAVE AQUÍ ---
-              // La entrada NO debe deshabilitarse solo porque está vacía.
-              // El botón de enviar SÍ debe deshabilitarse si está vacía.
-              disabled={loading || !systemReady} 
-              // -----------------------------
+              disabled={loading || !systemReady}
               className="flex-1"
             />
             <Button

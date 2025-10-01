@@ -455,7 +455,8 @@ async function geminiGenerateText(prompt: string): Promise<string> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
+        // CORRECCIÓN CRUCIAL: Cambiar 'config' por 'generationConfig' para la API HTTP
+        generationConfig: {
           temperature: 0,
           maxOutputTokens: 1024
         }

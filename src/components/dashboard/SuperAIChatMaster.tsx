@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client'; // Importación real para tu entorno
 import {
   Brain,
   Send,
@@ -14,67 +14,210 @@ import {
   Code,
   Users,
   ArrowRight,
+  Clock,
+  Save,
+  AlertTriangle,
+  Download, // <-- NUEVA: Icono de Descarga
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast'; 
+import { useToast } from '@/hooks/use-toast';
+import * as XLSX from "xlsx"; // <-- NUEVA: Importamos la librería XLSX
+import { saveAs } from "file-saver"; 
+
+// --- CONSTANTES DE CACHÉ ---
+const CACHE_KEY = 'renaprosa_chat_history';
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 horas
 
 // --- INTERFACES PARA MEMORIA Y NAVEGACIÓN ---
-
-// La IA debe devolver un array con este formato si genera sugerencias
 interface NavigationSuggestion {
   type: 'navigate';
-  tab: string; // Nombre de la pestaña (ej: 'profesionales', 'centros-salud')
-  label: string; // Texto del botón (ej: 'Ver profesionales en la tabla')
-  filters?: Record<string, any>; // Filtros opcionales para aplicar a la nueva vista
+  tab: string; // Nombre de la pestaña (ej: 'professionals', 'health-centers')
+  label: string;
+  filters?: Record<string, any>;
 }
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
-  sql?: string; 
+  sql?: string;
   result?: any[];
   error?: string;
-  // Campo que trae las sugerencias de la Edge Function
+  action?: string; // <-- NUEVA: Campo para la acción (ej: 'GENERATE_XLSX_URL')
   navigationSuggestions?: NavigationSuggestion[];
 }
 
+interface SavedHistory {
+  messages: ChatMessage[];
+  timestamp: number;
+}
+
 interface SuperAIChatMasterProps {
-  // Función para manejar la navegación o el cambio de pestaña
   onNavigateToTab?: (tab: string, filters?: any) => void;
 }
 
+// --- HELPERS VISUALES ---
+const getNavigationIcon = (tab: string) => {
+  switch (tab) {
+    case 'professionals':
+      return Users;
+    case 'health-centers':
+      return Database;
+    case 'guardias':
+      return Clock;
+    case 'analytics':
+      return BarChart3;
+    default:
+      return ArrowRight;
+  }
+};
+
+// --- HELPERS DE EXPORTACIÓN XLSX (NUEVA FUNCIÓN) ---
+
+/**
+ * Función para exportar datos JSON a XLSX y disparar la descarga en el navegador.
+ * @param data Array de objetos JSON a exportar.
+ * @param fileName Nombre base del archivo.
+ */
+const exportToXLSX = (data: any[], fileName: string = "reporte_datos") => {
+  if (!data || data.length === 0) return;
+
+  // 1. Crear la hoja de cálculo a partir del JSON
+  const ws = XLSX.utils.json_to_sheet(data);
+
+  // 2. Crear el libro (Workbook)
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Datos");
+
+  // 3. Escribir el archivo como un ArrayBuffer (formato binario)
+  const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+  // 4. Crear un Blob y guardar el archivo usando file-saver
+  const dataBlob = new Blob([excelBuffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+
+  saveAs(dataBlob, `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+};
+
 // ---------------------------------------------
 
-const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
+const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
   onNavigateToTab,
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: 'assistant',
-      content: '🚀 **¡SISTEMA SQL IA ACTIVADO!**\n\nSoy tu asistente avanzado con **memoria** de consulta. Pregúntame sobre profesionales, centros, o estadísticas y te devolveré la respuesta en **lenguaje natural**. ¡Las búsquedas ahora son **insensibles a mayúsculas**! 🎯',
-      timestamp: new Date().toISOString(),
-    }
-  ]);
-
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [systemReady, setSystemReady] = useState(true);
+  const [systemReady, setSystemReady] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isInitialLoad = useRef(true);
   const { toast } = useToast();
 
-  // Obtiene las sugerencias del último mensaje del asistente
-  const currentSuggestions = messages[messages.length - 1]?.navigationSuggestions || [];
+  // --- 1. LÓGICA DE PERSISTENCIA Y CACHE (Manteniendo la original) ---
+
+  const initialAssistantMessage: ChatMessage = {
+    role: 'assistant',
+    content: 'Bienvenido/a. Soy RENAPROSA, tu asistente para consultas sobre profesionales, centros y estadísticas. Responderé en lenguaje claro y te ofreceré accesos directos cuando aplique.',
+    timestamp: new Date().toISOString(),
+  };
+
+  const saveHistory = useCallback((currentMessages: ChatMessage[]) => {
+    if (currentMessages.length > 1) {
+      const historyToSave: SavedHistory = {
+        messages: currentMessages,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(historyToSave));
+    } else {
+      localStorage.removeItem(CACHE_KEY);
+    }
+  }, []);
+
+  const loadHistory = useCallback(() => {
+    const cachedHistory = localStorage.getItem(CACHE_KEY);
+    if (cachedHistory) {
+      try {
+        const parsed: SavedHistory = JSON.parse(cachedHistory);
+        const age = Date.now() - parsed.timestamp;
+
+        if (age < CACHE_DURATION_MS) {
+          setMessages(parsed.messages);
+          toast({
+            title: "Historial Recuperado",
+            description: "Se cargó la conversación anterior. Se borrará automáticamente tras 24h de inactividad.",
+            variant: "default",
+          });
+          return;
+        } else {
+          localStorage.removeItem(CACHE_KEY);
+        }
+      } catch (e) {
+        console.error("Error al parsear el historial de chat:", e);
+        localStorage.removeItem(CACHE_KEY);
+      }
+    }
+    setMessages([initialAssistantMessage]);
+  }, [toast]);
 
   useEffect(() => {
+    loadHistory();
     setSystemReady(true);
+    isInitialLoad.current = false;
+  }, [loadHistory]);
+
+  useEffect(() => {
+    if (!isInitialLoad.current) {
+      saveHistory(messages);
+    }
     scrollToBottom();
-  }, [messages]);
+  }, [messages, saveHistory]);
+
+  // -------------------------------------------
 
   const scrollToBottom = () => {
     setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
-  // --- FUNCIÓN DE ENVÍO CON MEMORIA Y LENGUAJE NATURAL ---
+  // --- 2. LÓGICA DE NAVEGACIÓN CON ADVERTENCIA (Manteniendo la original) ---
+
+  const handleNavigation = (suggestion: NavigationSuggestion) => {
+    if (!onNavigateToTab) return;
+
+    if (messages.length <= 1) {
+      onNavigateToTab(suggestion.tab, suggestion.filters);
+      return;
+    }
+
+    toast({
+      title: <div className='flex items-center gap-2'><AlertTriangle className='w-5 h-5 text-yellow-500' /> Advertencia de Navegación</div>,
+      description: `¿Estás seguro de que quieres salir de la pestaña? El historial de chat (últimas ${messages.length - 1} entradas) se perderá si no lo guardas o si pasa el límite de 24h.`,
+      variant: "default",
+      action: (
+        <div className="flex flex-col gap-2 p-1">
+          <Button
+            variant="default"
+            onClick={() => {
+              saveHistory(messages);
+              onNavigateToTab(suggestion.tab, suggestion.filters);
+            }}
+            className="w-full justify-start"
+          >
+            <Save className="w-4 h-4 mr-2" /> Guardar y Continuar
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => onNavigateToTab(suggestion.tab, suggestion.filters)}
+            className="w-full justify-start"
+          >
+            Continuar (sin guardar)
+          </Button>
+        </div>
+      ),
+      duration: 9000
+    });
+  };
+
+  // --- 3. FUNCIÓN DE ENVÍO Y COMUNICACIÓN CON BACKEND (CORREGIDA) ---
+
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
@@ -86,20 +229,23 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
       timestamp: new Date().toISOString(),
     };
 
+    const fullHistory = [...messages, userMessage];
+
+    const historyToPass = fullHistory.slice(-10).map(m => ({
+      role: m.role,
+      content: m.content
+    }));
+
+    const payload = { messages: historyToPass };
+    // ------------------------------------------------------------------------------------------------
+
+    // 1. Actualizar la UI inmediatamente con el mensaje del usuario
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
 
     try {
-      // Pasamos los últimos 10 mensajes para mantener la memoria
-      const historyToPass = [...messages, userMessage].slice(-10).map(m => ({
-        role: m.role,
-        content: m.content
-      }));
-      
-      const payload = { messages: historyToPass };
-
-      // Llamada a la Edge Function (Edge Function maneja OpenAI/Gemini)
+      // Llamada a la Edge Function
       const { data, error } = await supabase.functions.invoke('ai-chat-master', {
         body: payload,
       });
@@ -108,51 +254,67 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
         throw new Error((error as any)?.message || 'Error en la llamada a la Edge Function.');
       }
 
+      // CORRECCIÓN CLAVE: Extraer todos los campos, incluido 'action'
+      const {
+        natural_language_response: naturalResponse,
+        sql: assistantSQL,
+        result: assistantResult,
+        error: assistantError,
+        action: assistantAction, // <-- NUEVO: Capturar la acción del backend
+        navigationSuggestions: assistantSuggestions = [],
+      } = data as any || {};
+
       let assistantContent = '';
-      let assistantSql = data?.sql;
-      let assistantResult = data?.result;
-      let assistantError = data?.error;
-      // Capturamos las sugerencias de navegación devueltas por el backend
-      const assistantSuggestions: NavigationSuggestion[] = data?.navigationSuggestions || [];
-      
-      const naturalResponse = data?.natural_language_response;
+      let toastTitle = "✅ Consulta Exitosa";
 
       if (assistantError) {
+        // Manejo de Error SQL
+        toastTitle = "❌ Error SQL";
         assistantContent = `❌ **Error al ejecutar la consulta:** El motor SQL devolvió un error.
-        
+                
 **Mensaje de error:** ${assistantError.slice(0, 150)}...
 `;
         toast({
-            title: "Error SQL",
-            description: `El SQL generado no se pudo ejecutar.`,
-            variant: "destructive"
+          title: toastTitle,
+          description: `El SQL generado no se pudo ejecutar.`,
+          variant: "destructive"
         });
       } else {
-        const rowCount = assistantResult?.length ?? 0;
-        
-        // CRÍTICO: Usamos la respuesta natural como contenido principal
-        assistantContent = naturalResponse || 
-        `✅ **Consulta Exitosa.** (La IA no pudo generar una respuesta natural). Se obtuvieron **${rowCount}** filas.`;
+        // Manejo de Respuesta Exitosa
 
-        // Añadimos una nota en el contenido si hay sugerencias (se renderizan abajo)
-        if (assistantSuggestions.length > 0) {
-            assistantContent += "\n\n**¡Acciones Sugeridas disponibles debajo!**";
+        const rowCount = assistantResult?.length ?? 0;
+
+        // Si se solicita un XLSX, el contenido natural debe explicar el resultado y la descarga.
+        if (assistantAction === 'GENERATE_XLSX_URL') {
+          toastTitle = "🗂️ Reporte XLSX Listo";
+          toast({
+            title: toastTitle,
+            description: `El archivo con ${rowCount} filas está listo para descargar.`,
+          });
+        } else {
+          toast({
+            title: toastTitle,
+            description: `Se obtuvieron ${rowCount} filas.`,
+          });
         }
 
-        toast({
-          title: "✅ Consulta Ejecutada",
-          description: `Se obtuvieron ${rowCount} filas.`,
-        });
+        assistantContent = naturalResponse ||
+          `✅ **Consulta Exitosa.** (No se recibió una respuesta natural). Se obtuvieron **${rowCount}** filas.`;
+
+        if (assistantSuggestions.length > 0) {
+          assistantContent += "\n\n**¡Acciones Sugeridas disponibles debajo!**";
+        }
       }
 
       // Añadir mensaje del asistente con todos los metadatos
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: assistantContent, 
+        content: assistantContent,
         timestamp: new Date().toISOString(),
-        sql: assistantSql,
+        sql: assistantSQL,
         result: assistantResult,
         error: assistantError,
+        action: assistantAction, // <-- GUARDADO DE LA ACCIÓN
         navigationSuggestions: assistantSuggestions,
       };
 
@@ -160,7 +322,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
 
     } catch (error: any) {
       const friendly = error.message || 'Error del sistema de IA. Revise logs de Edge Function.';
-      
+
       const errorMessage: ChatMessage = {
         role: 'assistant',
         content: `❌ **Error irrecuperable:** ${friendly}`,
@@ -168,7 +330,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
         error: friendly,
       };
       setMessages(prev => [...prev, errorMessage]);
-      
+
       toast({
         title: "Error de Sistema",
         description: friendly,
@@ -187,7 +349,6 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
     }
   };
 
-  // Consultas rápidas
   const quickActions = [
     {
       icon: Database,
@@ -202,7 +363,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
     {
       icon: Code,
       label: "Memoria de Prueba",
-      query: "De la consulta anterior, ¿cuántos tienen especialidad en Pediatría?", 
+      query: "De la consulta anterior, ¿cuántos tienen especialidad en Pediatría?",
     },
   ];
 
@@ -215,7 +376,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
             <Sparkles className="w-4 h-4 text-accent" />
           </div>
           <div>
-            <CardTitle className="text-xl text-primary">SQL IA CON MEMORIA Y ACCIONES</CardTitle>
+            <CardTitle className="text-xl text-primary">RENAPROSA · Asistente Inteligente</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
               Traduce, recuerda el contexto, ejecuta y resume en lenguaje natural
             </p>
@@ -226,7 +387,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
             </Badge>
           </div>
         </CardHeader>
-        
+
         <CardContent className="space-y-4">
 
           {/* Chat Messages and Results */}
@@ -242,55 +403,102 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
                   ) : (
                     <>
                       <Brain className="w-3 h-3 text-primary" />
-                      <span className="font-medium text-primary">SQL IA</span>
+                      <span className="font-medium text-primary">RENAPROSA</span>
                     </>
                   )}
                   <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
                 </div>
-                
-                <div className={`prose prose-sm max-w-none rounded-lg p-3 ${
-                  message.role === 'user' 
-                    ? 'bg-primary/10 ml-6' 
-                    : (message.error ? 'bg-red-50/10 mr-6 border border-red-300' : 'bg-accent/10 mr-6')
-                }`}>
-                  <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+
+                <div className="prose prose-sm max-w-none rounded-lg p-3 whitespace-pre-wrap" style={{
+                  marginLeft: message.role === 'user' ? '1.5rem' : 0,
+                  marginRight: message.role === 'assistant' ? '1.5rem' : 0,
+                  backgroundColor: message.role === 'user'
+                    ? 'var(--primary-100)'
+                    : (message.error
+                      ? 'var(--red-50)'
+                      : 'var(--accent-100)'),
+                  border: message.error ? '1px solid var(--red-300)' : 'none',
+                  color: message.role === 'user' ? 'inherit' : (message.error ? 'var(--red-700)' : 'inherit'),
+                }}>
+                  <div className="text-sm" dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br/>') }} />
                 </div>
+
+                {/* --- Bloque de Descarga XLSX (NUEVA LÓGICA) --- */}
+                {message.role === 'assistant' &&
+                  message.action === 'GENERATE_XLSX_URL' &&
+                  message.result &&
+                  message.result.length > 0 && (
+                    <div className="space-y-2 p-3 mt-1 rounded-md bg-green-50/50 border border-dashed border-green-300 ml-3">
+                      <h4 className="text-xs font-semibold flex items-center gap-2 text-green-700">
+                        <Download className="w-3 h-3 text-green-500" /> Reporte Listo para Descarga
+                      </h4>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        // Llama a la función de exportación
+                        onClick={() => exportToXLSX(message.result!, "reporte_renaprosa")}
+                        className="text-xs h-8 bg-green-600 hover:bg-green-700"
+                      >
+                        <Download className="w-4 h-4 mr-1 shrink-0" />
+                        Descargar Reporte (.xlsx) ({message.result.length} filas)
+                      </Button>
+                    </div>
+                  )}
+                {/* --------------------------------------------- */}
+
 
                 {/* --- Bloque de Sugerencias de Navegación --- */}
                 {message.role === 'assistant' && message.navigationSuggestions && message.navigationSuggestions.length > 0 && (
-                    <div className="space-y-2 p-3 mt-1 rounded-md bg-accent/5 border border-dashed border-accent/30">
-                        <h4 className="text-xs font-semibold flex items-center gap-2 text-accent-foreground">
-                            <ArrowRight className="w-3 h-3 text-accent" />
-                            Acciones Rápidas
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                            {message.navigationSuggestions.map((suggestion, suggestionIndex) => (
-                                <Button
-                                    key={suggestionIndex}
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => onNavigateToTab?.(suggestion.tab, suggestion.filters)}
-                                    className="text-xs h-8"
-                                >
-                                    {suggestion.label}
-                                </Button>
-                            ))}
-                        </div>
+                  <div className="space-y-2 p-3 mt-1 rounded-md bg-accent/5 border border-dashed border-accent/30 ml-3">
+                    <h4 className="text-xs font-semibold flex items-center gap-2 text-accent-foreground">
+                      <ArrowRight className="w-3 h-3 text-accent" />
+                      Acciones Rápidas
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {message.navigationSuggestions.map((suggestion, suggestionIndex) => {
+                        const NavIcon = getNavigationIcon(suggestion.tab);
+                        return (
+                          <Button
+                            key={suggestionIndex}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleNavigation(suggestion)}
+                            className="text-xs h-8"
+                          >
+                            <NavIcon className="w-4 h-4 mr-1 shrink-0" />
+                            {suggestion.label}
+                          </Button>
+                        );
+                      })}
                     </div>
+                  </div>
                 )}
                 {/* ------------------------------------------- */}
 
+                {/* --- Bloque de Visualización de SQL --- */}
+                {message.role === 'assistant' && message.sql && (
+                  <details className="mt-1 text-xs text-muted-foreground cursor-pointer ml-auto">
+                    <summary className="font-medium p-1 flex items-center gap-1 hover:bg-background/80 rounded">
+                      <Code className="w-3 h-3" />
+                      Ver SQL Ejecutado
+                    </summary>
+                    <pre className="bg-gray-50 dark:bg-gray-800 p-2 rounded mt-1 overflow-x-auto text-[10px]">
+                      <code>{message.sql}</code>
+                    </pre>
+                  </details>
+                )}
+                {/* ------------------------------------------------ */}
 
               </div>
             ))}
-            
+
             {loading && (
               <div className="flex items-center gap-2 text-primary">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-sm">Analizando contexto y generando respuesta natural...</span>
               </div>
             )}
-            
+
             <div ref={scrollRef} />
           </div>
 
@@ -328,7 +536,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={systemReady
-                ? "Escribe tu pregunta para generar la consulta SQL..."
+                ? "Escribe tu pregunta..."
                 : "Cargando sistema..."
               }
               disabled={loading || !systemReady}
@@ -348,18 +556,22 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
           </div>
 
           {systemReady && (
-            <div className="text-xs text-muted-foreground flex items-center gap-4">
+            <div className="text-xs text-muted-foreground flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-1">
                 <Database className="w-3 h-3" />
                 <span>Base de Datos de Supabase</span>
               </div>
               <div className="flex items-center gap-1">
                 <Brain className="w-3 h-3" />
-                <span>Modelo GPT-4o-mini con **Memoria** y **Fallback a Gemini**</span>
+                <span>Asistente impulsado por IA con respaldo automático</span>
               </div>
               <div className="flex items-center gap-1">
                 <Sparkles className="w-3 h-3" />
-                <span>Respuesta en **Lenguaje Natural**</span>
+                <span>Respuestas en lenguaje natural</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Save className="w-3 h-3" />
+                <span>Historial: Guardado y Reinicio cada 24h</span>
               </div>
             </div>
           )}

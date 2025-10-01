@@ -57,7 +57,7 @@ const ENHANCED_SCHEMA = {
 };
 
 function buildEnhancedSystemPrompt(): string {
-  return `Eres un asistente experto para el Sistema de Salud de Guinea Ecuatorial.\n\nCONTEXTO:\n${JSON.stringify(ENHANCED_SCHEMA, null, 2)}\n\nREGLAS:\n- Devuelve SOLO una sentencia SQL en un bloque markdown etiquetado como sql.\n- No añadas explicaciones ni texto adicional.\n- Usa únicamente tablas/columnas del contexto.\n- Prioriza SELECT y joins válidos.`;
+  return `Eres un asistente experto para el Sistema de Salud de Guinea Ecuatorial.\n\nCONTEXTO:\n${JSON.stringify(ENHANCED_SCHEMA, null, 2)}\n\nREGLAS:\n- Devuelve SOLO una sentencia SQL en un bloque markdown etiquetado como sql.\n- No añadas explicaciones ni texto adicional.\n- Usa únicamente tablas/columnas del contexto.\n- Prioriza SELECT y joins válidos.\n- Asegura búsquedas de texto insensibles a mayúsculas y acentos: usa ILIKE y, si aplica, normaliza con lower()/translate() para eliminar tildes.`;
 }
 
 async function openAIChat(messages: any[]): Promise<string> {
@@ -162,7 +162,9 @@ serve(async (req) => {
     }
 
     rawSql = sqlText || '';
-    const cleanSql = extractSqlFromText(rawSql);
+    let cleanSql = extractSqlFromText(rawSql);
+    // Forzar insensibilidad a mayúsculas en patrones LIKE -> ILIKE
+    cleanSql = cleanSql.replace(/\blike\b/gi, 'ILIKE');
 
     if (!cleanSql || !cleanSql.toUpperCase().startsWith('SELECT')) {
       return new Response(JSON.stringify({ error: 'La IA no generó una sentencia SQL SELECT válida.' }), { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } });

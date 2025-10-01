@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client'; // Importación original de tu entorno
 import {
   Brain,
   Send,
@@ -176,7 +176,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
               // Simular "Guardar" y luego navegar
               saveHistory(messages);
               onNavigateToTab(suggestion.tab, suggestion.filters);
-              toast({ title: "Guardado y Navegando", description: "El historial de chat se ha guardado.", variant: "success" });
+              // Notificación de guardado quitada para evitar conflicto con el cierre del Toast
             }}
             className="w-full justify-start"
           >
@@ -208,20 +208,24 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       timestamp: new Date().toISOString(),
     };
 
-    // Usar el estado actual para evitar problemas de cierre (closure)
+    // CRÍTICO: Construir el historial para el payload usando el estado ACTUAL (messages)
+    // y el nuevo mensaje del usuario (userMessage), ANTES de actualizar el estado.
+    const fullHistory = [...messages, userMessage];
+
+    const historyToPass = fullHistory.slice(-10).map(m => ({
+      role: m.role,
+      content: m.content
+    }));
+
+    const payload = { messages: historyToPass };
+    // ------------------------------------------------------------------------------------------------
+
+    // 1. Actualizar la UI inmediatamente con el mensaje del usuario
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
 
     try {
-      // Usar los mensajes *después* de añadir el del usuario
-      const historyToPass = [...messages, userMessage].slice(-10).map(m => ({
-        role: m.role,
-        content: m.content
-      }));
-
-      const payload = { messages: historyToPass };
-
       // Llamada a la Edge Function (Backend con Gemini/OpenAI Fallback)
       const { data, error } = await supabase.functions.invoke('ai-chat-master', {
         body: payload,
@@ -372,8 +376,8 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
                 </div>
 
                 <div className={`prose prose-sm max-w-none rounded-lg p-3 ${message.role === 'user'
-                    ? 'bg-primary/10 ml-6'
-                    : (message.error ? 'bg-red-50/10 mr-6 border border-red-300' : 'bg-accent/10 mr-6')
+                  ? 'bg-primary/10 ml-6'
+                  : (message.error ? 'bg-red-50/10 mr-6 border border-red-300' : 'bg-accent/10 mr-6')
                   }`}>
                   <div className="whitespace-pre-wrap text-sm">{message.content}</div>
                 </div>
@@ -470,7 +474,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
                 ? "Escribe tu pregunta..."
                 : "Cargando sistema..."
               }
-              disabled={loading || !systemReady}
+              disabled={loading || !input.trim() || !systemReady}
               className="flex-1"
             />
             <Button

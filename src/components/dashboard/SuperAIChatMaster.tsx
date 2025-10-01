@@ -51,7 +51,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content: '🚀 **¡SISTEMA SQL IA ACTIVADO!**\n\nSoy tu asistente avanzado con **memoria** de consulta. Pregúntame sobre profesionales, centros, o estadísticas y te devolveré la respuesta en **lenguaje natural**. ¡Las búsquedas ahora son **insensibles a mayúsculas**! 🎯',
+      content: 'Bienvenido/a. Soy RENAPROSA, tu asistente para consultas sobre profesionales, centros y estadísticas. Responderé en lenguaje claro y te ofreceré accesos directos cuando aplique.',
       timestamp: new Date().toISOString(),
     }
   ]);
@@ -109,7 +109,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
       }
 
       let assistantContent = '';
-      let assistantSql = data?.sql;
+      // Oculto: no almacenamos SQL en el cliente
       let assistantResult = data?.result;
       let assistantError = data?.error;
       // Capturamos las sugerencias de navegación devueltas por el backend
@@ -150,8 +150,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
         role: 'assistant',
         content: assistantContent, 
         timestamp: new Date().toISOString(),
-        sql: assistantSql,
-        result: assistantResult,
+                result: assistantResult,
         error: assistantError,
         navigationSuggestions: assistantSuggestions,
       };
@@ -215,7 +214,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
             <Sparkles className="w-4 h-4 text-accent" />
           </div>
           <div>
-            <CardTitle className="text-xl text-primary">SQL IA CON MEMORIA Y ACCIONES</CardTitle>
+            <CardTitle className="text-xl text-primary">RENAPROSA · Asistente Inteligente</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
               Traduce, recuerda el contexto, ejecuta y resume en lenguaje natural
             </p>
@@ -242,7 +241,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
                   ) : (
                     <>
                       <Brain className="w-3 h-3 text-primary" />
-                      <span className="font-medium text-primary">SQL IA</span>
+                      <span className="font-medium text-primary">RENAPROSA</span>
                     </>
                   )}
                   <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
@@ -328,7 +327,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={systemReady
-                ? "Escribe tu pregunta para generar la consulta SQL..."
+                ? "Escribe tu pregunta..."
                 : "Cargando sistema..."
               }
               disabled={loading || !systemReady}
@@ -355,11 +354,11 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({ 
               </div>
               <div className="flex items-center gap-1">
                 <Brain className="w-3 h-3" />
-                <span>Modelo GPT-4o-mini con **Memoria** y **Fallback a Gemini**</span>
+                <span>Asistente impulsado por IA con respaldo automático</span>
               </div>
               <div className="flex items-center gap-1">
                 <Sparkles className="w-3 h-3" />
-                <span>Respuesta en **Lenguaje Natural**</span>
+                <span>Respuestas en lenguaje natural</span>
               </div>
             </div>
           )}

@@ -392,7 +392,7 @@ const SolicitudEstablecimientoForm = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nacionalidad del Responsable *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={(v) => field.onChange(String(v).toUpperCase())} defaultValue={field.value ? String(field.value).toUpperCase() : field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccione la nacionalidad" />
@@ -400,8 +400,8 @@ const SolicitudEstablecimientoForm = () => {
                       </FormControl>
                       <SelectContent>
                         {nacionalidadesUnicas.map((nac) => (
-                          <SelectItem key={`${nac.id}-${nac.nacionalidad}`} value={nac.nacionalidad}>
-                            {nac.nacionalidad}
+                          <SelectItem key={`${nac.id}-${nac.nacionalidad}`} value={String(nac.nacionalidad || '').toUpperCase()}>
+                            {String(nac.nacionalidad || '').toUpperCase()}
                           </SelectItem>
                         ))}
                       </SelectContent>

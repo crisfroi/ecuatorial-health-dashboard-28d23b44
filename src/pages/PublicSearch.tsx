@@ -7,12 +7,15 @@ import { Search, Shield, Calendar, User, Award, ArrowLeft, RefreshCw } from 'luc
 import { Link } from 'react-router-dom';
 import { usePublicSearch } from '@/hooks/usePublicSearch';
 import { useAccreditationStatusUpdate } from '@/hooks/useAccreditationStatusUpdate';
+import CoachMarks, { CoachMarkStep } from '@/components/onboarding/CoachMarks';
+import { ENABLE_INTERACTIVE_TOURS, isTourCompleted, setTourCompleted } from '@/config/featureFlags';
 
 const PublicSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<'carnet' | 'nombre'>('carnet');
   const { data: results, isLoading, error, refetch } = usePublicSearch(searchTerm, searchType);
   const { updateAccreditationStatus, isUpdating } = useAccreditationStatusUpdate();
+  const [openTour, setOpenTour] = useState(false);
 
   // Ejecutar actualización automática de estados al cargar el componente
   useEffect(() => {
@@ -25,6 +28,33 @@ const PublicSearch = () => {
       refetch();
     }
   };
+
+  const steps: CoachMarkStep[] = [
+    {
+      id: 'header-refresh',
+      target: '[data-tour="public-refresh"]',
+      title: 'Actualizar Estados',
+      content: 'Actualiza manualmente los estados de acreditación si lo necesitas.',
+    },
+    {
+      id: 'input',
+      target: '[data-tour="public-input"]',
+      title: 'Búsqueda',
+      content: 'Escribe el número de carnet o nombre completo del profesional.',
+    },
+    {
+      id: 'type',
+      target: '[data-tour="public-type"]',
+      title: 'Tipo de Búsqueda',
+      content: 'Elige si buscas por número de carnet o por nombre.',
+    },
+    {
+      id: 'submit',
+      target: '[data-tour="public-submit"]',
+      title: 'Buscar',
+      content: 'Haz clic para iniciar la búsqueda y ver resultados.',
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -52,6 +82,7 @@ const PublicSearch = () => {
               onClick={updateAccreditationStatus}
               disabled={isUpdating}
               className="flex items-center space-x-2"
+              data-tour="public-refresh"
             >
               <RefreshCw className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} />
               <span>{isUpdating ? 'Actualizando...' : 'Actualizar Estados'}</span>
@@ -70,19 +101,19 @@ const PublicSearch = () => {
                 <span>Verificar Acreditación Profesional</span>
               </CardTitle>
               <CardDescription>
-                Busque por número de carnet profesional o nombre completo para verificar 
+                Busque por número de carnet profesional o nombre completo para verificar
                 el estado de acreditación de un profesional sanitario.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSearch} className="space-y-4">
                 <div className="flex gap-4">
-                  <div className="flex-1">
+                  <div className="flex-1" data-tour="public-input">
                     <Input
                       type="text"
                       placeholder={
-                        searchType === 'carnet' 
-                          ? "Ej: MED-2024-0001" 
+                        searchType === 'carnet'
+                          ? "Ej: MED-2024-0001"
                           : "Ej: CRISTIAN FROILAN"
                       }
                       value={searchTerm}
@@ -90,7 +121,7 @@ const PublicSearch = () => {
                       className="text-lg"
                     />
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" data-tour="public-type">
                     <Button
                       type="button"
                       variant={searchType === 'carnet' ? 'default' : 'outline'}
@@ -107,7 +138,7 @@ const PublicSearch = () => {
                     </Button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading} data-tour="public-submit">
                   <Search className="w-4 h-4 mr-2" />
                   {isLoading ? 'Buscando...' : 'Buscar Profesional'}
                 </Button>
@@ -188,8 +219,8 @@ const PublicSearch = () => {
                           <Calendar className="w-4 h-4 text-orange-600" />
                           <span className="text-sm font-medium">Válido hasta:</span>
                           <span className={`text-sm font-medium ${
-                            new Date(profesional.fecha_validez) > new Date() 
-                              ? 'text-green-600' 
+                            new Date(profesional.fecha_validez) > new Date()
+                              ? 'text-green-600'
                               : 'text-red-600'
                           }`}>
                             {new Date(profesional.fecha_validez).toLocaleDateString('es-ES')}
@@ -245,6 +276,25 @@ const PublicSearch = () => {
           </Card>
         </div>
       </div>
+
+      {ENABLE_INTERACTIVE_TOURS && !isTourCompleted('publicSearch') && (
+        <>
+          <button
+            onClick={() => setOpenTour(true)}
+            className="fixed bottom-6 right-6 z-50 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors p-3"
+            aria-label="Ayuda"
+            title="Guía rápida"
+          >
+            ?
+          </button>
+          <CoachMarks
+            open={openTour}
+            steps={steps}
+            onClose={() => setOpenTour(false)}
+            onFinish={() => setTourCompleted('publicSearch')}
+          />
+        </>
+      )}
     </div>
   );
 };

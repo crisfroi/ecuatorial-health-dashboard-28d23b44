@@ -22,12 +22,13 @@ import {
   Power,
   Activity,
   BarChart3,
+  Image, // 💡 NUEVO: Icono para la pestaña del carrusel
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Import diagnostic components
+// Import components already in use
 import ConnectionStatus from "@/components/dashboard/ConnectionStatus";
 import DatabaseDiagnostics from "@/components/dashboard/DatabaseDiagnostics";
 import ErrorAnalysis from "@/components/dashboard/ErrorAnalysis";
@@ -37,6 +38,9 @@ import SupabaseDebugTest from "@/components/dashboard/SupabaseDebugTest";
 import UserRoleManagement from "@/components/dashboard/UserRoleManagement";
 import ConnectivityDiagnostic from "@/components/dashboard/ConnectivityDiagnostic";
 import CarnetQueueProcessor from "@/components/dashboard/CarnetQueueProcessor";
+
+// 💡 NUEVO: Importamos el componente de gestión del carrusel
+import SlideshowSettings from "@/components/admin/SlideshowSettings"; 
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -266,11 +270,16 @@ const AdminPanel = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="settings" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+      <Tabs defaultValue="slideshow" className="space-y-6"> {/* 💡 CAMBIO: Establecemos 'slideshow' como pestaña por defecto */}
+        {/* 💡 CAMBIO: Añadimos una nueva columna al grid (w-full grid-cols-6) y el nuevo TabTrigger */}
+        <TabsList className="grid w-full grid-cols-6"> 
           <TabsTrigger value="settings" className="flex items-center gap-1">
             <Settings className="w-4 h-4" />
             <span className="hidden sm:inline">Configuración</span>
+          </TabsTrigger>
+          <TabsTrigger value="slideshow" className="flex items-center gap-1"> {/* 💡 NUEVO: Pestaña Carrusel */}
+            <Image className="w-4 h-4" />
+            <span className="hidden sm:inline">Carrusel Web</span>
           </TabsTrigger>
           <TabsTrigger value="diagnostics" className="flex items-center gap-1">
             <Monitor className="w-4 h-4" />
@@ -289,6 +298,12 @@ const AdminPanel = () => {
             <span className="hidden sm:inline">Mantenimiento</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* 💡 NUEVO: TabsContent para el componente de gestión del carrusel */}
+        <TabsContent value="slideshow">
+            <SlideshowSettings />
+        </TabsContent>
+        {/* ----------------------------------------------------------- */}
 
         <TabsContent value="settings">
           <Card>

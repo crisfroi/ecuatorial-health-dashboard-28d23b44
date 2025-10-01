@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // <-- Se ha añadido useEffect aquí
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -39,6 +39,39 @@ import PDFSummary from "@/components/registration/PDFSummary";
 import PoliticasModal from "@/components/registration/PoliticasModal";
 import ProcedureModal from "@/components/registration/ProcedureModal";
 
+// --- LÓGICA DE PERSISTENCIA ---
+const STORAGE_KEY = "professional_registration_form_data";
+
+// Función para cargar datos persistentes desde localStorage
+const getPersistedData = (): { currentStep: number; formData: Partial<FormData> } | null => {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (!data) return null;
+    const parsed = JSON.parse(data);
+
+    // CRÍTICO: Limpiar campos de archivos (FileList/File)
+    // No son serializables y deben ser re-seleccionados.
+    if (parsed.formData) {
+        // Campos que contienen FileList o File[]
+        delete parsed.formData.foto_carnet;
+        delete parsed.formData.documentos_adicionales;
+    }
+
+    // Asegurar que solo se devuelven los campos de tipo FormData si son válidos
+    const validFormData = parsed.formData && typeof parsed.formData === 'object' ? parsed.formData : {};
+    
+    return {
+        currentStep: typeof parsed.currentStep === 'number' ? parsed.currentStep : 1,
+        formData: validFormData
+    };
+
+  } catch (e) {
+    console.warn("Error cargando datos de localStorage:", e);
+    return null;
+  }
+};
+// -----------------------------
+
 // Esquema de validación con Zod
 const formSchema = z
   .object({
@@ -64,7 +97,7 @@ const formSchema = z
     institucion_formacion_id_1: z.string().optional(),
     periodo_formacion: z
       .string()
-      .min(1, "El período de formaci��n es requerido"),
+      .min(1, "El período de formación es requerido"),
     pais_formacion_1: z.string().min(1, "El país de formación es requerido"),
     situacion_laboral: z.string().min(1, "La situación laboral es requerida"),
     nombre_centro: z.string().min(1, "El centro de trabajo es requerido"),
@@ -208,22 +241,30 @@ const stepFields: { [key: number]: (keyof FormData)[] } = {
 };
 
 const ProfessionalRegistration = () => {
-  const [currentStep, setCurrentStep] = useState(1);
+  // --- INICIALIZACIÓN DE PERSISTENCIA ---
+  const persistedData = getPersistedData();
+  const initialStep = persistedData?.currentStep || 1;
+  const persistedFormData = persistedData?.formData || {};
+  // ---------------------------------------
+
+  // --- ESTADOS ORIGINALES ---
+  const [currentStep, setCurrentStep] = useState(initialStep); // <-- MODIFICADO
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]); // Estado para documentos adicionales
-  const [photoFile, setPhotoFile] = useState<File | null>(null); // Estado para foto de carnet
-  const [fotoCarnetBase64, setFotoCarnetBase64] = useState<string | null>(null); // Base64 para previsualización de foto
-  const [formDataForPDF, setFormDataForPDF] = useState<any>(null); // Datos para el resumen PDF
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]); 
+  const [photoFile, setPhotoFile] = useState<File | null>(null); 
+  const [fotoCarnetBase64, setFotoCarnetBase64] = useState<string | null>(null); 
+  const [formDataForPDF, setFormDataForPDF] = useState<any>(null); 
   const [showPoliticasModal, setShowPoliticasModal] = React.useState(false);
   const [showProcedureModal, setShowProcedureModal] = useState(false);
   const [solicitudEnviada, setSolicitudEnviada] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState<string>("");
+  // --------------------------
 
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: nacionalidades = [] } = useNacionalidades();
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
-  const { uploadFile, uploadPDF, isUploading } = useFileUpload(); // Mantener useFileUpload si se usa para el PDF final
+  const { uploadFile, uploadPDF, isUploading } = useFileUpload(); 
   const { syncCenterFromProfessional, updateProfessionalCenterMutation } =
     useCenterSync();
 
@@ -247,10 +288,34 @@ const ProfessionalRegistration = () => {
       fecha_inicio_trabajo: "",
       categoria_institucion_1: "",
       institucion_formacion_id_1: "",
+      // CRÍTICO: Sobrescribe los valores por defecto con los datos guardados
+      ...persistedFormData,
     },
   });
 
   const watchedValues = form.watch(); // Observa todos los valores del formulario
+
+  // --- EFECTO DE PERSISTENCIA (AÑADIDO) ---
+  useEffect(() => {
+    // Si la solicitud ya fue enviada (limpiada), no guardar
+    if (solicitudEnviada) return; 
+
+    const formDataToPersist: Partial<FormData> = form.getValues();
+
+    // CRÍTICO: Excluir FileList/File antes de serializar
+    delete formDataToPersist.foto_carnet;
+    delete formDataToPersist.documentos_adicionales;
+
+    // Guardar el estado completo (paso actual y datos de texto)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      currentStep,
+      formData: formDataToPersist,
+    }));
+
+    // console.log(`[Persistencia] Datos guardados. Paso: ${currentStep}`);
+  }, [watchedValues, currentStep, form, solicitudEnviada]);
+  // ----------------------------------------
+
 
   // Manejador para la carga de documentos adicionales
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -376,9 +441,6 @@ const ProfessionalRegistration = () => {
       const birthDate = new Date(data.fecha_nacimiento);
       const age = new Date().getFullYear() - birthDate.getFullYear();
 
-      // Eliminamos la generación de codigoBarras en el frontend
-      // const codigoBarras = `GEQ${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-
       // Preparar lista de documentos (se suben después de crear el profesional con su ID real)
       let documentosUrls: string[] = [];
 
@@ -440,6 +502,10 @@ const ProfessionalRegistration = () => {
         console.error("Error de Supabase:", error);
         throw new Error(`Error de base de datos: ${error.message}`);
       }
+      
+      // CRÍTICO: Limpiar datos persistidos después del éxito
+      localStorage.removeItem(STORAGE_KEY); 
+      // ----------------------------------------------------
 
       console.log("Resultado exitoso de Supabase:", result);
 

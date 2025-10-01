@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from "xlsx"; // <-- NUEVA: Importamos la librería XLSX
-import { saveAs } from "file-saver"; // <-- NUEVA: Importamos file-saver
+import { saveAs } from "file-saver"; 
 
 // --- CONSTANTES DE CACHÉ ---
 const CACHE_KEY = 'renaprosa_chat_history';

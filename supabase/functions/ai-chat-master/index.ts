@@ -7,6 +7,12 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
+// Asegúrate de que las variables de entorno se carguen correctamente
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY");
+  // Esto debería abortar la ejecución en un entorno real si falta configuración vital.
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 const corsHeaders = {
@@ -423,7 +429,7 @@ function buildEnhancedSystemPrompt() {
   LEFT JOIN centros_salud c ON g.centro_salud_id = c.id
   WHERE g.fecha_inicio >= date_trunc('month', NOW())
   GROUP BY 1
-  ORDER BY 2 DESC;
+  ORDER BY 2 DESC
   -- ACTION: GENERATE_XLSX_URL
   \`\`\`
   \`\`\`
@@ -439,13 +445,12 @@ function buildEnhancedSystemPrompt() {
 }
 
 // --- 4. FUNCIONES MODULARES (Gemini y OpenAI sin restricción de solo SQL) ---
-async function geminiGenerateText(prompt: string) {
+async function geminiGenerateText(prompt) {
   if (!GEMINI_API_KEY) {
     console.error('ERROR: GEMINI_API_KEY ausente. Esto causará un fallo de autenticación.');
     throw new Error('GEMINI_API_KEY ausente');
   }
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
   try {
     const resp = await fetch(url, {
       method: 'POST',
@@ -469,12 +474,10 @@ async function geminiGenerateText(prompt: string) {
         }
       })
     });
-
     if (!resp.ok) {
       const errorText = await resp.text();
       console.error(`ERROR GEMINI HTTP: Status ${resp.status}`);
       console.error(`Cuerpo del Error Gemini: ${errorText}`);
-
       if (resp.status === 400) {
         throw new Error(`Error 400 (Bad Request): Revisa el formato del prompt o modelo (ej. Alternancia de roles). Cuerpo: ${errorText}`);
       } else if (resp.status === 403 || resp.status === 401) {
@@ -485,17 +488,16 @@ async function geminiGenerateText(prompt: string) {
         throw new Error(`Gemini error ${resp.status}: ${errorText}`);
       }
     }
-
     const json = await resp.json();
     const text = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     return text;
   } catch (error) {
-    console.error("Fallo de red o error de proceso de Gemini:", (error as Error).message);
+    console.error("Fallo de red o error de proceso de Gemini:", error.message);
     throw error;
   }
 }
 
-async function openAIChat(messages: { role: string, content: string }[]) {
+async function openAIChat(messages) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY ausente');
   const resp = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -516,39 +518,47 @@ async function openAIChat(messages: { role: string, content: string }[]) {
 }
 
 // Función para extraer el SQL limpio y el comando de acción
-function extractSqlFromText(text: string) {
+function extractSqlFromText(text) {
   // 1. Separar la explicación del SQL/Acción
   const parts = text.split('-- RESULT_SEPARATOR --');
   if (parts.length < 2) {
     return {
+      explanation: text,
       sql: null,
       action: null
     };
   }
 
+  const explanationPart = parts[0].trim();
   const sqlActionPart = parts[1];
 
   // 2. Extraer el bloque de código SQL
   const sqlMatch = sqlActionPart.match(/```sql\s*([\s\S]*?)```/);
   let sql = sqlMatch && sqlMatch[1] ? sqlMatch[1].trim() : null;
 
-  // CORRECCIÓN CRUCIAL: Eliminar el punto y coma final
+  // 3. CORRECCIÓN: Limpiar el SQL eliminando todos los puntos y coma
   if (sql) {
-    sql = sql.replace(/;$/, '').trim();
+    // Eliminar todos los puntos y coma
+    sql = sql.replace(/;/g, '');
+    // Eliminar comentarios de acción dentro del SQL
+    sql = sql.replace(/--\s*ACTION:.*$/gm, '');
+    // Limpiar espacios
+    sql = sql.trim();
   }
 
-  // 3. Extraer el comentario de acción
-  const actionMatch = sqlActionPart.match(/-- ACTION: (GENERATE_XLSX_URL)/);
+  // 4. Extraer el comentario de acción
+  const actionMatch = sqlActionPart.match(/-- ACTION:\s*(GENERATE_XLSX_URL)/);
   const action = actionMatch ? actionMatch[1] : null;
 
   return {
+    explanation: explanationPart,
     sql,
     action
   };
 }
 
 // NUEVA FUNCIÓN: Genera sugerencias de navegación
-function getNavigationSuggestions(query: string) {
+function getNavigationSuggestions(query) {
   const lowerCaseQuery = query.toLowerCase();
   const suggestions = [];
 
@@ -608,8 +618,8 @@ serve(async (req) => {
     // 3. Generar la respuesta de Gemini
     const geminiResponseText = await geminiGenerateText(fullGeminiPrompt);
 
-    // 4. Extraer el SQL y la acción
-    const { sql, action } = extractSqlFromText(geminiResponseText);
+    // 4. Extraer la explicación, el SQL y la acción
+    const { explanation, sql, action } = extractSqlFromText(geminiResponseText);
 
     // 5. Generar sugerencias de navegación
     const navigationSuggestions = getNavigationSuggestions(latestUserMessage);
@@ -618,6 +628,7 @@ serve(async (req) => {
 
     if (sql) {
       // 6. Si se genera SQL, ejecutarlo
+      // El RPC 'exec_sql' debe ser capaz de ejecutar cualquier consulta SELECT
       const { data: dbData, error: dbError } = await supabase.rpc('exec_sql', {
         query: sql
       });
@@ -626,35 +637,33 @@ serve(async (req) => {
         console.error('Error ejecutando SQL en DB:', dbError);
         // OBJETO DE RESPUESTA PARA ERROR DE DB (claves alineadas)
         finalResponse = {
-          natural_language_response: `❌ Error de Base de Datos: La consulta SQL falló. Por favor, reformula tu pregunta.`, // <-- CLAVE RENOMBRADA
+          natural_language_response: `❌ Error de Base de Datos: La consulta SQL falló (${dbError.code}). Por favor, reformula tu pregunta.`,
           sql: sql,
           action: null,
-          error: dbError.message, // <-- CLAVE RENOMBRADA
+          error: dbError.message,
           result: null,
-          navigationSuggestions: navigationSuggestions,
+          navigationSuggestions: navigationSuggestions
         };
       } else {
         // OBJETO DE RESPUESTA PARA ÉXITO (claves alineadas)
-        const explanationPart = geminiResponseText.split('-- RESULT_SEPARATOR --')[0].trim();
         finalResponse = {
-          natural_language_response: explanationPart, // <-- CLAVE RENOMBRADA
+          natural_language_response: explanation,
           sql: sql,
           action: action,
-          result: dbData, // <-- CLAVE RENOMBRADA
+          result: dbData,
           error: null,
-          navigationSuggestions: navigationSuggestions,
+          navigationSuggestions: navigationSuggestions
         };
       }
-
     } else {
       // OBJETO DE RESPUESTA SI NO HAY SQL (claves alineadas)
       finalResponse = {
-        natural_language_response: geminiResponseText, // <-- CLAVE RENOMBRADA
+        natural_language_response: explanation,
         sql: null,
         action: null,
-        result: null, // <-- CLAVE RENOMBRADA
+        result: null,
         error: null,
-        navigationSuggestions: navigationSuggestions,
+        navigationSuggestions: navigationSuggestions
       };
     }
 
@@ -666,17 +675,14 @@ serve(async (req) => {
       },
       status: 200
     });
-
   } catch (error) {
     // Manejo de errores de la función
     const errorBody = {
       message: "Error interno del servidor",
-      detail: (error as Error).message,
-      stack: (error as Error).stack
+      detail: error.message,
+      stack: error.stack
     };
-
-    console.error("Error en el Edge Function:", (error as Error).message);
-
+    console.error("Error en el Edge Function:", error.message);
     return new Response(JSON.stringify(errorBody), {
       headers: {
         ...corsHeaders,

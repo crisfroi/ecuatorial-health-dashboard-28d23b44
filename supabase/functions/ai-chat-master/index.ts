@@ -543,34 +543,105 @@ function extractSqlFromText(text) {
     action
   };
 }
-// NUEVA FUNCIÓN: Genera sugerencias de navegación
+// Helpers de extracción de filtros desde lenguaje natural
+function normalizeText(s) {
+  return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+const KNOWN_PROVINCES = [
+  'Annobon', 'Annobón', 'Bioko Norte', 'Bioko Sur', 'Centro Sur', 'Kie-Ntem', 'Kié-Ntem', 'Litoral', 'Wele-Nzas', 'Welé-Nzas'
+];
+function parseFiltersFromQuery(query) {
+  const text = query || '';
+  const norm = normalizeText(text);
+  const filters = {} as any;
+
+  // Provincia
+  for (const prov of KNOWN_PROVINCES) {
+    const provNorm = normalizeText(prov);
+    if (norm.includes(provNorm)) {
+      const mapClean: Record<string, string> = {
+        'annobon': 'Annobon',
+        'bioko norte': 'Bioko Norte',
+        'bioko sur': 'Bioko Sur',
+        'centro sur': 'Centro Sur',
+        'kie-ntem': 'Kie-Ntem',
+        'kie ntem': 'Kie-Ntem',
+        'litoral': 'Litoral',
+        'wele-nzas': 'Wele-Nzas',
+        'wele nzas': 'Wele-Nzas'
+      };
+      filters.provincia = mapClean[provNorm] || prov.replace('Kié','Kie').replace('Welé','Wele');
+      break;
+    }
+  }
+
+  // Edad: mayores de X
+  const mMayores = norm.match(/mayor(?:es)?\s+de\s+(\d{1,3})/);
+  if (mMayores) {
+    const v = parseInt(mMayores[1], 10);
+    if (!isNaN(v)) filters.edad_minima = Math.max(0, v + 1);
+  }
+  // Edad: menores de X
+  const mMenores = norm.match(/menor(?:es)?\s+de\s+(\d{1,3})/);
+  if (mMenores) {
+    const v = parseInt(mMenores[1], 10);
+    if (!isNaN(v)) filters.edad_maxima = Math.max(0, v - 1);
+  }
+  // Edad: entre X y Y
+  const mEntre = norm.match(/entre\s+(\d{1,3})\s*(?:y|e|-)\s*(\d{1,3})/);
+  if (mEntre) {
+    const a = parseInt(mEntre[1], 10);
+    const b = parseInt(mEntre[2], 10);
+    if (!isNaN(a) && !isNaN(b)) {
+      filters.edad_minima = Math.min(a, b);
+      filters.edad_maxima = Math.max(a, b);
+    }
+  }
+
+  // Género
+  if (/(hombre|masculin)/.test(norm)) filters.genero = 'Masculino';
+  if (/(mujer|femenin)/.test(norm)) filters.genero = 'Femenino';
+
+  // Sector / función pública
+  if (/(funcion\s*publica|funcionarios?)/.test(norm)) filters.funcion_publica = true;
+  if (/sector\s+publico/.test(norm)) filters.tipo_sector = 'Público';
+  if (/sector\s+privado/.test(norm)) filters.tipo_sector = 'Privado';
+
+  return filters;
+}
+
+// NUEVA FUNCIÓN: Genera sugerencias de navegación con filtros entendidos por el frontend
 function getNavigationSuggestions(query) {
-  const lowerCaseQuery = query.toLowerCase();
-  const suggestions = [];
-  // Sugerencia 1: Profesionales
-  if (lowerCaseQuery.includes("profesional") || lowerCaseQuery.includes("medico") || lowerCaseQuery.includes("enfermero")) {
+  const lowerCaseQuery = (query || '').toLowerCase();
+  const parsedFilters = parseFiltersFromQuery(query);
+  const suggestions: any[] = [];
+
+  // Profesionales (con filtros)
+  if (lowerCaseQuery.includes('profesional') || lowerCaseQuery.includes('medico') || lowerCaseQuery.includes('médico') || lowerCaseQuery.includes('enfermero')) {
     suggestions.push({
-      type: "navigate",
-      tab: "professionals",
-      label: "Ver Listado de Profesionales",
-      filters: {}
+      type: 'navigate',
+      tab: 'professionals',
+      label: 'Ver Profesionales (con filtros)',
+      filters: parsedFilters
     });
   }
-  // Sugerencia 2: Centros de Salud
-  if (lowerCaseQuery.includes("centro") || lowerCaseQuery.includes("hospital") || lowerCaseQuery.includes("clinica")) {
+  // Centros de Salud (propagar provincia si existe)
+  if (lowerCaseQuery.includes('centro') || lowerCaseQuery.includes('hospital') || lowerCaseQuery.includes('clinica') || lowerCaseQuery.includes('clínica')) {
+    const centerFilters: any = {};
+    if ((parsedFilters as any).provincia) centerFilters.provincia = (parsedFilters as any).provincia;
     suggestions.push({
-      type: "navigate",
-      tab: "health-centers",
-      label: "Ver Centros de Salud",
-      filters: {}
+      type: 'navigate',
+      tab: 'health-centers',
+      label: 'Ver Centros de Salud',
+      filters: centerFilters
     });
   }
-  // Sugerencia 3: Guardias
-  if (lowerCaseQuery.includes("guardia") || lowerCaseQuery.includes("turno")) {
+  // Guardias
+  if (lowerCaseQuery.includes('guardia') || lowerCaseQuery.includes('turno')) {
     suggestions.push({
-      type: "navigate",
-      tab: "guardias",
-      label: "Ver Planificación de Guardias",
+      type: 'navigate',
+      tab: 'guardias',
+      label: 'Ver Planificación de Guardias',
       filters: {}
     });
   }

@@ -30,7 +30,6 @@ export const WorkSituationStep = ({ form, watchedValues, distritosSanitarios }: 
               </FormControl>
               <SelectContent>
                 <SelectItem value="Activo">Activo</SelectItem>
-                <SelectItem value="Jubilado">Jubilado</SelectItem>
                 <SelectItem value="En paro">En paro</SelectItem>
                 <SelectItem value="Otro">Otro</SelectItem>
               </SelectContent>

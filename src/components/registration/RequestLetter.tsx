@@ -159,12 +159,13 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
 
               <p>
                 Actualmente, mi situación laboral es <span className="font-semibold">{formData.situacion_laboral}</span>
-                {formData.funcion_publica ? (
+                {/* LÓGICA CORREGIDA: La condición principal es el estatus_funcionario, no la booleana general */}
+                {formData.estatus_funcionario ? (
                   <>
                     , desempeñándome como funcionario público{' '}
                     {formData.estatus_funcionario === 'nombrado' ? (
                       <>
-                        nombrado del sistema sanitario nacional
+                        nombrado
                         {nombramientoDate && (
                           <>
                             , con nombramiento oficial otorgado en fecha{' '}
@@ -178,9 +179,9 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
                           </>
                         )}
                       </>
-                    ) : (
+                    ) : ( // estatus_funcionario es 'no_nombrado'
                       <>
-                        no nombrado del sistema sanitario nacional
+                        no nombrado
                         {inicioTrabajoDate && (
                           <>
                             , desempeñándome desde el{' '}
@@ -232,17 +233,17 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
 
               <p>
                 Mi formación académica en el campo de la salud pública
-                {formData.funcion_publica && formData.estatus_funcionario === 'nombrado' && (
+                {formData.estatus_funcionario === 'nombrado' && ( // <-- CORREGIDO
                   <> , mi condición de funcionario público nombrado del sistema sanitario nacional,</>
                 )}
-                {formData.funcion_publica && formData.estatus_funcionario === 'no_nombrado' && (
+                {formData.estatus_funcionario === 'no_nombrado' && ( // <-- CORREGIDO
                   <> , mi participación como personal contratado en el servicio público de salud,</>
                 )}{' '}
                 y mi firme compromiso con el ejercicio ético y profesional de la medicina me motivan a solicitar esta acreditación oficial, la cual me permitirá continuar contribuyendo al desarrollo del sistema sanitario de Guinea Ecuatorial con la debida autorización y reconocimiento profesional
-                {formData.funcion_publica && formData.estatus_funcionario === 'nombrado' && (
+                {formData.estatus_funcionario === 'nombrado' && ( // <-- CORREGIDO
                   <> en mi calidad de servidor público de carrera</>
                 )}
-                {formData.funcion_publica && formData.estatus_funcionario === 'no_nombrado' && (
+                {formData.estatus_funcionario === 'no_nombrado' && ( // <-- CORREGIDO
                   <> en el marco del servicio público sanitario</>
                 )}.
               </p>

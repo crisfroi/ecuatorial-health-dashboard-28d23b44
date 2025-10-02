@@ -1,25 +1,20 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 // --- 1. CONFIGURACIÓN Y VARIABLES DE ENTORNO ---
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-
 // Asegúrate de que las variables de entorno se carguen correctamente
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error("Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY");
   // Esto debería abortar la ejecución en un entorno real si falta configuración vital.
 }
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
-
 // --- 2. ESQUEMA DETALLADO (Manteniendo el schema completo) ---
 const ENHANCED_SCHEMA = {
   domain: "Sistema de Salud de Guinea Ecuatorial",
@@ -407,7 +402,6 @@ const ENHANCED_SCHEMA = {
     "guardias con profesionales": "SELECT g.*, pg.categoria, ps.nombre_completo, c.nombre as centro_nombre FROM guardias g LEFT JOIN profesionales_guardias pg ON g.profesional_guardia_id = pg.id LEFT JOIN profesionales_sanitarios ps ON pg.profesional_id = ps.id LEFT JOIN centros_salud c ON g.centro_salud_id = c.id"
   }
 };
-
 // --- 3. PROMPT DEL SISTEMA ACTUALIZADO (Con Explicación y Acción de XLSX) ---
 function buildEnhancedSystemPrompt() {
   const schemaString = JSON.stringify(ENHANCED_SCHEMA, null, 2);
@@ -437,13 +431,13 @@ function buildEnhancedSystemPrompt() {
   REGLAS ESTRICTAS:
   1. **SIEMPRE incluye una explicación y el separador.**
   2. Si NO se pide un Excel, la IA devuelve el SQL sin el comentario \`-- ACTION: GENERATE_XLSX_URL\`.
-  3. Si SÍ se pide una descarga, incluye el comentario de acción \`-- ACTION: GENERATE_XLSX_URL\`.
+  3. Si SÍ se pide una descarga, incluye el comentario de acci��n \`-- ACTION: GENERATE_XLSX_URL\`.
   4. Utiliza EXCLUSIVAMENTE las tablas y columnas del schema.
   5. Asegura búsquedas de texto insensibles a mayúsculas y acentos: utiliza ILIKE.
+  6. En la explicación NUNCA menciones "SQL" ni uses frases como "La siguiente consulta SQL"; habla solo en lenguaje natural para el usuario final.
   `;
   return `Eres un asistente SQL experto. Tu respuesta debe incluir SIEMPRE una explicación y la consulta SQL. Sigue estrictamente el formato y las reglas:\n\n${toolDefinition}\n\nCONTEXTO DEL DOMINIO:\n${schemaString}`;
 }
-
 // --- 4. FUNCIONES MODULARES (Gemini y OpenAI sin restricción de solo SQL) ---
 async function geminiGenerateText(prompt) {
   if (!GEMINI_API_KEY) {
@@ -496,7 +490,6 @@ async function geminiGenerateText(prompt) {
     throw error;
   }
 }
-
 async function openAIChat(messages) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY ausente');
   const resp = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -516,7 +509,6 @@ async function openAIChat(messages) {
   const json = await resp.json();
   return json.choices?.[0]?.message?.content ?? '';
 }
-
 // Función para extraer el SQL limpio y el comando de acción
 function extractSqlFromText(text) {
   // 1. Separar la explicación del SQL/Acción
@@ -528,14 +520,11 @@ function extractSqlFromText(text) {
       action: null
     };
   }
-
   const explanationPart = parts[0].trim();
   const sqlActionPart = parts[1];
-
   // 2. Extraer el bloque de código SQL
   const sqlMatch = sqlActionPart.match(/```sql\s*([\s\S]*?)```/);
   let sql = sqlMatch && sqlMatch[1] ? sqlMatch[1].trim() : null;
-
   // 3. CORRECCIÓN: Limpiar el SQL eliminando todos los puntos y coma
   if (sql) {
     // Eliminar todos los puntos y coma
@@ -545,56 +534,195 @@ function extractSqlFromText(text) {
     // Limpiar espacios
     sql = sql.trim();
   }
-
   // 4. Extraer el comentario de acción
   const actionMatch = sqlActionPart.match(/-- ACTION:\s*(GENERATE_XLSX_URL)/);
   const action = actionMatch ? actionMatch[1] : null;
-
   return {
     explanation: explanationPart,
     sql,
     action
   };
 }
+// Helpers de extracción de filtros desde lenguaje natural
+function normalizeText(s) {
+  return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+const KNOWN_PROVINCES = [
+  'Annobon', 'Annobón', 'Bioko Norte', 'Bioko Sur', 'Centro Sur', 'Kie-Ntem', 'Kié-Ntem', 'Litoral', 'Wele-Nzas', 'Welé-Nzas'
+];
+const KNOWN_CATEGORIES = ['HOSPITAL','CLINICA','CLÍNICA','CENTRO DE SALUD','CONSULTORIO','FARMACIA','LABORATORIO'];
+const KNOWN_AREAS = ['MEDICINA','MEDICINA GENERAL','ENFERMERIA','ENFERMERÍA','FARMACIA','LABORATORIO','RADIOLOGIA','RADIOLOGÍA','ODONTOLOGIA','ODONTOLOGÍA'];
+const KNOWN_STATES = ['Aprobado','Rechazado','En Revisión','Revisando','Pendiente','Pendiente de Firma'];
+function parseFiltersFromQuery(query) {
+  const text = query || '';
+  const norm = normalizeText(text);
+  const filters = {} as any;
 
-// NUEVA FUNCIÓN: Genera sugerencias de navegación
-function getNavigationSuggestions(query) {
-  const lowerCaseQuery = query.toLowerCase();
-  const suggestions = [];
-
-  // Sugerencia 1: Profesionales
-  if (lowerCaseQuery.includes("profesional") || lowerCaseQuery.includes("medico") || lowerCaseQuery.includes("enfermero")) {
-    suggestions.push({
-      type: "navigate",
-      tab: "professionals",
-      label: "Ver Listado de Profesionales",
-      filters: {}
-    });
+  // Provincia
+  for (const prov of KNOWN_PROVINCES) {
+    const provNorm = normalizeText(prov);
+    if (norm.includes(provNorm)) {
+      const mapClean: Record<string, string> = {
+        'annobon': 'Annobon',
+        'bioko norte': 'Bioko Norte',
+        'bioko sur': 'Bioko Sur',
+        'centro sur': 'Centro Sur',
+        'kie-ntem': 'Kie-Ntem',
+        'kie ntem': 'Kie-Ntem',
+        'litoral': 'Litoral',
+        'wele-nzas': 'Wele-Nzas',
+        'wele nzas': 'Wele-Nzas'
+      };
+      filters.provincia = mapClean[provNorm] || prov.replace('Kié','Kie').replace('Welé','Wele');
+      break;
+    }
   }
 
-  // Sugerencia 2: Centros de Salud
-  if (lowerCaseQuery.includes("centro") || lowerCaseQuery.includes("hospital") || lowerCaseQuery.includes("clinica")) {
-    suggestions.push({
-      type: "navigate",
-      tab: "health-centers",
-      label: "Ver Centros de Salud",
-      filters: {}
-    });
+  // Edad: mayores de X
+  const mMayores = norm.match(/mayor(?:es)?\s+de\s+(\d{1,3})/);
+  if (mMayores) {
+    const v = parseInt(mMayores[1], 10);
+    if (!isNaN(v)) filters.edad_minima = Math.max(0, v + 1);
+  }
+  // Edad: menores de X
+  const mMenores = norm.match(/menor(?:es)?\s+de\s+(\d{1,3})/);
+  if (mMenores) {
+    const v = parseInt(mMenores[1], 10);
+    if (!isNaN(v)) filters.edad_maxima = Math.max(0, v - 1);
+  }
+  // Edad: entre X y Y
+  const mEntre = norm.match(/entre\s+(\d{1,3})\s*(?:y|e|-)\s*(\d{1,3})/);
+  if (mEntre) {
+    const a = parseInt(mEntre[1], 10);
+    const b = parseInt(mEntre[2], 10);
+    if (!isNaN(a) && !isNaN(b)) {
+      filters.edad_minima = Math.min(a, b);
+      filters.edad_maxima = Math.max(a, b);
+    }
   }
 
-  // Sugerencia 3: Guardias
-  if (lowerCaseQuery.includes("guardia") || lowerCaseQuery.includes("turno")) {
-    suggestions.push({
-      type: "navigate",
-      tab: "guardias",
-      label: "Ver Planificación de Guardias",
-      filters: {}
-    });
+  // Género
+  if (/(\b(hombre|varon|masculin)\b)/.test(norm)) filters.genero = 'Masculino';
+  if (/(\b(mujer|femenin)\b)/.test(norm)) filters.genero = 'Femenino';
+
+  // Sector / función pública
+  if (/(funcion\s*publica|funcionarios?)/.test(norm)) filters.funcion_publica = true;
+  if (/(\bsector\s+publico\b|\bpublico\b)/.test(norm)) filters.tipo_sector = 'Público';
+  if (/(\bsector\s+privado\b|\bprivado\b)/.test(norm)) filters.tipo_sector = 'Privado';
+
+  // Estatus funcionario
+  if (/(\bnombrado\b)/.test(norm)) (filters as any).estatus_funcionario = 'nombrado';
+  if (/(no\s*nombrado)/.test(norm)) (filters as any).estatus_funcionario = 'no_nombrado';
+
+  // Estado de solicitud
+  for (const st of KNOWN_STATES) {
+    const stNorm = normalizeText(st);
+    if (norm.includes(stNorm)) {
+      filters.estado_solicitud = st;
+      break;
+    }
   }
 
-  return suggestions;
+  // Área profesional
+  for (const area of KNOWN_AREAS) {
+    const aNorm = normalizeText(area);
+    if (norm.includes(aNorm)) {
+      filters.area_profesional = area.includes('ENFERMER') ? 'ENFERMERÍA' : area.includes('ODONTOLOG') ? 'ODONTOLOGÍA' : area.includes('RADIOLOG') ? 'RADIOLOG��A' : area;
+      break;
+    }
+  }
+
+  // Distrito Sanitario / Distrito (heurística)
+  const mDistSan = norm.match(/distrito\s+sanitario\s+([a-z0-9\-\s]+)/);
+  if (mDistSan) filters.distrito_sanitario = mDistSan[1].trim().replace(/\s{2,}/g,' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const mDist = norm.match(/\bdistrito\s+([a-z0-9\-\s]+)/);
+  if (mDist && !filters.distrito_sanitario) filters.distrito = mDist[1].trim().replace(/\s{2,}/g,' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+  // Categoría de centro
+  for (const cat of KNOWN_CATEGORIES) {
+    const cNorm = normalizeText(cat);
+    if (norm.includes(cNorm)) {
+      (filters as any).categoria_centro = cat.normalize();
+      break;
+    }
+  }
+
+  // Año de graduación
+  const mYear = norm.match(/(a(n|ñ)o\s+de\s+graduaci(o|ó)n|graduad[oa]s?\s+en)\s+(\d{4})/);
+  if (mYear) filters.año_graduacion = parseInt(mYear[4],10);
+
+  // País e institución de formación (muy heurístico)
+  const mPais = norm.match(/pa(i|í)s\s+de\s+formaci(o|ó)n\s+(en\s+)?([a-z\s]+)/);
+  if (mPais) filters.pais_formacion = mPais[3].trim().replace(/\s{2,}/g,' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const mInst = norm.match(/(instituci(o|ó)n\s+de\s+formaci(o|ó)n|formad[oa]\s+en)\s+([a-z0-9\-\s]+)/);
+  if (mInst) (filters as any).institucion = mInst[4].trim().replace(/\s{2,}/g,' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+  // Vencimientos / renovación
+  if (/vencid[oa]s?/.test(norm)) (filters as any).carnet_vencido = true;
+  if (/(proxim[oa]s?\s+a\s+vencer|vence\s+pronto)/.test(norm)) (filters as any).vencimiento_proximo = true;
+  const mPrio = norm.match(/prioridad\s+(alta|media|baja)/);
+  if (mPrio) (filters as any).prioridad_renovacion = mPrio[1];
+
+  // Edad laboral / años de servicio / años restantes (heurísticas)
+  const mEdadLabMin = norm.match(/edad\s+laboral\s+(?:mayor|superior)\s+a?\s*(\d{1,2})/);
+  if (mEdadLabMin) (filters as any).edad_laboral_min = parseInt(mEdadLabMin[1],10);
+  const mEdadLabMax = norm.match(/edad\s+laboral\s+(?:menor|inferior)\s+a?\s*(\d{1,2})/);
+  if (mEdadLabMax) (filters as any).edad_laboral_max = parseInt(mEdadLabMax[1],10);
+
+  const mServMin = norm.match(/a(n|ñ)os?\s+de\s+servicio\s+(?:mayor|superior)\s+a?\s*(\d{1,2})/);
+  if (mServMin) (filters as any).años_servicio_min = parseInt(mServMin[2] || mServMin[1],10) || parseInt(mServMin[1],10);
+  const mServMax = norm.match(/a(n|ñ)os?\s+de\s+servicio\s+(?:menor|inferior)\s+a?\s*(\d{1,2})/);
+  if (mServMax) (filters as any).años_servicio_max = parseInt(mServMax[2] || mServMax[1],10) || parseInt(mServMax[1],10);
+
+  const mRestMin = norm.match(/(años|anos)\s+restantes\s+(?:hasta\s+)?jubilaci(o|ó)n\s+(?:menor|inferior)\s+a?\s*(\d{1,2})/);
+  if (mRestMin) (filters as any).años_restantes_jubilacion_max = parseInt(mRestMin[3],10);
+  const mRestMax = norm.match(/(años|anos)\s+restantes\s+(?:hasta\s+)?jubilaci(o|ó)n\s+(?:mayor|superior)\s+a?\s*(\d{1,2})/);
+  if (mRestMax) (filters as any).años_restantes_jubilacion_min = parseInt(mRestMax[3],10);
+
+  return filters;
 }
 
+// NUEVA FUNCIÓN: Genera sugerencias de navegación con filtros entendidos por el frontend
+function getNavigationSuggestions(query) {
+  const lowerCaseQuery = (query || '').toLowerCase();
+  const parsedFilters = parseFiltersFromQuery(query);
+  const suggestions: any[] = [];
+
+  // Profesionales (con filtros)
+  if (lowerCaseQuery.includes('profesional') || lowerCaseQuery.includes('medico') || lowerCaseQuery.includes('médico') || lowerCaseQuery.includes('enfermero')) {
+    suggestions.push({
+      type: 'navigate',
+      tab: 'professionals',
+      label: 'Ver Profesionales (con filtros)',
+      filters: parsedFilters
+    });
+  }
+  // Centros de Salud (propagar filtros relevantes)
+  if (lowerCaseQuery.includes('centro') || lowerCaseQuery.includes('hospital') || lowerCaseQuery.includes('clinica') || lowerCaseQuery.includes('clínica')) {
+    const centerFilters: any = {};
+    if ((parsedFilters as any).provincia) centerFilters.provincia = (parsedFilters as any).provincia;
+    if ((parsedFilters as any).distrito) centerFilters.distrito = (parsedFilters as any).distrito;
+    if ((parsedFilters as any).distrito_sanitario) centerFilters.distrito_sanitario = (parsedFilters as any).distrito_sanitario;
+    if ((parsedFilters as any).tipo_sector) centerFilters.tipo_sector = (parsedFilters as any).tipo_sector;
+    if ((parsedFilters as any).categoria_centro) centerFilters.categoria_centro = (parsedFilters as any).categoria_centro;
+    suggestions.push({
+      type: 'navigate',
+      tab: 'health-centers',
+      label: 'Ver Centros de Salud (con filtros)',
+      filters: centerFilters
+    });
+  }
+  // Guardias
+  if (lowerCaseQuery.includes('guardia') || lowerCaseQuery.includes('turno')) {
+    suggestions.push({
+      type: 'navigate',
+      tab: 'guardias',
+      label: 'Ver Planificación de Guardias',
+      filters: {}
+    });
+  }
+  return suggestions;
+}
 // Función principal de manejo de la función
 serve(async (req) => {
   // Manejo de CORS (Preflight request)
@@ -604,35 +732,26 @@ serve(async (req) => {
       headers: corsHeaders
     });
   }
-
   try {
     const { messages } = await req.json();
-
     // 1. Obtener el prompt del sistema y el último mensaje del usuario
     const systemPrompt = buildEnhancedSystemPrompt();
     const latestUserMessage = messages[messages.length - 1].content;
-
     // 2. Crear el prompt completo para Gemini
     const fullGeminiPrompt = `${systemPrompt}\n\nUSER QUERY:\n${latestUserMessage}`;
-
     // 3. Generar la respuesta de Gemini
     const geminiResponseText = await geminiGenerateText(fullGeminiPrompt);
-
     // 4. Extraer la explicación, el SQL y la acción
     const { explanation, sql, action } = extractSqlFromText(geminiResponseText);
-
     // 5. Generar sugerencias de navegación
     const navigationSuggestions = getNavigationSuggestions(latestUserMessage);
-
     let finalResponse;
-
     if (sql) {
       // 6. Si se genera SQL, ejecutarlo
       // El RPC 'exec_sql' debe ser capaz de ejecutar cualquier consulta SELECT
       const { data: dbData, error: dbError } = await supabase.rpc('exec_sql', {
         query: sql
       });
-
       if (dbError) {
         console.error('Error ejecutando SQL en DB:', dbError);
         // OBJETO DE RESPUESTA PARA ERROR DE DB (claves alineadas)
@@ -666,7 +785,6 @@ serve(async (req) => {
         navigationSuggestions: navigationSuggestions
       };
     }
-
     // Devolver la respuesta al cliente
     return new Response(JSON.stringify(finalResponse), {
       headers: {

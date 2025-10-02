@@ -38,25 +38,41 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
           <div className="flex flex-col items-center space-y-2"> {/* Reducido space-y-3 a space-y-2 */}
             {formData.foto_carnet_base64 && (
               <div className="w-24 h-32 border-2 border-gray-300 rounded overflow-hidden"> {/* Reducido w-28 h-36 a w-24 h-32 */}
-                <img 
-                  src={formData.foto_carnet_base64} 
+                <img
+                  src={formData.foto_carnet_base64}
                   alt="Foto carnet"
                   className="w-full h-full object-cover"
                 />
               </div>
             )}
-            {/* Código de barras debajo de la foto */}
-            {formData.url_codigo_barras_expediente && (
+            {/* Código de barras debajo de la foto - CORRECCIÓN APLICADA AQUÍ */}
+            {formData.codigo_barras_base64 ? (
               <div className="flex flex-col items-center">
                 <img
-                  src={formData.url_codigo_barras_expediente}
+                  // ⭐ Usamos la Base64 que ya fue descargada e incrustada
+                  src={formData.codigo_barras_base64}
                   alt={`Código de Barras: ${formData.codigo_expediente}`}
                   style={{ width: '120px', height: '35px' }}
                   className="mb-0.5 object-contain"
                 />
                 <p className="text-xs text-gray-600 text-center">Código de Barras</p>
               </div>
-            )}
+            ) : formData.url_codigo_barras_expediente ? (
+              // Fallback a URL antigua con manejador de error (menos fiable en PDF)
+              <div className="flex flex-col items-center">
+                <img
+                  src={formData.url_codigo_barras_expediente}
+                  alt={`Código de Barras: ${formData.codigo_expediente}`}
+                  style={{ width: '120px', height: '35px' }}
+                  className="mb-0.5 object-contain"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+                <p className="text-xs text-gray-600 text-center">Código de Barras</p>
+              </div>
+            ) : null}
           </div>
 
           {/* Datos personales básicos */}

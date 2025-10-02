@@ -111,6 +111,10 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
     if (dashboardFilters?.distrito_sanitario) {
       setSelectedDistrito(dashboardFilters.distrito_sanitario);
     }
+    if ((dashboardFilters as any)?.categoria_centro) {
+      const cat = String((dashboardFilters as any).categoria_centro).toUpperCase();
+      setSelectedCategory(cat);
+    }
   }, [dashboardFilters]);
 
   const categorias = [
@@ -174,6 +178,10 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
     }
     if (dashboardFilters?.distrito_sanitario && dashboardFilters.distrito_sanitario !== 'todos') {
       if ((c.distrito_sanitario || '').trim() !== dashboardFilters.distrito_sanitario) return false;
+    }
+    if ((dashboardFilters as any)?.categoria_centro) {
+      const cat = String((dashboardFilters as any).categoria_centro).toUpperCase();
+      if ((c.categoria || '').toUpperCase().trim() !== cat) return false;
     }
     return true;
   });

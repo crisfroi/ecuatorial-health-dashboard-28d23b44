@@ -22,6 +22,15 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ onNavigate }) => {
   const [results, setResults] = useState<ResultItem[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const formatDate = (value?: string | null) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return parsed.toLocaleDateString('es-ES');
+  };
+
   useEffect(() => {
     const run = async () => {
       const q = query.trim();
@@ -31,7 +40,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ onNavigate }) => {
         const [profRes, centersRes] = await Promise.all([
           supabase
             .from('profesionales_sanitarios')
-            .select('id,nombre_completo,area_profesional,estado_solicitud,provincia,id_profesional_unico')
+            .select('id,nombre_completo,area_profesional,estado_solicitud,provincia,id_profesional_unico,funcion_publica,estatus_funcionario,numero_funcionario,fecha_nombramiento,fecha_inicio_trabajo')
             .ilike('nombre_completo', `%${q}%`)
             .limit(10),
           supabase
@@ -41,13 +50,37 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ onNavigate }) => {
             .limit(10)
         ]);
 
-        const profItems: ResultItem[] = (profRes.data || []).map((p: any) => ({
-          type: 'profesional',
-          id: p.id,
-          title: p.nombre_completo,
-          subtitle: p.area_profesional || '',
-          meta: `${p.estado_solicitud || ''}${p.provincia ? ' • ' + p.provincia : ''}`
-        }));
+        const profItems: ResultItem[] = (profRes.data || []).map((p: any) => {
+          const funcionarioMeta = (() => {
+            if (!p.funcion_publica) {
+              return 'Personal no funcionario';
+            }
+            const baseLabel = p.estatus_funcionario === 'nombrado' ? 'Funcionario nombrado' : 'Funcionario no nombrado';
+            const details: string[] = [];
+            if (p.numero_funcionario) {
+              details.push(`Nº ${p.numero_funcionario}`);
+            }
+            if (p.estatus_funcionario === 'nombrado' && p.fecha_nombramiento) {
+              const formatted = formatDate(p.fecha_nombramiento);
+              if (formatted) details.push(`Nombramiento: ${formatted}`);
+            }
+            if (p.estatus_funcionario === 'no_nombrado' && p.fecha_inicio_trabajo) {
+              const formatted = formatDate(p.fecha_inicio_trabajo);
+              if (formatted) details.push(`Inicio: ${formatted}`);
+            }
+            return details.length > 0 ? `${baseLabel} (${details.join(' • ')})` : baseLabel;
+          })();
+
+          const metaParts = [funcionarioMeta, p.estado_solicitud || '', p.provincia || ''].filter(Boolean);
+
+          return {
+            type: 'profesional',
+            id: p.id,
+            title: p.nombre_completo,
+            subtitle: p.area_profesional || '',
+            meta: metaParts.join(' • ')
+          } as ResultItem;
+        });
         const centerItems: ResultItem[] = (centersRes.data || []).map((c: any) => ({
           type: 'centro',
           id: c.id,

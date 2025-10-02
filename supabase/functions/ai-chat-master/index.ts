@@ -550,6 +550,9 @@ function normalizeText(s) {
 const KNOWN_PROVINCES = [
   'Annobon', 'Annobón', 'Bioko Norte', 'Bioko Sur', 'Centro Sur', 'Kie-Ntem', 'Kié-Ntem', 'Litoral', 'Wele-Nzas', 'Welé-Nzas'
 ];
+const KNOWN_CATEGORIES = ['HOSPITAL','CLINICA','CLÍNICA','CENTRO DE SALUD','CONSULTORIO','FARMACIA','LABORATORIO'];
+const KNOWN_AREAS = ['MEDICINA','MEDICINA GENERAL','ENFERMERIA','ENFERMERÍA','FARMACIA','LABORATORIO','RADIOLOGIA','RADIOLOGÍA','ODONTOLOGIA','ODONTOLOGÍA'];
+const KNOWN_STATES = ['Aprobado','Rechazado','En Revisión','Revisando','Pendiente','Pendiente de Firma'];
 function parseFiltersFromQuery(query) {
   const text = query || '';
   const norm = normalizeText(text);

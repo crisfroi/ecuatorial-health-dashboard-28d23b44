@@ -52,17 +52,17 @@ const getPersistedData = (): { currentStep: number; formData: Partial<FormData> 
     // CRÍTICO: Limpiar campos de archivos (FileList/File)
     // No son serializables y deben ser re-seleccionados.
     if (parsed.formData) {
-        // Campos que contienen FileList o File[]
-        delete parsed.formData.foto_carnet;
-        delete parsed.formData.documentos_adicionales;
+      // Campos que contienen FileList o File[]
+      delete parsed.formData.foto_carnet;
+      delete parsed.formData.documentos_adicionales;
     }
 
     // Asegurar que solo se devuelven los campos de tipo FormData si son válidos
     const validFormData = parsed.formData && typeof parsed.formData === 'object' ? parsed.formData : {};
-    
+
     return {
-        currentStep: typeof parsed.currentStep === 'number' ? parsed.currentStep : 1,
-        formData: validFormData
+      currentStep: typeof parsed.currentStep === 'number' ? parsed.currentStep : 1,
+      formData: validFormData
     };
 
   } catch (e) {
@@ -73,28 +73,28 @@ const getPersistedData = (): { currentStep: number; formData: Partial<FormData> 
 
 // --- FUNCIÓN CLAVE PARA CONVERSIÓN A BASE64 ---
 const urlToBase64 = async (url: string): Promise<string | null> => {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        console.error(`Error al descargar la imagen de la URL: ${response.statusText}`);
-        return null;
-      }
-      const blob = await response.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          resolve(reader.result as string); // Esto es la cadena Base64 (data:image/...)
-        };
-        reader.onerror = () => {
-          resolve(null);
-        };
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      console.error("Error en urlToBase64:", error);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`Error al descargar la imagen de la URL: ${response.statusText}`);
       return null;
     }
-  };
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result as string); // Esto es la cadena Base64 (data:image/...)
+      };
+      reader.onerror = () => {
+        resolve(null);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Error en urlToBase64:", error);
+    return null;
+  }
+};
 // ---------------------------------------------
 
 
@@ -132,7 +132,7 @@ const formSchema = z
     tipo_sector: z.string().min(1, "El tipo de sector es requerido"),
     distrito_sanitario: z.string().optional(),
     funcion_publica: z.boolean().default(false), // Nueva categorización
-    funcionario_estatus: z.enum(['nombrado','no_nombrado']).optional(),
+    funcionario_estatus: z.enum(['nombrado', 'no_nombrado']).optional(),
     numero_funcionario: z.string().optional(),
     fecha_nombramiento: z.string().optional(),
     fecha_inicio_trabajo: z.string().optional(),
@@ -276,10 +276,10 @@ const ProfessionalRegistration = () => {
   // --- ESTADOS ORIGINALES ---
   const [currentStep, setCurrentStep] = useState(initialStep); // <-- MODIFICADO
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]); 
-  const [photoFile, setPhotoFile] = useState<File | null>(null); 
-  const [fotoCarnetBase64, setFotoCarnetBase64] = useState<string | null>(null); 
-  const [formDataForPDF, setFormDataForPDF] = useState<any>(null); 
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [fotoCarnetBase64, setFotoCarnetBase64] = useState<string | null>(null);
+  const [formDataForPDF, setFormDataForPDF] = useState<any>(null);
   const [showPoliticasModal, setShowPoliticasModal] = React.useState(false);
   const [showProcedureModal, setShowProcedureModal] = useState(false);
   const [solicitudEnviada, setSolicitudEnviada] = useState(false);
@@ -290,7 +290,7 @@ const ProfessionalRegistration = () => {
   const navigate = useNavigate();
   const { data: nacionalidades = [] } = useNacionalidades();
   const { data: distritosSanitarios = [] } = useDistritosSanitarios();
-  const { uploadFile, uploadPDF, isUploading } = useFileUpload(); 
+  const { uploadFile, uploadPDF, isUploading } = useFileUpload();
   const { syncCenterFromProfessional, updateProfessionalCenterMutation } =
     useCenterSync();
 
@@ -324,7 +324,7 @@ const ProfessionalRegistration = () => {
   // --- EFECTO DE PERSISTENCIA (AÑADIDO) ---
   useEffect(() => {
     // Si la solicitud ya fue enviada (limpiada), no guardar
-    if (solicitudEnviada) return; 
+    if (solicitudEnviada) return;
 
     const formDataToPersist: Partial<FormData> = form.getValues();
 
@@ -535,9 +535,9 @@ const ProfessionalRegistration = () => {
         console.error("Error de Supabase:", error);
         throw new Error(`Error de base de datos: ${error.message}`);
       }
-      
+
       // CRÍTICO: Limpiar datos persistidos después del éxito
-      localStorage.removeItem(STORAGE_KEY); 
+      localStorage.removeItem(STORAGE_KEY);
       // ----------------------------------------------------
 
       console.log("Resultado exitoso de Supabase:", result);
@@ -563,83 +563,122 @@ const ProfessionalRegistration = () => {
         }
       }
 
-      // ⭐ PASO CLAVE: Descargar la imagen de la URL y convertirla a Base64 para el PDF
+      // ⭐ PASO CLAVE 1: Descargar la imagen de la URL y convertirla a Base64 para el PDF
       let codigoBarrasBase64: string | null = null;
       if (urlCodigoBarrasExp) {
         codigoBarrasBase64 = await urlToBase64(urlCodigoBarrasExp);
         if (!codigoBarrasBase64) {
-            console.warn("No se pudo obtener la Base64 para el código de barras. El PDF podría mostrarlo roto.");
+          console.warn("No se pudo obtener la Base64 para el código de barras.");
         }
       }
-      // FIN PASO CLAVE ⭐
 
-      // Subir documentos adicionales ahora que tenemos el ID real del profesional
+      // ---------------------------------------------------------------------
+      // ⭐ PASO CLAVE 2: Subida de documentos adicionales (Edge Function + Fallback)
+      // ---------------------------------------------------------------------
       if (uploadedFiles.length > 0 && result?.id) {
+        let uploadSucceeded = false;
+        const professionalId = result.id;
+
+        // ------------------------------------------
+        // 1. INTENTO DE SUBIDA VÍA EDGE FUNCTION (Preferido si se requiere lógica de servidor)
+        // ------------------------------------------
         try {
+          console.log("Intentando subir documentos vía Edge Function (Modo Público)...");
+
           const formDataDocs = new FormData();
-          formDataDocs.append("professional_id", result.id);
+          formDataDocs.append("professional_id", professionalId);
           uploadedFiles.forEach((file) => {
             formDataDocs.append("documentos_adicionales[]", file);
           });
 
-          const { data: sessionData } = await supabase.auth.getSession();
-          const accessToken = sessionData.session?.access_token;
+          const resp = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-documentos-adicionales`,
+            {
+              method: "POST",
+              // ¡IMPORTANTE! Eliminamos el encabezado de Authorization
+              body: formDataDocs,
+            },
+          );
 
-          if (accessToken) {
-            const resp = await fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-documentos-adicionales`,
-              {
-                method: "POST",
-                headers: { Authorization: `Bearer ${accessToken}` },
-                body: formDataDocs,
-              },
-            );
-
-            if (!resp.ok) {
-              const t = await resp.text();
-              throw new Error(`Error al subir documentos: ${t}`);
-            }
-
+          if (resp.ok) {
             const json = await resp.json();
             if (json?.success && Array.isArray(json.updated_record?.documentos_adicionales)) {
               documentosUrls = json.updated_record.documentos_adicionales as string[];
+              uploadSucceeded = true;
+              console.log("Documentos subidos con éxito vía Edge Function.");
+            } else {
+              console.warn("Edge Function devolvió OK pero sin 'success' o URLs esperadas. Intentando fallback...");
             }
           } else {
-            // Fallback sin sesión: subir directamente a Storage y actualizar el registro
+            const t = await resp.text();
+            console.error(`Edge Function falló (${resp.status}): ${t}. Intentando fallback...`);
+          }
+        } catch (e: any) {
+          console.error("Error en la llamada al Edge Function. Intentando fallback:", e);
+        }
+
+        // ------------------------------------------
+        // 2. FALLBACK: Subida Directa a Supabase Storage (Si el paso 1 falló)
+        // ------------------------------------------
+        if (!uploadSucceeded) {
+          console.log("Ejecutando lógica de fallback (Subida directa a Storage)...");
+          try {
             const uploaded: string[] = [];
             for (const file of uploadedFiles) {
               const fileName = `${Date.now()}_${file.name}`;
-              const filePath = `documentos-adicionales/${result.id}/${fileName}`;
+              const filePath = `documentos-adicionales/${professionalId}/${fileName}`;
+
+              // Subida directa usando el cliente Supabase (requiere que la policy de RLS lo permita, 
+              // o que el usuario tenga un token de sesión si la tabla es privada)
               const { data: up, error: upErr } = await supabase.storage
                 .from('documentos-profesionales')
                 .upload(filePath, file, { cacheControl: '3600', upsert: false, contentType: file.type });
               if (upErr) throw upErr;
+
               const { data: pub } = supabase.storage
                 .from('documentos-profesionales')
                 .getPublicUrl(up.path);
               uploaded.push(pub.publicUrl);
             }
+
             if (uploaded.length > 0) {
+              // Actualizar DB con las URLs directas (usando el cliente normal de Supabase)
               const { data: current } = await supabase
                 .from('profesionales_sanitarios')
                 .select('documentos_adicionales')
-                .eq('id', result.id)
+                .eq('id', professionalId)
                 .single();
-              const combined = [ ...(current?.documentos_adicionales || []), ...uploaded ];
+
+              const combined = [...(current?.documentos_adicionales || []), ...uploaded];
+
               const { error: updErr } = await supabase
                 .from('profesionales_sanitarios')
                 .update({ documentos_adicionales: combined })
-                .eq('id', result.id);
+                .eq('id', professionalId);
+
               if (updErr) throw updErr;
               documentosUrls = combined;
+              uploadSucceeded = true;
+              console.log("Documentos subidos con éxito vía Fallback (Subida Directa).");
+            } else {
+              throw new Error("No se pudo subir ningún archivo en el fallback.");
             }
+          } catch (e: any) {
+            console.error("Error subiendo documentos en el fallback:", e);
+            toast({
+              title: "Aviso",
+              description: "El registro fue exitoso, pero los documentos adicionales no se pudieron subir (Edge Function y Fallback fallaron).",
+              variant: "default",
+            });
           }
-        } catch (e: any) {
-          console.error("Error subiendo documentos tras crear profesional:", e);
+        }
+
+        // Si la subida falló después de todos los intentos, podemos notificar.
+        if (!uploadSucceeded) {
           toast({
-            title: "Aviso",
-            description: "El registro fue exitoso, pero los documentos adicionales no se pudieron subir.",
-            variant: "default",
+            title: "Advertencia de Documentos",
+            description: "La solicitud se registró, pero no se pudo confirmar la subida de los documentos adicionales.",
+            variant: "destructive",
           });
         }
       }

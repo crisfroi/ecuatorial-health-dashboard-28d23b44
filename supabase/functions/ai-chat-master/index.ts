@@ -627,7 +627,7 @@ function parseFiltersFromQuery(query) {
   for (const area of KNOWN_AREAS) {
     const aNorm = normalizeText(area);
     if (norm.includes(aNorm)) {
-      filters.area_profesional = area.includes('ENFERMER') ? 'ENFERMERÍA' : area.includes('ODONTOLOG') ? 'ODONTOLOGÍA' : area.includes('RADIOLOG') ? 'RADIOLOGÍA' : area;
+      filters.area_profesional = area.includes('ENFERMER') ? 'ENFERMERÍA' : area.includes('ODONTOLOG') ? 'ODONTOLOGÍA' : area.includes('RADIOLOG') ? 'RADIOLOG��A' : area;
       break;
     }
   }
@@ -697,14 +697,18 @@ function getNavigationSuggestions(query) {
       filters: parsedFilters
     });
   }
-  // Centros de Salud (propagar provincia si existe)
+  // Centros de Salud (propagar filtros relevantes)
   if (lowerCaseQuery.includes('centro') || lowerCaseQuery.includes('hospital') || lowerCaseQuery.includes('clinica') || lowerCaseQuery.includes('clínica')) {
     const centerFilters: any = {};
     if ((parsedFilters as any).provincia) centerFilters.provincia = (parsedFilters as any).provincia;
+    if ((parsedFilters as any).distrito) centerFilters.distrito = (parsedFilters as any).distrito;
+    if ((parsedFilters as any).distrito_sanitario) centerFilters.distrito_sanitario = (parsedFilters as any).distrito_sanitario;
+    if ((parsedFilters as any).tipo_sector) centerFilters.tipo_sector = (parsedFilters as any).tipo_sector;
+    if ((parsedFilters as any).categoria_centro) centerFilters.categoria_centro = (parsedFilters as any).categoria_centro;
     suggestions.push({
       type: 'navigate',
       tab: 'health-centers',
-      label: 'Ver Centros de Salud',
+      label: 'Ver Centros de Salud (con filtros)',
       filters: centerFilters
     });
   }

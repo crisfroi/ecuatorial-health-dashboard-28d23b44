@@ -111,6 +111,10 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
     if (dashboardFilters?.distrito_sanitario) {
       setSelectedDistrito(dashboardFilters.distrito_sanitario);
     }
+    if ((dashboardFilters as any)?.categoria_centro) {
+      const cat = String((dashboardFilters as any).categoria_centro).toUpperCase();
+      setSelectedCategory(cat);
+    }
   }, [dashboardFilters]);
 
   const categorias = [
@@ -292,7 +296,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
       const meta = [
         ["Generado en", new Date().toLocaleString('es-ES')],
         ["Centro", selectedCenter?.nombre || ""],
-        ["Área filtro", filterArea || ""],
+        ["��rea filtro", filterArea || ""],
         ["Estado filtro", filterEstado || ""],
         ["Total exportado", String(sorted.length)],
       ];

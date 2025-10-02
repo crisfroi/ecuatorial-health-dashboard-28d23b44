@@ -5,17 +5,15 @@ import { Separator } from '@/components/ui/separator';
 import { FileText, Download, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Profesional } from '@/hooks/useProfesionales';
-// Asegúrate de que esta ruta sea correcta para tu proyecto
 import AdditionalDocuments from '@/components/AdditionalDocuments'; 
-import ApprovalLetter from './ApprovalLetter'; 
+import ApprovalLetter from './ApprovalLetter'; // Importa el componente de la carta
 
 // Importaciones para PDF (generación en cliente)
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 interface ProfessionalDocumentsCardProps {
-  professional: Profesional;
-  // Prop para notificar al componente padre sobre la actualización de documentos adicionales
+  professional: Profesional; // Ahora incluye fecha_generacion_resolucion
   onDocumentsUpdate?: (documents: string[]) => void;
 }
 
@@ -23,18 +21,32 @@ const ProfessionalDocumentsCard = ({ professional, onDocumentsUpdate }: Professi
   const { toast } = useToast();
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   
-  // Lógica para determinar la fecha del documento de Resolución
-  const getDocumentDate = (dateString?: string | null) => {
-    // Si la solicitud está Aprobada, usamos la fecha de aprobación del registro.
-    if (professional.estado_solicitud === 'Aprobado' && dateString) {
-      return new Date(dateString).toLocaleDateString("es-ES", {
+  // Lógica para obtener la fecha de emisión del documento (LA CLAVE)
+  const getDocumentDate = (p: Profesional) => {
+    
+    // 1. **PRIORIDAD (La fecha fija):** Usamos la fecha generada por el trigger de la DB 
+    // cuando el estado pasó por primera vez a 'Pendiente de Firma'.
+    if (p.fecha_generacion_resolucion) {
+      return new Date(p.fecha_generacion_resolucion).toLocaleDateString("es-ES", {
         year: "numeric",
         month: "long",
         day: "numeric",
       });
     }
-    // Si está 'Pendiente de Firma' o es el primer acceso (Aprobado sin fecha), usamos la fecha actual.
-    // El 'Pendiente de Firma' es el primer estado donde se genera la carta por primera vez.
+
+    // 2. **FALLBACK:** Si el campo no se ha poblado (ej. expedientes muy antiguos), 
+    // usamos la fecha de aprobación final (comportamiento anterior).
+    if (p.estado_solicitud === 'Aprobado' && p.fecha_aprobacion) {
+        return new Date(p.fecha_aprobacion).toLocaleDateString("es-ES", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        });
+    }
+
+    // 3. **INICIAL:** Si el estado es 'Pendiente de Firma' pero el trigger aún no se ejecutó 
+    // (o el hook no se refrescó), usamos la fecha actual.
+    // NOTA: Este caso es muy improbable con el trigger, pero sirve de seguridad.
     return new Date().toLocaleDateString("es-ES", {
       year: "numeric",
       month: "long",
@@ -42,10 +54,11 @@ const ProfessionalDocumentsCard = ({ professional, onDocumentsUpdate }: Professi
     });
   };
 
-  const documentDate = getDocumentDate(professional.fecha_aprobacion);
+  const documentDate = getDocumentDate(professional);
 
   const handleGenerateAndDownloadResolution = async () => {
     setIsGeneratingPdf(true);
+    
     try {
       // 1. Obtener el elemento que contiene la plantilla ApprovalLetter
       const element = document.getElementById('approval-letter-content-capture-target');
@@ -53,17 +66,22 @@ const ProfessionalDocumentsCard = ({ professional, onDocumentsUpdate }: Professi
         throw new Error("No se encontró el contenido de la carta para la captura.");
       }
       
+      // La clave: Asegurar que el componente de la carta está visible para html2canvas
+      // Si la carta está oculta (display: none), html2canvas no funcionará.
+      // Se utiliza una posición absoluta fuera de la vista (-9999px) con un tamaño fijo (210mm)
+      // para que html2canvas pueda renderizar las dimensiones correctas.
+
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 2, // Mejora la calidad de la imagen
         useCORS: true,
         allowTaint: true,
       });
 
-      // 2. Generar PDF
+      // 2. Generar PDF (misma lógica que antes)
       const pdf = new jsPDF("p", "mm", "a4");
       const imgData = canvas.toDataURL("image/png");
-      const imgWidth = 210;
-      const pageHeight = 295;
+      const imgWidth = 210; // Ancho A4 en mm
+      const pageHeight = 295; // Alto A4 en mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
       let position = 0;
@@ -72,7 +90,7 @@ const ProfessionalDocumentsCard = ({ professional, onDocumentsUpdate }: Professi
       heightLeft -= pageHeight;
 
       // Manejo de múltiples páginas
-      while (heightLeft >= 0) {
+      while (heightLeft > -1) { // Ligeramente ajustado para asegurar la última sección
         position = heightLeft - imgHeight;
         pdf.addPage();
         pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
@@ -112,16 +130,15 @@ const ProfessionalDocumentsCard = ({ professional, onDocumentsUpdate }: Professi
       <CardContent className="space-y-6">
         
         {/* Contenedor Oculto de la Carta de Resolución para la Captura */}
-        {/* Es crucial renderizar este componente *fuera* de la vista pero en el DOM
-            para que html2canvas pueda capturarlo al hacer clic en el botón.
-        */}
+        {/* La clave aquí es que el componente SÍ debe estar en el DOM para la captura */}
         <div 
           style={{ position: 'absolute', left: '-9999px', top: '-9999px', width: '210mm', zIndex: -1 }}
         >
+          {/* Se pasa el objeto professional completo y la fecha de documento fija */}
           <ApprovalLetter professional={professional} documentDate={documentDate} />
         </div>
 
-        {/* Documentos Oficiales */}
+        {/* Documentos Oficiales VISIBLES */}
         <div className="space-y-3">
           <h4 className="font-semibold text-base mb-2 border-b pb-1">Documentos Oficiales</h4>
           
@@ -138,6 +155,7 @@ const ProfessionalDocumentsCard = ({ professional, onDocumentsUpdate }: Professi
           )}
           
           {/* Ficha de Solicitud */}
+          {/* Asumiendo que este endpoint existe */}
           <Button 
             variant="outline" 
             className="w-full justify-start"
@@ -150,7 +168,7 @@ const ProfessionalDocumentsCard = ({ professional, onDocumentsUpdate }: Professi
           {/* Carta de Resolución (Generación en Cliente) */}
           {(professional.estado_solicitud === 'Aprobado' || professional.estado_solicitud === 'Pendiente de Firma') && (
             <Button 
-              variant="default" // Destacar
+              variant="default"
               className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white"
               onClick={handleGenerateAndDownloadResolution}
               disabled={isGeneratingPdf}
@@ -175,7 +193,6 @@ const ProfessionalDocumentsCard = ({ professional, onDocumentsUpdate }: Professi
         {/* Documentos Adicionales (Integrado) */}
         <div className='space-y-4'>
           <h4 className="font-semibold text-base mb-2 border-b pb-1">Documentos Adicionales</h4>
-          {/* Se pasa el professionalId y los documentos_adicionales (urls) para visualizar y subir */}
           <AdditionalDocuments 
             professionalId={professional.id}
             existingDocuments={professional.documentos_adicionales}

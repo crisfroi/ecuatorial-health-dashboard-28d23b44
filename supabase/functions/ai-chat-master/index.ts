@@ -1,25 +1,20 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 // --- 1. CONFIGURACIÓN Y VARIABLES DE ENTORNO ---
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-
 // Asegúrate de que las variables de entorno se carguen correctamente
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error("Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY");
   // Esto debería abortar la ejecución en un entorno real si falta configuración vital.
 }
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
-
 // --- 2. ESQUEMA DETALLADO (Manteniendo el schema completo) ---
 const ENHANCED_SCHEMA = {
   domain: "Sistema de Salud de Guinea Ecuatorial",
@@ -407,7 +402,6 @@ const ENHANCED_SCHEMA = {
     "guardias con profesionales": "SELECT g.*, pg.categoria, ps.nombre_completo, c.nombre as centro_nombre FROM guardias g LEFT JOIN profesionales_guardias pg ON g.profesional_guardia_id = pg.id LEFT JOIN profesionales_sanitarios ps ON pg.profesional_id = ps.id LEFT JOIN centros_salud c ON g.centro_salud_id = c.id"
   }
 };
-
 // --- 3. PROMPT DEL SISTEMA ACTUALIZADO (Con Explicación y Acción de XLSX) ---
 function buildEnhancedSystemPrompt() {
   const schemaString = JSON.stringify(ENHANCED_SCHEMA, null, 2);
@@ -443,7 +437,6 @@ function buildEnhancedSystemPrompt() {
   `;
   return `Eres un asistente SQL experto. Tu respuesta debe incluir SIEMPRE una explicación y la consulta SQL. Sigue estrictamente el formato y las reglas:\n\n${toolDefinition}\n\nCONTEXTO DEL DOMINIO:\n${schemaString}`;
 }
-
 // --- 4. FUNCIONES MODULARES (Gemini y OpenAI sin restricción de solo SQL) ---
 async function geminiGenerateText(prompt) {
   if (!GEMINI_API_KEY) {
@@ -496,7 +489,6 @@ async function geminiGenerateText(prompt) {
     throw error;
   }
 }
-
 async function openAIChat(messages) {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY ausente');
   const resp = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -516,7 +508,6 @@ async function openAIChat(messages) {
   const json = await resp.json();
   return json.choices?.[0]?.message?.content ?? '';
 }
-
 // Función para extraer el SQL limpio y el comando de acción
 function extractSqlFromText(text) {
   // 1. Separar la explicación del SQL/Acción
@@ -528,14 +519,11 @@ function extractSqlFromText(text) {
       action: null
     };
   }
-
   const explanationPart = parts[0].trim();
   const sqlActionPart = parts[1];
-
   // 2. Extraer el bloque de código SQL
   const sqlMatch = sqlActionPart.match(/```sql\s*([\s\S]*?)```/);
   let sql = sqlMatch && sqlMatch[1] ? sqlMatch[1].trim() : null;
-
   // 3. CORRECCIÓN: Limpiar el SQL eliminando todos los puntos y coma
   if (sql) {
     // Eliminar todos los puntos y coma
@@ -545,23 +533,19 @@ function extractSqlFromText(text) {
     // Limpiar espacios
     sql = sql.trim();
   }
-
   // 4. Extraer el comentario de acción
   const actionMatch = sqlActionPart.match(/-- ACTION:\s*(GENERATE_XLSX_URL)/);
   const action = actionMatch ? actionMatch[1] : null;
-
   return {
     explanation: explanationPart,
     sql,
     action
   };
 }
-
 // NUEVA FUNCIÓN: Genera sugerencias de navegación
 function getNavigationSuggestions(query) {
   const lowerCaseQuery = query.toLowerCase();
   const suggestions = [];
-
   // Sugerencia 1: Profesionales
   if (lowerCaseQuery.includes("profesional") || lowerCaseQuery.includes("medico") || lowerCaseQuery.includes("enfermero")) {
     suggestions.push({
@@ -571,7 +555,6 @@ function getNavigationSuggestions(query) {
       filters: {}
     });
   }
-
   // Sugerencia 2: Centros de Salud
   if (lowerCaseQuery.includes("centro") || lowerCaseQuery.includes("hospital") || lowerCaseQuery.includes("clinica")) {
     suggestions.push({
@@ -581,7 +564,6 @@ function getNavigationSuggestions(query) {
       filters: {}
     });
   }
-
   // Sugerencia 3: Guardias
   if (lowerCaseQuery.includes("guardia") || lowerCaseQuery.includes("turno")) {
     suggestions.push({
@@ -591,10 +573,8 @@ function getNavigationSuggestions(query) {
       filters: {}
     });
   }
-
   return suggestions;
 }
-
 // Función principal de manejo de la función
 serve(async (req) => {
   // Manejo de CORS (Preflight request)
@@ -604,35 +584,26 @@ serve(async (req) => {
       headers: corsHeaders
     });
   }
-
   try {
     const { messages } = await req.json();
-
     // 1. Obtener el prompt del sistema y el último mensaje del usuario
     const systemPrompt = buildEnhancedSystemPrompt();
     const latestUserMessage = messages[messages.length - 1].content;
-
     // 2. Crear el prompt completo para Gemini
     const fullGeminiPrompt = `${systemPrompt}\n\nUSER QUERY:\n${latestUserMessage}`;
-
     // 3. Generar la respuesta de Gemini
     const geminiResponseText = await geminiGenerateText(fullGeminiPrompt);
-
     // 4. Extraer la explicación, el SQL y la acción
     const { explanation, sql, action } = extractSqlFromText(geminiResponseText);
-
     // 5. Generar sugerencias de navegación
     const navigationSuggestions = getNavigationSuggestions(latestUserMessage);
-
     let finalResponse;
-
     if (sql) {
       // 6. Si se genera SQL, ejecutarlo
       // El RPC 'exec_sql' debe ser capaz de ejecutar cualquier consulta SELECT
       const { data: dbData, error: dbError } = await supabase.rpc('exec_sql', {
         query: sql
       });
-
       if (dbError) {
         console.error('Error ejecutando SQL en DB:', dbError);
         // OBJETO DE RESPUESTA PARA ERROR DE DB (claves alineadas)
@@ -666,7 +637,6 @@ serve(async (req) => {
         navigationSuggestions: navigationSuggestions
       };
     }
-
     // Devolver la respuesta al cliente
     return new Response(JSON.stringify(finalResponse), {
       headers: {

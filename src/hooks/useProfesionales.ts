@@ -19,6 +19,7 @@ export type Profesional =
     fecha_inicio_trabajo?: string | null;
     fecha_nacimiento?: string | null;
     funcion_publica?: boolean | null;
+    fecha_generacion_resolucion?: string | null;
   };
 
 export type ProfesionalInsert =

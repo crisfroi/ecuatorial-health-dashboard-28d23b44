@@ -431,9 +431,10 @@ function buildEnhancedSystemPrompt() {
   REGLAS ESTRICTAS:
   1. **SIEMPRE incluye una explicación y el separador.**
   2. Si NO se pide un Excel, la IA devuelve el SQL sin el comentario \`-- ACTION: GENERATE_XLSX_URL\`.
-  3. Si SÍ se pide una descarga, incluye el comentario de acción \`-- ACTION: GENERATE_XLSX_URL\`.
+  3. Si SÍ se pide una descarga, incluye el comentario de acci��n \`-- ACTION: GENERATE_XLSX_URL\`.
   4. Utiliza EXCLUSIVAMENTE las tablas y columnas del schema.
   5. Asegura búsquedas de texto insensibles a mayúsculas y acentos: utiliza ILIKE.
+  6. En la explicación NUNCA menciones "SQL" ni uses frases como "La siguiente consulta SQL"; habla solo en lenguaje natural para el usuario final.
   `;
   return `Eres un asistente SQL experto. Tu respuesta debe incluir SIEMPRE una explicación y la consulta SQL. Sigue estrictamente el formato y las reglas:\n\n${toolDefinition}\n\nCONTEXTO DEL DOMINIO:\n${schemaString}`;
 }

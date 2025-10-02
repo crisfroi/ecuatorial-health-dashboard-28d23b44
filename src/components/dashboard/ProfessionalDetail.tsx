@@ -25,24 +25,38 @@ import PersonalInfoCard from "./professional-detail/PersonalInfoCard";
 import EducationCard from "./professional-detail/EducationCard";
 import WorkplaceCard from "./professional-detail/WorkplaceCard";
 import ProfessionalCardInfo from "./professional-detail/ProfessionalCardInfo";
-import StatusCard from "./professional-detail/StatusCard";
-import NotificationAlerts from "./professional-detail/NotificationAlerts";
+// NUEVOS COMPONENTES
+import StatusCard from "./professional-detail/StatusCard"; 
+import ProfessionalDocumentsCard from "./professional-detail/ProfessionalDocumentsCard";
 
 interface ProfessionalDetailProps {
   professional: Profesional;
   onClose: () => void;
+  // Prop opcional para que el padre pueda actualizar el estado del profesional
+  onProfessionalUpdate?: (updatedProfessional: Profesional) => void; 
 }
 
 const ProfessionalDetail = ({
   professional,
   onClose,
+  onProfessionalUpdate,
 }: ProfessionalDetailProps) => {
-  const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
+  const [isDownloading, setIsDownloading] = useState(false);
+  // Usamos estado local para los documentos_adicionales para que la lista se actualice sin recargar
+  const [localDocuments, setLocalDocuments] = useState(professional.documentos_adicionales || []);
+
   const { data: notificationCount } = useNotificationCount(professional?.id);
   const sendSMSMutation = useSendSMSNotification();
 
   if (!professional) return null;
+
+  // Sincronizar documentos locales con el prop inicial si cambia el ID del profesional
+  // o si es la primera vez que se renderiza.
+  useState(() => {
+      setLocalDocuments(professional.documentos_adicionales || []);
+  }, [professional.id]);
+
 
   // Función para calcular días hasta renovación
   const calculateDaysUntilRenewal = (validityDate?: string) => {
@@ -58,6 +72,18 @@ const ProfessionalDetail = ({
     professional.fecha_caducidad,
   );
   const isRenewalSoon = daysUntilRenewal !== null && daysUntilRenewal <= 30;
+
+  // Función para manejar la actualización de los documentos desde el sub-componente
+  const handleDocumentsUpdate = (documents: string[]) => {
+    setLocalDocuments(documents); 
+    // Notificar al componente padre de que la lista de documentos ha cambiado
+    if (onProfessionalUpdate) {
+        onProfessionalUpdate({
+            ...professional,
+            documentos_adicionales: documents,
+        });
+    }
+  };
 
   const handleDownload = async (format: "pdf" | "png") => {
     setIsDownloading(true);
@@ -117,6 +143,7 @@ const ProfessionalDetail = ({
   };
 
   const handleSendSMS = async (tipoNotificacion: string) => {
+    // Lógica para enviar SMS (mantenida igual)
     if (!professional.telefono) {
       toast({
         title: "Sin teléfono",
@@ -219,7 +246,14 @@ const ProfessionalDetail = ({
                 daysUntilRenewal={daysUntilRenewal}
                 isRenewalSoon={isRenewalSoon}
               />
+              {/* Uso del nuevo componente StatusCard (solo estado/fechas) */}
               <StatusCard professional={professional} />
+              
+              {/* Uso del nuevo componente ProfessionalDocumentsCard (documentos) */}
+              <ProfessionalDocumentsCard
+                professional={{ ...professional, documentos_adicionales: localDocuments }}
+                onDocumentsUpdate={handleDocumentsUpdate}
+              />
             </div>
           </div>
         </div>

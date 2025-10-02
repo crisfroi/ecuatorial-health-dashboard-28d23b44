@@ -424,7 +424,11 @@ const NewProfessionalModal = ({
                       </p>
                       <p>
                         <strong>Función Pública:</strong>
-                        {professional.funcion_publica ? "Sí" : "No"}
+                        {professional.funcion_publica === null || professional.funcion_publica === undefined
+                          ? "No registrado"
+                          : professional.funcion_publica
+                            ? "Sí"
+                            : "No"}
                       </p>
                       {professional.funcion_publica && (
                         <>

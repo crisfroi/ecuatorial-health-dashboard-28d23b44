@@ -164,7 +164,7 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
                     , desempeñándome como funcionario público{' '}
                     {formData.estatus_funcionario === 'nombrado' ? (
                       <>
-                        nombrado del sistema sanitario nacional
+                        nombrado
                         {nombramientoDate && (
                           <>
                             , con nombramiento oficial otorgado en fecha{' '}
@@ -180,7 +180,7 @@ const RequestLetter = ({ formData }: RequestLetterProps) => {
                       </>
                     ) : (
                       <>
-                        no nombrado del sistema sanitario nacional
+                        no nombrado
                         {inicioTrabajoDate && (
                           <>
                             , desempeñándome desde el{' '}

@@ -480,7 +480,7 @@ const ProfessionalRegistration = () => {
         nombre_centro: data.nombre_centro ? U(data.nombre_centro) : null,
         centro_salud_id: data.centro_salud_id || null, // ID del centro
         categoria_centro: data.categoria_centro ? U(data.categoria_centro) : null,
-        tipo_sector: data.tipo_sector ? U(data.tipo_sector) : null,
+        tipo_sector: data.tipo_sector || null,
         distrito_sanitario: data.distrito_sanitario || null, // se mantiene desde catálogo
         funcion_publica: data.funcion_publica || false,
         estatus_funcionario: data.funcion_publica ? (data.funcionario_estatus || null) : null,

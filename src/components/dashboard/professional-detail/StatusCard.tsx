@@ -1,9 +1,7 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Download } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import type { Profesional } from '@/hooks/useProfesionales';
 
 interface StatusCardProps {
@@ -23,63 +21,31 @@ const StatusCard = ({ professional }: StatusCardProps) => {
         <div className="text-center">
           <Badge className={`text-lg px-4 py-2 ${
             professional.estado_solicitud === 'Aprobado' 
-              ? 'bg-green-100 text-green-800' 
+              ? 'bg-green-100 text-green-800 hover:bg-green-100/90' 
               : professional.estado_solicitud === 'Rechazado'
-              ? 'bg-red-100 text-red-800'
-              : 'bg-yellow-100 text-yellow-800'
+              ? 'bg-red-100 text-red-800 hover:bg-red-100/90'
+              : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100/90'
           }`}>
             {professional.estado_solicitud || 'Pendiente'}
           </Badge>
         </div>
         
+        <Separator /> 
+        
         <div className="space-y-2">
           <div>
             <span className="text-sm font-medium text-gray-600">Fecha de solicitud:</span>
-            <p>{professional.fecha_solicitud || professional.created_at?.split('T')[0] || 'No especificado'}</p>
+            <p className='font-medium'>{professional.fecha_solicitud || professional.created_at?.split('T')[0] || 'No especificado'}</p>
           </div>
           <div>
             <span className="text-sm font-medium text-gray-600">Fecha de revisión:</span>
-            <p>{professional.fecha_revision || 'Pendiente'}</p>
+            <p className='font-medium'>{professional.fecha_revision || 'Pendiente'}</p>
           </div>
           {professional.fecha_aprobacion && (
             <div>
               <span className="text-sm font-medium text-gray-600">Fecha de aprobación:</span>
-              <p>{professional.fecha_aprobacion}</p>
+              <p className='font-medium'>{professional.fecha_aprobacion}</p>
             </div>
-          )}
-        </div>
-
-        <Separator />
-
-        <div className="space-y-2">
-          <h4 className="font-medium">Documentos</h4>
-          {professional.numero_carnet_profesional && (
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => window.open(`/api/documents/carnet/${professional.id}`, '_blank')}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Carnet Profesional (PDF)
-            </Button>
-          )}
-          <Button 
-            variant="outline" 
-            className="w-full justify-start"
-            onClick={() => window.open(`/api/documents/solicitud/${professional.id}`, '_blank')}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Ficha de Solicitud (PDF)
-          </Button>
-          {professional.estado_solicitud === 'Aprobado' && (
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => window.open(`/api/documents/resolucion/${professional.id}`, '_blank')}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Carta de Resolución (PDF)
-            </Button>
           )}
         </div>
       </CardContent>

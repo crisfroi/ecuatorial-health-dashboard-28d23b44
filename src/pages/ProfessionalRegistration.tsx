@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; // <-- Se ha añadido useEffect aquí
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -70,7 +70,33 @@ const getPersistedData = (): { currentStep: number; formData: Partial<FormData> 
     return null;
   }
 };
-// -----------------------------
+
+// --- FUNCIÓN CLAVE PARA CONVERSIÓN A BASE64 ---
+const urlToBase64 = async (url: string): Promise<string | null> => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error(`Error al descargar la imagen de la URL: ${response.statusText}`);
+        return null;
+      }
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve(reader.result as string); // Esto es la cadena Base64 (data:image/...)
+        };
+        reader.onerror = () => {
+          resolve(null);
+        };
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error("Error en urlToBase64:", error);
+      return null;
+    }
+  };
+// ---------------------------------------------
+
 
 // Esquema de validación con Zod
 const formSchema = z
@@ -97,7 +123,7 @@ const formSchema = z
     institucion_formacion_id_1: z.string().optional(),
     periodo_formacion: z
       .string()
-      .min(1, "El per��odo de formación es requerido"),
+      .min(1, "El período de formación es requerido"),
     pais_formacion_1: z.string().min(1, "El país de formación es requerido"),
     situacion_laboral: z.string().min(1, "La situación laboral es requerida"),
     nombre_centro: z.string().min(1, "El centro de trabajo es requerido"),
@@ -537,6 +563,16 @@ const ProfessionalRegistration = () => {
         }
       }
 
+      // ⭐ PASO CLAVE: Descargar la imagen de la URL y convertirla a Base64 para el PDF
+      let codigoBarrasBase64: string | null = null;
+      if (urlCodigoBarrasExp) {
+        codigoBarrasBase64 = await urlToBase64(urlCodigoBarrasExp);
+        if (!codigoBarrasBase64) {
+            console.warn("No se pudo obtener la Base64 para el código de barras. El PDF podría mostrarlo roto.");
+        }
+      }
+      // FIN PASO CLAVE ⭐
+
       // Subir documentos adicionales ahora que tenemos el ID real del profesional
       if (uploadedFiles.length > 0 && result?.id) {
         try {
@@ -651,6 +687,7 @@ const ProfessionalRegistration = () => {
         foto_carnet: fotoUrl,
         foto_carnet_base64: fotoCarnetBase64,
         url_codigo_barras_expediente: urlCodigoBarrasExp || result.url_codigo_barras_expediente || '',
+        codigo_barras_base64: codigoBarrasBase64, // ⭐ ESTA ES LA PROPIEDAD CLAVE
         codigo_expediente: result.codigo_expediente,
         edad: age,
         submittedData: result,

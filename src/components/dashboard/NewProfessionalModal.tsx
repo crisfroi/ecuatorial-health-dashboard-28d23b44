@@ -243,11 +243,28 @@ const NewProfessionalModal = ({
     distrito_sanitario: professional.distrito_sanitario || "",
     pertenece_brigada_medica: professional.pertenece_brigada_medica,
     tipo_cooperacion: professional.tipo_cooperacion || "",
+    funcion_publica: Boolean(professional.funcion_publica),
+    estatus_funcionario: professional.estatus_funcionario || null,
+    numero_funcionario: professional.numero_funcionario || "",
+    fecha_nombramiento: professional.fecha_nombramiento || null,
+    fecha_inicio_trabajo: professional.fecha_inicio_trabajo || null,
     codigo_expediente: professional.codigo_expediente,
     id_profesional_unico: professional.id_profesional_unico,
     foto_carnet_base64: professional.foto_carnet_base64,
-    codigo_barras: professional.url_codigo_barras_expediente,
+    url_codigo_barras_expediente:
+      professional.url_codigo_barras_expediente || professional.url_codigo_barras || null,
+    codigo_barras:
+      professional.url_codigo_barras_expediente || professional.url_codigo_barras || null,
     foto_carnet: professional.foto_carnet,
+  };
+
+  const formatDate = (value?: string | null) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return parsed.toLocaleDateString("es-ES");
   };
 
   return (
@@ -297,15 +314,27 @@ const NewProfessionalModal = ({
                     Información Personal
                   </h3>
 
-                  {professional.foto_carnet && (
-                    <div className="flex justify-center mb-6">
+                  <div className="flex flex-col items-center mb-6 space-y-3">
+                    {professional.foto_carnet && (
                       <img
                         src={professional.foto_carnet}
                         alt="Foto del Profesional"
                         className="w-32 h-40 object-cover border rounded-lg shadow-sm"
                       />
-                    </div>
-                  )}
+                    )}
+                    {formDataForDocuments.url_codigo_barras_expediente && (
+                      <div className="flex flex-col items-center">
+                        <img
+                          src={formDataForDocuments.url_codigo_barras_expediente}
+                          alt="Código de expediente"
+                          className="h-10 w-40 object-contain"
+                        />
+                        <span className="text-xs text-gray-500 mt-1">
+                          Código de expediente
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div className="space-y-2">
@@ -394,6 +423,40 @@ const NewProfessionalModal = ({
                         {formDataForDocuments.tipo_sector}
                       </p>
                       <p>
+                        <strong>Función Pública:</strong>
+                        {professional.funcion_publica ? "Sí" : "No"}
+                      </p>
+                      {professional.funcion_publica && (
+                        <>
+                          <p>
+                            <strong>Estatus Funcionario:</strong>
+                            {professional.estatus_funcionario === "nombrado"
+                              ? "Nombrado"
+                              : "No nombrado"}
+                          </p>
+                          {professional.numero_funcionario && (
+                            <p>
+                              <strong>Número de Funcionario:</strong>
+                              {professional.numero_funcionario}
+                            </p>
+                          )}
+                          {professional.estatus_funcionario === "nombrado" &&
+                            professional.fecha_nombramiento && (
+                              <p>
+                                <strong>Fecha de Nombramiento:</strong>
+                                {formatDate(professional.fecha_nombramiento)}
+                              </p>
+                            )}
+                          {professional.estatus_funcionario === "no_nombrado" &&
+                            professional.fecha_inicio_trabajo && (
+                              <p>
+                                <strong>Fecha de Inicio:</strong>
+                                {formatDate(professional.fecha_inicio_trabajo)}
+                              </p>
+                            )}
+                        </>
+                      )}
+                      <p>
                         <strong>Estado de Solicitud:</strong>
                         <span
                           className={`ml-2 px-2 py-1 rounded-full text-xs ${
@@ -409,6 +472,12 @@ const NewProfessionalModal = ({
                         >
                           {professional.estado_solicitud}
                         </span>
+                      </p>
+                      <p>
+                        <strong>Cooperación Internacional:</strong>
+                        {professional.pertenece_brigada_medica
+                          ? `Sí (${professional.tipo_cooperacion || "Sin especificar"})`
+                          : "No"}
                       </p>
                     </div>
                   </div>

@@ -642,9 +642,17 @@ const RequestsPanel = ({
         distrito_sanitario: professional.distrito_sanitario || "",
         pertenece_brigada_medica: professional.pertenece_brigada_medica,
         tipo_cooperacion: professional.tipo_cooperacion || "",
+        funcion_publica: Boolean(professional.funcion_publica),
+        estatus_funcionario: professional.estatus_funcionario || null,
+        numero_funcionario: professional.numero_funcionario || "",
+        fecha_nombramiento: professional.fecha_nombramiento || null,
+        fecha_inicio_trabajo: professional.fecha_inicio_trabajo || null,
         codigo_expediente: professional.codigo_expediente,
         foto_carnet_base64: professional.foto_carnet_base64,
-        codigo_barras: professional.url_codigo_barras,
+        url_codigo_barras_expediente:
+          professional.url_codigo_barras_expediente || professional.url_codigo_barras || null,
+        codigo_barras:
+          professional.url_codigo_barras_expediente || professional.url_codigo_barras || null,
         foto_carnet: professional.foto_carnet, // Ensure this property is passed
       };
 

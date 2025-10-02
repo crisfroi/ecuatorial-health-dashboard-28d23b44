@@ -128,6 +128,9 @@ const PDFSummary = ({ formData }: PDFSummaryProps) => {
                   {formData.fecha_nombramiento && (
                     <div><strong>Fecha nombramiento:</strong> {new Date(formData.fecha_nombramiento).toLocaleDateString('es-ES')}</div>
                   )}
+                  {formData.estatus_funcionario === 'no_nombrado' && formData.fecha_inicio_trabajo && (
+                    <div><strong>Fecha inicio servicio:</strong> {new Date(formData.fecha_inicio_trabajo).toLocaleDateString('es-ES')}</div>
+                  )}
                   {formData.numero_funcionario && (
                     <div><strong>Número funcionario:</strong> {formData.numero_funcionario}</div>
                   )}

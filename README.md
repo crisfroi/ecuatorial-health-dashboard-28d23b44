@@ -9,7 +9,7 @@ cation.
 
 **Use Lovable**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/8d136a29-86ed-4661-a881-1eb41e1a0497) and start prompting.
+Simply visit the [Lovable Project](https://lovable.dev/projects/8d136a29-86ed-4661-a881-1eb41e1a0497) and start prompting
 
 Changes made via Lovable will be committed automatically to this repo.
 

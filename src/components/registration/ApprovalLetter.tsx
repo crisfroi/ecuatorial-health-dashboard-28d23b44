@@ -1,26 +1,27 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download } from "lucide-react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+// Importar el tipo Profesional actualizado
+import type { Profesional } from '@/hooks/useProfesionales'; 
 
 interface ApprovalLetterProps {
-  formData: any;
+  professional: Profesional; // Usamos el tipo Profesional
+  documentDate: string; // Usamos la fecha calculada y fija
 }
 
-const ApprovalLetter = ({ formData }: ApprovalLetterProps) => {
-  const today = new Date().toLocaleDateString("es-ES", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+// Renombrado de formData a professional para consistencia con el hook
+const ApprovalLetter = ({ professional, documentDate }: ApprovalLetterProps) => {
+
+  // La variable 'today' se reemplaza por 'documentDate'
 
   return (
-    <div
+    // ID esencial para la captura con html2canvas
+    <div 
+      id="approval-letter-content-capture-target"
       className="bg-white"
       style={{
         fontSize: "11px",
         lineHeight: "1.4",
+        width: '210mm', // Aseguramos el ancho A4 para la captura
+        minHeight: '297mm', // Aseguramos la altura A4 para la captura
       }}
     >
       {/* Membrete Oficial */}
@@ -51,13 +52,14 @@ const ApprovalLetter = ({ formData }: ApprovalLetterProps) => {
 
       {/* Fecha y lugar */}
       <div className="text-right mb-4">
-        <p>{formData.distrito || "Malabo"}, {today}</p>
+        {/* Usamos documentDate en lugar de today */}
+        <p>{professional.distrito || "Malabo"}, {documentDate}</p> 
       </div>
 
       {/* Número de expediente */}
       <div className="mb-3">
         <p className="font-semibold">
-          EXPEDIENTE: {formData.codigo_expediente}
+          EXPEDIENTE: {professional.codigo_expediente}
         </p>
         <p className="font-semibold">
           ASUNTO: Aprobación de Acreditación Profesional Sanitaria
@@ -74,59 +76,60 @@ const ApprovalLetter = ({ formData }: ApprovalLetterProps) => {
           En virtud de las atribuciones conferidas por la Ley de Ejercicio
           Profesional de las Ciencias de la Salud de la República de Guinea
           Ecuatorial, y tras el análisis y evaluación exhaustiva de la
-          documentación presentada por {formData.genero === "Femenino" ? "la" : "el"} solicitante:
+          documentación presentada por {professional.genero === "Femenino" ? "la" : "el"} solicitante:
         </p>
 
         <div className="bg-gray-50 p-4" style={{borderLeft: "4px solid #14b8a6"}}>
+          {/* Usamos el objeto professional */}
           <p>
-            <strong>Nombre Completo:</strong> {formData.nombre}{" "}
-            {formData.apellidos}
+            <strong>Nombre Completo:</strong> {professional.nombre}{" "}
+            {professional.apellidos}
           </p>
           <p>
-            <strong>Nacionalidad:</strong> {formData.nacionalidad}
+            <strong>Nacionalidad:</strong> {professional.nacionalidad}
           </p>
           <p>
             <strong>Documento de Identidad:</strong>{" "}
-            {formData.numero_dip
-              ? `DIP: ${formData.numero_dip}`
-              : `Pasaporte: ${formData.numero_pasaporte}`}
+            {professional.numero_dip
+              ? `DIP: ${professional.numero_dip}`
+              : `Pasaporte: ${professional.numero_pasaporte}`}
           </p>
           <p>
-            <strong>Área Profesional:</strong> {formData.area_profesional}
+            <strong>Área Profesional:</strong> {professional.area_profesional}
           </p>
           <p>
             <strong>Especialidad:</strong>{" "}
-            {formData.especialidad || "No especificada"}
+            {professional.especialidad || "No especificada"}
           </p>
           <p>
             <strong>Titulación:</strong>{" "}
-            {formData.titulacion_especifica_1}
+            {professional.titulacion_especifica_1}
           </p>
           <p>
             <strong>Institución de Formación:</strong>{" "}
-            {formData.institucion_1}
+            {professional.institucion_1}
           </p>
           <p>
             <strong>País de Formación:</strong>{" "}
-            {formData.pais_formacion_1}
+            {professional.pais_formacion_1}
           </p>
-          {formData.funcion_publica && (
+          {professional.funcion_publica && (
             <>
               <p>
-                <strong>Condición Laboral:</strong> {formData.estatus_funcionario === 'nombrado' ? 'Funcionario Público Nombrado del Sistema Sanitario Nacional' : 'Personal Contratado del Sector Público Sanitario'}
+                <strong>Condición Laboral:</strong> {professional.estatus_funcionario === 'nombrado' ? 'Funcionario Público Nombrado del Sistema Sanitario Nacional' : 'Personal Contratado del Sector Público Sanitario'}
               </p>
-              {formData.estatus_funcionario === 'nombrado' && formData.fecha_nombramiento && (
+              {professional.estatus_funcionario === 'nombrado' && professional.fecha_nombramiento && (
                 <p>
                   <strong>Fecha de Nombramiento Oficial:</strong>{" "}
-                  {new Date(formData.fecha_nombramiento).toLocaleDateString('es-ES')}
+                  {new Date(professional.fecha_nombramiento).toLocaleDateString('es-ES')}
                 </p>
               )}
-              {formData.numero_funcionario && (
+              {professional.numero_funcionario && (
                 <p>
-                  <strong>Número de Registro de Funcionario:</strong> {formData.numero_funcionario}
+                  <strong>Número de Registro de Funcionario:</strong> {professional.numero_funcionario}
                 </p>
               )}
-              {formData.estatus_funcionario === 'no_nombrado' && (
+              {professional.estatus_funcionario === 'no_nombrado' && (
                 <p>
                   <strong>Régimen de Contratación:</strong> Temporal - Sector Público
                 </p>
@@ -142,13 +145,13 @@ const ApprovalLetter = ({ formData }: ApprovalLetterProps) => {
         <p>
           <strong>PRIMERO:</strong> APROBAR la solicitud de acreditación
           profesional sanitaria presentada por
-          {formData.genero === "Femenino" ? " la señora " : " el señor "}
+          {professional.genero === "Femenino" ? " la señora " : " el señor "}
           <span className="font-semibold">
-            {formData.nombre} {formData.apellidos}
+            {professional.nombre} {professional.apellidos}
           </span>
           , reconociendo su competencia profesional en el área de{" "}
           <span className="font-semibold">
-            {formData.area_profesional}
+            {professional.area_profesional}
           </span>
           .
         </p>
@@ -158,17 +161,17 @@ const ApprovalLetter = ({ formData }: ApprovalLetterProps) => {
           territorio nacional de Guinea Ecuatorial, con todas las
           responsabilidades y derechos que ello conlleva, en estricto
           cumplimiento del código deontológico de su profesión
-          {formData.funcion_publica && formData.estatus_funcionario === 'nombrado' && (
+          {professional.funcion_publica && professional.estatus_funcionario === 'nombrado' && (
             <>, del régimen estatutario del funcionario público de carrera del sistema sanitario nacional, y de las obligaciones inherentes a su condición de servidor público nombrado</>
           )}
-          {formData.funcion_publica && formData.estatus_funcionario === 'no_nombrado' && (
+          {professional.funcion_publica && professional.estatus_funcionario === 'no_nombrado' && (
             <>, del marco regulatorio del personal contratado del sector público sanitario, conforme a la normativa laboral vigente</>
           )}.
         </p>
 
         <p>
           <strong>TERCERO:</strong> OTORGAR el número de carnet profesional{" "}
-          <span className="font-semibold">{formData.id_profesional_unico || formData.codigo_expediente}</span>, el cual será emitido por la
+          <span className="font-semibold">{professional.id_profesional_unico || professional.codigo_expediente}</span>, el cual será emitido por la
           Dirección General de Recursos Humanos del Ministerio de Sanidad y
           Bienestar Social.
         </p>
@@ -216,7 +219,8 @@ const ApprovalLetter = ({ formData }: ApprovalLetterProps) => {
           Ecuatorial
         </p>
         <p>Dirección General de Recursos Humanos - Sistema RENAPROSA</p>
-        <p>Generado el {today}</p>
+        {/* Usamos documentDate en lugar de today */}
+        <p>Generado el {documentDate}</p> 
       </div>
     </div>
   );

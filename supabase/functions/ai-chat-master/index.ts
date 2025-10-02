@@ -602,13 +602,82 @@ function parseFiltersFromQuery(query) {
   }
 
   // Género
-  if (/(hombre|masculin)/.test(norm)) filters.genero = 'Masculino';
-  if (/(mujer|femenin)/.test(norm)) filters.genero = 'Femenino';
+  if (/(\b(hombre|varon|masculin)\b)/.test(norm)) filters.genero = 'Masculino';
+  if (/(\b(mujer|femenin)\b)/.test(norm)) filters.genero = 'Femenino';
 
   // Sector / función pública
   if (/(funcion\s*publica|funcionarios?)/.test(norm)) filters.funcion_publica = true;
-  if (/sector\s+publico/.test(norm)) filters.tipo_sector = 'Público';
-  if (/sector\s+privado/.test(norm)) filters.tipo_sector = 'Privado';
+  if (/(\bsector\s+publico\b|\bpublico\b)/.test(norm)) filters.tipo_sector = 'Público';
+  if (/(\bsector\s+privado\b|\bprivado\b)/.test(norm)) filters.tipo_sector = 'Privado';
+
+  // Estatus funcionario
+  if (/(\bnombrado\b)/.test(norm)) (filters as any).estatus_funcionario = 'nombrado';
+  if (/(no\s*nombrado)/.test(norm)) (filters as any).estatus_funcionario = 'no_nombrado';
+
+  // Estado de solicitud
+  for (const st of KNOWN_STATES) {
+    const stNorm = normalizeText(st);
+    if (norm.includes(stNorm)) {
+      filters.estado_solicitud = st;
+      break;
+    }
+  }
+
+  // Área profesional
+  for (const area of KNOWN_AREAS) {
+    const aNorm = normalizeText(area);
+    if (norm.includes(aNorm)) {
+      filters.area_profesional = area.includes('ENFERMER') ? 'ENFERMERÍA' : area.includes('ODONTOLOG') ? 'ODONTOLOGÍA' : area.includes('RADIOLOG') ? 'RADIOLOGÍA' : area;
+      break;
+    }
+  }
+
+  // Distrito Sanitario / Distrito (heurística)
+  const mDistSan = norm.match(/distrito\s+sanitario\s+([a-z0-9\-\s]+)/);
+  if (mDistSan) filters.distrito_sanitario = mDistSan[1].trim().replace(/\s{2,}/g,' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const mDist = norm.match(/\bdistrito\s+([a-z0-9\-\s]+)/);
+  if (mDist && !filters.distrito_sanitario) filters.distrito = mDist[1].trim().replace(/\s{2,}/g,' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+  // Categoría de centro
+  for (const cat of KNOWN_CATEGORIES) {
+    const cNorm = normalizeText(cat);
+    if (norm.includes(cNorm)) {
+      (filters as any).categoria_centro = cat.normalize();
+      break;
+    }
+  }
+
+  // Año de graduación
+  const mYear = norm.match(/(a(n|ñ)o\s+de\s+graduaci(o|ó)n|graduad[oa]s?\s+en)\s+(\d{4})/);
+  if (mYear) filters.año_graduacion = parseInt(mYear[4],10);
+
+  // País e institución de formación (muy heurístico)
+  const mPais = norm.match(/pa(i|í)s\s+de\s+formaci(o|ó)n\s+(en\s+)?([a-z\s]+)/);
+  if (mPais) filters.pais_formacion = mPais[3].trim().replace(/\s{2,}/g,' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const mInst = norm.match(/(instituci(o|ó)n\s+de\s+formaci(o|ó)n|formad[oa]\s+en)\s+([a-z0-9\-\s]+)/);
+  if (mInst) (filters as any).institucion = mInst[4].trim().replace(/\s{2,}/g,' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+  // Vencimientos / renovación
+  if (/vencid[oa]s?/.test(norm)) (filters as any).carnet_vencido = true;
+  if (/(proxim[oa]s?\s+a\s+vencer|vence\s+pronto)/.test(norm)) (filters as any).vencimiento_proximo = true;
+  const mPrio = norm.match(/prioridad\s+(alta|media|baja)/);
+  if (mPrio) (filters as any).prioridad_renovacion = mPrio[1];
+
+  // Edad laboral / años de servicio / años restantes (heurísticas)
+  const mEdadLabMin = norm.match(/edad\s+laboral\s+(?:mayor|superior)\s+a?\s*(\d{1,2})/);
+  if (mEdadLabMin) (filters as any).edad_laboral_min = parseInt(mEdadLabMin[1],10);
+  const mEdadLabMax = norm.match(/edad\s+laboral\s+(?:menor|inferior)\s+a?\s*(\d{1,2})/);
+  if (mEdadLabMax) (filters as any).edad_laboral_max = parseInt(mEdadLabMax[1],10);
+
+  const mServMin = norm.match(/a(n|ñ)os?\s+de\s+servicio\s+(?:mayor|superior)\s+a?\s*(\d{1,2})/);
+  if (mServMin) (filters as any).años_servicio_min = parseInt(mServMin[2] || mServMin[1],10) || parseInt(mServMin[1],10);
+  const mServMax = norm.match(/a(n|ñ)os?\s+de\s+servicio\s+(?:menor|inferior)\s+a?\s*(\d{1,2})/);
+  if (mServMax) (filters as any).años_servicio_max = parseInt(mServMax[2] || mServMax[1],10) || parseInt(mServMax[1],10);
+
+  const mRestMin = norm.match(/(años|anos)\s+restantes\s+(?:hasta\s+)?jubilaci(o|ó)n\s+(?:menor|inferior)\s+a?\s*(\d{1,2})/);
+  if (mRestMin) (filters as any).años_restantes_jubilacion_max = parseInt(mRestMin[3],10);
+  const mRestMax = norm.match(/(años|anos)\s+restantes\s+(?:hasta\s+)?jubilaci(o|ó)n\s+(?:mayor|superior)\s+a?\s*(\d{1,2})/);
+  if (mRestMax) (filters as any).años_restantes_jubilacion_min = parseInt(mRestMax[3],10);
 
   return filters;
 }

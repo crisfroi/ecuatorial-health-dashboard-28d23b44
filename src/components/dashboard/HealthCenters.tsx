@@ -179,6 +179,10 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
     if (dashboardFilters?.distrito_sanitario && dashboardFilters.distrito_sanitario !== 'todos') {
       if ((c.distrito_sanitario || '').trim() !== dashboardFilters.distrito_sanitario) return false;
     }
+    if ((dashboardFilters as any)?.categoria_centro) {
+      const cat = String((dashboardFilters as any).categoria_centro).toUpperCase();
+      if ((c.categoria || '').toUpperCase().trim() !== cat) return false;
+    }
     return true;
   });
 
@@ -296,7 +300,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
       const meta = [
         ["Generado en", new Date().toLocaleString('es-ES')],
         ["Centro", selectedCenter?.nombre || ""],
-        ["��rea filtro", filterArea || ""],
+        ["Área filtro", filterArea || ""],
         ["Estado filtro", filterEstado || ""],
         ["Total exportado", String(sorted.length)],
       ];

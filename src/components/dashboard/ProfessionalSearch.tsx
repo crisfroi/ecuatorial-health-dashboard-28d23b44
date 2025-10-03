@@ -164,7 +164,128 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
     }
   };
 
-  // ... (handleSearch, handleInputChange, startBarcodeScanning, stopBarcodeScanning, getStatusBadgeColor, clearSearch funciones sin cambios)
+  // Handlers and scanning logic
+  const debounceRef = useRef<number | null>(null);
+  const scanIntervalRef = useRef<number | null>(null);
+  const canvasElRef = useRef<HTMLCanvasElement | null>(null);
+
+  const handleInputChange = (val: string) => {
+    setSearchTerm(val);
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    const trimmed = val.trim();
+    if (trimmed.length < 2) {
+      setSearchResults([]);
+      setError(null);
+      return;
+    }
+    debounceRef.current = window.setTimeout(() => {
+      void searchProfessionals(trimmed);
+    }, 300);
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchTerm.trim();
+    if (!q) { setSearchResults([]); return; }
+    await searchProfessionals(q);
+  };
+
+  const startBarcodeScanning = async () => {
+    try {
+      if (!videoRef.current) return;
+      setError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      streamRef.current = stream;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play().catch(() => {});
+      setIsScanning(true);
+
+      const BarcodeDetectorCtor = (window as any).BarcodeDetector;
+      if (!BarcodeDetectorCtor) {
+        toast({
+          title: 'Escaneo no soportado',
+          description: 'Tu navegador no soporta escaneo de códigos. Usa Chrome/Edge en móvil o escritorio.',
+          variant: 'destructive'
+        });
+        stopBarcodeScanning();
+        return;
+      }
+
+      const detector = new BarcodeDetectorCtor({
+        formats: ['code_128', 'ean_13', 'qr_code', 'pdf417', 'codabar', 'code_39']
+      });
+
+      if (!canvasElRef.current) {
+        canvasElRef.current = document.createElement('canvas');
+      }
+
+      scanIntervalRef.current = window.setInterval(async () => {
+        try {
+          const video = videoRef.current!;
+          if (!video || video.readyState < 2) return;
+          let codes: Array<{ rawValue?: string }> = [];
+          try {
+            codes = await detector.detect(video as unknown as CanvasImageSource);
+          } catch {
+            const canvas = canvasElRef.current!;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              codes = await detector.detect(canvas);
+            }
+          }
+          if (codes && codes.length > 0) {
+            const value = codes[0]?.rawValue || '';
+            if (value) {
+              setScanResult(value);
+              setSearchTerm(value);
+              stopBarcodeScanning();
+              await searchProfessionals(value);
+            }
+          }
+        } catch (err) {
+          console.warn('Barcode scan error:', err);
+        }
+      }, 500);
+    } catch (err: any) {
+      console.error('Error starting camera', err);
+      setError(err?.message || 'No se pudo iniciar la cámara');
+      setIsScanning(false);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+    }
+  };
+
+  const stopBarcodeScanning = () => {
+    if (scanIntervalRef.current) {
+      window.clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
+    if (videoRef.current) {
+      try { videoRef.current.pause(); } catch {}
+      videoRef.current.srcObject = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setIsScanning(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (scanIntervalRef.current) {
+        window.clearInterval(scanIntervalRef.current);
+        scanIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   // ... (Omitidas por brevedad, pero permanecen iguales)
 

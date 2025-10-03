@@ -185,7 +185,7 @@ const ProfessionalDetail = ({
 
   return (
     <Dialog open={!!professional} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span className="flex items-center space-x-2">
@@ -228,30 +228,26 @@ const ProfessionalDetail = ({
             onSendSMS={handleSendSMS}
           />
 
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mt-6">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 mt-6">
             {/* Columna izquierda: Datos personales */}
-            <div className="space-y-4 xl:col-span-4">
+            <div className="space-y-4 xl:col-span-3">
               <PersonalInfoCard professional={professional} />
             </div>
 
             {/* Columna central: Formación y trabajo */}
-            <div className="space-y-4 xl:col-span-5">
+            <div className="space-y-4 xl:col-span-4">
               <EducationCard professional={professional} />
               <WorkplaceCard professional={professional} />
             </div>
 
-            {/* Columna derecha: Estado y datos de carnet */}
-            <div className="space-y-4 xl:col-span-3">
+            {/* Columna derecha: Estado y documentos (más ancha) */}
+            <div className="space-y-4 xl:col-span-5">
               <ProfessionalCardInfo
                 professional={professional}
                 daysUntilRenewal={daysUntilRenewal}
                 isRenewalSoon={isRenewalSoon}
               />
               <StatusCard professional={professional} />
-            </div>
-
-            {/* Documentos: sección completa y amplia */}
-            <div className="xl:col-span-12">
               <ProfessionalDocumentsCard
                 professional={{ ...professional, documentos_adicionales: localDocuments }}
                 onDocumentsUpdate={handleDocumentsUpdate}

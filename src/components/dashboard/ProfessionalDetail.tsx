@@ -228,26 +228,27 @@ const ProfessionalDetail = ({
             onSendSMS={handleSendSMS}
           />
 
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 mt-6">
-            {/* Columna izquierda: Datos personales */}
-            <div className="space-y-4 xl:col-span-3">
+          <div className="columns-1 md:columns-2 xl:columns-3 gap-4 mt-4">
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <PersonalInfoCard professional={professional} />
             </div>
-
-            {/* Columna central: Formación y trabajo */}
-            <div className="space-y-4 xl:col-span-4">
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <EducationCard professional={professional} />
+            </div>
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <WorkplaceCard professional={professional} />
             </div>
-
-            {/* Columna derecha: Estado y documentos (más ancha) */}
-            <div className="space-y-4 xl:col-span-5">
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <ProfessionalCardInfo
                 professional={professional}
                 daysUntilRenewal={daysUntilRenewal}
                 isRenewalSoon={isRenewalSoon}
               />
+            </div>
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <StatusCard professional={professional} />
+            </div>
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <ProfessionalDocumentsCard
                 professional={{ ...professional, documentos_adicionales: localDocuments }}
                 onDocumentsUpdate={handleDocumentsUpdate}

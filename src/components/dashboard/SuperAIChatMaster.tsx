@@ -17,11 +17,13 @@ import {
   Clock,
   Save,
   AlertTriangle,
-  Download, // <-- NUEVA: Icono de Descarga
+  Download,
+  Trash2,      // <-- Nuevo: Icono para vaciar historial
+  RefreshCw,   // <-- Nuevo: Icono para nuevo chat
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import * as XLSX from "xlsx"; // <-- NUEVA: Importamos la librería XLSX
-import { saveAs } from "file-saver"; 
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 // --- CONSTANTES DE CACHÉ ---
 const CACHE_KEY = 'renaprosa_chat_history';
@@ -42,7 +44,7 @@ interface ChatMessage {
   sql?: string;
   result?: any[];
   error?: string;
-  action?: string; // <-- NUEVA: Campo para la acción (ej: 'GENERATE_XLSX_URL')
+  action?: string; // Campo para la acción (ej: 'GENERATE_XLSX_URL')
   navigationSuggestions?: NavigationSuggestion[];
 }
 
@@ -71,8 +73,7 @@ const getNavigationIcon = (tab: string) => {
   }
 };
 
-// --- HELPERS DE EXPORTACIÓN XLSX (NUEVA FUNCIÓN) ---
-
+// --- HELPERS DE EXPORTACIÓN XLSX ---
 /**
  * Función para exportar datos JSON a XLSX y disparar la descarga en el navegador.
  * @param data Array de objetos JSON a exportar.
@@ -112,7 +113,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
   const isInitialLoad = useRef(true);
   const { toast } = useToast();
 
-  // --- 1. LÓGICA DE PERSISTENCIA Y CACHE (Manteniendo la original) ---
+  // --- 1. LÓGICA DE PERSISTENCIA Y CACHE ---
 
   const initialAssistantMessage: ChatMessage = {
     role: 'assistant',
@@ -158,6 +159,37 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     setMessages([initialAssistantMessage]);
   }, [toast]);
 
+  // --- NUEVAS FUNCIONES PARA CONTROL DE CHAT ---
+
+  /**
+   * Inicia un nuevo chat, borrando el historial actual y la caché.
+   */
+  const handleNewChat = () => {
+    setMessages([initialAssistantMessage]);
+    localStorage.removeItem(CACHE_KEY);
+    toast({
+      title: "✨ Chat Reiniciado",
+      description: "Se ha iniciado una nueva conversación, borrando el historial actual del chat.",
+      duration: 3000,
+    });
+  };
+
+  /**
+   * Vacía la caché persistente para forzar la inicialización en el próximo inicio.
+   */
+  const handleClearCache = () => {
+    setMessages([initialAssistantMessage]); // Resetear el estado actual también por si acaso
+    localStorage.removeItem(CACHE_KEY);
+    toast({
+      title: "🗑️ Caché Eliminada",
+      description: "El historial de chat persistente (24h) ha sido vaciado completamente.",
+      duration: 3000,
+      variant: "destructive"
+    });
+  };
+
+  // ---------------------------------------------
+
   useEffect(() => {
     loadHistory();
     setSystemReady(true);
@@ -177,7 +209,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
-  // --- 2. LÓGICA DE NAVEGACIÓN CON ADVERTENCIA (Manteniendo la original) ---
+  // --- 2. LÓGICA DE NAVEGACIÓN CON ADVERTENCIA ---
 
   const handleNavigation = (suggestion: NavigationSuggestion) => {
     if (!onNavigateToTab) return;
@@ -229,17 +261,21 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       timestamp: new Date().toISOString(),
     };
 
-    const fullHistory = [...messages, userMessage];
-
-    const historyToPass = fullHistory.slice(-10).map(m => ({
-      role: m.role,
-      content: m.content
-    }));
+    // CORRECCIÓN 1: Cálculo robusto del historial para el payload
+    // Aseguramos que tomamos los últimos 9 mensajes del estado actual + la nueva pregunta.
+    const historyToPass = [
+      // Se mapea solo el 'role' y 'content' para la IA
+      ...messages.slice(-9).map(m => ({
+        role: m.role,
+        content: m.content
+      })),
+      { role: 'user', content: questionToSend } // Se añade la nueva pregunta
+    ];
 
     const payload = { messages: historyToPass };
     // ------------------------------------------------------------------------------------------------
 
-    // 1. Actualizar la UI inmediatamente con el mensaje del usuario
+    // 1. Actualizar la UI inmediatamente con el mensaje del usuario (USANDO CALLBACK CORRECTO)
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
@@ -254,37 +290,41 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         throw new Error((error as any)?.message || 'Error en la llamada a la Edge Function.');
       }
 
-      // CORRECCIÓN CLAVE: Extraer todos los campos, incluido 'action'
+      // CORRECCIÓN 2: Añadir verificación de estructura de la respuesta
+      if (!data || typeof data !== 'object' || !('natural_language_response' in data)) {
+        throw new Error(`Respuesta de Edge Function inválida. No se recibió el objeto JSON completo.`);
+      }
+
+
+      // Extraer todos los campos
       const {
         natural_language_response: naturalResponse,
         sql: assistantSQL,
         result: assistantResult,
         error: assistantError,
-        action: assistantAction, // <-- NUEVO: Capturar la acción del backend
+        action: assistantAction,
         navigationSuggestions: assistantSuggestions = [],
-      } = data as any || {};
+      } = data as any; // Se asume que 'data' es el cuerpo JSON de la respuesta
 
-      let assistantContent = '';
+      let assistantContent = naturalResponse || ''; // Usamos la respuesta natural como base.
       let toastTitle = "✅ Consulta Exitosa";
 
       if (assistantError) {
-        // Manejo de Error SQL
+        // Manejo de Error SQL. El backend ya puso el mensaje de error en naturalResponse.
         toastTitle = "❌ Error SQL";
-        assistantContent = `❌ **Error al ejecutar la consulta:** El motor SQL devolvió un error.
-                
-**Mensaje de error:** ${assistantError.slice(0, 150)}...
-`;
         toast({
           title: toastTitle,
           description: `El SQL generado no se pudo ejecutar.`,
           variant: "destructive"
         });
+        // Si el backend no puso un mensaje, usamos un fallback.
+        if (!assistantContent) {
+          assistantContent = `❌ **Error al ejecutar la consulta:** El motor SQL devolvió un error.`;
+        }
       } else {
         // Manejo de Respuesta Exitosa
-
         const rowCount = assistantResult?.length ?? 0;
 
-        // Si se solicita un XLSX, el contenido natural debe explicar el resultado y la descarga.
         if (assistantAction === 'GENERATE_XLSX_URL') {
           toastTitle = "🗂️ Reporte XLSX Listo";
           toast({
@@ -298,8 +338,10 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
           });
         }
 
-        assistantContent = naturalResponse ||
-          `✅ **Consulta Exitosa.** (No se recibió una respuesta natural). Se obtuvieron **${rowCount}** filas.`;
+        // Fallback si naturalResponse está vacío pero no hubo error de DB
+        if (!assistantContent) {
+          assistantContent = `✅ **Consulta Exitosa.** Se obtuvieron **${rowCount}** filas.`;
+        }
 
         if (assistantSuggestions.length > 0) {
           assistantContent += "\n\n**¡Acciones Sugeridas disponibles debajo!**";
@@ -314,10 +356,11 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         sql: assistantSQL,
         result: assistantResult,
         error: assistantError,
-        action: assistantAction, // <-- GUARDADO DE LA ACCIÓN
+        action: assistantAction,
         navigationSuggestions: assistantSuggestions,
       };
 
+      // CORRECCIÓN 3: Uso del callback funcional para garantizar que se agrega al final del estado actualizado.
       setMessages(prev => [...prev, assistantMessage]);
 
     } catch (error: any) {
@@ -329,6 +372,8 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         timestamp: new Date().toISOString(),
         error: friendly,
       };
+
+      // CORRECCIÓN 3: Uso del callback funcional para garantizar que se agrega al final del estado actualizado.
       setMessages(prev => [...prev, errorMessage]);
 
       toast({
@@ -341,6 +386,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     }
   };
   // ----------------------------------------------------
+
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && !loading && input.trim()) {
@@ -382,6 +428,31 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
+
+            {/* Nuevo Botón: Iniciar un nuevo chat */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNewChat}
+              disabled={loading}
+              className="h-8"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Nuevo Chat
+            </Button>
+
+            {/* Nuevo Botón: Vaciar la caché persistente (similar al anterior, pero con distinta etiqueta/tono) */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearCache}
+              disabled={loading}
+              className="h-8"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Vaciar Caché
+            </Button>
+
             <Badge variant={systemReady ? "default" : "secondary"}>
               {systemReady ? "✅ Activo" : "⏳ Cargando"}
             </Badge>
@@ -423,7 +494,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
                   <div className="text-sm" dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br/>') }} />
                 </div>
 
-                {/* --- Bloque de Descarga XLSX (NUEVA LÓGICA) --- */}
+                {/* --- Bloque de Descarga XLSX --- */}
                 {message.role === 'assistant' &&
                   message.action === 'GENERATE_XLSX_URL' &&
                   message.result &&

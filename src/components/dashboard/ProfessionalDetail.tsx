@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,6 +28,7 @@ import ProfessionalCardInfo from "./professional-detail/ProfessionalCardInfo";
 // NUEVOS COMPONENTES
 import StatusCard from "./professional-detail/StatusCard"; 
 import ProfessionalDocumentsCard from "./professional-detail/ProfessionalDocumentsCard";
+import NotificationAlerts from "./professional-detail/NotificationAlerts";
 
 interface ProfessionalDetailProps {
   professional: Profesional;
@@ -53,7 +54,7 @@ const ProfessionalDetail = ({
 
   // Sincronizar documentos locales con el prop inicial si cambia el ID del profesional
   // o si es la primera vez que se renderiza.
-  useState(() => {
+  useEffect(() => {
       setLocalDocuments(professional.documentos_adicionales || []);
   }, [professional.id]);
 
@@ -184,7 +185,7 @@ const ProfessionalDetail = ({
 
   return (
     <Dialog open={!!professional} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span className="flex items-center space-x-2">
@@ -227,29 +228,27 @@ const ProfessionalDetail = ({
             onSendSMS={handleSendSMS}
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-            {/* Columna izquierda: Datos personales */}
-            <div className="space-y-4">
+          <div className="columns-1 md:columns-2 xl:columns-3 gap-4 mt-4">
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <PersonalInfoCard professional={professional} />
             </div>
-
-            {/* Columna central: Formación y trabajo */}
-            <div className="space-y-4">
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <EducationCard professional={professional} />
+            </div>
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <WorkplaceCard professional={professional} />
             </div>
-
-            {/* Columna derecha: Estado y documentos */}
-            <div className="space-y-4">
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <ProfessionalCardInfo
                 professional={professional}
                 daysUntilRenewal={daysUntilRenewal}
                 isRenewalSoon={isRenewalSoon}
               />
-              {/* Uso del nuevo componente StatusCard (solo estado/fechas) */}
+            </div>
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <StatusCard professional={professional} />
-              
-              {/* Uso del nuevo componente ProfessionalDocumentsCard (documentos) */}
+            </div>
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <ProfessionalDocumentsCard
                 professional={{ ...professional, documentos_adicionales: localDocuments }}
                 onDocumentsUpdate={handleDocumentsUpdate}

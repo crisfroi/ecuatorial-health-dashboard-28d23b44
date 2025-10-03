@@ -5,8 +5,8 @@ import { Separator } from '@/components/ui/separator';
 import { FileText, Download, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Profesional } from '@/hooks/useProfesionales';
-import AdditionalDocuments from '@/components/AdditionalDocuments'; 
-import ApprovalLetter from './ApprovalLetter'; // Importa el componente de la carta
+import AdditionalDocuments from '@/components/dashboard/AdditionalDocuments'; 
+import ApprovalLetter from '@/components/registration/ApprovalLetter.tsx';
 
 // Importaciones para PDF (generación en cliente)
 import html2canvas from 'html2canvas';
@@ -121,31 +121,26 @@ const ProfessionalDocumentsCard = ({ professional, onDocumentsUpdate }: Professi
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-2">
         <CardTitle className="flex items-center space-x-2">
           <FileText className="w-5 h-5 text-purple-600" />
           <span>Documentos del Expediente</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        
+      <CardContent className="space-y-4 pt-2">
         {/* Contenedor Oculto de la Carta de Resolución para la Captura */}
-        {/* La clave aquí es que el componente SÍ debe estar en el DOM para la captura */}
-        <div 
+        <div
           style={{ position: 'absolute', left: '-9999px', top: '-9999px', width: '210mm', zIndex: -1 }}
         >
-          {/* Se pasa el objeto professional completo y la fecha de documento fija */}
           <ApprovalLetter professional={professional} documentDate={documentDate} />
         </div>
 
         {/* Documentos Oficiales VISIBLES */}
-        <div className="space-y-3">
-          <h4 className="font-semibold text-base mb-2 border-b pb-1">Documentos Oficiales</h4>
-          
-          {/* Carnet Profesional */}
+        <div className="space-y-2">
+          <h4 className="font-semibold text-base mb-1 border-b pb-1">Documentos Oficiales</h4>
           {professional.numero_carnet_profesional && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full justify-start"
               onClick={() => window.open(`/api/documents/carnet/${professional.id}`, '_blank')}
             >
@@ -153,11 +148,8 @@ const ProfessionalDocumentsCard = ({ professional, onDocumentsUpdate }: Professi
               Carnet Profesional (PDF)
             </Button>
           )}
-          
-          {/* Ficha de Solicitud */}
-          {/* Asumiendo que este endpoint existe */}
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="w-full justify-start"
             onClick={() => window.open(`/api/documents/solicitud/${professional.id}`, '_blank')}
           >
@@ -165,9 +157,8 @@ const ProfessionalDocumentsCard = ({ professional, onDocumentsUpdate }: Professi
             Ficha de Solicitud (PDF)
           </Button>
 
-          {/* Carta de Resolución (Generación en Cliente) */}
           {(professional.estado_solicitud === 'Aprobado' || professional.estado_solicitud === 'Pendiente de Firma') && (
-            <Button 
+            <Button
               variant="default"
               className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white"
               onClick={handleGenerateAndDownloadResolution}
@@ -187,13 +178,13 @@ const ProfessionalDocumentsCard = ({ professional, onDocumentsUpdate }: Professi
             </Button>
           )}
         </div>
-        
+
         <Separator />
-        
+
         {/* Documentos Adicionales (Integrado) */}
-        <div className='space-y-4'>
-          <h4 className="font-semibold text-base mb-2 border-b pb-1">Documentos Adicionales</h4>
-          <AdditionalDocuments 
+        <div className='space-y-3'>
+          <h4 className="font-semibold text-base mb-1 border-b pb-1">Documentos Adicionales</h4>
+          <AdditionalDocuments
             professionalId={professional.id}
             existingDocuments={professional.documentos_adicionales}
             onDocumentsUpdate={onDocumentsUpdate}

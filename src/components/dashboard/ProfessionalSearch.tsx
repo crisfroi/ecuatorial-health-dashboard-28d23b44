@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,28 +12,28 @@ import {
   MapPin,
   Calendar,
   Phone,
-  Mail,
   Briefcase,
   X,
-  Camera,
   StopCircle,
+  Building2, // Añadido para el icono de funcionario
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
 interface ProfessionalSearchProps {
-  onSelectProfessional?: (professional: any) => void;
+  onSelectProfessional?: (professional: Professional) => void; // Tipado a Professional
   onNavigateToProfessionals?: () => void;
 }
 
+// Interfaz extendida con los campos de la situación laboral
 interface Professional {
   id: string;
   id_profesional_unico: string;
   codigo_expediente: string;
   nombre_completo: string;
-  documento_identidad: string;
+  documento_identidad: string; // Campo calculado
   area_profesional: string;
-  lugar_trabajo: string;
+  lugar_trabajo: string; // Campo calculado
   estado_solicitud: string;
   provincia: string;
   distrito: string;
@@ -41,6 +41,16 @@ interface Professional {
   email: string;
   fecha_validez_carnet: string;
   created_at: string;
+  // Nuevos campos de la DB
+  funcion_publica: boolean | null;
+  estatus_funcionario: 'nombrado' | 'no_nombrado' | null;
+  numero_funcionario: string | null;
+  fecha_nombramiento: string | null;
+  fecha_inicio_trabajo: string | null;
+  // Campos de la DB usados en el mapeo
+  numero_dip: string | null;
+  numero_pasaporte: string | null;
+  nombre_centro: string | null;
 }
 
 const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
@@ -56,6 +66,45 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
+
+  // 1. Lógica de formateo de fecha (copiada de GlobalSearch)
+  const formatDate = (value?: string | null) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return parsed.toLocaleDateString('es-ES');
+  };
+
+  // 2. Lógica para obtener el detalle de funcionario (adaptada de GlobalSearch)
+  const getFuncionarioMeta = (p: Professional): string => {
+    if (!p.funcion_publica) {
+      return 'Personal no funcionario';
+    }
+
+    // Si no tiene estatus, pero sí función pública
+    const baseLabel = p.estatus_funcionario === 'nombrado'
+      ? 'Funcionario nombrado'
+      : p.estatus_funcionario === 'no_nombrado'
+        ? 'Contratado público'
+        : 'Estatus desconocido';
+
+    const details: string[] = [];
+    if (p.numero_funcionario) {
+      details.push(`Nº ${p.numero_funcionario}`);
+    }
+    if (p.estatus_funcionario === 'nombrado' && p.fecha_nombramiento) {
+      const formatted = formatDate(p.fecha_nombramiento);
+      if (formatted) details.push(`Nombramiento: ${formatted}`);
+    }
+    if (p.estatus_funcionario === 'no_nombrado' && p.fecha_inicio_trabajo) {
+      const formatted = formatDate(p.fecha_inicio_trabajo);
+      if (formatted) details.push(`Inicio: ${formatted}`);
+    }
+
+    return details.length > 0 ? `${baseLabel} (${details.join(' • ')})` : baseLabel;
+  };
 
   // Cleanup camera stream on unmount
   useEffect(() => {
@@ -76,9 +125,15 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
     setError(null);
 
     try {
+      // 1. SELECT ACTUALIZADO: Añadimos todos los campos de funcionario público.
       const { data, error } = await supabase
         .from("profesionales_sanitarios")
-        .select("*")
+        .select(`
+          id, id_profesional_unico, codigo_expediente, nombre_completo, area_profesional, 
+          estado_solicitud, provincia, distrito, telefono, email, fecha_validez_carnet, 
+          created_at, numero_dip, numero_pasaporte, nombre_centro,
+          funcion_publica, estatus_funcionario, numero_funcionario, fecha_nombramiento, fecha_inicio_trabajo
+        `)
         .or(
           `nombre_completo.ilike.%${query}%,id_profesional_unico.ilike.%${query}%,codigo_expediente.ilike.%${query}%`,
         )
@@ -90,9 +145,10 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
 
       setSearchResults((data || []).map(item => ({
         ...item,
+        // Campos calculados para el mapeo
         documento_identidad: item.numero_dip || item.numero_pasaporte || '',
         lugar_trabajo: item.nombre_centro || ''
-      })));
+      })) as Professional[]); // Casteamos al tipo Professional
 
       if (data && data.length === 0) {
         setError(`No se encontraron profesionales con "${query}"`);
@@ -108,102 +164,129 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    searchProfessionals(searchTerm);
-  };
+  // Handlers and scanning logic
+  const debounceRef = useRef<number | null>(null);
+  const scanIntervalRef = useRef<number | null>(null);
+  const canvasElRef = useRef<HTMLCanvasElement | null>(null);
 
-  const handleInputChange = (value: string) => {
-    setSearchTerm(value);
-    // Auto-search as user types (debounced)
-    if (value.length >= 3) {
-      const timeoutId = setTimeout(() => {
-        searchProfessionals(value);
-      }, 500);
-      return () => clearTimeout(timeoutId);
-    } else if (value.length === 0) {
+  const handleInputChange = (val: string) => {
+    setSearchTerm(val);
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    const trimmed = val.trim();
+    if (trimmed.length < 2) {
       setSearchResults([]);
       setError(null);
+      return;
     }
+    debounceRef.current = window.setTimeout(() => {
+      void searchProfessionals(trimmed);
+    }, 300);
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchTerm.trim();
+    if (!q) { setSearchResults([]); return; }
+    await searchProfessionals(q);
   };
 
   const startBarcodeScanning = async () => {
     try {
-      setIsScanning(true);
+      if (!videoRef.current) return;
       setError(null);
-
-      // Request camera permission
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "environment", // Use back camera if available
-        },
+        video: { facingMode: 'environment' }
       });
-
       streamRef.current = stream;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play().catch(() => {});
+      setIsScanning(true);
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
+      const BarcodeDetectorCtor = (window as any).BarcodeDetector;
+      if (!BarcodeDetectorCtor) {
+        toast({
+          title: 'Escaneo no soportado',
+          description: 'Tu navegador no soporta escaneo de códigos. Usa Chrome/Edge en móvil o escritorio.',
+          variant: 'destructive'
+        });
+        stopBarcodeScanning();
+        return;
       }
 
-      // Note: For a real barcode scanner, you would integrate a library like QuaggaJS or ZXing
-      // For now, we'll simulate with a manual input after scanning
-      toast({
-        title: "Cámara activada",
-        description:
-          "Apunta la cámara hacia el código de barras. Presiona 'Detener' para introducir el código manualmente.",
+      const detector = new BarcodeDetectorCtor({
+        formats: ['code_128', 'ean_13', 'qr_code', 'pdf417', 'codabar', 'code_39']
       });
+
+      if (!canvasElRef.current) {
+        canvasElRef.current = document.createElement('canvas');
+      }
+
+      scanIntervalRef.current = window.setInterval(async () => {
+        try {
+          const video = videoRef.current!;
+          if (!video || video.readyState < 2) return;
+          let codes: Array<{ rawValue?: string }> = [];
+          try {
+            codes = await detector.detect(video as unknown as CanvasImageSource);
+          } catch {
+            const canvas = canvasElRef.current!;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              codes = await detector.detect(canvas);
+            }
+          }
+          if (codes && codes.length > 0) {
+            const value = codes[0]?.rawValue || '';
+            if (value) {
+              setScanResult(value);
+              setSearchTerm(value);
+              stopBarcodeScanning();
+              await searchProfessionals(value);
+            }
+          }
+        } catch (err) {
+          console.warn('Barcode scan error:', err);
+        }
+      }, 500);
     } catch (err: any) {
-      console.error("Error accessing camera:", err);
-      let errorMessage = "Error desconocido al acceder a la cámara";
-
-      if (
-        err.name === "NotAllowedError" ||
-        err.message.includes("Permission denied")
-      ) {
-        errorMessage =
-          "Permisos de cámara denegados. Por favor, permite el acceso a la cámara para usar el escáner.";
-      } else if (err.name === "NotFoundError") {
-        errorMessage = "No se encontró ninguna cámara en este dispositivo.";
-      } else if (err.name === "NotSupportedError") {
-        errorMessage = "El navegador no soporta el acceso a la cámara.";
-      } else if (err.name === "NotReadableError") {
-        errorMessage = "La cámara está siendo usada por otra aplicación.";
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-
-      setError(`Error al acceder a la cámara: ${errorMessage}`);
+      console.error('Error starting camera', err);
+      setError(err?.message || 'No se pudo iniciar la cámara');
       setIsScanning(false);
-
-      toast({
-        title: "Error de cámara",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
     }
   };
 
   const stopBarcodeScanning = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
+    if (scanIntervalRef.current) {
+      window.clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
     }
-
     if (videoRef.current) {
+      try { videoRef.current.pause(); } catch {}
       videoRef.current.srcObject = null;
     }
-
-    setIsScanning(false);
-
-    // For demo purposes, show a prompt to enter the scanned code
-    const scannedCode = prompt("Introduce el código de barras escaneado:");
-    if (scannedCode) {
-      setScanResult(scannedCode);
-      setSearchTerm(scannedCode);
-      searchProfessionals(scannedCode);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
     }
+    setIsScanning(false);
   };
+
+  useEffect(() => {
+    return () => {
+      if (scanIntervalRef.current) {
+        window.clearInterval(scanIntervalRef.current);
+        scanIntervalRef.current = null;
+      }
+    };
+  }, []);
+
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -369,6 +452,14 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                            {/* NUEVO DETALLE: Estatus de Funcionario */}
+                            <div className="flex items-center gap-1 col-span-1 md:col-span-2 text-gray-800 font-medium">
+                              <Building2 className="w-4 h-4 text-purple-600" />
+                              <span>
+                                {getFuncionarioMeta(professional)}
+                              </span>
+                            </div>
+
                             <div className="flex items-center gap-1">
                               <FileText className="w-4 h-4" />
                               <span>

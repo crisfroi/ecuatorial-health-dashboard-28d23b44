@@ -287,7 +287,6 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
     };
   }, []);
 
-  // ... (Omitidas por brevedad, pero permanecen iguales)
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {

@@ -18,8 +18,8 @@ import {
   Save,
   AlertTriangle,
   Download,
-  PlusCircle, // Nuevo: Icono para Nuevo Chat
-  Trash2, // Nuevo: Icono para Borrar Cache
+  PlusCircle,
+  // Trash2, // Eliminado ya que no se usa en el código
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from "xlsx";
@@ -74,26 +74,15 @@ const getNavigationIcon = (tab: string) => {
 };
 
 // --- HELPERS DE EXPORTACIÓN XLSX ---
-
-/**
- * Función para exportar datos JSON a XLSX y disparar la descarga en el navegador.
- * @param data Array de objetos JSON a exportar.
- * @param fileName Nombre base del archivo.
- */
 const exportToXLSX = (data: any[], fileName: string = "reporte_datos") => {
   if (!data || data.length === 0) return;
 
-  // 1. Crear la hoja de cálculo a partir del JSON
   const ws = XLSX.utils.json_to_sheet(data);
-
-  // 2. Crear el libro (Workbook)
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Datos");
 
-  // 3. Escribir el archivo como un ArrayBuffer (formato binario)
   const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
 
-  // 4. Crear un Blob y guardar el archivo usando file-saver
   const dataBlob = new Blob([excelBuffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
@@ -121,6 +110,16 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     timestamp: new Date().toISOString(),
   };
 
+  /**
+   * REFACTORIZADO: Acepta el comportamiento de scroll.
+   * Usamos 0ms de delay para asegurar que el scroll ocurre inmediatamente después de la actualización del DOM,
+   * reduciendo el parpadeo.
+   */
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    setTimeout(() => scrollRef.current?.scrollIntoView({ behavior }), 0);
+  };
+
+
   // --- 1. LÓGICA DE PERSISTENCIA Y CACHE ---
 
   const saveHistory = useCallback((currentMessages: ChatMessage[]) => {
@@ -147,6 +146,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
 
         if (age < CACHE_DURATION_MS) {
           setMessages(parsed.messages);
+          scrollToBottom('instant'); // <-- Scroll instantáneo al cargar historial
           toast({
             title: "Historial Recuperado",
             description: "Se cargó la conversación anterior. Se borrará automáticamente tras 24h o al iniciar un nuevo chat.",
@@ -163,6 +163,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       }
     }
     setMessages([initialAssistantMessage]);
+    scrollToBottom('instant'); // <-- Scroll instantáneo al iniciar nuevo chat
   }, [toast, initialAssistantMessage]);
 
   useEffect(() => {
@@ -171,23 +172,27 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     isInitialLoad.current = false;
   }, [loadHistory]);
 
+  /**
+   * REFACTORIZADO: Se eliminó la llamada a scrollToBottom() de este efecto 
+   * para evitar re-scrolleos innecesarios o saltos durante la carga de estado.
+   * El scroll ahora se maneja en loadHistory y sendMessage.
+   */
   useEffect(() => {
     if (!isInitialLoad.current) {
       saveHistory(messages);
     }
-    scrollToBottom();
+    // scrollToBottom() ELIMINADO
   }, [messages, saveHistory]);
 
   // --- 2. NUEVAS FUNCIONES DE CHAT ---
 
-  /**
-   * Inicia un chat nuevo, borrando la conversación actual en el estado y en el caché.
-   */
   const handleNewChat = () => {
     if (loading) return;
     setMessages([initialAssistantMessage]);
     localStorage.removeItem(CACHE_KEY);
     setInput('');
+    // Scroll instantáneo después de reiniciar
+    scrollToBottom('instant');
     toast({
       title: "Nuevo Chat Iniciado",
       description: "El historial local ha sido vaciado y se ha iniciado una nueva conversación.",
@@ -195,9 +200,6 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     });
   };
 
-  /**
-   * Guarda manualmente el historial actual.
-   */
   const handleSaveChat = () => {
     const saved = saveHistory(messages);
     if (saved) {
@@ -216,13 +218,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
   };
 
 
-  // -------------------------------------------
-
-  const scrollToBottom = () => {
-    setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-  };
-
-  // --- 3. LÓGICA DE NAVEGACIÓN CON ADVERTENCIA (REVISADA) ---
+  // --- 3. LÓGICA DE NAVEGACIÓN CON ADVERTENCIA ---
 
   const handleNavigation = (suggestion: NavigationSuggestion) => {
     if (!onNavigateToTab) return;
@@ -291,6 +287,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
+    scrollToBottom('smooth'); // <-- Scroll suave después del mensaje del usuario
 
     try {
       // Llamada a la Edge Function
@@ -369,6 +366,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      scrollToBottom('smooth'); // <-- Scroll suave después de la respuesta
 
     } catch (error: any) {
       const friendly = error.message || 'Error del sistema de IA. Revise logs de Edge Function.';
@@ -387,6 +385,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         description: friendly,
         variant: "destructive"
       });
+      scrollToBottom('smooth'); // Scroll suave en caso de error
     } finally {
       setLoading(false);
     }
@@ -483,18 +482,22 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
                   <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
                 </div>
 
+                {/* REFACTORIZADO: Clases Tailwind para el fondo */}
                 <div className="prose prose-sm max-w-none rounded-lg p-3 whitespace-pre-wrap" style={{
                   marginLeft: message.role === 'user' ? '1.5rem' : 0,
                   marginRight: message.role === 'assistant' ? '1.5rem' : 0,
-                  backgroundColor: message.role === 'user'
-                    ? 'var(--primary-100)'
-                    : (message.error
-                      ? 'var(--red-50)'
-                      : 'var(--accent-100)'),
-                  border: message.error ? '1px solid var(--red-300)' : 'none',
-                  color: message.role === 'user' ? 'inherit' : (message.error ? 'var(--red-700)' : 'inherit'),
-                }}>
-                  <div className="text-sm" dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br/>') }} />
+                }}
+                  className={`
+                    text-sm 
+                    ${message.role === 'user'
+                      ? 'bg-blue-50 text-gray-800' // Usuario (similar a primary-100)
+                      : message.error
+                        ? 'bg-red-50 text-red-700 border border-red-300' // Error
+                        : 'bg-green-50 text-gray-800' // Asistente (similar a accent-100)
+                    }
+                  `}
+                >
+                  <div dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br/>') }} />
                 </div>
 
                 {/* --- Bloque de Descarga XLSX --- */}

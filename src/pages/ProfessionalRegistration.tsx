@@ -495,7 +495,7 @@ const ProfessionalRegistration = () => {
         domicilio: U(data.domicilio),
         provincia: U(data.provincia),
         distrito: U(data.distrito),
-        area_profesional: U(data.area_profesional),
+        area_profesional: data.area_profesional
         especialidad: data.especialidad ? U(data.especialidad) : null,
         categoria_titulacion: U(data.categoria_titulacion),
         titulacion_especifica_1: U(data.titulacion_especifica_1),

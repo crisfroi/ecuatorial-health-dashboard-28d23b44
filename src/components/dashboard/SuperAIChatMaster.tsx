@@ -17,10 +17,12 @@ import {
   Clock,
   Save,
   AlertTriangle,
-  Download, // <-- Icono de Descarga
+  Download,
+  PlusCircle, // Nuevo: Icono para Nuevo Chat
+  Trash2, // Nuevo: Icono para Borrar Cache
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import * as XLSX from "xlsx"; // <-- Importamos la librería XLSX
+import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
 // --- CONSTANTES DE CACHÉ ---
@@ -112,23 +114,27 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
   const isInitialLoad = useRef(true);
   const { toast } = useToast();
 
-  // --- 1. LÓGICA DE PERSISTENCIA Y CACHE ---
-
+  // --- CONSTANTE DEL MENSAJE INICIAL ---
   const initialAssistantMessage: ChatMessage = {
     role: 'assistant',
     content: 'Bienvenido/a. Soy RENAPROSA, tu asistente para consultas sobre profesionales, centros y estadísticas. Responderé en lenguaje claro y te ofreceré accesos directos cuando aplique.',
     timestamp: new Date().toISOString(),
   };
 
+  // --- 1. LÓGICA DE PERSISTENCIA Y CACHE ---
+
   const saveHistory = useCallback((currentMessages: ChatMessage[]) => {
+    // Solo guardamos si hay más del mensaje inicial
     if (currentMessages.length > 1) {
       const historyToSave: SavedHistory = {
         messages: currentMessages,
         timestamp: Date.now(),
       };
       localStorage.setItem(CACHE_KEY, JSON.stringify(historyToSave));
+      return true; // Retorna true si se guardó
     } else {
       localStorage.removeItem(CACHE_KEY);
+      return false; // Retorna false si no había nada que guardar
     }
   }, []);
 
@@ -143,11 +149,12 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
           setMessages(parsed.messages);
           toast({
             title: "Historial Recuperado",
-            description: "Se cargó la conversación anterior. Se borrará automáticamente tras 24h de inactividad.",
+            description: "Se cargó la conversación anterior. Se borrará automáticamente tras 24h o al iniciar un nuevo chat.",
             variant: "default",
           });
           return;
         } else {
+          // Borrar si es muy viejo
           localStorage.removeItem(CACHE_KEY);
         }
       } catch (e) {
@@ -156,7 +163,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       }
     }
     setMessages([initialAssistantMessage]);
-  }, [toast]);
+  }, [toast, initialAssistantMessage]);
 
   useEffect(() => {
     loadHistory();
@@ -171,17 +178,56 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     scrollToBottom();
   }, [messages, saveHistory]);
 
+  // --- 2. NUEVAS FUNCIONES DE CHAT ---
+
+  /**
+   * Inicia un chat nuevo, borrando la conversación actual en el estado y en el caché.
+   */
+  const handleNewChat = () => {
+    if (loading) return;
+    setMessages([initialAssistantMessage]);
+    localStorage.removeItem(CACHE_KEY);
+    setInput('');
+    toast({
+      title: "Nuevo Chat Iniciado",
+      description: "El historial local ha sido vaciado y se ha iniciado una nueva conversación.",
+      variant: "default",
+    });
+  };
+
+  /**
+   * Guarda manualmente el historial actual.
+   */
+  const handleSaveChat = () => {
+    const saved = saveHistory(messages);
+    if (saved) {
+      toast({
+        title: "Historial Guardado",
+        description: "La conversación actual se ha guardado manualmente. La persistencia automática se mantendrá por 24h.",
+        variant: "default",
+      });
+    } else {
+      toast({
+        title: "Sin Contenido para Guardar",
+        description: "No hay mensajes en el chat (aparte del saludo inicial) para guardar.",
+        variant: "secondary",
+      });
+    }
+  };
+
+
   // -------------------------------------------
 
   const scrollToBottom = () => {
     setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
-  // --- 2. LÓGICA DE NAVEGACIÓN CON ADVERTENCIA ---
+  // --- 3. LÓGICA DE NAVEGACIÓN CON ADVERTENCIA (REVISADA) ---
 
   const handleNavigation = (suggestion: NavigationSuggestion) => {
     if (!onNavigateToTab) return;
 
+    // Si solo está el mensaje inicial, navega sin advertencia
     if (messages.length <= 1) {
       onNavigateToTab(suggestion.tab, suggestion.filters);
       return;
@@ -189,15 +235,15 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
 
     toast({
       title: <div className='flex items-center gap-2'><AlertTriangle className='w-5 h-5 text-yellow-500' /> Advertencia de Navegación</div>,
-      description: `¿Estás seguro de que quieres salir de la pestaña? El historial de chat (últimas ${messages.length - 1} entradas) se perderá si no lo guardas o si pasa el límite de 24h.`,
+      description: `Estás a punto de salir de la pestaña. ¿Deseas guardar el historial de chat (últimas ${messages.length - 1} entradas) antes de continuar?`,
       variant: "default",
       action: (
         <div className="flex flex-col gap-2 p-1">
           <Button
             variant="default"
             onClick={() => {
-              saveHistory(messages);
-              onNavigateToTab(suggestion.tab, suggestion.filters);
+              saveHistory(messages); // Guardar
+              onNavigateToTab(suggestion.tab, suggestion.filters); // Navegar
             }}
             className="w-full justify-start"
           >
@@ -205,7 +251,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
           </Button>
           <Button
             variant="secondary"
-            onClick={() => onNavigateToTab(suggestion.tab, suggestion.filters)}
+            onClick={() => onNavigateToTab(suggestion.tab, suggestion.filters)} // Navegar sin guardar
             className="w-full justify-start"
           >
             Continuar (sin guardar)
@@ -216,7 +262,7 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     });
   };
 
-  // --- 3. FUNCIÓN DE ENVÍO Y COMUNICACIÓN CON BACKEND (CORREGIDA) ---
+  // --- 4. FUNCIÓN DE ENVÍO Y COMUNICACIÓN CON BACKEND ---
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -229,10 +275,9 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
       timestamp: new Date().toISOString(),
     };
 
-    // CORRECCIÓN 1: Cálculo robusto del historial para el payload
-    // Aseguramos que tomamos los últimos 9 mensajes del estado actual + la nueva pregunta.
+    // Cálculo robusto del historial para el payload (máximo 10 mensajes)
     const historyToPass = [
-      // Se mapea solo el 'role' y 'content' para la IA
+      // Se mapea solo el 'role' y 'content' para la IA, tomando hasta 9 anteriores
       ...messages.slice(-9).map(m => ({
         role: m.role,
         content: m.content
@@ -241,9 +286,8 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
     ];
 
     const payload = { messages: historyToPass };
-    // ------------------------------------------------------------------------------------------------
 
-    // 1. Actualizar la UI inmediatamente con el mensaje del usuario (USANDO CALLBACK CORRECTO)
+    // 1. Actualizar la UI inmediatamente con el mensaje del usuario
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
@@ -258,11 +302,9 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         throw new Error((error as any)?.message || 'Error en la llamada a la Edge Function.');
       }
 
-      // CORRECCIÓN 2: Añadir verificación de estructura de la respuesta
       if (!data || typeof data !== 'object' || !('natural_language_response' in data)) {
         throw new Error(`Respuesta de Edge Function inválida. No se recibió el objeto JSON completo.`);
       }
-
 
       // Extraer todos los campos
       const {
@@ -272,20 +314,19 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         error: assistantError,
         action: assistantAction,
         navigationSuggestions: assistantSuggestions = [],
-      } = data as any; // Se asume que 'data' es el cuerpo JSON de la respuesta
+      } = data as any;
 
-      let assistantContent = naturalResponse || ''; // Usamos la respuesta natural como base.
+      let assistantContent = naturalResponse || '';
       let toastTitle = "✅ Consulta Exitosa";
 
       if (assistantError) {
-        // Manejo de Error SQL. El backend ya puso el mensaje de error en naturalResponse.
+        // Manejo de Error SQL.
         toastTitle = "❌ Error SQL";
         toast({
           title: toastTitle,
           description: `El SQL generado no se pudo ejecutar.`,
           variant: "destructive"
         });
-        // Si el backend no puso un mensaje, usamos un fallback.
         if (!assistantContent) {
           assistantContent = `❌ **Error al ejecutar la consulta:** El motor SQL devolvió un error.`;
         }
@@ -306,7 +347,6 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
           });
         }
 
-        // Fallback si naturalResponse está vacío pero no hubo error de DB
         if (!assistantContent) {
           assistantContent = `✅ **Consulta Exitosa.** Se obtuvieron **${rowCount}** filas.`;
         }
@@ -328,7 +368,6 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         navigationSuggestions: assistantSuggestions,
       };
 
-      // CORRECCIÓN 3: Uso del callback funcional para garantizar que se agrega al final del estado actualizado.
       setMessages(prev => [...prev, assistantMessage]);
 
     } catch (error: any) {
@@ -341,7 +380,6 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
         error: friendly,
       };
 
-      // CORRECCIÓN 3: Uso del callback funcional para garantizar que se agrega al final del estado actualizado.
       setMessages(prev => [...prev, errorMessage]);
 
       toast({
@@ -383,22 +421,45 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
   return (
     <div className="space-y-4">
       <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
-        <CardHeader className="flex flex-row items-center gap-3 pb-4">
-          <div className="flex items-center gap-2">
+        <CardHeader className="flex flex-row items-start gap-3 pb-4">
+          <div className="flex items-center gap-2 pt-1">
             <Brain className="w-6 h-6 text-primary animate-pulse" />
             <Sparkles className="w-4 h-4 text-accent" />
           </div>
-          <div>
+          <div className="flex-1">
             <CardTitle className="text-xl text-primary">RENAPROSA · Asistente Inteligente</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
               Traduce, recuerda el contexto, ejecuta y resume en lenguaje natural
             </p>
           </div>
-          <div className="ml-auto flex items-center gap-2">
+
+          {/* --- NUEVOS BOTONES DE ACCIÓN --- */}
+          <div className="ml-auto flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSaveChat}
+              disabled={loading || messages.length <= 1}
+              className="text-xs h-8"
+            >
+              <Save className="w-4 h-4 mr-1 shrink-0" />
+              Guardar Historial
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleNewChat}
+              disabled={loading || messages.length <= 1} // Deshabilitar si solo está el mensaje inicial o cargando
+              className="text-xs h-8 bg-red-500 hover:bg-red-600 text-white"
+            >
+              <PlusCircle className="w-4 h-4 mr-1 shrink-0" />
+              Nuevo Chat
+            </Button>
             <Badge variant={systemReady ? "default" : "secondary"}>
               {systemReady ? "✅ Activo" : "⏳ Cargando"}
             </Badge>
           </div>
+          {/* ---------------------------------- */}
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -579,12 +640,8 @@ const SuperAIChatMaster: React.FC<SuperAIChatMasterProps> = ({
                 <span>Asistente impulsado por IA con respaldo automático</span>
               </div>
               <div className="flex items-center gap-1">
-                <Sparkles className="w-3 h-3" />
-                <span>Respuestas en lenguaje natural</span>
-              </div>
-              <div className="flex items-center gap-1">
                 <Save className="w-3 h-3" />
-                <span>Historial: Guardado y Reinicio cada 24h</span>
+                <span>Historial: Guardado y Reinicio automático cada 24h</span>
               </div>
             </div>
           )}

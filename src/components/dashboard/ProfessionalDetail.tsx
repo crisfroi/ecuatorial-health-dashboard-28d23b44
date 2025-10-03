@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,6 +28,7 @@ import ProfessionalCardInfo from "./professional-detail/ProfessionalCardInfo";
 // NUEVOS COMPONENTES
 import StatusCard from "./professional-detail/StatusCard"; 
 import ProfessionalDocumentsCard from "./professional-detail/ProfessionalDocumentsCard";
+import NotificationAlerts from "./professional-detail/NotificationAlerts";
 
 interface ProfessionalDetailProps {
   professional: Profesional;
@@ -53,7 +54,7 @@ const ProfessionalDetail = ({
 
   // Sincronizar documentos locales con el prop inicial si cambia el ID del profesional
   // o si es la primera vez que se renderiza.
-  useState(() => {
+  useEffect(() => {
       setLocalDocuments(professional.documentos_adicionales || []);
   }, [professional.id]);
 

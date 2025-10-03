@@ -7,7 +7,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AlertTriangle, MessageSquare } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface NotificationAlertsProps {
   isRenewalSoon: boolean;

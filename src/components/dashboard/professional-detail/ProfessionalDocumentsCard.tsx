@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { FileText, Download, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Profesional } from '@/hooks/useProfesionales';
-import AdditionalDocuments from '@/components/AdditionalDocuments'; 
+import AdditionalDocuments from '@/components/dashboard/AdditionalDocuments'; 
 import ApprovalLetter from '@/components/registration/ApprovalLetter.tsx';
 
 // Importaciones para PDF (generación en cliente)

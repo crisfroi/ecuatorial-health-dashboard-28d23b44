@@ -6,7 +6,7 @@ import { FileText, Download, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Profesional } from '@/hooks/useProfesionales';
 import AdditionalDocuments from '@/components/AdditionalDocuments'; 
-import ApprovalLetter from './ApprovalLetter'; // Importa el componente de la carta
+import ApprovalLetter from '@/components/registration/ApprovalLetter.tsx;
 
 // Importaciones para PDF (generación en cliente)
 import html2canvas from 'html2canvas';

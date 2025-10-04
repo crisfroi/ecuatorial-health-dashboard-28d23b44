@@ -66,7 +66,7 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Nombre
-            <CaretSortIcon className="ml-2 h-4 w-4" />
+            <ChevronsUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
@@ -80,7 +80,7 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Email
-            <CaretSortIcon className="ml-2 h-4 w-4" />
+            <ChevronsUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
@@ -94,7 +94,7 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Teléfono
-            <CaretSortIcon className="ml-2 h-4 w-4" />
+            <ChevronsUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
@@ -108,7 +108,7 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Colegio Profesional
-            <CaretSortIcon className="ml-2 h-4 w-4" />
+            <ChevronsUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
@@ -122,7 +122,7 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Área Profesional
-            <CaretSortIcon className="ml-2 h-4 w-4" />
+            <ChevronsUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
@@ -136,7 +136,7 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Estado Solicitud
-            <CaretSortIcon className="ml-2 h-4 w-4" />
+            <ChevronsUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
       },
@@ -147,17 +147,17 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
 
         switch (estado) {
           case "Pendiente":
-            icon = <InfoCircledIcon className="mr-2 h-4 w-4 text-blue-500" />;
+            icon = <Info className="mr-2 h-4 w-4 text-blue-500" />;
             colorClass = "text-blue-500";
             break;
           case "Aprobado":
             icon = (
-              <CheckCircledIcon className="mr-2 h-4 w-4 text-green-500" />
+              <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
             );
             colorClass = "text-green-500";
             break;
           case "Rechazado":
-            icon = <StopCircledIcon className="mr-2 h-4 w-4 text-red-500" />;
+            icon = <XCircle className="mr-2 h-4 w-4 text-red-500" />;
             colorClass = "text-red-500";
             break;
           default:

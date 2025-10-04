@@ -29,7 +29,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateProfesionalSanitario } from "@/lib/api/profesionales-sanitarios";
-import { ProfesionalSanitario } from "@/types";
+import type { Professional as ProfesionalSanitario } from "@/types/Professional";
 
 interface RequestsPanelProps {
   professionalsList: ProfesionalSanitario[];

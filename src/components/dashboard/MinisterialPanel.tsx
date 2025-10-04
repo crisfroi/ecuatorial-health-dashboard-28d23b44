@@ -79,6 +79,7 @@ import EducationCard from "./professional-detail/EducationCard";
 import WorkplaceCard from "./professional-detail/WorkplaceCard";
 import ProfessionalCardInfo from "./professional-detail/ProfessionalCardInfo";
 import StatusCard from "./professional-detail/StatusCard";
+import SolicitudesEstablecimientos from "./SolicitudesEstablecimientos";
 import UserRoleManagement from "./UserRoleManagement";
 import TrasladosTab from "./ministerial/TrasladosTab";
 import IncidenciasTab from "./ministerial/IncidenciasTab";
@@ -916,7 +917,7 @@ const MinisterialPanel = () => {
         </TabsContent>
 
         <TabsContent value="solicitudes">
-          <SolicitudesEstablecimientos />
+          <SolicitudesEstablecimientos userRole="PERSONALIDAD_MINISTERIAL" />
         </TabsContent>
 
         <TabsContent value="traslados">

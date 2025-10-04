@@ -1,9 +1,4 @@
-import {
-  CaretSortIcon,
-  CheckCircledIcon,
-  InfoCircledIcon,
-  StopCircledIcon,
-} from "@radix-ui/react-icons";
+import { ChevronsUpDown, CheckCircle2, Info, XCircle } from "lucide-react";
 import {
   ColumnDef,
   flexRender,

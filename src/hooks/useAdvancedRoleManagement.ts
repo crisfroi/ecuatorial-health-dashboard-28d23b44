@@ -137,12 +137,12 @@ export const useAdvancedRoleManagement = () => {
     setLoading(true);
     try {
       let query = supabase
-        .from('solicitudes_traslado')
+        .from('solicitudes_traslados')
         .select(`
           *,
           profesional:profesionales_sanitarios(nombre_completo, area_profesional),
-          centro_origen:centros_salud!centro_origen_id(nombre),
-          centro_destino:centros_salud!centro_destino_id(nombre)
+          centro_origen:centros_salud!centro_origen_id(nombre, categoria, sector, distrito_sanitario),
+          centro_destino:centros_salud!centro_destino_id(nombre, categoria, sector, distrito_sanitario)
         `)
         .order('fecha_solicitud', { ascending: false });
 
@@ -176,11 +176,32 @@ export const useAdvancedRoleManagement = () => {
     centro_origen_id?: string;
   }) => {
     try {
+      // Obtener nombres de centros
+      const { data: centroOrigen } = await supabase
+        .from('centros_salud')
+        .select('nombre, categoria, sector, distrito_sanitario')
+        .eq('id', trasladoData.centro_origen_id || user?.assigned_center_id)
+        .single();
+
+      const { data: centroDestino } = await supabase
+        .from('centros_salud')
+        .select('nombre, categoria, sector, distrito_sanitario')
+        .eq('id', trasladoData.centro_destino_id)
+        .single();
+
       const { data, error } = await supabase
-        .from('solicitudes_traslado')
+        .from('solicitudes_traslados')
         .insert([{
           ...trasladoData,
           centro_origen_id: trasladoData.centro_origen_id || (userRole === 'ADMIN_CENTRO_SANITARIO' ? user?.assigned_center_id : undefined),
+          nombre_centro_origen: centroOrigen?.nombre,
+          categoria_centro_origen: centroOrigen?.categoria,
+          tipo_sector_origen: centroOrigen?.sector,
+          distrito_sanitario_origen: centroOrigen?.distrito_sanitario,
+          nombre_centro_destino: centroDestino?.nombre,
+          categoria_centro_destino: centroDestino?.categoria,
+          tipo_sector_destino: centroDestino?.sector,
+          distrito_sanitario_destino: centroDestino?.distrito_sanitario,
           solicitante_id: user?.id,
           estado: 'pendiente'
         }])
@@ -226,27 +247,51 @@ export const useAdvancedRoleManagement = () => {
 
       // Si se aprueba, también actualizar el centro del profesional
       if (action === 'aprobado') {
-        // Primero obtener los datos de la solicitud
-        const { data: solicitud, error: fetchError } = await supabase
-          .from('solicitudes_traslado')
-          .select('profesional_id, centro_destino_id')
+        // Primero obtener los datos completos de la solicitud
+        const { data: traslado, error: fetchError } = await supabase
+          .from('solicitudes_traslados')
+          .select('*')
           .eq('id', solicitudId)
           .single();
 
         if (fetchError) throw fetchError;
 
-        // Actualizar el centro del profesional
+        // Actualizar el profesional con el nuevo centro
         const { error: updateError } = await supabase
           .from('profesionales_sanitarios')
-          .update({ centro_salud_id: solicitud.centro_destino_id })
-          .eq('id', solicitud.profesional_id);
+          .update({
+            nombre_centro: traslado.nombre_centro_destino,
+            categoria_centro: traslado.categoria_centro_destino,
+            tipo_sector: traslado.tipo_sector_destino,
+            distrito_sanitario: traslado.distrito_sanitario_destino,
+            centro_salud_id: traslado.centro_destino_id
+          })
+          .eq('id', traslado.profesional_id);
 
         if (updateError) throw updateError;
+
+        // Actualizar también la tabla profesional_centro_asignado
+        const { error: asignacionError } = await supabase
+          .from('profesional_centro_asignado')
+          .update({
+            nombre_centro: traslado.nombre_centro_destino,
+            categoria_centro: traslado.categoria_centro_destino,
+            tipo_sector: traslado.tipo_sector_destino,
+            distrito_sanitario: traslado.distrito_sanitario_destino,
+            fecha_asignacion: new Date().toISOString()
+          })
+          .eq('id_profesional', traslado.profesional_id);
+
+        if (asignacionError) console.error('Error actualizando asignación:', asignacionError);
+      }
+
+      if (action === 'rechazado' && observaciones) {
+        updates.motivo_rechazo = observaciones;
       }
 
       // Actualizar la solicitud
       const { error } = await supabase
-        .from('solicitudes_traslado')
+        .from('solicitudes_traslados')
         .update(updates)
         .eq('id', solicitudId);
 

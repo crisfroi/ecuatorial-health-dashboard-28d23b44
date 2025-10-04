@@ -79,7 +79,9 @@ import EducationCard from "./professional-detail/EducationCard";
 import WorkplaceCard from "./professional-detail/WorkplaceCard";
 import ProfessionalCardInfo from "./professional-detail/ProfessionalCardInfo";
 import StatusCard from "./professional-detail/StatusCard";
-import SolicitudesEstablecimientos from "./SolicitudesEstablecimientos";
+import UserRoleManagement from "./UserRoleManagement";
+import TrasladosTab from "./ministerial/TrasladosTab";
+import IncidenciasTab from "./ministerial/IncidenciasTab";
 
 const MinisterialPanel = () => {
   const { toast } = useToast();
@@ -525,24 +527,29 @@ const MinisterialPanel = () => {
       </div>
 
       <Tabs defaultValue="signatures" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger
             value="signatures"
             className="flex items-center space-x-2"
           >
             <FileCheck className="w-4 h-4" />
-            <span>Pendientes de Firma</span>
+            <span>Pendientes Firma</span>
+          </TabsTrigger>
+          <TabsTrigger value="solicitudes" className="flex items-center space-x-2">
+            <Building2 className="w-4 h-4" />
+            <span>Solicitudes</span>
+          </TabsTrigger>
+          <TabsTrigger value="traslados" className="flex items-center space-x-2">
+            <Users className="w-4 h-4" />
+            <span>Traslados</span>
+          </TabsTrigger>
+          <TabsTrigger value="incidencias" className="flex items-center space-x-2">
+            <Bell className="w-4 h-4" />
+            <span>Incidencias</span>
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center space-x-2">
             <History className="w-4 h-4" />
             <span>Historial</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="statistics"
-            className="flex items-center space-x-2"
-          >
-            <BarChart3 className="w-4 h-4" />
-            <span>Estadísticas</span>
           </TabsTrigger>
         </TabsList>
 
@@ -908,21 +915,16 @@ const MinisterialPanel = () => {
           </div>
         </TabsContent>
 
-        {/* Establecimientos pendientes de firma */}
-        <TabsContent value="signatures">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center space-x-2">
-                  <Building2 className="w-5 h-5 text-blue-600" />
-                  <span>Establecimientos Pendientes de Firma</span>
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SolicitudesEstablecimientos userRole="PERSONALIDAD_MINISTERIAL" defaultEstado="Pendiente de Firma" />
-            </CardContent>
-          </Card>
+        <TabsContent value="solicitudes">
+          <SolicitudesEstablecimientos />
+        </TabsContent>
+
+        <TabsContent value="traslados">
+          <TrasladosTab />
+        </TabsContent>
+
+        <TabsContent value="incidencias">
+          <IncidenciasTab />
         </TabsContent>
       </Tabs>
 

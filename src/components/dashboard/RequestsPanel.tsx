@@ -27,27 +27,51 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { updateProfesionalSanitario } from "@/lib/api/profesionales-sanitarios";
 import type { Professional as ProfesionalSanitario } from "@/types/Professional";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RequestsPanelProps {
-  professionalsList: ProfesionalSanitario[];
-  refetch: () => void;
+  userRole?: string;
+  initialStatusFilter?: string;
+  onSelectProfessional?: (p: ProfesionalSanitario) => void;
 }
 
 const RequestsPanel: React.FC<RequestsPanelProps> = ({
-  professionalsList,
-  refetch,
+  userRole,
+  initialStatusFilter,
+  onSelectProfessional,
 }) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [sorting, setSorting] = useState([]);
-  const [columnFilters, setColumnFilters] = useState([]);
-  const [rowSelection, setRowSelection] = useState({});
+  const [sorting, setSorting] = useState<any[]>([]);
+  const [columnFilters, setColumnFilters] = useState<any[]>([]);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
+  });
+
+  const { data: professionalsList = [], refetch, isLoading } = useQuery({
+    queryKey: ["requestsPanel", { initialStatusFilter }],
+    queryFn: async () => {
+      let qb = supabase
+        .from("profesionales_sanitarios")
+        .select("id, nombre_completo, email, telefono, area_profesional, estado_solicitud")
+        .order("nombre_completo", { ascending: true });
+
+      if (initialStatusFilter) {
+        qb = qb.eq("estado_solicitud", initialStatusFilter);
+      } else {
+        qb = qb.neq("estado_solicitud", "Aprobado");
+      }
+
+      const { data, error } = await qb;
+      if (error) throw error;
+      return (data || []) as ProfesionalSanitario[];
+    },
+    staleTime: 60_000,
   });
 
   const updateProfesional = useMutation({
@@ -211,7 +235,7 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
   ];
 
   const table = useReactTable({
-    data: professionalsList,
+    data: professionalsList ?? [],
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -296,41 +320,21 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
             {table.getRowModel().rows.map((row) => (
               <TableRow key={row.id}>
                 {row.getVisibleCells().map((cell) => {
-                  return (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  );
-                })}
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end items-center">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 bg-green-500/10 text-green-600 hover:bg-green-500/20 hover:text-green-700 transition-all shadow-sm"
-                            onClick={() => handleQuickAction(request.id, 'Aprobado')}
-                          >
-                            <span className="mr-1 font-bold">✓</span> Aprobar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:text-red-700 transition-all shadow-sm"
-                            onClick={() => handleQuickAction(request.id, 'Rechazado')}
-                          >
-                            <span className="mr-1 font-bold">✗</span> Rechazar
-                          </Button>
-                        </div>
-                      </TableCell>
+              return (
+                <TableCell key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              );
+            })}
               </TableRow>
             ))}
-            {professionalsList.length === 0 && (
+            {(professionalsList?.length ?? 0) === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  Sin resultados.
+                  {isLoading ? 'Cargando…' : 'Sin resultados.'}
                 </TableCell>
               </TableRow>
             )}

@@ -204,31 +204,24 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
         const request = row.original;
 
         return (
-          <TableCell className="text-right">
+          <div className="w-full flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 p-0">
                   <span className="sr-only">Open menu</span>
-                  {/* <MoreHorizontal className="h-4 w-4" /> */}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() =>
-                    console.log("Editar profesional:", request.id)
-                  }
-                >
+                <DropdownMenuItem onClick={() => console.log("Editar profesional:", request.id)}>
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => console.log("Eliminar profesional:", request.id)}
-                >
+                <DropdownMenuItem onClick={() => console.log("Eliminar profesional:", request.id)}>
                   Eliminar
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </TableCell>
+          </div>
         );
       },
     },

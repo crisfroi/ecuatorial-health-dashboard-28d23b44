@@ -50,9 +50,10 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
     pageSize: 10,
   });
 
-  const updateProfesional = useMutation(updateProfesionalSanitario, {
+  const updateProfesional = useMutation({
+    mutationFn: updateProfesionalSanitario,
     onSuccess: () => {
-      queryClient.invalidateQueries(["profesionales-sanitarios"]);
+      queryClient.invalidateQueries({ queryKey: ["profesionales-sanitarios"] });
     },
   });
 

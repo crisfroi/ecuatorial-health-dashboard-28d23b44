@@ -63,6 +63,7 @@ import HealthCenters from "@/components/dashboard/HealthCenters";
 import SolicitudesEstablecimientos from "@/components/dashboard/SolicitudesEstablecimientos";
 import AdminPanel from "@/components/dashboard/AdminPanel";
 import AdvancedAnalyticsDashboard from "@/components/dashboard/AdvancedAnalyticsDashboard";
+import { ParametrosProfesionalesPanel } from "@/components/dashboard/ParametrosProfesionalesPanel";
 import ProfessionalSearch from "@/components/dashboard/ProfessionalSearch";
 import GlobalSearch from "@/components/dashboard/GlobalSearch";
 import ErrorBoundary from "@/components/ui/error-boundary";

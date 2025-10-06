@@ -5,6 +5,7 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  getFilteredRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import { useEffect, useState } from "react";
@@ -235,6 +236,7 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
     onPaginationChange: setPagination,
     state: {
@@ -336,8 +338,7 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} de{" "}
-          {table.getCoreRowModel().rows.length} resultados
+          {table.getFilteredRowModel().rows?.length ?? 0} de {table.getCoreRowModel().rows?.length ?? 0} resultados
         </div>
         <Button
           variant="outline"

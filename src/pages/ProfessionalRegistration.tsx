@@ -340,6 +340,14 @@ const ProfessionalRegistration = () => {
 
     // console.log(`[Persistencia] Datos guardados. Paso: ${currentStep}`);
   }, [watchedValues, currentStep, form, solicitudEnviada]);
+
+  // EFECTO PARA LIMPIAR LOCALSTORAGE DESPUÉS DEL ENVÍO EXITOSO
+  useEffect(() => {
+    if (solicitudEnviada) {
+      console.log('[Limpieza] Solicitud enviada exitosamente, limpiando localStorage...');
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [solicitudEnviada]);
   // ----------------------------------------
 
 

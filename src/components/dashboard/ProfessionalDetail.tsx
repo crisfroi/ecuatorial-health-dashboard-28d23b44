@@ -29,6 +29,7 @@ import ProfessionalCardInfo from "./professional-detail/ProfessionalCardInfo";
 import StatusCard from "./professional-detail/StatusCard"; 
 import ProfessionalDocumentsCard from "./professional-detail/ProfessionalDocumentsCard";
 import NotificationAlerts from "./professional-detail/NotificationAlerts";
+import { ParametrosPersonalizadosCard } from "./professional-detail/ParametrosPersonalizadosCard";
 
 interface ProfessionalDetailProps {
   professional: Profesional;
@@ -253,6 +254,9 @@ const ProfessionalDetail = ({
                 professional={{ ...professional, documentos_adicionales: localDocuments }}
                 onDocumentsUpdate={handleDocumentsUpdate}
               />
+            </div>
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
+              <ParametrosPersonalizadosCard professionalId={professional.id} />
             </div>
           </div>
         </div>

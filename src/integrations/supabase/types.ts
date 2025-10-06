@@ -68,6 +68,233 @@ export type Database = {
         }
         Relationships: []
       }
+      asistencia_dispositivos: {
+        Row: {
+          centro_salud_id: string | null
+          created_at: string | null
+          estado: string | null
+          firmware: string | null
+          id: string
+          modelo: string | null
+          sn: string
+          updated_at: string | null
+          ws_url: string | null
+        }
+        Insert: {
+          centro_salud_id?: string | null
+          created_at?: string | null
+          estado?: string | null
+          firmware?: string | null
+          id?: string
+          modelo?: string | null
+          sn: string
+          updated_at?: string | null
+          ws_url?: string | null
+        }
+        Update: {
+          centro_salud_id?: string | null
+          created_at?: string | null
+          estado?: string | null
+          firmware?: string | null
+          id?: string
+          modelo?: string | null
+          sn?: string
+          updated_at?: string | null
+          ws_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asistencia_dispositivos_centro_salud_id_fkey"
+            columns: ["centro_salud_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asistencia_enroll_map: {
+        Row: {
+          created_at: string | null
+          enroll_id: number
+          profesional_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          enroll_id: number
+          profesional_id: string
+        }
+        Update: {
+          created_at?: string | null
+          enroll_id?: number
+          profesional_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asistencia_enroll_map_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: true
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asistencia_fichajes: {
+        Row: {
+          created_at: string | null
+          device_sn: string
+          enroll_id: number
+          event: number | null
+          id: string
+          image_url: string | null
+          inout: number | null
+          mode: number | null
+          profesional_id: string | null
+          raw_index: number | null
+          temperature: number | null
+          time_local: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_sn: string
+          enroll_id: number
+          event?: number | null
+          id?: string
+          image_url?: string | null
+          inout?: number | null
+          mode?: number | null
+          profesional_id?: string | null
+          raw_index?: number | null
+          temperature?: number | null
+          time_local: string
+        }
+        Update: {
+          created_at?: string | null
+          device_sn?: string
+          enroll_id?: number
+          event?: number | null
+          id?: string
+          image_url?: string | null
+          inout?: number | null
+          mode?: number | null
+          profesional_id?: string | null
+          raw_index?: number | null
+          temperature?: number | null
+          time_local?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asistencia_fichajes_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asistencia_resumen_mensual: {
+        Row: {
+          anio: number
+          created_at: string | null
+          horas_extra: number | null
+          horas_nocturnas: number | null
+          horas_trabajadas: number | null
+          id: string
+          incidencias: Json | null
+          mes: number
+          profesional_id: string
+          total_pagar: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          anio: number
+          created_at?: string | null
+          horas_extra?: number | null
+          horas_nocturnas?: number | null
+          horas_trabajadas?: number | null
+          id?: string
+          incidencias?: Json | null
+          mes: number
+          profesional_id: string
+          total_pagar?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          anio?: number
+          created_at?: string | null
+          horas_extra?: number | null
+          horas_nocturnas?: number | null
+          horas_trabajadas?: number | null
+          id?: string
+          incidencias?: Json | null
+          mes?: number
+          profesional_id?: string
+          total_pagar?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asistencia_resumen_mensual_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_logs: {
+        Row: {
+          created_at: string
+          en_no: string | null
+          fecha_hora: string
+          id: string
+          id_dispositivo: string
+          id_profesional: string | null
+          inout: string | null
+          mode: string | null
+          raw_line: string | null
+          source_file: string | null
+        }
+        Insert: {
+          created_at?: string
+          en_no?: string | null
+          fecha_hora: string
+          id?: string
+          id_dispositivo: string
+          id_profesional?: string | null
+          inout?: string | null
+          mode?: string | null
+          raw_line?: string | null
+          source_file?: string | null
+        }
+        Update: {
+          created_at?: string
+          en_no?: string | null
+          fecha_hora?: string
+          id?: string
+          id_dispositivo?: string
+          id_profesional?: string | null
+          inout?: string | null
+          mode?: string | null
+          raw_line?: string | null
+          source_file?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_logs_id_dispositivo_fkey"
+            columns: ["id_dispositivo"]
+            isOneToOne: false
+            referencedRelation: "dispositivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_logs_id_profesional_fkey"
+            columns: ["id_profesional"]
+            isOneToOne: false
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bitacora_guardias: {
         Row: {
           accion: string
@@ -215,12 +442,16 @@ export type Database = {
           especialidades: string[] | null
           estado: string | null
           fecha_registro: string | null
+          fotos_establecimiento: string[] | null
           id: string
+          nif: string | null
           nombre: string
           numero_registro: string | null
           profesionales_aprobados_count: number | null
           provincia: string
+          responsable: string | null
           sector: string
+          subcategoria: string | null
           telefono: string | null
           updated_at: string | null
         }
@@ -234,12 +465,16 @@ export type Database = {
           especialidades?: string[] | null
           estado?: string | null
           fecha_registro?: string | null
+          fotos_establecimiento?: string[] | null
           id?: string
+          nif?: string | null
           nombre: string
           numero_registro?: string | null
           profesionales_aprobados_count?: number | null
           provincia: string
+          responsable?: string | null
           sector: string
+          subcategoria?: string | null
           telefono?: string | null
           updated_at?: string | null
         }
@@ -253,12 +488,16 @@ export type Database = {
           especialidades?: string[] | null
           estado?: string | null
           fecha_registro?: string | null
+          fotos_establecimiento?: string[] | null
           id?: string
+          nif?: string | null
           nombre?: string
           numero_registro?: string | null
           profesionales_aprobados_count?: number | null
           provincia?: string
+          responsable?: string | null
           sector?: string
+          subcategoria?: string | null
           telefono?: string | null
           updated_at?: string | null
         }
@@ -296,6 +535,58 @@ export type Database = {
           url_carnet?: string | null
         }
         Relationships: []
+      }
+      cuadrantes_biometricos: {
+        Row: {
+          centro_salud_id: string | null
+          created_at: string
+          fecha: string
+          id: string
+          id_profesional: string
+          turno_id: string
+          updated_at: string
+        }
+        Insert: {
+          centro_salud_id?: string | null
+          created_at?: string
+          fecha: string
+          id?: string
+          id_profesional: string
+          turno_id: string
+          updated_at?: string
+        }
+        Update: {
+          centro_salud_id?: string | null
+          created_at?: string
+          fecha?: string
+          id?: string
+          id_profesional?: string
+          turno_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cuadrantes_biometricos_centro_salud_id_fkey"
+            columns: ["centro_salud_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cuadrantes_biometricos_id_profesional_fkey"
+            columns: ["id_profesional"]
+            isOneToOne: false
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cuadrantes_biometricos_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "turnos_biometricos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cuadrantes_guardias: {
         Row: {
@@ -386,6 +677,44 @@ export type Database = {
         }
         Relationships: []
       }
+      dispositivos: {
+        Row: {
+          activo: boolean
+          centro_salud_id: string | null
+          created_at: string
+          id: string
+          nombre: string
+          ubicacion: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          centro_salud_id?: string | null
+          created_at?: string
+          id?: string
+          nombre: string
+          ubicacion?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          centro_salud_id?: string | null
+          created_at?: string
+          id?: string
+          nombre?: string
+          ubicacion?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispositivos_centro_salud_id_fkey"
+            columns: ["centro_salud_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       distrito_sanitario: {
         Row: {
           abreviatura_distrito: string | null
@@ -406,6 +735,48 @@ export type Database = {
           nombre_provincia?: string | null
         }
         Relationships: []
+      }
+      empleado_dispositivo_map: {
+        Row: {
+          created_at: string
+          en_no: string
+          id: string
+          id_dispositivo: string
+          id_profesional: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          en_no: string
+          id?: string
+          id_dispositivo: string
+          id_profesional: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          en_no?: string
+          id?: string
+          id_dispositivo?: string
+          id_profesional?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empleado_dispositivo_map_id_dispositivo_fkey"
+            columns: ["id_dispositivo"]
+            isOneToOne: false
+            referencedRelation: "dispositivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empleado_dispositivo_map_id_profesional_fkey"
+            columns: ["id_profesional"]
+            isOneToOne: false
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       guardias: {
         Row: {
@@ -500,6 +871,64 @@ export type Database = {
           },
         ]
       }
+      horarios_profesionales: {
+        Row: {
+          activo: boolean | null
+          centro_salud_id: string | null
+          created_at: string | null
+          dia_semana: number
+          id: string
+          profesional_id: string
+          turno_id: string
+          vigente_desde: string | null
+          vigente_hasta: string | null
+        }
+        Insert: {
+          activo?: boolean | null
+          centro_salud_id?: string | null
+          created_at?: string | null
+          dia_semana: number
+          id?: string
+          profesional_id: string
+          turno_id: string
+          vigente_desde?: string | null
+          vigente_hasta?: string | null
+        }
+        Update: {
+          activo?: boolean | null
+          centro_salud_id?: string | null
+          created_at?: string | null
+          dia_semana?: number
+          id?: string
+          profesional_id?: string
+          turno_id?: string
+          vigente_desde?: string | null
+          vigente_hasta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "horarios_profesionales_centro_salud_id_fkey"
+            columns: ["centro_salud_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "horarios_profesionales_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "horarios_profesionales_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "turnos_plantillas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidencias_hospitalarias: {
         Row: {
           created_at: string | null
@@ -558,6 +987,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      instituciones_formacion: {
+        Row: {
+          categoria: string
+          created_at: string
+          id: string
+          nombre: string
+          pais: string
+        }
+        Insert: {
+          categoria?: string
+          created_at?: string
+          id?: string
+          nombre: string
+          pais: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          id?: string
+          nombre?: string
+          pais?: string
+        }
+        Relationships: []
       }
       logs_sistema: {
         Row: {
@@ -917,6 +1370,63 @@ export type Database = {
           },
         ]
       }
+      parametros_profesionales: {
+        Row: {
+          activo: boolean | null
+          categoria: Database["public"]["Enums"]["categoria_parametro"]
+          color: string | null
+          created_at: string | null
+          created_by: string | null
+          descripcion: string | null
+          es_obligatorio: boolean | null
+          icono: string | null
+          id: string
+          nombre: string
+          opciones_seleccion: Json | null
+          orden_visualizacion: number | null
+          tipo_dato: Database["public"]["Enums"]["tipo_dato_parametro"]
+          unidad: string | null
+          updated_at: string | null
+          visible_en_detalles: boolean | null
+        }
+        Insert: {
+          activo?: boolean | null
+          categoria?: Database["public"]["Enums"]["categoria_parametro"]
+          color?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descripcion?: string | null
+          es_obligatorio?: boolean | null
+          icono?: string | null
+          id?: string
+          nombre: string
+          opciones_seleccion?: Json | null
+          orden_visualizacion?: number | null
+          tipo_dato: Database["public"]["Enums"]["tipo_dato_parametro"]
+          unidad?: string | null
+          updated_at?: string | null
+          visible_en_detalles?: boolean | null
+        }
+        Update: {
+          activo?: boolean | null
+          categoria?: Database["public"]["Enums"]["categoria_parametro"]
+          color?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descripcion?: string | null
+          es_obligatorio?: boolean | null
+          icono?: string | null
+          id?: string
+          nombre?: string
+          opciones_seleccion?: Json | null
+          orden_visualizacion?: number | null
+          tipo_dato?: Database["public"]["Enums"]["tipo_dato_parametro"]
+          unidad?: string | null
+          updated_at?: string | null
+          visible_en_detalles?: boolean | null
+        }
+        Relationships: []
+      }
       permisos_pestanas: {
         Row: {
           created_at: string | null
@@ -1068,12 +1578,16 @@ export type Database = {
           especialidad: string | null
           estado_solicitud: string | null
           estado_trabajo: string | null
+          estatus_funcionario: string | null
           fecha_alta: string | null
           fecha_aprobacion: string | null
           fecha_caducidad: string | null
           fecha_creacion_solicitud: string | null
           fecha_emision: string | null
+          fecha_generacion_resolucion: string | null
+          fecha_inicio_trabajo: string | null
           fecha_nacimiento: string | null
+          fecha_nombramiento: string | null
           fecha_rechazo: string | null
           fecha_revision: string | null
           fecha_solicitud: string | null
@@ -1087,6 +1601,7 @@ export type Database = {
           id_profesional_unico: string | null
           institucion_1: string | null
           institucion_2: string | null
+          institucion_formacion_id_1: string | null
           meses_en_paro: number | null
           motivo_rechazo: string | null
           nacionalidad: string | null
@@ -1098,6 +1613,7 @@ export type Database = {
           numero_autonumerico_correlativo: number | null
           numero_dip: string | null
           numero_documento: string | null
+          numero_funcionario: string | null
           numero_pasaporte: string | null
           pais_formacion_1: string | null
           pais_formacion_2: string | null
@@ -1155,12 +1671,16 @@ export type Database = {
           especialidad?: string | null
           estado_solicitud?: string | null
           estado_trabajo?: string | null
+          estatus_funcionario?: string | null
           fecha_alta?: string | null
           fecha_aprobacion?: string | null
           fecha_caducidad?: string | null
           fecha_creacion_solicitud?: string | null
           fecha_emision?: string | null
+          fecha_generacion_resolucion?: string | null
+          fecha_inicio_trabajo?: string | null
           fecha_nacimiento?: string | null
+          fecha_nombramiento?: string | null
           fecha_rechazo?: string | null
           fecha_revision?: string | null
           fecha_solicitud?: string | null
@@ -1174,6 +1694,7 @@ export type Database = {
           id_profesional_unico?: string | null
           institucion_1?: string | null
           institucion_2?: string | null
+          institucion_formacion_id_1?: string | null
           meses_en_paro?: number | null
           motivo_rechazo?: string | null
           nacionalidad?: string | null
@@ -1185,6 +1706,7 @@ export type Database = {
           numero_autonumerico_correlativo?: number | null
           numero_dip?: string | null
           numero_documento?: string | null
+          numero_funcionario?: string | null
           numero_pasaporte?: string | null
           pais_formacion_1?: string | null
           pais_formacion_2?: string | null
@@ -1242,12 +1764,16 @@ export type Database = {
           especialidad?: string | null
           estado_solicitud?: string | null
           estado_trabajo?: string | null
+          estatus_funcionario?: string | null
           fecha_alta?: string | null
           fecha_aprobacion?: string | null
           fecha_caducidad?: string | null
           fecha_creacion_solicitud?: string | null
           fecha_emision?: string | null
+          fecha_generacion_resolucion?: string | null
+          fecha_inicio_trabajo?: string | null
           fecha_nacimiento?: string | null
+          fecha_nombramiento?: string | null
           fecha_rechazo?: string | null
           fecha_revision?: string | null
           fecha_solicitud?: string | null
@@ -1261,6 +1787,7 @@ export type Database = {
           id_profesional_unico?: string | null
           institucion_1?: string | null
           institucion_2?: string | null
+          institucion_formacion_id_1?: string | null
           meses_en_paro?: number | null
           motivo_rechazo?: string | null
           nacionalidad?: string | null
@@ -1272,6 +1799,7 @@ export type Database = {
           numero_autonumerico_correlativo?: number | null
           numero_dip?: string | null
           numero_documento?: string | null
+          numero_funcionario?: string | null
           numero_pasaporte?: string | null
           pais_formacion_1?: string | null
           pais_formacion_2?: string | null
@@ -1332,6 +1860,13 @@ export type Database = {
             referencedRelation: "distrito_sanitario"
             referencedColumns: ["nombre_distrito"]
           },
+          {
+            foreignKeyName: "profesionales_sanitarios_institucion_formacion_id_1_fkey"
+            columns: ["institucion_formacion_id_1"]
+            isOneToOne: false
+            referencedRelation: "instituciones_formacion"
+            referencedColumns: ["id"]
+          },
         ]
       }
       role_permissions: {
@@ -1358,6 +1893,54 @@ export type Database = {
           permission?: string
           resource?: string | null
           role?: string
+        }
+        Relationships: []
+      }
+      schema_catalog: {
+        Row: {
+          column_name: string
+          data_type: string | null
+          foreign_column_name: string | null
+          foreign_table_name: string | null
+          is_nullable: boolean | null
+          table_name: string
+        }
+        Insert: {
+          column_name: string
+          data_type?: string | null
+          foreign_column_name?: string | null
+          foreign_table_name?: string | null
+          is_nullable?: boolean | null
+          table_name: string
+        }
+        Update: {
+          column_name?: string
+          data_type?: string | null
+          foreign_column_name?: string | null
+          foreign_table_name?: string | null
+          is_nullable?: boolean | null
+          table_name?: string
+        }
+        Relationships: []
+      }
+      slideshow_settings: {
+        Row: {
+          duration: number
+          id: number
+          images: Json
+          updated_at: string
+        }
+        Insert: {
+          duration?: number
+          id?: number
+          images?: Json
+          updated_at?: string
+        }
+        Update: {
+          duration?: number
+          id?: number
+          images?: Json
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1408,8 +1991,10 @@ export type Database = {
       solicitudes_establecimientos: {
         Row: {
           areas_especializadas: string[] | null
+          asesor_tecnico: Json | null
           autorizador_id: string | null
           categoria: string
+          centro_id: string | null
           created_at: string | null
           direccion: string
           director_responsable: string | null
@@ -1424,24 +2009,33 @@ export type Database = {
           fotos_establecimiento: string[] | null
           id: string
           motivo_rechazo: string | null
+          nacionalidad_responsable: string | null
+          nif: string | null
           nombre_establecimiento: string
           notas_revision: string | null
           numero_camas: number | null
+          numero_documento: string | null
           numero_registro: string | null
           numero_solicitud: string | null
           observaciones: string | null
+          pdf_url_resolucion: string | null
+          pdf_url_solicitud: string | null
+          personal_apertura: Json | null
           provincia: string
           revisor_id: string | null
           servicios_ofrecidos: string[] | null
           solicitante_id: string | null
           telefono: string | null
+          tipo_documento: string | null
           tipo_servicio: string
           updated_at: string | null
         }
         Insert: {
           areas_especializadas?: string[] | null
+          asesor_tecnico?: Json | null
           autorizador_id?: string | null
           categoria: string
+          centro_id?: string | null
           created_at?: string | null
           direccion: string
           director_responsable?: string | null
@@ -1456,24 +2050,33 @@ export type Database = {
           fotos_establecimiento?: string[] | null
           id?: string
           motivo_rechazo?: string | null
+          nacionalidad_responsable?: string | null
+          nif?: string | null
           nombre_establecimiento: string
           notas_revision?: string | null
           numero_camas?: number | null
+          numero_documento?: string | null
           numero_registro?: string | null
           numero_solicitud?: string | null
           observaciones?: string | null
+          pdf_url_resolucion?: string | null
+          pdf_url_solicitud?: string | null
+          personal_apertura?: Json | null
           provincia: string
           revisor_id?: string | null
           servicios_ofrecidos?: string[] | null
           solicitante_id?: string | null
           telefono?: string | null
+          tipo_documento?: string | null
           tipo_servicio: string
           updated_at?: string | null
         }
         Update: {
           areas_especializadas?: string[] | null
+          asesor_tecnico?: Json | null
           autorizador_id?: string | null
           categoria?: string
+          centro_id?: string | null
           created_at?: string | null
           direccion?: string
           director_responsable?: string | null
@@ -1488,21 +2091,36 @@ export type Database = {
           fotos_establecimiento?: string[] | null
           id?: string
           motivo_rechazo?: string | null
+          nacionalidad_responsable?: string | null
+          nif?: string | null
           nombre_establecimiento?: string
           notas_revision?: string | null
           numero_camas?: number | null
+          numero_documento?: string | null
           numero_registro?: string | null
           numero_solicitud?: string | null
           observaciones?: string | null
+          pdf_url_resolucion?: string | null
+          pdf_url_solicitud?: string | null
+          personal_apertura?: Json | null
           provincia?: string
           revisor_id?: string | null
           servicios_ofrecidos?: string[] | null
           solicitante_id?: string | null
           telefono?: string | null
+          tipo_documento?: string | null
           tipo_servicio?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "solicitudes_establecimientos_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       solicitudes_traslado: {
         Row: {
@@ -1573,6 +2191,171 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      solicitudes_traslados: {
+        Row: {
+          aprobado_por: string | null
+          centro_destino_id: string
+          centro_origen_id: string | null
+          created_at: string | null
+          estado: string
+          fecha_aprobacion: string | null
+          fecha_rechazo: string | null
+          fecha_solicitud: string | null
+          id: string
+          motivo: string
+          motivo_rechazo: string | null
+          nombre_centro_destino: string
+          nombre_centro_origen: string | null
+          observaciones: string | null
+          profesional_id: string
+          rechazado_por: string | null
+          solicitado_por: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aprobado_por?: string | null
+          centro_destino_id: string
+          centro_origen_id?: string | null
+          created_at?: string | null
+          estado?: string
+          fecha_aprobacion?: string | null
+          fecha_rechazo?: string | null
+          fecha_solicitud?: string | null
+          id?: string
+          motivo: string
+          motivo_rechazo?: string | null
+          nombre_centro_destino: string
+          nombre_centro_origen?: string | null
+          observaciones?: string | null
+          profesional_id: string
+          rechazado_por?: string | null
+          solicitado_por?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aprobado_por?: string | null
+          centro_destino_id?: string
+          centro_origen_id?: string | null
+          created_at?: string | null
+          estado?: string
+          fecha_aprobacion?: string | null
+          fecha_rechazo?: string | null
+          fecha_solicitud?: string | null
+          id?: string
+          motivo?: string
+          motivo_rechazo?: string | null
+          nombre_centro_destino?: string
+          nombre_centro_origen?: string | null
+          observaciones?: string | null
+          profesional_id?: string
+          rechazado_por?: string | null
+          solicitado_por?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitudes_traslados_centro_destino_id_fkey"
+            columns: ["centro_destino_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_traslados_centro_origen_id_fkey"
+            columns: ["centro_origen_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_traslados_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      turnos_biometricos: {
+        Row: {
+          activo: boolean
+          centro_salud_id: string | null
+          created_at: string
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          nombre_turno: string
+          tipo: string
+          tolerancia_minutos: number
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          centro_salud_id?: string | null
+          created_at?: string
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          nombre_turno: string
+          tipo: string
+          tolerancia_minutos?: number
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          centro_salud_id?: string | null
+          created_at?: string
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          nombre_turno?: string
+          tipo?: string
+          tolerancia_minutos?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turnos_biometricos_centro_salud_id_fkey"
+            columns: ["centro_salud_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      turnos_plantillas: {
+        Row: {
+          created_at: string | null
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          nocturno: boolean | null
+          nombre: string
+          tolerancia_minutos: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          nocturno?: boolean | null
+          nombre: string
+          tolerancia_minutos?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          nocturno?: boolean | null
+          nombre?: string
+          tolerancia_minutos?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       user_profiles: {
         Row: {
@@ -1688,6 +2471,72 @@ export type Database = {
           },
         ]
       }
+      valores_parametros_profesionales: {
+        Row: {
+          created_at: string | null
+          fecha_registro: string | null
+          id: string
+          notas: string | null
+          parametro_id: string
+          profesional_id: string
+          registrado_por: string | null
+          updated_at: string | null
+          valor_archivo_url: string | null
+          valor_boolean: boolean | null
+          valor_fecha: string | null
+          valor_numero: number | null
+          valor_seleccion: string[] | null
+          valor_texto: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fecha_registro?: string | null
+          id?: string
+          notas?: string | null
+          parametro_id: string
+          profesional_id: string
+          registrado_por?: string | null
+          updated_at?: string | null
+          valor_archivo_url?: string | null
+          valor_boolean?: boolean | null
+          valor_fecha?: string | null
+          valor_numero?: number | null
+          valor_seleccion?: string[] | null
+          valor_texto?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fecha_registro?: string | null
+          id?: string
+          notas?: string | null
+          parametro_id?: string
+          profesional_id?: string
+          registrado_por?: string | null
+          updated_at?: string | null
+          valor_archivo_url?: string | null
+          valor_boolean?: boolean | null
+          valor_fecha?: string | null
+          valor_numero?: number | null
+          valor_seleccion?: string[] | null
+          valor_texto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "valores_parametros_profesionales_parametro_id_fkey"
+            columns: ["parametro_id"]
+            isOneToOne: false
+            referencedRelation: "parametros_profesionales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "valores_parametros_profesionales_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       usuarios_con_centro: {
@@ -1760,6 +2609,10 @@ export type Database = {
           user_id: string
         }
         Returns: boolean
+      }
+      exec_sql: {
+        Args: { query: string }
+        Returns: Json
       }
       generar_codigo_expediente_unico: {
         Args: Record<PropertyKey, never>
@@ -1870,6 +2723,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      unaccent: {
+        Args: { "": string }
+        Returns: string
+      }
+      unaccent_init: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
     }
     Enums: {
       app_role:
@@ -1882,6 +2743,18 @@ export type Database = {
         | "PERSONALIDAD_MINISTERIAL"
         | "OBSERVADOR"
         | "DIRECTIVO_CENTRO_SANITARIO"
+      categoria_parametro:
+        | "formacion"
+        | "condecoracion"
+        | "promocion"
+        | "incidencia"
+        | "evento"
+        | "salario"
+        | "certificacion"
+        | "evaluacion"
+        | "disciplinario"
+        | "reconocimiento"
+        | "otro"
       categoria_profesional_guardia:
         | "especialista"
         | "general_licenciado"
@@ -1913,6 +2786,15 @@ export type Database = {
         | "dir_enfermeria"
         | "dir_gerente"
         | "dg"
+      tipo_dato_parametro:
+        | "texto"
+        | "numero"
+        | "fecha"
+        | "boolean"
+        | "seleccion_unica"
+        | "seleccion_multiple"
+        | "archivo"
+        | "moneda"
       tipo_dia: "ordinario" | "fin_semana" | "festivo"
       tipo_guardia: "fisica" | "localizable" | "administrativa"
     }
@@ -2053,6 +2935,19 @@ export const Constants = {
         "OBSERVADOR",
         "DIRECTIVO_CENTRO_SANITARIO",
       ],
+      categoria_parametro: [
+        "formacion",
+        "condecoracion",
+        "promocion",
+        "incidencia",
+        "evento",
+        "salario",
+        "certificacion",
+        "evaluacion",
+        "disciplinario",
+        "reconocimiento",
+        "otro",
+      ],
       categoria_profesional_guardia: [
         "especialista",
         "general_licenciado",
@@ -2086,6 +2981,16 @@ export const Constants = {
         "dir_enfermeria",
         "dir_gerente",
         "dg",
+      ],
+      tipo_dato_parametro: [
+        "texto",
+        "numero",
+        "fecha",
+        "boolean",
+        "seleccion_unica",
+        "seleccion_multiple",
+        "archivo",
+        "moneda",
       ],
       tipo_dia: ["ordinario", "fin_semana", "festivo"],
       tipo_guardia: ["fisica", "localizable", "administrativa"],

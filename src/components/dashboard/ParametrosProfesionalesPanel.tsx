@@ -97,16 +97,22 @@ export const ParametrosProfesionalesPanel = () => {
   // Crear o actualizar parámetro
   const saveMutation = useMutation({
     mutationFn: async (data: ParametroFormData) => {
+      const dbData = {
+        ...data,
+        categoria: data.categoria as any,
+        tipo_dato: data.tipo_dato as any
+      };
+      
       if (data.id) {
         const { error } = await supabase
           .from('parametros_profesionales')
-          .update(data)
+          .update(dbData)
           .eq('id', data.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('parametros_profesionales')
-          .insert([data]);
+          .insert([dbData]);
         if (error) throw error;
       }
     },

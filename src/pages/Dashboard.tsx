@@ -479,6 +479,7 @@ const Dashboard = () => {
     ...(userRole && canAccessTab("guardias") ? [{ id: "guardias", label: "Guardias", icon: Clock }] : []),
     ...(userRole && canAccessTab("asistencia") ? [{ id: "asistencia", label: "Asistencia", icon: Clock }] : []),
     ...(userRole && canAccessTab("analytics") ? [{ id: "analytics", label: "Analíticas", icon: TrendingUp }] : []),
+    ...(userRole && canAccessTab("parametros") ? [{ id: "parametros", label: "Parámetros", icon: Sliders }] : []),
     ...(userRole && canAccessTab("iachat") ? [{ id: "iachat", label: "IA Chat", icon: MessageSquare }] : []),
     ...(userRole && canAccessTab("ministerial") ? [{ id: "ministerial", label: "Ministerial", icon: Settings }] : []),
     ...(userRole && canAccessTab("incidents") ? [{ id: "incidents", label: "Incidencias", icon: Activity }] : []),

@@ -24,9 +24,10 @@ Deno.serve(async (req) => {
 
     // Simple role check: metadata roles array or role string
     const roles = (user.app_metadata as any)?.roles as string[] | undefined;
-    const role = (user.user_metadata as any)?.role as string | undefined;
-    const isAuthority = (Array.isArray(roles) && roles.includes("Autoridad Disciplinaria")) || role === "Autoridad Disciplinaria";
-    if (!isAuthority) return json({ error: "Permiso denegado" }, 403);
+    const rawRole = (user.user_metadata as any)?.role as string | undefined;
+    const norm = (s?: string) => (s || '').toString().trim().toUpperCase();
+    const isSuperAdmin = (Array.isArray(roles) && roles.map(norm).includes('SUPER_ADMINISTRADOR')) || norm(rawRole) === 'SUPER_ADMINISTRADOR';
+    if (!isSuperAdmin) return json({ error: "Permiso denegado: solo SUPER_ADMINISTRADOR" }, 403);
 
     const { profesionalId, motivo, archivoAdjuntoUrl } = await req.json();
     if (!profesionalId || !motivo) return json({ error: "Datos inválidos" }, 400);

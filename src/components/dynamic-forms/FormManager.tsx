@@ -32,6 +32,7 @@ import { DynamicForm, FormCategory } from '@/types/dynamic-forms';
 import { FormBuilder } from './FormBuilder';
 import { IndicatorManager } from './IndicatorManager';
 import { useToast } from '@/hooks/use-toast';
+import { getAppBaseUrl } from '@/lib/utils';
 
 const FORM_CATEGORIES: { value: FormCategory; label: string; color: string }[] = [
   { value: 'profesionales', label: 'Profesionales', color: 'bg-blue-100 text-blue-800' },
@@ -88,7 +89,7 @@ export const FormManager: React.FC = () => {
 
   const handleViewForm = (form: DynamicForm) => {
     if (form.publicSettings?.publicUrl) {
-      window.open(`/form/${form.publicSettings.publicUrl}`, '_blank');
+      window.open(`${getAppBaseUrl()}/form/${form.publicSettings.publicUrl}`, '_blank');
     } else {
       toast({
         title: 'Sin enlace público',
@@ -319,7 +320,7 @@ export const FormManager: React.FC = () => {
                               className="w-full"
                               onClick={() => {
                                 navigator.clipboard.writeText(
-                                  `${window.location.origin}/form/${form.publicSettings.publicUrl}`
+                                  `${getAppBaseUrl()}/form/${form.publicSettings.publicUrl}`
                                 );
                                 toast({
                                   title: "Enlace copiado",

@@ -31,7 +31,7 @@ import {
   Image,
   PenTool
 } from 'lucide-react';
-import { useDynamicForms } from '@/hooks/useDynamicForms';
+import { useDynamicForms, useDynamicForm } from '@/hooks/useDynamicForms';
 import { FormFieldConfig, FormFieldType, DynamicForm, FormSettings as FormSettingsType, PublicFormSettings } from '@/types/dynamic-forms';
 import { FieldEditor } from './FieldEditor';
 import { FormPreview } from './FormPreview';
@@ -79,6 +79,20 @@ const FIELD_TEMPLATES = [
     label: 'Fecha',
     icon: Calendar,
     description: 'Selección de fecha',
+    category: 'basic' as const
+  },
+  {
+    type: 'text' as FormFieldType,
+    label: 'ID Profesional Único',
+    icon: Hash,
+    description: 'Campo para el ID profesional único (texto)',
+    category: 'basic' as const
+  },
+  {
+    type: 'text' as FormFieldType,
+    label: 'Teléfono (base de datos)',
+    icon: Phone,
+    description: 'Campo para número de teléfono (texto)',
     category: 'basic' as const
   },
   {
@@ -135,14 +149,16 @@ const FIELD_TEMPLATES = [
 interface FormBuilderProps {
   formId?: string;
   onSave?: (form: DynamicForm) => void;
+  onCancel?: () => void;
 }
 
-export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
+export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave, onCancel }) => {
   const [selectedField, setSelectedField] = useState<FormFieldConfig | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [formTitle, setFormTitle] = useState('Nuevo Formulario');
   const [formDescription, setFormDescription] = useState('');
   const [fields, setFields] = useState<FormFieldConfig[]>([]);
+  const { form: existingForm, isLoading: isLoadingForm } = useDynamicForm(formId || '');
   const [settings, setSettings] = useState<FormSettingsType>({
     allowMultipleSubmissions: true,
     requireAuthentication: false,
@@ -218,6 +234,16 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
       }));
     });
   }, []);
+
+  React.useEffect(() => {
+    if (existingForm) {
+      setFormTitle(existingForm.title || '');
+      setFormDescription(existingForm.description || '');
+      setFields(existingForm.fields || []);
+      setSettings(existingForm.settings || settings);
+      setPublicSettings(existingForm.publicSettings || publicSettings);
+    }
+  }, [existingForm]);
 
   const handleSave = async () => {
     if (!formTitle.trim()) {
@@ -328,6 +354,12 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
               </div>
               
               <div className="flex items-center gap-2">
+                <Button variant="ghost" onClick={onCancel}>
+                  <span className="inline-flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    Volver
+                  </span>
+                </Button>
                 <Button
                   variant={previewMode ? "default" : "outline"}
                   onClick={() => setPreviewMode(!previewMode)}
@@ -363,6 +395,9 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
           <div className="flex-1 flex">
             {/* Constructor de formulario */}
             <div className="flex-1 p-6">
+              {isLoadingForm && formId ? (
+                <div className="text-center text-gray-500">Cargando formulario...</div>
+              ) : null}
               {previewMode ? (
                 <FormPreview
                   title={formTitle}

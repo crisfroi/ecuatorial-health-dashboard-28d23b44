@@ -1,6 +1,6 @@
 /**
  * Enhanced error suppression utility for common React/browser issues
- * Specifically targets ResizeObserver loops and related chart/canvas errors
+ * Specifically targets ResizeObserver loops and normalizes non-Error runtime issues
  */
 
 let suppressionEnabled = false;
@@ -20,7 +20,7 @@ export const initializeErrorSuppression = () => {
         message.includes('Non-Error promise rejection captured')
       )
     ) {
-      return; // Suppress these errors
+      return; // Suppress these noisy errors
     }
     originalConsoleError.apply(console, args);
   };
@@ -28,25 +28,33 @@ export const initializeErrorSuppression = () => {
   // Enhanced window error handler
   const originalWindowError = window.onerror;
   window.onerror = (message, source, lineno, colno, error) => {
+    // Normalize cases where a primitive or undefined is thrown (e.g. throw 'string')
+    const isPrimitiveThrow = !error || !(error instanceof Error);
+
     if (typeof message === 'string') {
-      // ResizeObserver errors
+      // ResizeObserver and related harmless errors
       if (
         message.includes('ResizeObserver loop completed with undelivered notifications') ||
         message.includes('ResizeObserver loop limit exceeded') ||
         message.includes('ResizeObserver loop') ||
-        // Chart library errors that are typically harmless
         message.includes('defaultProps') ||
-        // Canvas/webgl context errors that are recoverable
         message.includes('webgl context lost') ||
         message.includes('canvas context') ||
-        // D3/SVG rendering errors that don't break functionality
-        message.includes('SVG') && message.includes('attribute')
+        (message.includes('SVG') && message.includes('attribute'))
       ) {
         return true; // Suppress the error
       }
     }
 
-    // Call original handler for other errors
+    if (isPrimitiveThrow) {
+      // Prevent dev overlay crashes by normalizing to an Error and handling locally
+      const normalized = new Error(typeof message === 'string' ? message : 'Unknown runtime error');
+      normalized.name = 'NormalizedRuntimeError';
+      console.error(normalized);
+      return true; // stop propagation to other handlers (like Vite overlay)
+    }
+
+    // Delegate to original handler for other errors
     if (originalWindowError) {
       return originalWindowError(message, source, lineno, colno, error);
     }
@@ -57,8 +65,8 @@ export const initializeErrorSuppression = () => {
   const originalUnhandledRejection = window.onunhandledrejection;
   window.onunhandledrejection = (event) => {
     const reason = event.reason;
-    
-    // Handle Error objects
+
+    // Handle Error objects that are noisy
     if (reason instanceof Error) {
       if (
         reason.message.includes('ResizeObserver loop completed with undelivered notifications') ||
@@ -68,20 +76,17 @@ export const initializeErrorSuppression = () => {
         event.preventDefault();
         return;
       }
-    }
-    
-    // Handle string reasons
-    if (typeof reason === 'string') {
-      if (
-        reason.includes('ResizeObserver loop completed with undelivered notifications') ||
-        reason.includes('ResizeObserver loop limit exceeded')
-      ) {
-        event.preventDefault();
-        return;
-      }
+    } else {
+      // Normalize non-Error rejections (strings, numbers, plain objects)
+      const msg = typeof reason === 'string' ? reason : JSON.stringify(reason);
+      const normalized = new Error(msg || 'Unhandled rejection');
+      normalized.name = 'NormalizedPromiseRejection';
+      console.error(normalized);
+      event.preventDefault();
+      return;
     }
 
-    // Call original handler for other rejections
+    // Delegate to original handler for other rejections
     if (originalUnhandledRejection) {
       originalUnhandledRejection(event);
     }
@@ -118,11 +123,11 @@ export class SafeResizeObserver {
 
   private entriesChanged(newEntries: ResizeObserverEntry[]): boolean {
     if (newEntries.length !== this.lastEntries.length) return true;
-    
+
     return newEntries.some((entry, index) => {
       const lastEntry = this.lastEntries[index];
       if (!lastEntry) return true;
-      
+
       return (
         entry.contentRect.width !== lastEntry.contentRect.width ||
         entry.contentRect.height !== lastEntry.contentRect.height
@@ -154,7 +159,7 @@ export class SafeResizeObserver {
  */
 export const measureElement = (element: Element | null) => {
   if (!element) return { width: 0, height: 0 };
-  
+
   try {
     // Use getBoundingClientRect which is less likely to trigger observers
     const rect = element.getBoundingClientRect();

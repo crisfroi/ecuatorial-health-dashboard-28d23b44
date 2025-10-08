@@ -464,7 +464,7 @@ const FieldPreview: React.FC<{ field: FormFieldConfig }> = ({ field }) => {
             </SelectTrigger>
             <SelectContent>
               {field.options?.map(option => (
-                <SelectItem key={option.id} value={option.value}>
+                <SelectItem key={option.id} value={(option.value ?? "").trim() || String(option.id)}>
                   {option.label}
                 </SelectItem>
               ))}
@@ -547,4 +547,3 @@ const FieldPreview: React.FC<{ field: FormFieldConfig }> = ({ field }) => {
     </div>
   );
 };
-

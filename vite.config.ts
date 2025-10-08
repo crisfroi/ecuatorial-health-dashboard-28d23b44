@@ -19,4 +19,11 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    include: [
+      'zod',
+      '@hookform/resolvers',
+      '@hookform/resolvers/zod',
+    ],
+  },
 }));

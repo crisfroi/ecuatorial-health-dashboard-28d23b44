@@ -32,6 +32,7 @@ import {
   ChevronDown,
   Clock,
   ArrowRight,
+  Sliders,
   ClipboardList,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -63,6 +64,7 @@ import HealthCenters from "@/components/dashboard/HealthCenters";
 import SolicitudesEstablecimientos from "@/components/dashboard/SolicitudesEstablecimientos";
 import AdminPanel from "@/components/dashboard/AdminPanel";
 import AdvancedAnalyticsDashboard from "@/components/dashboard/AdvancedAnalyticsDashboard";
+import { ParametrosProfesionalesPanel } from "@/components/dashboard/ParametrosProfesionalesPanel";
 import ProfessionalSearch from "@/components/dashboard/ProfessionalSearch";
 import GlobalSearch from "@/components/dashboard/GlobalSearch";
 import ErrorBoundary from "@/components/ui/error-boundary";
@@ -483,6 +485,7 @@ const Dashboard = () => {
     ...(userRole && canAccessTab("guardias") ? [{ id: "guardias", label: "Guardias", icon: Clock }] : []),
     ...(userRole && canAccessTab("asistencia") ? [{ id: "asistencia", label: "Asistencia", icon: Clock }] : []),
     ...(userRole && canAccessTab("analytics") ? [{ id: "analytics", label: "Analíticas", icon: TrendingUp }] : []),
+    ...(userRole && canAccessTab("parametros") ? [{ id: "parametros", label: "Parámetros", icon: Sliders }] : []),
     ...(userRole && canAccessTab("iachat") ? [{ id: "iachat", label: "IA Chat", icon: MessageSquare }] : []),
     ...(userRole && canAccessTab("ministerial") ? [{ id: "ministerial", label: "Ministerial", icon: Settings }] : []),
     ...(userRole && canAccessTab("incidents") ? [{ id: "incidents", label: "Incidencias", icon: Activity }] : []),
@@ -756,6 +759,10 @@ const Dashboard = () => {
               onNavigateToTab={handleNavigateFromAnalytics}
               filters={dashboardFilters}
             />
+          </TabsContent>
+
+          <TabsContent value="parametros" className="space-y-6" data-tour="dashboard-parametros">
+            <ParametrosProfesionalesPanel />
           </TabsContent>
 
           <TabsContent value="iachat" className="space-y-6" data-tour="dashboard-iachat">

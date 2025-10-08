@@ -29,18 +29,30 @@ export const useDynamicForms = () => {
 
   const createFormMutation = useMutation({
     mutationFn: async (form: Omit<DynamicForm, 'id' | 'created_at' | 'updated_at' | 'submissions_count'>) => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userId) throw new Error('No autenticado');
+
+      const payload: any = {
+        title: form.title,
+        description: form.description ?? null,
+        category: form.category,
+        fields: form.fields,
+        settings: form.settings,
+        public_settings: {
+          ...form.publicSettings,
+          public_url: generatePublicUrl(form.title)
+        },
+        created_by: userId,
+        is_active: form.is_active ?? true
+      };
+
       const { data, error } = await supabase
         .from('dynamic_forms')
-        .insert([{
-          ...form,
-          public_settings: {
-            ...form.publicSettings,
-            public_url: generatePublicUrl(form.title)
-          }
-        }])
+        .insert([payload])
         .select()
         .single();
-      
+
       if (error) throw error;
       return data as DynamicForm;
     },
@@ -51,13 +63,28 @@ export const useDynamicForms = () => {
 
   const updateFormMutation = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<DynamicForm> & { id: string }) => {
+      const dbUpdates: any = {
+        title: updates.title,
+        description: updates.description,
+        category: updates.category,
+        fields: updates.fields,
+        settings: updates.settings,
+        is_active: (updates as any).is_active,
+        updated_at: new Date().toISOString()
+      };
+      if ((updates as any).publicSettings) {
+        dbUpdates.public_settings = (updates as any).publicSettings;
+      }
+
+      Object.keys(dbUpdates).forEach((k) => dbUpdates[k] === undefined && delete dbUpdates[k]);
+
       const { data, error } = await supabase
         .from('dynamic_forms')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(dbUpdates)
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data as DynamicForm;
     },
@@ -84,8 +111,8 @@ export const useDynamicForms = () => {
     forms,
     isLoading,
     error,
-    createForm: createFormMutation.mutate,
-    updateForm: updateFormMutation.mutate,
+    createForm: createFormMutation.mutateAsync,
+    updateForm: updateFormMutation.mutateAsync,
     deleteForm: deleteFormMutation.mutate,
     isCreating: createFormMutation.isPending,
     isUpdating: updateFormMutation.isPending,
@@ -132,15 +159,27 @@ export const useFormSubmissions = (formId: string) => {
 
   const submitFormMutation = useMutation({
     mutationFn: async (submission: Omit<FormSubmission, 'id' | 'submitted_at'>) => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userId) throw new Error('No autenticado');
+
+      const payload: any = {
+        form_id: submission.formId,
+        data: submission.data,
+        submitted_by: userId,
+        submitted_at: new Date().toISOString(),
+        ip_address: (submission as any).ipAddress ?? null,
+        user_agent: submission.userAgent ?? null,
+        status: submission.status ?? 'submitted',
+        metadata: submission.metadata ?? {}
+      };
+
       const { data, error } = await supabase
         .from('form_submissions')
-        .insert([{
-          ...submission,
-          submitted_at: new Date().toISOString()
-        }])
+        .insert([payload])
         .select()
         .single();
-      
+
       if (error) throw error;
       return data as FormSubmission;
     },
@@ -153,7 +192,7 @@ export const useFormSubmissions = (formId: string) => {
     submissions,
     isLoading,
     error,
-    submitForm: submitFormMutation.mutate,
+    submitForm: submitFormMutation.mutateAsync,
     isSubmitting: submitFormMutation.isPending
   };
 };

@@ -122,7 +122,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'admin',
       'ministerial',
       'traslados',
-      'forms'
+      'forms',
+      'parametros'
     ]
   },
 
@@ -293,7 +294,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'incidents',
       'iachat',
       'admin',
-      'traslados'
+      'traslados',
+      'parametros'
     ]
   },
 

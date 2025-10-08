@@ -172,7 +172,7 @@ export const FormPreview: React.FC<FormPreviewProps> = ({
             </SelectTrigger>
             <SelectContent>
               {field.options?.map(option => (
-                <SelectItem key={option.id} value={option.value}>
+                <SelectItem key={option.id} value={(option.value ?? "").trim() || String(option.id)}>
                   {option.label}
                 </SelectItem>
               ))}
@@ -375,4 +375,3 @@ export const FormPreview: React.FC<FormPreviewProps> = ({
     </div>
   );
 };
-

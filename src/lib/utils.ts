@@ -13,3 +13,11 @@ export function cn(...inputs: ClassValue[]) {
  * @returns Una promesa que se resuelve después del tiempo especificado.
  */
 export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/** Obtiene el dominio base de la app para construir enlaces públicos consistentes. */
+export function getAppBaseUrl(): string {
+  const envBase = (import.meta as any)?.env?.VITE_PUBLIC_BASE_URL as string | undefined;
+  if (envBase && typeof envBase === 'string' && envBase.trim()) return envBase.trim();
+  if (typeof window !== 'undefined' && window.location?.origin) return window.location.origin;
+  return '';
+}

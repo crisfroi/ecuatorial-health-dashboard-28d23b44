@@ -123,7 +123,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'ministerial',
       'traslados',
       'forms',
-      'parametros'
+      'parametros',
+      'disciplinary'
     ]
   },
 

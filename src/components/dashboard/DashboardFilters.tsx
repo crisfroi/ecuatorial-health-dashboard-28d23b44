@@ -8,11 +8,12 @@ import { Filter, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PROVINCIAS_EG } from '@/utils/geo';
 
+// INTERFAZ ACTUALIZADA A ARRAYS
 interface Filtros {
   area_profesional?: string[];
   estado_solicitud?: string[];
   provincia?: string[];
-  genero?: string[];
+  genero?: string[]; // <-- AHORA ES ARRAY
   tipo_sector?: string[];
   funcion_publica?: string;
   estatus_funcionario?: 'nombrado' | 'no_nombrado';
@@ -100,7 +101,7 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
         if (col === 'genero') setGeneros(values);
         if (col === 'tipo_sector') setSectores(values);
         if (col === 'distrito') setDistritos(values);
-        if (col === 'año_graduacion') setAnios((values as string[]).map(v => Number(v)).filter(n => !Number.isNaN(n)).sort((a,b)=>a-b));
+        if (col === 'año_graduacion') setAnios((values as string[]).map(v => Number(v)).filter(n => !Number.isNaN(n)).sort((a, b) => a - b));
       });
 
       const { data: centrosData, error: centrosError } = await supabase
@@ -150,14 +151,14 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
             <Filter className="w-5 h-5" />
             <span>Filtros de Búsqueda</span>
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={onClearFilters}
             className="flex items-center space-x-1"
           >
             <X className="w-4 h-4" />
-            <span>Limpiar</span>
+            <span>Limpiar Todos</span>
           </Button>
         </CardTitle>
       </CardHeader>

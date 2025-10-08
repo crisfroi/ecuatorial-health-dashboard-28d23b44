@@ -24,11 +24,12 @@ Deno.serve(async (req) => {
 
     // Simple role check: metadata roles array or role string
     const roles = (user.app_metadata as any)?.roles as string[] | undefined;
-    const role = (user.user_metadata as any)?.role as string | undefined;
-    const isAuthority = (Array.isArray(roles) && roles.includes("Autoridad Disciplinaria")) || role === "Autoridad Disciplinaria";
-    if (!isAuthority) return json({ error: "Permiso denegado" }, 403);
+    const rawRole = (user.user_metadata as any)?.role as string | undefined;
+    const norm = (s?: string) => (s || '').toString().trim().toUpperCase();
+    const isSuperAdmin = (Array.isArray(roles) && roles.map(norm).includes('SUPER_ADMINISTRADOR')) || norm(rawRole) === 'SUPER_ADMINISTRADOR';
+    if (!isSuperAdmin) return json({ error: "Permiso denegado: solo SUPER_ADMINISTRADOR" }, 403);
 
-    const { profesionalId, motivo, archivoAdjuntoUrl } = await req.json();
+    const { profesionalId, motivo, archivoAdjuntoUrl, fechaIncidente, faltaCodigo, gravedad, descripcion, centroSaludId, pruebasUrls } = await req.json();
     if (!profesionalId || !motivo) return json({ error: "Datos inválidos" }, 400);
 
     // Use service role for DB writes under RLS
@@ -41,6 +42,14 @@ Deno.serve(async (req) => {
         motivo,
         archivo_adjunto_url: archivoAdjuntoUrl ?? null,
         created_by: user.id,
+        autoridad_solicitante: user.id,
+        fecha_incidente: fechaIncidente ? new Date(fechaIncidente).toISOString() : new Date().toISOString(),
+        falta_codigo: faltaCodigo ?? null,
+        gravedad: gravedad ?? null,
+        descripcion: descripcion ?? null,
+        centro_salud_id: centroSaludId ?? null,
+        pruebas_urls: Array.isArray(pruebasUrls) ? pruebasUrls : (archivoAdjuntoUrl ? [archivoAdjuntoUrl] : []),
+        estado: 'borrador'
       }])
       .select()
       .single();
@@ -49,7 +58,7 @@ Deno.serve(async (req) => {
     await service.from("historial_acciones_expediente").insert([{
       expediente_id: expediente.id,
       accion: "apertura",
-      comentario: "Expediente abierto",
+      comentario: "Expediente abierto (borrador) por SUPER_ADMINISTRADOR",
       actor_id: user.id,
     }]);
 

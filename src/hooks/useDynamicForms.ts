@@ -130,9 +130,10 @@ export const useDynamicForms = () => {
 
       if ((updates as any).publicSettings) {
         const ps = (updates as any).publicSettings as PublicFormSettings;
+        const ensuredSlug = ps.publicUrl || (ps as any).public_url || generatePublicUrl(updates.title || 'formulario');
         dbUpdates.public_settings = {
           ...ps,
-          public_url: ps.publicUrl ?? (ps as any).public_url
+          public_url: ensuredSlug
         };
       }
 

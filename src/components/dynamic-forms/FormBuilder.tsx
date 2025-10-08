@@ -37,6 +37,7 @@ import { FieldEditor } from './FieldEditor';
 import { FormPreview } from './FormPreview';
 import { FormSettings } from './FormSettings';
 import { useToast } from '@/hooks/use-toast';
+import { getAppBaseUrl } from '@/lib/utils';
 
 const FIELD_TEMPLATES = [
   {
@@ -371,7 +372,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave, onCanc
                   <Button
                     variant="outline"
                     onClick={() => {
-                      const url = `${window.location.origin}/form/${publicSettings.publicUrl}`;
+                      const url = `${getAppBaseUrl()}/form/${publicSettings.publicUrl}`;
                       navigator.clipboard.writeText(url);
                       toast({ title: 'Enlace copiado', description: url });
                     }}

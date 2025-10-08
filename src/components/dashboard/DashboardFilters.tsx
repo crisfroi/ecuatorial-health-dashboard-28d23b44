@@ -3,27 +3,28 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { Filter, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PROVINCIAS_EG } from '@/utils/geo';
 
 interface Filtros {
-  area_profesional?: string;
-  estado_solicitud?: string;
-  provincia?: string;
-  genero?: string;
-  tipo_sector?: string;
+  area_profesional?: string[];
+  estado_solicitud?: string[];
+  provincia?: string[];
+  genero?: string[];
+  tipo_sector?: string[];
   funcion_publica?: string;
   estatus_funcionario?: 'nombrado' | 'no_nombrado';
-  distrito?: string;
-  distrito_sanitario?: string;
-  centro_id?: string;
+  distrito?: string[];
+  distrito_sanitario?: string[];
+  centro_id?: string[];
   centro_nombre?: string;
   edad_minima?: number;
   edad_maxima?: number;
-  año_graduacion?: number;
-  pais_formacion?: string;
-  institucion_formacion?: string;
+  año_graduacion?: number[];
+  pais_formacion?: string[];
+  institucion_formacion?: string[];
   edad_laboral_min?: number;
   edad_laboral_max?: number;
   años_servicio_min?: number;
@@ -51,13 +52,19 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
   const [paises, setPaises] = useState<string[]>([]);
   const [instituciones, setInstituciones] = useState<string[]>([]);
 
-  const updateFilter = (key: keyof Filtros, value: string | number | undefined) => {
+  const updateFilter = (key: keyof Filtros, value: string | number | string[] | number[] | undefined) => {
     let normalized: any = value;
     if (key === 'funcion_publica' && typeof value === 'string') {
       if (value === 'true') normalized = true;
       else if (value === 'false') normalized = false;
       else normalized = undefined;
     }
+    
+    // Si es un array vacío, convertirlo a undefined
+    if (Array.isArray(value) && value.length === 0) {
+      normalized = undefined;
+    }
+    
     onFiltersChange({
       ...filters,
       [key]: normalized === 'todos' ? undefined : normalized
@@ -158,17 +165,12 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Área Profesional</label>
-            <Select value={filters.area_profesional || 'todos'} onValueChange={(value) => updateFilter('area_profesional', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todas las áreas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas las áreas</SelectItem>
-                {areas.map((v) => (
-                  <SelectItem key={v} value={v}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={areas}
+              selected={filters.area_profesional || []}
+              onChange={(selected) => updateFilter('area_profesional', selected)}
+              placeholder="Todas las áreas"
+            />
           </div>
 
           <div className="space-y-2">
@@ -201,159 +203,105 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Estado de Solicitud</label>
-            <Select value={filters.estado_solicitud || 'todos'} onValueChange={(value) => updateFilter('estado_solicitud', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos los estados" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los estados</SelectItem>
-                {estados.map((v) => (
-                  <SelectItem key={v} value={v}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={estados}
+              selected={filters.estado_solicitud || []}
+              onChange={(selected) => updateFilter('estado_solicitud', selected)}
+              placeholder="Todos los estados"
+            />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Provincia</label>
-            <Select value={filters.provincia || 'todos'} onValueChange={(value) => updateFilter('provincia', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todas las provincias" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas las provincias</SelectItem>
-                {provincias.map((v) => (
-                  <SelectItem key={v} value={v}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={provincias}
+              selected={filters.provincia || []}
+              onChange={(selected) => updateFilter('provincia', selected)}
+              placeholder="Todas las provincias"
+            />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Distrito Sanitario</label>
-            <Select value={filters.distrito_sanitario || 'todos'} onValueChange={(value) => updateFilter('distrito_sanitario', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos los distritos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los distritos</SelectItem>
-                {distritosSanitarios.map((v) => (
-                  <SelectItem key={v} value={v}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={distritosSanitarios}
+              selected={filters.distrito_sanitario || []}
+              onChange={(selected) => updateFilter('distrito_sanitario', selected)}
+              placeholder="Todos los distritos"
+            />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Centro</label>
-            <Select value={filters.centro_id || 'todos'} onValueChange={(value) => {
-              const selected = centros.find(c => c.id === value);
-              onFiltersChange({
-                ...filters,
-                centro_id: value === 'todos' ? undefined : value,
-                centro_nombre: selected ? selected.nombre : undefined,
-              });
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos los centros" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los centros</SelectItem>
-                {centros.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={centros.map(c => c.nombre)}
+              selected={filters.centro_id ? centros.filter(c => filters.centro_id?.includes(c.id)).map(c => c.nombre) : []}
+              onChange={(selectedNames) => {
+                const selectedIds = centros.filter(c => selectedNames.includes(c.nombre)).map(c => c.id);
+                updateFilter('centro_id', selectedIds);
+              }}
+              placeholder="Todos los centros"
+            />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Género</label>
-            <Select value={filters.genero || 'todos'} onValueChange={(value) => updateFilter('genero', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos los géneros" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los géneros</SelectItem>
-                {generos.map((v) => (
-                  <SelectItem key={v} value={v}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={generos}
+              selected={filters.genero || []}
+              onChange={(selected) => updateFilter('genero', selected)}
+              placeholder="Todos los géneros"
+            />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Tipo de Sector</label>
-            <Select value={filters.tipo_sector || 'todos'} onValueChange={(value) => updateFilter('tipo_sector', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos los sectores" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los sectores</SelectItem>
-                {sectores.map((v) => (
-                  <SelectItem key={v} value={v}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={sectores}
+              selected={filters.tipo_sector || []}
+              onChange={(selected) => updateFilter('tipo_sector', selected)}
+              placeholder="Todos los sectores"
+            />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Distrito</label>
-            <Select value={filters.distrito || 'todos'} onValueChange={(value) => updateFilter('distrito', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos los distritos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los distritos</SelectItem>
-                {distritos.map((v) => (
-                  <SelectItem key={v} value={v}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={distritos}
+              selected={filters.distrito || []}
+              onChange={(selected) => updateFilter('distrito', selected)}
+              placeholder="Todos los distritos"
+            />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">País de Formación</label>
-            <Select value={filters.pais_formacion || 'todos'} onValueChange={(value) => updateFilter('pais_formacion', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos los países" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los países</SelectItem>
-                {paises.map((v) => (
-                  <SelectItem key={v} value={v}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={paises}
+              selected={filters.pais_formacion || []}
+              onChange={(selected) => updateFilter('pais_formacion', selected)}
+              placeholder="Todos los países"
+            />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Centro de Formación</label>
-            <Select value={String(filters.institucion_formacion || 'todos')} onValueChange={(value) => updateFilter('institucion_formacion', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todas las instituciones" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas las instituciones</SelectItem>
-                {instituciones.map((v) => (
-                  <SelectItem key={v} value={v}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={instituciones}
+              selected={filters.institucion_formacion || []}
+              onChange={(selected) => updateFilter('institucion_formacion', selected)}
+              placeholder="Todas las instituciones"
+            />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Año de Graduación</label>
-            <Select value={filters.año_graduacion ?? 'todos'} onValueChange={(value) => updateFilter('año_graduacion', value === 'todos' ? undefined : Number(value))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos los años" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los años</SelectItem>
-                {anios.map((v) => (
-                  <SelectItem key={v} value={String(v)}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={anios.map(a => String(a))}
+              selected={(filters.año_graduacion || []).map(a => String(a))}
+              onChange={(selected) => updateFilter('año_graduacion', selected.map(s => Number(s)))}
+              placeholder="Todos los años"
+            />
           </div>
 
           <div className="space-y-2">

@@ -21,6 +21,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { FormSettings as FormSettingsType, PublicFormSettings, FormTheme } from '@/types/dynamic-forms';
+import { getAppBaseUrl } from '@/lib/utils';
 
 interface FormSettingsProps {
   settings: FormSettingsType;
@@ -51,7 +52,7 @@ export const FormSettings: React.FC<FormSettingsProps> = ({
 
   const copyPublicUrl = () => {
     if (publicSettings.publicUrl) {
-      navigator.clipboard.writeText(`${window.location.origin}/form/${publicSettings.publicUrl}`);
+      navigator.clipboard.writeText(`${getAppBaseUrl()}/form/${publicSettings.publicUrl}`);
       // Aquí podrías mostrar un toast de confirmación
     }
   };
@@ -165,7 +166,7 @@ export const FormSettings: React.FC<FormSettingsProps> = ({
                 <Label>URL pública</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
-                    value={`${window.location.origin}/form/${publicSettings.publicUrl}`}
+                    value={`${getAppBaseUrl()}/form/${publicSettings.publicUrl}`}
                     readOnly
                     className="bg-gray-50"
                   />
@@ -407,4 +408,3 @@ export const FormSettings: React.FC<FormSettingsProps> = ({
     </div>
   );
 };
-

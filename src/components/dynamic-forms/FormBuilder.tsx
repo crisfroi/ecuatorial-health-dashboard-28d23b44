@@ -305,7 +305,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave, onCanc
               <div className="text-sm font-medium text-gray-500 mb-2">Básicos</div>
               {FIELD_TEMPLATES.filter(t => t.category === 'basic').map(template => (
                 <FieldTemplate
-                  key={template.type}
+                  key={`${template.type}-${template.label}`}
                   template={template}
                   onAdd={addField}
                 />
@@ -314,7 +314,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave, onCanc
               <div className="text-sm font-medium text-gray-500 mb-2 mt-4">Avanzados</div>
               {FIELD_TEMPLATES.filter(t => t.category === 'advanced').map(template => (
                 <FieldTemplate
-                  key={template.type}
+                  key={`${template.type}-${template.label}`}
                   template={template}
                   onAdd={addField}
                 />
@@ -323,7 +323,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave, onCanc
               <div className="text-sm font-medium text-gray-500 mb-2 mt-4">Multimedia</div>
               {FIELD_TEMPLATES.filter(t => t.category === 'media').map(template => (
                 <FieldTemplate
-                  key={template.type}
+                  key={`${template.type}-${template.label}`}
                   template={template}
                   onAdd={addField}
                 />

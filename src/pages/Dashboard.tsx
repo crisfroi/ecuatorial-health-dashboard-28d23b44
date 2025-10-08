@@ -32,6 +32,7 @@ import {
   ChevronDown,
   Clock,
   ArrowRight,
+  ClipboardList,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -75,6 +76,11 @@ import { FuncionariosStatsWidget } from "@/components/dashboard/FuncionariosStat
 import ResizeObserverTestIndicator from "@/components/dashboard/ResizeObserverTestIndicator";
 import CoachMarks, { CoachMarkStep } from "@/components/onboarding/CoachMarks";
 import { ENABLE_INTERACTIVE_TOURS, isTourCompleted, setTourCompleted } from "@/config/featureFlags";
+
+// Importar componentes de formularios dinámicos
+import { FormManager } from "@/components/dynamic-forms/FormManager";
+import { IndicatorManager } from "@/components/dynamic-forms/IndicatorManager";
+import { FormBuilder } from "@/components/dynamic-forms/FormBuilder";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -483,6 +489,7 @@ const Dashboard = () => {
     ...(userRole && canAccessTab("health-centers") ? [{ id: "health-centers", label: "Centros", icon: MapPin }] : []),
     ...(userRole && canAccessTab("establecimientos") ? [{ id: "establecimientos", label: "Solicitudes Establecimientos", icon: Building2 }] : []),
     ...(userRole && canAccessTab("traslados") ? [{ id: "traslados", label: "Traslados", icon: ArrowRight }] : []),
+    ...(userRole && canAccessTab("forms") ? [{ id: "forms", label: "Formularios Dinámicos", icon: ClipboardList }] : []),
     ...(userRole && hasPermission("manage_users") ? [{ id: "users", label: "Usuarios", icon: UserCog }] : []),
     ...(userRole && hasPermission("system_configuration") ? [{ id: "admin", label: "Admin", icon: Settings }] : []),
   ].filter(tab => userRole ? canAccessTab(tab.id) : tab.id === "overview" || tab.id === "professionals");
@@ -793,6 +800,11 @@ const Dashboard = () => {
 
           <TabsContent value="traslados" className="space-y-6">
             <TrasladosProfesionalesPanel userRole={userRole} />
+          </TabsContent>
+
+          {/* Pestaña de Formularios Dinámicos */}
+          <TabsContent value="forms" className="space-y-6">
+            <FormManager />
           </TabsContent>
         </Tabs>
 

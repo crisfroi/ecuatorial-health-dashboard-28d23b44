@@ -48,6 +48,9 @@ export const PERMISSIONS: Permission[] = [
   { id: 'view_ai_chat', name: 'Ver AI Chat', description: 'Acceso al chat con IA', category: 'Visualización' },
   { id: 'view_admin_panel', name: 'Ver Panel Admin', description: 'Acceso al panel administrativo', category: 'Visualización' },
   { id: 'view_ministerial_panel', name: 'Ver Panel Ministerial', description: 'Acceso al panel ministerial', category: 'Visualización' },
+  { id: 'view_dynamic_forms', name: 'Ver Formularios Dinámicos', description: 'Acceso al sistema de formularios dinámicos', category: 'Visualización' },
+  { id: 'manage_dynamic_forms', name: 'Gestionar Formularios Dinámicos', description: 'Crear y gestionar formularios dinámicos', category: 'Gestión Formularios' },
+  { id: 'create_indicators', name: 'Crear Indicadores', description: 'Crear indicadores dinámicos para profesionales', category: 'Gestión Formularios' },
 
   // PERMISOS DE GESTIÓN DE PROFESIONALES
   { id: 'approve_professionals', name: 'Aprobar Profesionales', description: 'Aprobar solicitudes de profesionales', category: 'Gestión Profesionales' },
@@ -118,7 +121,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'iachat',
       'admin',
       'ministerial',
-      'traslados'
+      'traslados',
+      'forms'
     ]
   },
 
@@ -178,6 +182,9 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'view_renewals',
       'view_ai_chat',
       'view_ministerial_panel',
+      'view_dynamic_forms',
+      'manage_dynamic_forms',
+      'create_indicators',
       'generate_reports',
       'view_financial_data',
       'export_data',
@@ -198,7 +205,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'guardias',
       'professionals',
       'health-centers',
-      'iachat'
+      'iachat',
+      'forms'
     ],
     restrictions: {
       // Solo puede ver datos agregados, no detalles individuales sensibles

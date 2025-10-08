@@ -21,6 +21,7 @@ import {
   MapPin,
   Activity,
   MessageSquare,
+  Gavel,
   Filter,
   X,
   User,
@@ -83,6 +84,7 @@ import { ENABLE_INTERACTIVE_TOURS, isTourCompleted, setTourCompleted } from "@/c
 import { FormManager } from "@/components/dynamic-forms/FormManager";
 import { IndicatorManager } from "@/components/dynamic-forms/IndicatorManager";
 import { FormBuilder } from "@/components/dynamic-forms/FormBuilder";
+import { ExpedienteNuevoForm } from "@/components/disciplinary/ExpedienteNuevoForm";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -493,6 +495,7 @@ const Dashboard = () => {
     ...(userRole && canAccessTab("establecimientos") ? [{ id: "establecimientos", label: "Solicitudes Establecimientos", icon: Building2 }] : []),
     ...(userRole && canAccessTab("traslados") ? [{ id: "traslados", label: "Traslados", icon: ArrowRight }] : []),
     ...(userRole && canAccessTab("forms") ? [{ id: "forms", label: "Formularios Dinámicos", icon: ClipboardList }] : []),
+    ...(userRole && canAccessTab("disciplinary") ? [{ id: "disciplinary", label: "Expedientes", icon: Gavel }] : []),
     ...(userRole && hasPermission("manage_users") ? [{ id: "users", label: "Usuarios", icon: UserCog }] : []),
     ...(userRole && hasPermission("system_configuration") ? [{ id: "admin", label: "Admin", icon: Settings }] : []),
   ].filter(tab => userRole ? canAccessTab(tab.id) : tab.id === "overview" || tab.id === "professionals");
@@ -812,6 +815,11 @@ const Dashboard = () => {
           {/* Pestaña de Formularios Dinámicos */}
           <TabsContent value="forms" className="space-y-6">
             <FormManager />
+          </TabsContent>
+
+          {/* Pestaña de Expedientes Disciplinarios */}
+          <TabsContent value="disciplinary" className="space-y-6">
+            <ExpedienteNuevoForm />
           </TabsContent>
         </Tabs>
 

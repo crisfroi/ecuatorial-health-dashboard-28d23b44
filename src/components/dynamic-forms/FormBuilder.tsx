@@ -31,8 +31,8 @@ import {
   Image,
   PenTool
 } from 'lucide-react';
-import { useDynamicForms } from '@/hooks/useDynamicForms';
-import { FormFieldConfig, FormFieldType, DynamicForm } from '@/types/dynamic-forms';
+import { useDynamicForms, useDynamicForm } from '@/hooks/useDynamicForms';
+import { FormFieldConfig, FormFieldType, DynamicForm, FormSettings as FormSettingsType, PublicFormSettings } from '@/types/dynamic-forms';
 import { FieldEditor } from './FieldEditor';
 import { FormPreview } from './FormPreview';
 import { FormSettings } from './FormSettings';
@@ -79,6 +79,20 @@ const FIELD_TEMPLATES = [
     label: 'Fecha',
     icon: Calendar,
     description: 'Selección de fecha',
+    category: 'basic' as const
+  },
+  {
+    type: 'text' as FormFieldType,
+    label: 'ID Profesional Único',
+    icon: Hash,
+    description: 'Campo para el ID profesional único (texto)',
+    category: 'basic' as const
+  },
+  {
+    type: 'text' as FormFieldType,
+    label: 'Teléfono (base de datos)',
+    icon: Phone,
+    description: 'Campo para número de teléfono (texto)',
     category: 'basic' as const
   },
   {
@@ -135,16 +149,41 @@ const FIELD_TEMPLATES = [
 interface FormBuilderProps {
   formId?: string;
   onSave?: (form: DynamicForm) => void;
+  onCancel?: () => void;
 }
 
-export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
+export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave, onCancel }) => {
   const [selectedField, setSelectedField] = useState<FormFieldConfig | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [formTitle, setFormTitle] = useState('Nuevo Formulario');
   const [formDescription, setFormDescription] = useState('');
   const [fields, setFields] = useState<FormFieldConfig[]>([]);
+  const { form: existingForm, isLoading: isLoadingForm } = useDynamicForm(formId || '');
+  const [settings, setSettings] = useState<FormSettingsType>({
+    allowMultipleSubmissions: true,
+    requireAuthentication: false,
+    showProgressBar: true,
+    theme: {
+      primaryColor: '#3b82f6',
+      secondaryColor: '#64748b',
+      backgroundColor: '#ffffff',
+      textColor: '#1f2937',
+      fontFamily: 'Inter',
+      borderRadius: 'medium'
+    },
+    autoSave: true
+  });
+  const [publicSettings, setPublicSettings] = useState<PublicFormSettings>({
+    isPublic: true,
+    publicUrl: '',
+    allowAnonymous: true,
+    collectEmail: false,
+    showInDirectory: false,
+    expirationDate: undefined,
+    password: undefined
+  });
   const { toast } = useToast();
-  
+
   const { createForm, updateForm, isCreating, isUpdating } = useDynamicForms();
 
   const addField = useCallback((type: FormFieldType) => {
@@ -196,6 +235,16 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
     });
   }, []);
 
+  React.useEffect(() => {
+    if (existingForm) {
+      setFormTitle(existingForm.title || '');
+      setFormDescription(existingForm.description || '');
+      setFields(existingForm.fields || []);
+      setSettings(existingForm.settings || settings);
+      setPublicSettings(existingForm.publicSettings || publicSettings);
+    }
+  }, [existingForm]);
+
   const handleSave = async () => {
     if (!formTitle.trim()) {
       toast({
@@ -211,44 +260,30 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
       description: formDescription,
       category: 'encuestas',
       fields,
-      settings: {
-        allowMultipleSubmissions: true,
-        requireAuthentication: false,
-        showProgressBar: true,
-        theme: {
-          primaryColor: '#3b82f6',
-          secondaryColor: '#64748b',
-          backgroundColor: '#ffffff',
-          textColor: '#1f2937',
-          fontFamily: 'Inter',
-          borderRadius: 'medium'
-        },
-        autoSave: true
-      },
-      publicSettings: {
-        isPublic: true,
-        publicUrl: '',
-        allowAnonymous: true,
-        collectEmail: false,
-        showInDirectory: false
-      },
+      settings,
+      publicSettings,
       created_by: '' as any,
       is_active: true
     };
 
     try {
+      let saved: DynamicForm;
       if (formId) {
-        await updateForm({ id: formId, ...formData });
+        saved = await updateForm({ id: formId, ...formData });
       } else {
-        await createForm(formData);
+        saved = await createForm(formData);
       }
+
+      // Sincronizar settings y publicSettings con lo que devuelve el backend (incluye publicUrl generado)
+      setSettings(saved.settings);
+      setPublicSettings(saved.publicSettings);
 
       toast({
         title: "Éxito",
         description: "Formulario guardado correctamente"
       });
 
-      onSave?.(formData as DynamicForm);
+      onSave?.(saved);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -270,7 +305,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
               <div className="text-sm font-medium text-gray-500 mb-2">Básicos</div>
               {FIELD_TEMPLATES.filter(t => t.category === 'basic').map(template => (
                 <FieldTemplate
-                  key={template.type}
+                  key={`${template.type}-${template.label}`}
                   template={template}
                   onAdd={addField}
                 />
@@ -279,7 +314,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
               <div className="text-sm font-medium text-gray-500 mb-2 mt-4">Avanzados</div>
               {FIELD_TEMPLATES.filter(t => t.category === 'advanced').map(template => (
                 <FieldTemplate
-                  key={template.type}
+                  key={`${template.type}-${template.label}`}
                   template={template}
                   onAdd={addField}
                 />
@@ -288,7 +323,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
               <div className="text-sm font-medium text-gray-500 mb-2 mt-4">Multimedia</div>
               {FIELD_TEMPLATES.filter(t => t.category === 'media').map(template => (
                 <FieldTemplate
-                  key={template.type}
+                  key={`${template.type}-${template.label}`}
                   template={template}
                   onAdd={addField}
                 />
@@ -319,6 +354,12 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
               </div>
               
               <div className="flex items-center gap-2">
+                <Button variant="ghost" onClick={onCancel}>
+                  <span className="inline-flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    Volver
+                  </span>
+                </Button>
                 <Button
                   variant={previewMode ? "default" : "outline"}
                   onClick={() => setPreviewMode(!previewMode)}
@@ -326,7 +367,19 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
                   <Eye className="w-4 h-4 mr-2" />
                   {previewMode ? 'Editar' : 'Vista previa'}
                 </Button>
-                
+                {publicSettings.publicUrl && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const url = `${window.location.origin}/form/${publicSettings.publicUrl}`;
+                      navigator.clipboard.writeText(url);
+                      toast({ title: 'Enlace copiado', description: url });
+                    }}
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copiar enlace público
+                  </Button>
+                )}
                 <Button
                   onClick={handleSave}
                   disabled={isCreating || isUpdating}
@@ -342,6 +395,9 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
           <div className="flex-1 flex">
             {/* Constructor de formulario */}
             <div className="flex-1 p-6">
+              {isLoadingForm && formId ? (
+                <div className="text-center text-gray-500">Cargando formulario...</div>
+              ) : null}
               {previewMode ? (
                 <FormPreview
                   title={formTitle}
@@ -361,13 +417,24 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
               )}
             </div>
 
-            {/* Panel de propiedades */}
-            {selectedField && !previewMode && (
-              <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto">
-                <FieldEditor
-                  field={selectedField}
-                  onUpdate={updateField}
-                />
+            {/* Panel lateral: Propiedades de campo o Ajustes del formulario */}
+            {!previewMode && (
+              <div className="w-96 bg-white border-l border-gray-200 overflow-y-auto">
+                {selectedField ? (
+                  <FieldEditor
+                    field={selectedField}
+                    onUpdate={updateField}
+                  />
+                ) : (
+                  <div className="p-4">
+                    <FormSettings
+                      settings={settings}
+                      publicSettings={publicSettings}
+                      onSettingsChange={setSettings}
+                      onPublicSettingsChange={setPublicSettings}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

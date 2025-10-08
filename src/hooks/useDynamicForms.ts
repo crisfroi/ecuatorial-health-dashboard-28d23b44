@@ -7,8 +7,63 @@ import {
   FormAnalytics, 
   ProfessionalIndicator, 
   ProfessionalIndicatorValue,
-  FormFieldConfig 
+  FormFieldConfig,
+  PublicFormSettings,
+  FormSettings 
 } from '@/types/dynamic-forms';
+
+// Helpers
+function defaultPublicSettings(partial?: any): PublicFormSettings {
+  const src = partial || {};
+  return {
+    isPublic: Boolean(src.isPublic ?? src.is_public ?? false),
+    publicUrl: String(src.publicUrl ?? src.public_url ?? src.publicURL ?? ''),
+    allowAnonymous: Boolean(src.allowAnonymous ?? src.allow_anonymous ?? true),
+    collectEmail: Boolean(src.collectEmail ?? src.collect_email ?? false),
+    showInDirectory: Boolean(src.showInDirectory ?? src.show_in_directory ?? false),
+    expirationDate: src.expirationDate ?? src.expiration_date ?? undefined,
+    password: src.password ?? undefined
+  };
+}
+
+function defaultFormSettings(partial?: any): FormSettings {
+  const src = partial || {};
+  return {
+    allowMultipleSubmissions: Boolean(src.allowMultipleSubmissions ?? src.allow_multiple_submissions ?? true),
+    requireAuthentication: Boolean(src.requireAuthentication ?? src.require_authentication ?? false),
+    showProgressBar: Boolean(src.showProgressBar ?? src.show_progress_bar ?? true),
+    theme: {
+      primaryColor: src.theme?.primaryColor ?? src.theme?.primary_color ?? '#3b82f6',
+      secondaryColor: src.theme?.secondaryColor ?? src.theme?.secondary_color ?? '#64748b',
+      backgroundColor: src.theme?.backgroundColor ?? src.theme?.background_color ?? '#ffffff',
+      textColor: src.theme?.textColor ?? src.theme?.text_color ?? '#1f2937',
+      fontFamily: src.theme?.fontFamily ?? 'Inter',
+      borderRadius: src.theme?.borderRadius ?? 'medium'
+    },
+    confirmationMessage: src.confirmationMessage ?? src.confirmation_message ?? undefined,
+    redirectUrl: src.redirectUrl ?? src.redirect_url ?? undefined,
+    autoSave: Boolean(src.autoSave ?? src.auto_save ?? true),
+    maxSubmissions: src.maxSubmissions ?? src.max_submissions ?? undefined
+  };
+}
+
+function normalizeDynamicForm(row: any): DynamicForm {
+  const fields: FormFieldConfig[] = Array.isArray(row?.fields) ? row.fields : [];
+  return {
+    id: row.id,
+    title: row.title ?? '',
+    description: row.description ?? undefined,
+    category: row.category ?? 'otros',
+    fields,
+    settings: defaultFormSettings(row.settings),
+    publicSettings: defaultPublicSettings(row.public_settings ?? row.publicSettings),
+    created_at: row.created_at ?? new Date().toISOString(),
+    updated_at: row.updated_at ?? row.created_at ?? new Date().toISOString(),
+    created_by: row.created_by ?? 'system',
+    is_active: row.is_active ?? true,
+    submissions_count: row.submissions_count ?? 0
+  } as DynamicForm;
+}
 
 // Hook para gestionar formularios dinámicos
 export const useDynamicForms = () => {
@@ -23,7 +78,7 @@ export const useDynamicForms = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as DynamicForm[];
+      return (data || []).map(normalizeDynamicForm);
     }
   });
 
@@ -54,7 +109,7 @@ export const useDynamicForms = () => {
         .single();
 
       if (error) throw error;
-      return data as DynamicForm;
+      return normalizeDynamicForm(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dynamic-forms'] });
@@ -72,8 +127,13 @@ export const useDynamicForms = () => {
         is_active: (updates as any).is_active,
         updated_at: new Date().toISOString()
       };
+
       if ((updates as any).publicSettings) {
-        dbUpdates.public_settings = (updates as any).publicSettings;
+        const ps = (updates as any).publicSettings as PublicFormSettings;
+        dbUpdates.public_settings = {
+          ...ps,
+          public_url: ps.publicUrl ?? (ps as any).public_url
+        };
       }
 
       Object.keys(dbUpdates).forEach((k) => dbUpdates[k] === undefined && delete dbUpdates[k]);
@@ -86,7 +146,7 @@ export const useDynamicForms = () => {
         .single();
 
       if (error) throw error;
-      return data as DynamicForm;
+      return normalizeDynamicForm(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dynamic-forms'] });
@@ -132,7 +192,7 @@ export const useDynamicForm = (id: string) => {
         .single();
       
       if (error) throw error;
-      return data as DynamicForm;
+      return normalizeDynamicForm(data);
     },
     enabled: !!id
   });
@@ -142,6 +202,7 @@ export const useDynamicForm = (id: string) => {
 
 // Hook para envíos de formularios
 export const useFormSubmissions = (formId: string) => {
+  const queryClient = useQueryClient();
   const { data: submissions = [], isLoading, error } = useQuery({
     queryKey: ['form-submissions', formId],
     queryFn: async () => {
@@ -199,6 +260,7 @@ export const useFormSubmissions = (formId: string) => {
 
 // Hook para indicadores de profesionales
 export const useProfessionalIndicators = () => {
+  const queryClient = useQueryClient();
   const { data: indicators = [], isLoading, error } = useQuery({
     queryKey: ['professional-indicators'],
     queryFn: async () => {
@@ -239,6 +301,7 @@ export const useProfessionalIndicators = () => {
 
 // Hook para valores de indicadores de un profesional
 export const useProfessionalIndicatorValues = (professionalId: string) => {
+  const queryClient = useQueryClient();
   const { data: values = [], isLoading, error } = useQuery({
     queryKey: ['professional-indicator-values', professionalId],
     queryFn: async () => {
@@ -334,7 +397,7 @@ export const usePublicForm = (publicUrl: string) => {
         .single();
       
       if (error) throw error;
-      return data as DynamicForm;
+      return normalizeDynamicForm(data);
     },
     enabled: !!publicUrl
   });

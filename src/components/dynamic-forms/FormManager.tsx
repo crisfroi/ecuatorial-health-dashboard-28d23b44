@@ -87,8 +87,13 @@ export const FormManager: React.FC = () => {
   };
 
   const handleViewForm = (form: DynamicForm) => {
-    if (form.publicSettings.publicUrl) {
+    if (form.publicSettings?.publicUrl) {
       window.open(`/form/${form.publicSettings.publicUrl}`, '_blank');
+    } else {
+      toast({
+        title: 'Sin enlace público',
+        description: 'Activa “Formulario público” y guarda para generar el enlace.',
+      });
     }
   };
 
@@ -106,7 +111,7 @@ export const FormManager: React.FC = () => {
 
   if (showFormBuilder) {
     return (
-      <FormBuilder 
+      <FormBuilder
         formId={selectedForm?.id}
         onSave={(form) => {
           setShowFormBuilder(false);
@@ -115,6 +120,10 @@ export const FormManager: React.FC = () => {
             title: "Éxito",
             description: "Formulario guardado correctamente"
           });
+        }}
+        onCancel={() => {
+          setShowFormBuilder(false);
+          setSelectedForm(null);
         }}
       />
     );
@@ -272,7 +281,7 @@ export const FormManager: React.FC = () => {
                             {form.is_active ? "Activo" : "Inactivo"}
                           </Badge>
                           
-                          {form.publicSettings.isPublic && (
+                          {form.publicSettings?.isPublic && (
                             <Badge variant="outline">
                               {form.publicSettings.password ? (
                                 <Lock className="w-3 h-3 mr-1" />
@@ -302,7 +311,7 @@ export const FormManager: React.FC = () => {
                         </div>
                         
                         {/* Enlace público */}
-                        {form.publicSettings.isPublic && form.publicSettings.publicUrl && (
+                        {form.publicSettings?.isPublic && form.publicSettings?.publicUrl && (
                           <div className="pt-2 border-t">
                             <Button
                               variant="outline"
@@ -339,4 +348,3 @@ export const FormManager: React.FC = () => {
     </div>
   );
 };
-

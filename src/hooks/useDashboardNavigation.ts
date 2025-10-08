@@ -1,19 +1,19 @@
 import { useCallback } from "react";
 
 export interface NavigationFilters {
-  area_profesional?: string;
-  estado_solicitud?: string;
-  provincia?: string;
-  distrito_sanitario?: string;
+  area_profesional?: string[];
+  estado_solicitud?: string[];
+  provincia?: string[];
+  distrito_sanitario?: string[];
   lugar_trabajo?: string;
-  genero?: string;
+  genero?: string[];
   edad_minima?: number;
   edad_maxima?: number;
-  año_graduacion?: number;
+  año_graduacion?: number[];
   categoria_titulacion?: string;
   categoria_centro?: string;
-  pais_formacion?: string;
-  institucion?: string;
+  pais_formacion?: string[];
+  institucion?: string[];
 }
 
 export interface DashboardNavigationProps {
@@ -26,8 +26,8 @@ export const useDashboardNavigation = (
   const navigateToArea = useCallback(
     (area: string) => {
       onNavigateToTab("professionals", {
-        area_profesional: area,
-        estado_solicitud: "Aprobado",
+        area_profesional: [area],
+        estado_solicitud: ["Aprobado"],
       });
     },
     [onNavigateToTab],
@@ -36,8 +36,8 @@ export const useDashboardNavigation = (
   const navigateToDistrict = useCallback(
     (distrito: string) => {
       onNavigateToTab("professionals", {
-        distrito_sanitario: distrito,
-        estado_solicitud: "Aprobado",
+        distrito_sanitario: [distrito],
+        estado_solicitud: ["Aprobado"],
       });
     },
     [onNavigateToTab],
@@ -47,7 +47,7 @@ export const useDashboardNavigation = (
     (centro: string) => {
       onNavigateToTab("professionals", {
         lugar_trabajo: centro,
-        estado_solicitud: "Aprobado",
+        estado_solicitud: ["Aprobado"],
       });
     },
     [onNavigateToTab],
@@ -56,8 +56,8 @@ export const useDashboardNavigation = (
   const navigateToInstitution = useCallback(
     (institution: string) => {
       onNavigateToTab("professionals", {
-        institucion: institution,
-        estado_solicitud: "Aprobado",
+        institucion: [institution],
+        estado_solicitud: ["Aprobado"],
       });
     },
     [onNavigateToTab],
@@ -95,7 +95,7 @@ export const useDashboardNavigation = (
       onNavigateToTab("professionals", {
         edad_minima,
         edad_maxima,
-        estado_solicitud: "Aprobado",
+        estado_solicitud: ["Aprobado"],
       });
     },
     [onNavigateToTab],
@@ -134,7 +134,7 @@ export const useDashboardNavigation = (
       }
 
       onNavigateToTab("professionals", {
-        estado_solicitud: "Aprobado",
+        estado_solicitud: ["Aprobado"],
         años_restantes_jubilacion_min,
         años_restantes_jubilacion_max,
       } as any);
@@ -145,8 +145,8 @@ export const useDashboardNavigation = (
   const navigateToGraduationYear = useCallback(
     (year: number) => {
       onNavigateToTab("professionals", {
-        año_graduacion: year,
-        estado_solicitud: "Aprobado",
+        año_graduacion: [year],
+        estado_solicitud: ["Aprobado"],
       });
     },
     [onNavigateToTab],
@@ -155,8 +155,8 @@ export const useDashboardNavigation = (
   const navigateToCountry = useCallback(
     (country: string) => {
       onNavigateToTab("professionals", {
-        estado_solicitud: "Aprobado",
-        pais_formacion: country,
+        estado_solicitud: ["Aprobado"],
+        pais_formacion: [country],
       });
     },
     [onNavigateToTab],
@@ -183,8 +183,8 @@ export const useDashboardNavigation = (
   const navigateToProvince = useCallback(
     (provincia: string) => {
       onNavigateToTab("professionals", {
-        provincia: provincia,
-        estado_solicitud: "Aprobado",
+        provincia: [provincia],
+        estado_solicitud: ["Aprobado"],
       });
     },
     [onNavigateToTab],

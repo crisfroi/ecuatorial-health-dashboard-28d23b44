@@ -60,12 +60,12 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
       else if (value === 'false') normalized = false;
       else normalized = undefined;
     }
-
-    // LÓGICA DE LIMPIEZA PARA MULTISELECT: Si es un array vacío, convertirlo a undefined
+    
+    // Si es un array vacío, convertirlo a undefined
     if (Array.isArray(value) && value.length === 0) {
       normalized = undefined;
     }
-
+    
     onFiltersChange({
       ...filters,
       [key]: normalized === 'todos' ? undefined : normalized

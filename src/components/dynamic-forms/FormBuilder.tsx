@@ -232,27 +232,27 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
         collectEmail: false,
         showInDirectory: false
       },
-      created_by: 'current-user',
+      created_by: '' as any,
       is_active: true
     };
 
     try {
       if (formId) {
-        updateForm({ id: formId, ...formData });
+        await updateForm({ id: formId, ...formData });
       } else {
-        createForm(formData);
+        await createForm(formData);
       }
-      
+
       toast({
         title: "Éxito",
         description: "Formulario guardado correctamente"
       });
-      
+
       onSave?.(formData as DynamicForm);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Error al guardar el formulario",
+        description: error?.message || "Error al guardar el formulario",
         variant: "destructive"
       });
     }
@@ -343,10 +343,11 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
             {/* Constructor de formulario */}
             <div className="flex-1 p-6">
               {previewMode ? (
-                <FormPreview 
+                <FormPreview
                   title={formTitle}
                   description={formDescription}
                   fields={fields}
+                  readOnly
                 />
               ) : (
                 <FormCanvas
@@ -621,4 +622,3 @@ const FieldPreview: React.FC<{ field: FormFieldConfig }> = ({ field }) => {
     </div>
   );
 };
-

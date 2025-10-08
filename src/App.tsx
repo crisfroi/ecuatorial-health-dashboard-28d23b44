@@ -11,6 +11,8 @@ import ProfessionalRegistration from "./pages/ProfessionalRegistration";
 import PublicSearch from "./pages/PublicSearch";
 import NotFound from "./pages/NotFound";
 import SolicitudEstablecimiento from "./pages/SolicitudEstablecimiento";
+import DynamicForms from "./pages/DynamicForms";
+import PublicForm from "./pages/PublicForm";
 import Auth from "./pages/Auth";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import "./utils/authErrorHandler"; // Initialize global auth error handling
@@ -80,6 +82,8 @@ function App() {
                 <Route path="/register" element={<ProfessionalRegistration />} />
                 <Route path="/search" element={<PublicSearch />} />
                 <Route path="/solicitud-establecimiento" element={<SolicitudEstablecimiento />} />
+                <Route path="/dynamic-forms" element={<DynamicForms />} />
+                <Route path="/form/:publicUrl" element={<PublicForm />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

@@ -78,6 +78,11 @@ import ResizeObserverTestIndicator from "@/components/dashboard/ResizeObserverTe
 import CoachMarks, { CoachMarkStep } from "@/components/onboarding/CoachMarks";
 import { ENABLE_INTERACTIVE_TOURS, isTourCompleted, setTourCompleted } from "@/config/featureFlags";
 
+// Importar componentes de formularios dinámicos
+import { FormManager } from "@/components/dynamic-forms/FormManager";
+import { IndicatorManager } from "@/components/dynamic-forms/IndicatorManager";
+import { FormBuilder } from "@/components/dynamic-forms/FormBuilder";
+
 import type { Tables } from "@/integrations/supabase/types";
 
 type Profesional = Tables<"profesionales_sanitarios">;
@@ -486,6 +491,7 @@ const Dashboard = () => {
     ...(userRole && canAccessTab("health-centers") ? [{ id: "health-centers", label: "Centros", icon: MapPin }] : []),
     ...(userRole && canAccessTab("establecimientos") ? [{ id: "establecimientos", label: "Solicitudes Establecimientos", icon: Building2 }] : []),
     ...(userRole && canAccessTab("traslados") ? [{ id: "traslados", label: "Traslados", icon: ArrowRight }] : []),
+    ...(userRole && canAccessTab("forms") ? [{ id: "forms", label: "Formularios Dinámicos", icon: ClipboardList }] : []),
     ...(userRole && hasPermission("manage_users") ? [{ id: "users", label: "Usuarios", icon: UserCog }] : []),
     ...(userRole && hasPermission("system_configuration") ? [{ id: "admin", label: "Admin", icon: Settings }] : []),
   ].filter(tab => userRole ? canAccessTab(tab.id) : tab.id === "overview" || tab.id === "professionals");
@@ -754,6 +760,10 @@ const Dashboard = () => {
             />
           </TabsContent>
 
+          <TabsContent value="parametros" className="space-y-6" data-tour="dashboard-parametros">
+            <ParametrosProfesionalesPanel />
+          </TabsContent>
+
           <TabsContent value="iachat" className="space-y-6" data-tour="dashboard-iachat">
             <IAChatOrchestrator
               filters={dashboardFilters}
@@ -796,6 +806,11 @@ const Dashboard = () => {
 
           <TabsContent value="traslados" className="space-y-6">
             <TrasladosProfesionalesPanel userRole={userRole} />
+          </TabsContent>
+
+          {/* Pestaña de Formularios Dinámicos */}
+          <TabsContent value="forms" className="space-y-6">
+            <FormManager />
           </TabsContent>
         </Tabs>
 

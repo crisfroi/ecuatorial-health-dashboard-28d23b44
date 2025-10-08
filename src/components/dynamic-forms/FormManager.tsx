@@ -87,7 +87,7 @@ export const FormManager: React.FC = () => {
   };
 
   const handleViewForm = (form: DynamicForm) => {
-    if (form.publicSettings.publicUrl) {
+    if (form.publicSettings?.publicUrl) {
       window.open(`/form/${form.publicSettings.publicUrl}`, '_blank');
     }
   };
@@ -272,7 +272,7 @@ export const FormManager: React.FC = () => {
                             {form.is_active ? "Activo" : "Inactivo"}
                           </Badge>
                           
-                          {form.publicSettings.isPublic && (
+                          {form.publicSettings?.isPublic && (
                             <Badge variant="outline">
                               {form.publicSettings.password ? (
                                 <Lock className="w-3 h-3 mr-1" />
@@ -302,7 +302,7 @@ export const FormManager: React.FC = () => {
                         </div>
                         
                         {/* Enlace público */}
-                        {form.publicSettings.isPublic && form.publicSettings.publicUrl && (
+                        {form.publicSettings?.isPublic && form.publicSettings?.publicUrl && (
                           <div className="pt-2 border-t">
                             <Button
                               variant="outline"
@@ -339,4 +339,3 @@ export const FormManager: React.FC = () => {
     </div>
   );
 };
-

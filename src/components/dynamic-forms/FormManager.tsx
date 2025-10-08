@@ -89,6 +89,11 @@ export const FormManager: React.FC = () => {
   const handleViewForm = (form: DynamicForm) => {
     if (form.publicSettings?.publicUrl) {
       window.open(`/form/${form.publicSettings.publicUrl}`, '_blank');
+    } else {
+      toast({
+        title: 'Sin enlace público',
+        description: 'Activa “Formulario público” y guarda para generar el enlace.',
+      });
     }
   };
 
@@ -106,7 +111,7 @@ export const FormManager: React.FC = () => {
 
   if (showFormBuilder) {
     return (
-      <FormBuilder 
+      <FormBuilder
         formId={selectedForm?.id}
         onSave={(form) => {
           setShowFormBuilder(false);
@@ -115,6 +120,10 @@ export const FormManager: React.FC = () => {
             title: "Éxito",
             description: "Formulario guardado correctamente"
           });
+        }}
+        onCancel={() => {
+          setShowFormBuilder(false);
+          setSelectedForm(null);
         }}
       />
     );

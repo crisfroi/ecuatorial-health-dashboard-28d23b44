@@ -33,8 +33,8 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateProfesionalSanitario } from "@/lib/api/profesionales-sanitarios";
 import { ProfesionalSanitario } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RequestsPanelProps {
   professionalsList: ProfesionalSanitario[];
@@ -55,7 +55,15 @@ const RequestsPanel: React.FC<RequestsPanelProps> = ({
     pageSize: 10,
   });
 
-  const updateProfesional = useMutation(updateProfesionalSanitario, {
+  const updateProfesional = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<ProfesionalSanitario> }) => {
+      const { error } = await supabase
+        .from("profesionales_sanitarios")
+        .update(updates)
+        .eq("id", id);
+      
+      if (error) throw error;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(["profesionales-sanitarios"]);
     },

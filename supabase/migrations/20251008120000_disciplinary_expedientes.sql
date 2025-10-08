@@ -35,6 +35,11 @@ CREATE INDEX IF NOT EXISTS expedientes_estado_idx ON public.expedientes_discipli
 CREATE INDEX IF NOT EXISTS hist_exp_expediente_idx ON public.historial_acciones_expediente(expediente_id);
 CREATE INDEX IF NOT EXISTS hist_exp_actor_idx ON public.historial_acciones_expediente(actor_id);
 
+-- Storage bucket for attachments
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('expedientes','expedientes', true)
+ON CONFLICT (id) DO NOTHING;
+
 -- RLS
 ALTER TABLE public.expedientes_disciplinarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.historial_acciones_expediente ENABLE ROW LEVEL SECURITY;

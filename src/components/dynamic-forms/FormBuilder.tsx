@@ -32,7 +32,7 @@ import {
   PenTool
 } from 'lucide-react';
 import { useDynamicForms } from '@/hooks/useDynamicForms';
-import { FormFieldConfig, FormFieldType, DynamicForm } from '@/types/dynamic-forms';
+import { FormFieldConfig, FormFieldType, DynamicForm, FormSettings as FormSettingsType, PublicFormSettings } from '@/types/dynamic-forms';
 import { FieldEditor } from './FieldEditor';
 import { FormPreview } from './FormPreview';
 import { FormSettings } from './FormSettings';
@@ -143,8 +143,31 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
   const [formTitle, setFormTitle] = useState('Nuevo Formulario');
   const [formDescription, setFormDescription] = useState('');
   const [fields, setFields] = useState<FormFieldConfig[]>([]);
+  const [settings, setSettings] = useState<FormSettingsType>({
+    allowMultipleSubmissions: true,
+    requireAuthentication: false,
+    showProgressBar: true,
+    theme: {
+      primaryColor: '#3b82f6',
+      secondaryColor: '#64748b',
+      backgroundColor: '#ffffff',
+      textColor: '#1f2937',
+      fontFamily: 'Inter',
+      borderRadius: 'medium'
+    },
+    autoSave: true
+  });
+  const [publicSettings, setPublicSettings] = useState<PublicFormSettings>({
+    isPublic: true,
+    publicUrl: '',
+    allowAnonymous: true,
+    collectEmail: false,
+    showInDirectory: false,
+    expirationDate: undefined,
+    password: undefined
+  });
   const { toast } = useToast();
-  
+
   const { createForm, updateForm, isCreating, isUpdating } = useDynamicForms();
 
   const addField = useCallback((type: FormFieldType) => {
@@ -211,44 +234,30 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
       description: formDescription,
       category: 'encuestas',
       fields,
-      settings: {
-        allowMultipleSubmissions: true,
-        requireAuthentication: false,
-        showProgressBar: true,
-        theme: {
-          primaryColor: '#3b82f6',
-          secondaryColor: '#64748b',
-          backgroundColor: '#ffffff',
-          textColor: '#1f2937',
-          fontFamily: 'Inter',
-          borderRadius: 'medium'
-        },
-        autoSave: true
-      },
-      publicSettings: {
-        isPublic: true,
-        publicUrl: '',
-        allowAnonymous: true,
-        collectEmail: false,
-        showInDirectory: false
-      },
+      settings,
+      publicSettings,
       created_by: '' as any,
       is_active: true
     };
 
     try {
+      let saved: DynamicForm;
       if (formId) {
-        await updateForm({ id: formId, ...formData });
+        saved = await updateForm({ id: formId, ...formData });
       } else {
-        await createForm(formData);
+        saved = await createForm(formData);
       }
+
+      // Sincronizar settings y publicSettings con lo que devuelve el backend (incluye publicUrl generado)
+      setSettings(saved.settings);
+      setPublicSettings(saved.publicSettings);
 
       toast({
         title: "Éxito",
         description: "Formulario guardado correctamente"
       });
 
-      onSave?.(formData as DynamicForm);
+      onSave?.(saved);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -326,7 +335,19 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
                   <Eye className="w-4 h-4 mr-2" />
                   {previewMode ? 'Editar' : 'Vista previa'}
                 </Button>
-                
+                {publicSettings.publicUrl && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const url = `${window.location.origin}/form/${publicSettings.publicUrl}`;
+                      navigator.clipboard.writeText(url);
+                      toast({ title: 'Enlace copiado', description: url });
+                    }}
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copiar enlace público
+                  </Button>
+                )}
                 <Button
                   onClick={handleSave}
                   disabled={isCreating || isUpdating}
@@ -361,13 +382,24 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ formId, onSave }) => {
               )}
             </div>
 
-            {/* Panel de propiedades */}
-            {selectedField && !previewMode && (
-              <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto">
-                <FieldEditor
-                  field={selectedField}
-                  onUpdate={updateField}
-                />
+            {/* Panel lateral: Propiedades de campo o Ajustes del formulario */}
+            {!previewMode && (
+              <div className="w-96 bg-white border-l border-gray-200 overflow-y-auto">
+                {selectedField ? (
+                  <FieldEditor
+                    field={selectedField}
+                    onUpdate={updateField}
+                  />
+                ) : (
+                  <div className="p-4">
+                    <FormSettings
+                      settings={settings}
+                      publicSettings={publicSettings}
+                      onSettingsChange={setSettings}
+                      onPublicSettingsChange={setPublicSettings}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

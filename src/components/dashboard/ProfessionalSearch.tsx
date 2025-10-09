@@ -474,6 +474,12 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
                             >
                               {professional.estado_solicitud}
                             </Badge>
+                            {sanctionsMap[professional.id]?.inhabilitado && (
+                              <Badge variant="destructive">INHABILITADO</Badge>
+                            )}
+                            {!sanctionsMap[professional.id]?.inhabilitado && sanctionsMap[professional.id]?.suspendido && (
+                              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">SUSPENDIDO</Badge>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">

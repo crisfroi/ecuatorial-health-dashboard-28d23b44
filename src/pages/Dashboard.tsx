@@ -820,6 +820,8 @@ const Dashboard = () => {
           {/* Pestaña de Expedientes Disciplinarios */}
           <TabsContent value="disciplinary" className="space-y-6">
             <ExpedienteNuevoForm />
+            <ExpedienteManager />
+            <DisciplinaryDashboard />
           </TabsContent>
         </Tabs>
 

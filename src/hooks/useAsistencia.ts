@@ -256,30 +256,136 @@ export function useAsistencia() {
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const firstSheetName = wb.SheetNames[0];
+      if (!firstSheetName) {
+        toast({ title: 'Archivo sin hojas', description: 'El archivo Personal.xls no contiene hojas válidas', variant: 'destructive' });
+        return 0;
+      }
 
-      let qb = supabase.from('profesionales_sanitarios').select('id, nombre_completo, id_profesional_unico, centro_salud_id');
+      const ws = wb.Sheets[firstSheetName];
+      if (!ws) {
+        toast({ title: 'Hoja inválida', description: 'No se pudo leer el contenido de la hoja seleccionada', variant: 'destructive' });
+        return 0;
+      }
+
+      const headerRows = XLSX.utils.sheet_to_json<(string | number)[]>(ws, { header: 1, defval: '' });
+      const headerRow = headerRows.find((row) => row.some((cell) => String(cell ?? '').trim().length > 0)) || [];
+      const normalizedHeaders = headerRow.map((cell) => String(cell || '').trim().toLowerCase());
+      const columnChecks = [
+        { keys: ['id', 'empno', 'emp no', 'enno', 'en no', 'no'], label: 'ID/EmpNo' },
+        { keys: ['name', 'nombre'], label: 'Nombre' },
+        { keys: ['turno', 'shift'], label: 'Turno' },
+      ];
+      const missing = columnChecks
+        .filter(({ keys }) => !normalizedHeaders.some((header) => keys.includes(header)))
+        .map(({ label }) => label);
+      if (missing.length) {
+        toast({
+          title: 'Formato Personal.xls no válido',
+          description: `Faltan columnas requeridas: ${missing.join(', ')}`,
+          variant: 'destructive',
+        });
+        return 0;
+      }
+
+      const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!rows.length) {
+        toast({ title: 'Archivo vacío', description: 'No se encontraron registros en el archivo Personal.xls', variant: 'destructive' });
+        return 0;
+      }
+
+      let qb = supabase.from('profesionales_sanitarios').select('id, nombre_completo, id_profesional_unico, centro_salud_id, numero_tarjeta_rfid');
       if (centerId) qb = qb.eq('centro_salud_id', centerId);
       const { data: profs, error: profErr } = await qb;
       if (profErr) throw profErr;
-      const byEmpNo = new Map((profs||[]).map((p: any) => [String(p.id_profesional_unico||'').trim(), p.id] as const));
-      const byName = new Map((profs||[]).map((p: any) => [String(p.nombre_completo||'').trim().toLowerCase(), p.id] as const));
 
-      let count = 0;
-      for (const r of rows) {
-        const en = String(r.EmpNo || r.EnNo || r.EmpID || r.enno || r.ENNO || '').trim();
-        if (!en) continue;
-        const name = String(r.Name || r.Nombre || r.EmpName || '').trim();
-        let profId: string | undefined = byEmpNo.get(en);
-        if (!profId && name) profId = byName.get(name.toLowerCase());
-        if (!profId) continue;
-        const { error } = await supabase.from('empleado_dispositivo_map').upsert({ id_dispositivo: deviceId, en_no: en, id_profesional: profId }, { onConflict: 'id_dispositivo,en_no' });
-        if (error) throw error;
-        count++;
+      const byEmpNo = new Map<string, string>();
+      const byName = new Map<string, string>();
+      (profs || []).forEach((p: any) => {
+        const raw = String(p.id_profesional_unico ?? '').trim();
+        if (raw) {
+          byEmpNo.set(raw, p.id);
+          const numeric = raw.replace(/\D/g, '');
+          if (numeric) byEmpNo.set(numeric, p.id);
+        }
+        const name = String(p.nombre_completo ?? '').trim().toLowerCase();
+        if (name) byName.set(name, p.id);
+      });
+
+      const mappings: { id_dispositivo: string; en_no: string; id_profesional: string }[] = [];
+      const rfidUpdates = new Map<string, string>();
+      const unmatched: string[] = [];
+      const invalid: number[] = [];
+
+      rows.forEach((r, index) => {
+        const rawEmp = String(
+          r.EmpNo ?? r.ENNO ?? r.EnNo ?? r.EmpID ?? r.ID ?? r.Id ?? r.id ?? r.No ?? ''
+        ).trim();
+        const cleanEmp = rawEmp.replace(/\s+/g, '');
+        const numericEmp = cleanEmp.replace(/\D/g, '');
+        const enNo = cleanEmp || numericEmp;
+        if (!enNo) {
+          invalid.push(index + 2);
+          return;
+        }
+
+        const name = String(r.Name ?? r.Nombre ?? r.EmpName ?? '').trim().toLowerCase();
+        let profId = byEmpNo.get(enNo) || byEmpNo.get(numericEmp) || byEmpNo.get(rawEmp) || null;
+        if (!profId && name) {
+          profId = byName.get(name) || null;
+        }
+        if (!profId) {
+          unmatched.push(enNo || name || `fila ${index + 2}`);
+          return;
+        }
+
+        mappings.push({ id_dispositivo: deviceId, en_no: enNo, id_profesional: profId });
+
+        const cardRaw = String(
+          r['ID/Tarjeta'] ?? r['ID / Tarjeta'] ?? r.CardNo ?? r.Card ?? r.Tarjeta ?? ''
+        ).trim();
+        const cardSanitized = cardRaw.replace(/\D/g, '').slice(0, 10);
+        if (cardSanitized) {
+          const existing = rfidUpdates.get(profId);
+          if (!existing || existing !== cardSanitized) {
+            rfidUpdates.set(profId, cardSanitized);
+          }
+        }
+      });
+
+      if (!mappings.length) {
+        toast({
+          title: 'Sin asignaciones válidas',
+          description: unmatched.length
+            ? `No se encontraron profesionales para ${unmatched.slice(0, 5).join(', ')}`
+            : 'Verifique que el archivo contiene IDs válidos',
+          variant: 'destructive',
+        });
+        return 0;
       }
-      toast({ title: 'Asignaciones guardadas', description: `${count} mapeos creados/actualizados` });
-      return count;
+
+      const { error: mappingError } = await supabase
+        .from('empleado_dispositivo_map')
+        .upsert(mappings, { onConflict: 'id_dispositivo,en_no' });
+      if (mappingError) throw mappingError;
+
+      if (rfidUpdates.size) {
+        const rfidPayload = Array.from(rfidUpdates.entries()).map(([id, numero_tarjeta_rfid]) => ({ id, numero_tarjeta_rfid }));
+        const { error: rfidError } = await supabase
+          .from('profesionales_sanitarios')
+          .upsert(rfidPayload, { onConflict: 'id' });
+        if (rfidError) throw rfidError;
+      }
+
+      const details: string[] = [];
+      if (unmatched.length) details.push(`Sin coincidencia: ${unmatched.slice(0, 3).join(', ')}`);
+      if (invalid.length) details.push(`Filas omitidas: ${invalid.length}`);
+
+      toast({
+        title: 'Asignaciones guardadas',
+        description: `${mappings.length} mapeos creados/actualizados${details.length ? ` · ${details.join(' · ')}` : ''}`,
+      });
+      return mappings.length;
     } finally {
       setImporting(false);
     }

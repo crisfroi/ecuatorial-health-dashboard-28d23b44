@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect, useMemo, useState } from "react";
 
- type FormData = {
+type FormData = {
   profesionalId?: string;
   searchProfesional?: string;
   idProfesionalUnico?: string;
@@ -25,7 +25,7 @@ import { useEffect, useMemo, useState } from "react";
 export function ExpedienteNuevoForm() {
   const { toast } = useToast();
   const { register, handleSubmit, formState: { isSubmitting }, reset, setValue, watch } = useForm<FormData>({
-    defaultValues: { fechaIncidente: new Date().toISOString().slice(0,16) }
+    defaultValues: { fechaIncidente: new Date().toISOString().slice(0, 16) }
   });
 
   const [profResults, setProfResults] = useState<any[]>([]);
@@ -84,25 +84,39 @@ export function ExpedienteNuevoForm() {
         if (pub?.publicUrl) pruebasUrls.push(pub.publicUrl);
       }
 
-      // 3) Llamar a la Edge Function
-      const token = (await supabase.auth.getSession()).data.session?.access_token || "";
-      const res = await fetch("/functions/v1/expediente-abrir", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          profesionalId,
-          motivo: values.motivo,
-          archivoAdjuntoUrl: pruebasUrls[0],
-          fechaIncidente: values.fechaIncidente ? new Date(values.fechaIncidente).toISOString() : new Date().toISOString(),
-          faltaCodigo: values.faltaCodigo,
-          gravedad: values.gravedad,
-          descripcion: values.descripcion,
-          centroSaludId: values.centroSaludId,
-          pruebasUrls
-        }),
+      // 3) Llamar a la Edge Function (CORRECCIÓN IMPLEMENTADA AQUÍ)
+
+      const payload = {
+        profesionalId,
+        motivo: values.motivo,
+        archivoAdjuntoUrl: pruebasUrls[0], // Usado para compatibilidad con la estructura anterior
+        fechaIncidente: values.fechaIncidente ? new Date(values.fechaIncidente).toISOString() : new Date().toISOString(),
+        faltaCodigo: values.faltaCodigo,
+        gravedad: values.gravedad,
+        descripcion: values.descripcion,
+        centroSaludId: values.centroSaludId,
+        pruebasUrls // Se envía la lista completa de URLs
+      };
+
+      // Usar supabase.functions.invoke() para resolver el error 404 de enrutamiento
+      const { data: responseData, error: functionError } = await supabase.functions.invoke('expediente-abrir', {
+        body: payload,
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || "Error creando expediente");
+
+      if (functionError) {
+        throw new Error(functionError.message || "Error de red al llamar a la función.");
+      }
+
+      const json = responseData;
+
+      if (json?.error) {
+        // La función Deno devolvió un error lógico (ej. no autenticado, permiso denegado)
+        throw new Error(json.error);
+      }
+
+      if (!json?.expediente?.id) {
+        throw new Error("Respuesta de función incompleta: Expediente ID no encontrado.");
+      }
 
       toast({ title: "Expediente creado", description: `ID: ${json.expediente.id}` });
       reset();

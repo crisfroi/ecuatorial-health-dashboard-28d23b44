@@ -108,6 +108,12 @@ const formSchema = z
     nacionalidad: z.string().min(1, "Seleccione su nacionalidad"),
     numero_dip: z.string().optional(),
     numero_pasaporte: z.string().optional(),
+    numero_tarjeta_rfid: z
+      .string()
+      .optional()
+      .refine((value) => !value || /^\d{1,10}$/.test(value), {
+        message: "Ingrese hasta 10 dígitos",
+      }),
     telefono: z.string().min(9, "El teléfono debe tener al menos 9 dígitos"),
     domicilio: z.string().min(2, "El domicilio es requerido"),
     provincia: z.string().min(1, "La provincia es requerida"),
@@ -241,6 +247,7 @@ const stepFields: { [key: number]: (keyof FormData)[] } = {
     "nacionalidad",
     "numero_dip",
     "numero_pasaporte",
+    "numero_tarjeta_rfid",
     "telefono",
   ],
   2: ["domicilio", "provincia", "distrito"],
@@ -308,6 +315,7 @@ const ProfessionalRegistration = () => {
       situacion_laboral: "Activo",
       nacionalidad: "Ecuatoguineana",
       telefono: "+240",
+      numero_tarjeta_rfid: "",
       funcionario_estatus: undefined,
       numero_funcionario: "",
       fecha_nombramiento: "",
@@ -499,6 +507,7 @@ const ProfessionalRegistration = () => {
         nacionalidad: U(data.nacionalidad),
         numero_dip: data.numero_dip || null,
         numero_pasaporte: data.numero_pasaporte || null,
+        numero_tarjeta_rfid: data.numero_tarjeta_rfid ? data.numero_tarjeta_rfid : null,
         telefono: normalizeTelefono(data.telefono),
         domicilio: U(data.domicilio),
         provincia: U(data.provincia),

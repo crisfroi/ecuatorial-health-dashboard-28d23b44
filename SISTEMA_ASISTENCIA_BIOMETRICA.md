@@ -50,8 +50,31 @@ Columnas: ID | Nombre | Depto | Turno | Admin | Registro Huella | Rostro | Contr
 - Formato binario propietario
 - Relaciona profesionales entre múltiples dispositivos en un centro
 
-### 4. **Logs de Fichajes** (Importación ← Dispositivo)
-El hook `useAsistencia.ts` ya soporta:
+### 4. **GLG.TXT** (Importación ← Dispositivo) ✅ ARCHIVO MATRIZ PRINCIPAL
+**Formato identificado del archivo real:**
+```
+Columnas: No | TMNo | EnNo | Name | INOUT | Mode | DateTime
+Ejemplo: 0 | 12 | 3 |  | 0 | 8 | 2025/09/10 12:35:45
+```
+- **No**: Número secuencial de registro
+- **TMNo**: ID del dispositivo biométrico (ej: 12)
+- **EnNo**: ID del empleado/profesional (1, 2, 3, etc. | 99999999 = Visitante)
+- **Name**: Nombre del profesional (puede estar vacío)
+- **INOUT**: Tipo de fichaje (0, 1, IN, OUT)
+- **Mode**: Método de verificación
+  - 1 = Huella digital
+  - 3 = Contraseña/PIN
+  - 8 = Tarjeta RFID
+- **DateTime**: Fecha y hora en formato `YYYY/MM/DD HH:mm:ss`
+
+**Soporte actual:** El hook `useAsistencia.ts` ya procesa este formato automáticamente:
+- Detecta separadores (tabs, comas, espacios múltiples)
+- Reconoce cabecera automáticamente
+- Normaliza fechas YYYY/MM/DD → ISO
+- Mapea EnNo → profesional_id vía tabla `empleado_dispositivo_map`
+
+### 5. **Logs de Fichajes - Otros formatos** (Importación ← Dispositivo)
+El hook `useAsistencia.ts` también soporta:
 - Archivos TXT/DAT con columnas: EnNo, DateTime, INOUT, Mode
 - Archivos Excel multi-hoja (Reporte.xls)
 

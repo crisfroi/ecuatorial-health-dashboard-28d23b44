@@ -44,23 +44,26 @@ export interface ProfesionalAlert {
 export type Professional = Profesional;
 
 interface Filtros {
-  area_profesional?: string;
-  estado_solicitud?: string;
-  provincia?: string;
-  genero?: string;
-  tipo_sector?: string;
-  distrito?: string;
-  distrito_sanitario?: string;
+  // Acepta string o string[] para soportar selección múltiple
+  area_profesional?: string | string[];
+  estado_solicitud?: string | string[];
+  provincia?: string | string[];
+  genero?: string | string[];
+  tipo_sector?: string | string[];
+  distrito?: string | string[];
+  distrito_sanitario?: string | string[];
   anoGraduacion?: string;
   lugar_trabajo?: string;
   edad_minima?: number;
   edad_maxima?: number;
-  año_graduacion?: number;
+  año_graduacion?: number | number[];
   categoria_titulacion?: string;
   categoria_centro?: string;
   funcion_publica?: boolean; // Filtro para funcionarios públicos
-  pais_formacion?: string; // País de formación (1 o 2)
-  institucion?: string; // Institución de formación (1 o 2)
+  // País e institución de formación: ahora permiten múltiples
+  pais_formacion?: string | string[];
+  institucion?: string | string[];
+  institucion_formacion?: string | string[];
   // Filtros de fecha
   fecha_solicitud_gte?: string;
   fecha_solicitud_lte?: string;
@@ -72,6 +75,8 @@ interface Filtros {
   años_servicio_max?: number;
   años_restantes_jubilacion_min?: number;
   años_restantes_jubilacion_max?: number;
+  // Centro (acepta string o string[] por compatibilidad)
+  centro_id?: string | string[];
 }
 
 // Tipo para filtros de navegación - incluye todas las propiedades necesarias
@@ -130,80 +135,94 @@ export function useProfesionales(filtros: Filtros = {}) {
         .select("*")
         .order("created_at", { ascending: false });
 
-      // Aplicar filtros existentes
-      if (filtros.area_profesional && filtros.area_profesional !== "todos") {
-        const pattern = `%${filtros.area_profesional}%`;
-        query = query.ilike("area_profesional", pattern);
+      // Helpers para aplicar filtros que aceptan string o array
+      const isNonEmptyArray = (v: any): v is any[] => Array.isArray(v) && v.length > 0;
+      const applyInOrEq = (column: string, value: any) => {
+        if (isNonEmptyArray(value)) {
+          query = query.in(column, value as any);
+        } else if (value && value !== 'todos') {
+          query = query.eq(column, value as any);
+        }
+      };
+
+      // Área profesional: soporta múltiple selección (OR) y búsqueda parcial para una sola cadena
+      if (filtros.area_profesional) {
+        if (isNonEmptyArray(filtros.area_profesional)) {
+          query = query.in('area_profesional', filtros.area_profesional as string[]);
+        } else if (typeof filtros.area_profesional === 'string' && filtros.area_profesional !== 'todos') {
+          query = query.ilike('area_profesional', `%${filtros.area_profesional}%`);
+        }
       }
 
-      if (filtros.estado_solicitud && filtros.estado_solicitud !== "todos") {
-        query = query.eq("estado_solicitud", filtros.estado_solicitud);
+      // Estado solicitud, provincia, género, sector, distrito(s)
+      applyInOrEq('estado_solicitud', filtros.estado_solicitud);
+      applyInOrEq('provincia', filtros.provincia);
+      applyInOrEq('genero', filtros.genero);
+      applyInOrEq('tipo_sector', filtros.tipo_sector);
+      applyInOrEq('distrito', filtros.distrito);
+      applyInOrEq('distrito_sanitario', filtros.distrito_sanitario);
+
+      // Año de graduación (acepta number o number[]). Mantener compat con 'anoGraduacion'
+      if (filtros.anoGraduacion && filtros.anoGraduacion !== 'todos') {
+        const n = parseInt(filtros.anoGraduacion);
+        if (!Number.isNaN(n)) query = query.eq('año_graduacion', n);
+      }
+      if (filtros.año_graduacion !== undefined) {
+        if (isNonEmptyArray(filtros.año_graduacion)) {
+          query = query.in('año_graduacion', filtros.año_graduacion as number[]);
+        } else if (typeof filtros.año_graduacion === 'number') {
+          query = query.eq('año_graduacion', filtros.año_graduacion);
+        }
       }
 
-      if (filtros.provincia && filtros.provincia !== "todos") {
-        query = query.eq("provincia", filtros.provincia);
+      // Centro por ID (compatibilidad string | string[] | centro_salud_id)
+      const centroId = (filtros as any).centro_salud_id ?? filtros.centro_id;
+      if (centroId) {
+        if (isNonEmptyArray(centroId)) query = query.in('centro_salud_id', centroId as string[]);
+        else if (typeof centroId === 'string' && centroId !== 'todos') query = query.eq('centro_salud_id', centroId);
       }
 
-      if (filtros.genero && filtros.genero !== "todos") {
-        query = query.eq("genero", filtros.genero);
+      // Lugar de trabajo (nombre del centro)
+      if (filtros.lugar_trabajo && filtros.lugar_trabajo !== 'todos') {
+        query = query.eq('nombre_centro', filtros.lugar_trabajo);
       }
 
-      if (filtros.tipo_sector && filtros.tipo_sector !== "todos") {
-        query = query.eq("tipo_sector", filtros.tipo_sector);
-      }
-
-      if (filtros.distrito && filtros.distrito !== "todos") {
-        query = query.eq("distrito", filtros.distrito);
-      }
-
-      if (filtros.distrito_sanitario && filtros.distrito_sanitario !== "todos") {
-        query = query.eq("distrito_sanitario", filtros.distrito_sanitario);
-      }
-
-      if (filtros.anoGraduacion && filtros.anoGraduacion !== "todos") {
-        query = query.eq("año_graduacion", parseInt(filtros.anoGraduacion));
-      }
-
-      if ((filtros as any).centro_salud_id) {
-        query = query.eq('centro_salud_id', (filtros as any).centro_salud_id);
-      }
-
-      if (filtros.lugar_trabajo && filtros.lugar_trabajo !== "todos") {
-        query = query.eq("nombre_centro", filtros.lugar_trabajo);
-      }
-
-      if (filtros.año_graduacion) {
-        query = query.eq("año_graduacion", filtros.año_graduacion);
-      }
-
+      // Rango de edad
       if (filtros.edad_minima !== undefined) {
-        query = query.gte("edad", filtros.edad_minima);
+        query = query.gte('edad', filtros.edad_minima);
       }
-
       if (filtros.edad_maxima !== undefined) {
-        query = query.lte("edad", filtros.edad_maxima);
+        query = query.lte('edad', filtros.edad_maxima);
       }
 
-      if (filtros.categoria_titulacion && filtros.categoria_titulacion !== "todos") {
-        query = query.eq("categoria_titulacion", filtros.categoria_titulacion);
+      // Categorías
+      if (filtros.categoria_titulacion && filtros.categoria_titulacion !== 'todos') {
+        query = query.eq('categoria_titulacion', filtros.categoria_titulacion);
+      }
+      if (filtros.categoria_centro && filtros.categoria_centro !== 'todos') {
+        query = query.eq('categoria_centro', filtros.categoria_centro);
       }
 
-      if (filtros.categoria_centro && filtros.categoria_centro !== "todos") {
-        query = query.eq("categoria_centro", filtros.categoria_centro);
+      // País de formación (1 o 2) - soporta selección múltiple
+      const pais = (filtros as any).pais_formacion;
+      if (pais && pais !== 'todos') {
+        if (isNonEmptyArray(pais)) {
+          const list = (pais as string[]).map((v) => `${v}`).join(',');
+          query = query.or(`pais_formacion_1.in.(${list}),pais_formacion_2.in.(${list})`);
+        } else {
+          query = query.or(`pais_formacion_1.eq.${pais},pais_formacion_2.eq.${pais}`);
+        }
       }
 
-      if (filtros.pais_formacion && filtros.pais_formacion !== "todos") {
-        // Buscar por país de formación en cualquiera de las columnas pais_formacion_1 o pais_formacion_2
-        query = query.or(
-          `pais_formacion_1.eq.${filtros.pais_formacion},pais_formacion_2.eq.${filtros.pais_formacion}`
-        );
-      }
-
-      if (filtros.institucion && filtros.institucion !== "todos") {
-        // Buscar por institución en cualquiera de las columnas institucion_1 o institucion_2
-        query = query.or(
-          `institucion_1.eq.${filtros.institucion},institucion_2.eq.${filtros.institucion}`
-        );
+      // Institución de formación (1 o 2) - soporta selección múltiple
+      const inst = (filtros as any).institucion_formacion ?? filtros.institucion;
+      if (inst && inst !== 'todos') {
+        if (isNonEmptyArray(inst)) {
+          const list = (inst as string[]).map((v) => `${v}`).join(',');
+          query = query.or(`institucion_1.in.(${list}),institucion_2.in.(${list})`);
+        } else {
+          query = query.or(`institucion_1.eq.${inst},institucion_2.eq.${inst}`);
+        }
       }
 
       // --- APLICAR FILTROS DE FECHA ---

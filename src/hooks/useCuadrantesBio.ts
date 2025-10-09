@@ -32,7 +32,7 @@ export function useCuadrantesBio() {
 
   // Export Personal.xls-like TSV: use profesionales_sanitarios
   const exportPersonalXls = async (centerId?: string | null, ids?: string[], fecha?: string) => {
-    let qb = supabase.from('profesionales_sanitarios').select('id, id_profesional_unico, nombre_completo, centro_salud_id, especialidad, area_profesional, nombre_centro, genero, telefono, email, estado_solicitud');
+    let qb = supabase.from('profesionales_sanitarios').select('id, id_profesional_unico, nombre_completo, centro_salud_id, especialidad, area_profesional, nombre_centro, genero, telefono, email, estado_solicitud, numero_tarjeta_rfid');
     if (ids && ids.length) qb = qb.in('id', ids);
     else if (centerId) qb = qb.eq('centro_salud_id', centerId);
     const { data, error } = await qb.order('nombre_completo');
@@ -56,22 +56,30 @@ export function useCuadrantesBio() {
       }
     }
 
-    const headers = ['EmpNo','Name','Department','Phone','Email','Turno','Active'];
-    const rows = profs.map((p: any) => [
-      p.id_profesional_unico || '',
-      p.nombre_completo || '',
-      p.nombre_centro || p.area_profesional || p.especialidad || '',
-      p.telefono || '',
-      p.email || '',
-      turnoMap.get(p.id) || '',
-      p.estado_solicitud === 'Aprobado' ? '1' : '0'
-    ]);
+    const headers = ['EmpNo','Name','Department','Phone','Email','Turno','CardNo','Active'];
+    const rows = profs.map((p: any) => {
+      const turno = turnoMap.get(p.id) || '';
+      const cardNo = typeof p.numero_tarjeta_rfid === 'string' ? p.numero_tarjeta_rfid.replace(/\D/g, '').slice(0, 10) : '';
+      return [
+        p.id_profesional_unico || '',
+        p.nombre_completo || '',
+        p.nombre_centro || p.area_profesional || p.especialidad || '',
+        (p.telefono || '').replace(/\s+/g, ''),
+        p.email || '',
+        turno,
+        cardNo,
+        p.estado_solicitud === 'Aprobado' ? '1' : '0'
+      ];
+    });
     const tsv = [headers, ...rows].map(r => r.join('\t')).join('\r\n');
     const blob = new Blob([tsv], { type: 'application/vnd.ms-excel' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    const href = URL.createObjectURL(blob);
+    a.href = href;
     a.download = 'Personal.xls';
     a.click();
+    setTimeout(() => URL.revokeObjectURL(href), 0);
+    a.remove();
   };
 
   // Export Cuadrantes.xls-like TSV from cuadrantes + turnos

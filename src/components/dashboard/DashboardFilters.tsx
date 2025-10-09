@@ -3,29 +3,40 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { MultiSelect } from '@/components/ui/multi-select';
-import { Filter, X } from 'lucide-react';
+import { Filter, X, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PROVINCIAS_EG } from '@/utils/geo';
+// IMPORTS ADICIONALES PARA EL MULTI-SELECT
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
-// INTERFAZ ACTUALIZADA A ARRAYS
+// =========================================================================
+// INTERFAZ FILTROS (Múltiples campos ahora aceptan arrays para multi-select)
+// =========================================================================
 interface Filtros {
-  area_profesional?: string[];
-  estado_solicitud?: string[];
-  provincia?: string[];
-  genero?: string[]; // <-- AHORA ES ARRAY
-  tipo_sector?: string[];
-  funcion_publica?: string;
-  estatus_funcionario?: 'nombrado' | 'no_nombrado';
-  distrito?: string[];
-  distrito_sanitario?: string[];
-  centro_id?: string[];
+  area_profesional?: string[]; // Array
+  estado_solicitud?: string[]; // Array
+  provincia?: string[]; // Array
+  genero?: string[]; // Array
+  tipo_sector?: string[]; // Array
+  funcion_publica?: boolean; // Booleano (Select simple)
+  estatus_funcionario?: 'nombrado' | 'no_nombrado'; // String (Select simple)
+  distrito?: string[]; // Array
+  distrito_sanitario?: string[]; // Array
+  centro_id?: string; // String (Select simple)
   centro_nombre?: string;
   edad_minima?: number;
   edad_maxima?: number;
-  año_graduacion?: number[];
-  pais_formacion?: string[];
-  institucion_formacion?: string[];
+  año_graduacion?: number[]; // Array de Números
+  pais_formacion?: string[]; // Array
+  institucion_formacion?: string[]; // Array
   edad_laboral_min?: number;
   edad_laboral_max?: number;
   años_servicio_min?: number;
@@ -40,6 +51,107 @@ interface DashboardFiltersProps {
   onClearFilters: () => void;
 }
 
+
+// =========================================================================
+// COMPONENTE DropdownMultiSelect
+// =========================================================================
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+interface DropdownMultiSelectProps {
+  placeholder: string;
+  options: SelectOption[];
+  value: string[];
+  onValueChange: (values: string[]) => void;
+}
+
+const DropdownMultiSelect = ({ placeholder, options, value, onValueChange }: DropdownMultiSelectProps) => {
+  const selectedCount = value.length;
+
+  // Función para manejar la selección de un ítem
+  const handleToggle = (itemValue: string, isChecked: boolean) => {
+    if (isChecked) {
+      onValueChange([...value, itemValue]);
+    } else {
+      onValueChange(value.filter(v => v !== itemValue));
+    }
+  };
+
+  // Texto que se muestra en el botón principal del Dropdown
+  const triggerText = selectedCount === 0
+    ? placeholder
+    : selectedCount === options.length
+      ? `Todos (${selectedCount})`
+      : `${selectedCount} seleccionado${selectedCount > 1 ? 's' : ''}`;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          className="w-full justify-between overflow-hidden"
+        >
+          <span className="truncate">{triggerText}</span>
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-72 overflow-y-auto p-0 z-50">
+        {/* Opciones rápidas: Seleccionar todo/Limpiar */}
+        <div className="sticky top-0 bg-white p-2 border-b">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onValueChange(options.map(o => o.value))}
+            className="w-full justify-start h-8 text-xs font-normal"
+          >
+            Seleccionar Todo
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onValueChange([])}
+            className="w-full justify-start h-8 text-xs font-normal"
+          >
+            Limpiar Selección
+          </Button>
+        </div>
+        <DropdownMenuSeparator />
+        {/* Lista de opciones con Checkbox */}
+        {options.map((option) => (
+          <DropdownMenuItem
+            key={option.value}
+            className="p-0 cursor-pointer"
+            // Evita que el menú se cierre al hacer click en el item
+            onSelect={(e) => e.preventDefault()}
+          >
+            <div
+              className="flex items-center space-x-2 p-2 w-full hover:bg-gray-100"
+              onClick={() => handleToggle(option.value, !value.includes(option.value))}
+            >
+              <Checkbox
+                id={`multiselect-${option.value}`}
+                checked={value.includes(option.value)}
+                // onCheckedChange se usa para manejar clics directos en el checkbox
+                onCheckedChange={(checked) => handleToggle(option.value, checked as boolean)}
+              />
+              <label
+                htmlFor={`multiselect-${option.value}`}
+                className="text-sm font-medium leading-none flex-1 truncate"
+              >
+                {option.label}
+              </label>
+            </div>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+// =========================================================================
+
+
 const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: DashboardFiltersProps) => {
   const [areas, setAreas] = useState<string[]>([]);
   const [estados, setEstados] = useState<string[]>([]);
@@ -53,25 +165,38 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
   const [paises, setPaises] = useState<string[]>([]);
   const [instituciones, setInstituciones] = useState<string[]>([]);
 
-  const updateFilter = (key: keyof Filtros, value: string | number | string[] | number[] | undefined) => {
+  // FUNCIÓN PARA MANEJAR LOS FILTROS DE SELECCIÓN MÚLTIPLE (Arrays)
+  const handleMultiSelectChange = (key: keyof Filtros, values: (string | number)[]) => {
+    // Si el array está vacío, se pone undefined para limpiar el filtro.
+    const normalizedValue = values.length === 0 ? undefined : values;
+
+    let finalValue: any = normalizedValue;
+    // Conversión específica para el campo 'año_graduacion' de string[] a number[]
+    if (key === 'año_graduacion' && Array.isArray(normalizedValue)) {
+      finalValue = normalizedValue.map(v => Number(v)).filter(n => !Number.isNaN(n));
+    }
+
+    onFiltersChange({
+      ...filters,
+      [key]: finalValue
+    });
+  };
+
+  // FUNCIÓN PARA MANEJAR LOS FILTROS DE SELECCIÓN SIMPLE
+  const updateFilter = (key: keyof Filtros, value: string | number | undefined) => {
     let normalized: any = value;
     if (key === 'funcion_publica' && typeof value === 'string') {
       if (value === 'true') normalized = true;
       else if (value === 'false') normalized = false;
       else normalized = undefined;
     }
-    
-    // Si es un array vacío, convertirlo a undefined
-    if (Array.isArray(value) && value.length === 0) {
-      normalized = undefined;
-    }
-    
     onFiltersChange({
       ...filters,
       [key]: normalized === 'todos' ? undefined : normalized
     });
   };
 
+  // ... (useEffect para la carga de datos se mantiene sin cambios) ...
   useEffect(() => {
     const fetchDistinct = async () => {
       const cols = [
@@ -96,7 +221,7 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
       results.forEach(({ col, values }) => {
         if (col === 'area_profesional') setAreas(values);
         if (col === 'estado_solicitud') setEstados(values);
-        if (col === 'provincia') setProvincias(Array.from(new Set([...(PROVINCIAS_EG as string[]), ...values])));
+        if (col === 'provincia') setProvincias(Array.from(new Set([...(PROVINCIAS_EG as string[]), ...values])).sort()); // Asegura el orden y la fusión
         if (col === 'distrito_sanitario') setDistritosSanitarios(values);
         if (col === 'genero') setGeneros(values);
         if (col === 'tipo_sector') setSectores(values);
@@ -143,6 +268,7 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
     fetchDistinct();
   }, []);
 
+
   return (
     <Card className="mb-6">
       <CardHeader className="pb-4">
@@ -158,25 +284,31 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
             className="flex items-center space-x-1"
           >
             <X className="w-4 h-4" />
-            <span>Limpiar Todos</span>
+            <span>Limpiar</span>
           </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+
+          {/* ------------------ ÁREA PROFESIONAL (MULTI-SELECT) ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Área Profesional</label>
-            <MultiSelect
-              options={areas}
-              selected={filters.area_profesional || []}
-              onChange={(selected) => updateFilter('area_profesional', selected)}
+            <DropdownMultiSelect
               placeholder="Todas las áreas"
+              options={areas.map(v => ({ value: v, label: v }))}
+              value={filters.area_profesional || []}
+              onValueChange={(value: string[]) => handleMultiSelectChange('area_profesional', value)}
             />
           </div>
 
+          {/* ------------------ FUNCIÓN PÚBLICA (SINGLE SELECT) - APLICADO STRCIT CHECK ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Función Pública</label>
-            <Select value={typeof filters.funcion_publica === 'boolean' ? String(filters.funcion_publica) : 'todos'} onValueChange={(value) => updateFilter('funcion_publica' as any, value)}>
+            <Select
+              value={!Array.isArray(filters.funcion_publica) && typeof filters.funcion_publica === 'boolean' ? String(filters.funcion_publica) : 'todos'}
+              onValueChange={(value) => updateFilter('funcion_publica' as any, value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
@@ -188,9 +320,13 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
             </Select>
           </div>
 
+          {/* ------------------ ESTATUS FUNCIONARIO (SINGLE SELECT) - APLICADO STRCIT CHECK ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Estatus de Funcionario</label>
-            <Select value={(filters as any).estatus_funcionario || 'todos'} onValueChange={(value) => updateFilter('estatus_funcionario' as any, value)}>
+            <Select
+              value={!Array.isArray(filters.estatus_funcionario) && typeof filters.estatus_funcionario === 'string' ? filters.estatus_funcionario : 'todos'}
+              onValueChange={(value) => updateFilter('estatus_funcionario' as any, value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
@@ -202,109 +338,133 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
             </Select>
           </div>
 
+          {/* ------------------ ESTADO DE SOLICITUD (MULTI-SELECT) ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Estado de Solicitud</label>
-            <MultiSelect
-              options={estados}
-              selected={filters.estado_solicitud || []}
-              onChange={(selected) => updateFilter('estado_solicitud', selected)}
+            <DropdownMultiSelect
               placeholder="Todos los estados"
+              options={estados.map(v => ({ value: v, label: v }))}
+              value={filters.estado_solicitud || []}
+              onValueChange={(value: string[]) => handleMultiSelectChange('estado_solicitud', value)}
             />
           </div>
 
+          {/* ------------------ PROVINCIA (MULTI-SELECT) ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Provincia</label>
-            <MultiSelect
-              options={provincias}
-              selected={filters.provincia || []}
-              onChange={(selected) => updateFilter('provincia', selected)}
+            <DropdownMultiSelect
               placeholder="Todas las provincias"
+              options={provincias.map(v => ({ value: v, label: v }))}
+              value={filters.provincia || []}
+              onValueChange={(value: string[]) => handleMultiSelectChange('provincia', value)}
             />
           </div>
 
+          {/* ------------------ DISTRITO SANITARIO (MULTI-SELECT) ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Distrito Sanitario</label>
-            <MultiSelect
-              options={distritosSanitarios}
-              selected={filters.distrito_sanitario || []}
-              onChange={(selected) => updateFilter('distrito_sanitario', selected)}
+            <DropdownMultiSelect
               placeholder="Todos los distritos"
+              options={distritosSanitarios.map(v => ({ value: v, label: v }))}
+              value={filters.distrito_sanitario || []}
+              onValueChange={(value: string[]) => handleMultiSelectChange('distrito_sanitario', value)}
             />
           </div>
 
+          {/* ------------------ CENTRO (SINGLE SELECT) - APLICADO STRCIT CHECK ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Centro</label>
-            <MultiSelect
-              options={centros.map(c => c.nombre)}
-              selected={filters.centro_id ? centros.filter(c => filters.centro_id?.includes(c.id)).map(c => c.nombre) : []}
-              onChange={(selectedNames) => {
-                const selectedIds = centros.filter(c => selectedNames.includes(c.nombre)).map(c => c.id);
-                updateFilter('centro_id', selectedIds);
-              }}
-              placeholder="Todos los centros"
-            />
+            <Select
+              value={!Array.isArray(filters.centro_id) && typeof filters.centro_id === 'string' ? filters.centro_id : 'todos'}
+              onValueChange={(value) => {
+                const selected = centros.find(c => c.id === value);
+                onFiltersChange({
+                  ...filters,
+                  centro_id: value === 'todos' ? undefined : value,
+                  centro_nombre: selected ? selected.nombre : undefined,
+                });
+              }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos los centros" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los centros</SelectItem>
+                {centros.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
+          {/* ------------------ GÉNERO (MULTI-SELECT) ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Género</label>
-            <MultiSelect
-              options={generos}
-              selected={filters.genero || []}
-              onChange={(selected) => updateFilter('genero', selected)}
+            <DropdownMultiSelect
               placeholder="Todos los géneros"
+              options={generos.map(v => ({ value: v, label: v }))}
+              value={filters.genero || []}
+              onValueChange={(value: string[]) => handleMultiSelectChange('genero', value)}
             />
           </div>
 
+          {/* ------------------ TIPO DE SECTOR (MULTI-SELECT) ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Tipo de Sector</label>
-            <MultiSelect
-              options={sectores}
-              selected={filters.tipo_sector || []}
-              onChange={(selected) => updateFilter('tipo_sector', selected)}
+            <DropdownMultiSelect
               placeholder="Todos los sectores"
+              options={sectores.map(v => ({ value: v, label: v }))}
+              value={filters.tipo_sector || []}
+              onValueChange={(value: string[]) => handleMultiSelectChange('tipo_sector', value)}
             />
           </div>
 
+          {/* ------------------ DISTRITO (MULTI-SELECT) ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Distrito</label>
-            <MultiSelect
-              options={distritos}
-              selected={filters.distrito || []}
-              onChange={(selected) => updateFilter('distrito', selected)}
+            <DropdownMultiSelect
               placeholder="Todos los distritos"
+              options={distritos.map(v => ({ value: v, label: v }))}
+              value={filters.distrito || []}
+              onValueChange={(value: string[]) => handleMultiSelectChange('distrito', value)}
             />
           </div>
 
+          {/* ------------------ PAÍS DE FORMACIÓN (MULTI-SELECT) ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">País de Formación</label>
-            <MultiSelect
-              options={paises}
-              selected={filters.pais_formacion || []}
-              onChange={(selected) => updateFilter('pais_formacion', selected)}
+            <DropdownMultiSelect
               placeholder="Todos los países"
+              options={paises.map(v => ({ value: v, label: v }))}
+              value={filters.pais_formacion || []}
+              onValueChange={(value: string[]) => handleMultiSelectChange('pais_formacion', value)}
             />
           </div>
 
+          {/* ------------------ CENTRO DE FORMACIÓN (MULTI-SELECT) ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Centro de Formación</label>
-            <MultiSelect
-              options={instituciones}
-              selected={filters.institucion_formacion || []}
-              onChange={(selected) => updateFilter('institucion_formacion', selected)}
+            <DropdownMultiSelect
               placeholder="Todas las instituciones"
+              options={instituciones.map(v => ({ value: v, label: v }))}
+              value={filters.institucion_formacion || []}
+              onValueChange={(value: string[]) => handleMultiSelectChange('institucion_formacion', value)}
             />
           </div>
 
+          {/* ------------------ AÑO DE GRADUACIÓN (MULTI-SELECT) ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Año de Graduación</label>
-            <MultiSelect
-              options={anios.map(a => String(a))}
-              selected={(filters.año_graduacion || []).map(a => String(a))}
-              onChange={(selected) => updateFilter('año_graduacion', selected.map(s => Number(s)))}
+            <DropdownMultiSelect
               placeholder="Todos los años"
+              options={anios.map(v => ({ value: String(v), label: String(v) }))}
+              // filters.año_graduacion es number[], se convierte a string[] para el componente
+              value={filters.año_graduacion ? filters.año_graduacion.map(String) : []}
+              // Se usa handleMultiSelectChange que lo convierte de vuelta a number[]
+              onValueChange={(value: string[]) => handleMultiSelectChange('año_graduacion', value)}
             />
           </div>
 
+          {/* ------------------ FILTROS NUMÉRICOS (INPUTS) - SIN CAMBIOS ------------------ */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Edad</label>
             <div className="grid grid-cols-2 gap-2">

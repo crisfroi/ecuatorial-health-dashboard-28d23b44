@@ -11,6 +11,7 @@ export interface Professional {
   gentilicio_femenino?: string;
   numero_dip?: string;
   numero_pasaporte?: string;
+  numero_tarjeta_rfid?: string;
   numero_documento?: string;
   tipo_documento?: string;
   telefono?: string;

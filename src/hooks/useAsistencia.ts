@@ -268,7 +268,7 @@ export function useAsistencia() {
         return 0;
       }
 
-      const headerRows = XLSX.utils.sheet_to_json<(string | number)[]>(ws, { header: 1, defval: '' });
+      const headerRows = XLSX.utils.sheet_to_json<Array<string | number>>(ws, { header: 1, defval: '' });
       const headerRow = headerRows.find((row) => row.some((cell) => String(cell ?? '').trim().length > 0)) || [];
       const normalizedHeaders = headerRow.map((cell) => String(cell || '').trim().toLowerCase());
       const columnChecks = [

@@ -259,6 +259,9 @@ const ProfessionalDetail = ({
             <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <ParametrosPersonalizadosCard professionalId={professional.id} />
             </div>
+            <div className="mb-4" style={{ breakInside: 'avoid' }}>
+              <DisciplinaryHistoryCard profesionalId={professional.id} />
+            </div>
           </div>
         </div>
       </DialogContent>

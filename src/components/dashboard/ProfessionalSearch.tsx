@@ -63,9 +63,34 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sanctionsMap, setSanctionsMap] = useState<Record<string, { suspendido: boolean; inhabilitado: boolean }>>({});
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const run = async () => {
+      if (searchResults.length === 0) { setSanctionsMap({}); return; }
+      const ids = searchResults.map(p => p.id);
+      const { data } = await supabase
+        .from('expedientes_disciplinarios')
+        .select('profesional_id, sancion_tipo, inhabilitacion_permanente, sancion_fecha_fin, estado')
+        .in('profesional_id', ids);
+      const map: Record<string, { suspendido: boolean; inhabilitado: boolean }> = {};
+      for (const r of data || []) {
+        const inh = Boolean(r.inhabilitacion_permanente) || r.sancion_tipo === 'inhabilitacion';
+        const now = new Date();
+        const fin = r.sancion_fecha_fin ? new Date(r.sancion_fecha_fin) : null;
+        const susp = r.sancion_tipo === 'suspension' && (!fin || fin >= now) && (r.estado === 'sancionado');
+        map[r.profesional_id] = {
+          suspendido: (map[r.profesional_id]?.suspendido || false) || susp,
+          inhabilitado: (map[r.profesional_id]?.inhabilitado || false) || inh,
+        };
+      }
+      setSanctionsMap(map);
+    };
+    void run();
+  }, [searchResults]);
 
   // 1. Lógica de formateo de fecha (copiada de GlobalSearch)
   const formatDate = (value?: string | null) => {
@@ -449,6 +474,12 @@ const ProfessionalSearch: React.FC<ProfessionalSearchProps> = ({
                             >
                               {professional.estado_solicitud}
                             </Badge>
+                            {sanctionsMap[professional.id]?.inhabilitado && (
+                              <Badge variant="destructive">INHABILITADO</Badge>
+                            )}
+                            {!sanctionsMap[professional.id]?.inhabilitado && sanctionsMap[professional.id]?.suspendido && (
+                              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">SUSPENDIDO</Badge>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">

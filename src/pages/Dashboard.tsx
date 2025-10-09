@@ -85,6 +85,8 @@ import { FormManager } from "@/components/dynamic-forms/FormManager";
 import { IndicatorManager } from "@/components/dynamic-forms/IndicatorManager";
 import { FormBuilder } from "@/components/dynamic-forms/FormBuilder";
 import { ExpedienteNuevoForm } from "@/components/disciplinary/ExpedienteNuevoForm";
+import { ExpedienteManager } from "@/components/disciplinary/ExpedienteManager";
+import { DisciplinaryDashboard } from "@/components/dashboard/disciplinary/DisciplinaryDashboard";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -820,6 +822,8 @@ const Dashboard = () => {
           {/* Pestaña de Expedientes Disciplinarios */}
           <TabsContent value="disciplinary" className="space-y-6">
             <ExpedienteNuevoForm />
+            <ExpedienteManager />
+            <DisciplinaryDashboard />
           </TabsContent>
         </Tabs>
 

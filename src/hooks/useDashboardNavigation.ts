@@ -14,6 +14,8 @@ export interface NavigationFilters {
   categoria_centro?: string;
   pais_formacion?: string[];
   institucion?: string[];
+  años_restantes_jubilacion_min?: number;
+  años_restantes_jubilacion_max?: number;
 }
 
 export interface DashboardNavigationProps {
@@ -174,7 +176,7 @@ export const useDashboardNavigation = (
   const navigateToRequests = useCallback(
     (status?: string) => {
       onNavigateToTab("requests", {
-        estado_solicitud: status || "todos",
+        estado_solicitud: status ? [status] : undefined,
       });
     },
     [onNavigateToTab],

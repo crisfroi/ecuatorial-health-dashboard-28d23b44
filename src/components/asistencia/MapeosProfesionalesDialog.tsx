@@ -177,7 +177,7 @@ export function MapeosProfesionalesDialog({ device, open, onOpenChange }: Mapeos
                 Puede asignar manualmente un EnNo o importar el archivo Personal.xls exportado del dispositivo.
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={handleImportClick} disabled={!device}>
+                <Button variant="outline" onClick={handleImportClick} disabled={!device || importing}>
                   <CloudUpload className="mr-2 h-4 w-4" /> Importar Personal.xls
                 </Button>
                 <Button onClick={handleSave} disabled={!device || !enNo || !selectedProfessional}>

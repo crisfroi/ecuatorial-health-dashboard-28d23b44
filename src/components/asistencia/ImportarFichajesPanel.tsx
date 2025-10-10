@@ -97,7 +97,11 @@ export function ImportarFichajesPanel() {
       }
       const dateMatch = line.match(/(\d{4}[\/-]\d{2}[\/-]\d{2}[ T]\d{2}:\d{2}(:\d{2})?)/);
       const fechaHora = dateMatch ? new Date(dateMatch[1].replace(/\//g, '-')).toISOString() : new Date().toISOString();
-      const enNoCandidate = parts.find((value) => /^\d{1,10}$/.test(value)) || null;
+
+      // CAMBIO CRÍTICO: En lugar de buscar el primer número (que era el 'No' o 'TMNo'),
+      // se asume que el EnNo está en la tercera columna (índice 2) en el formato de log proporcionado.
+      const enNoCandidate = (parts.length > 2 && /^\d{1,10}$/.test(parts[2])) ? parts[2] : null;
+
       const modeCandidate = parts.find((value) => /^(IN|OUT|0|1|FINGER|CARD|FACE|\d{1,2})$/i.test(value)) || null;
       preview.push({
         enNo: enNoCandidate,

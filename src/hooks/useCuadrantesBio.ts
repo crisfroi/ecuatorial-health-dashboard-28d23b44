@@ -1,4 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast'; // Asumo que usas este hook para triggerToast
+import { useState } from 'react'; // Necesario para un hook que usa estado, aunque no se use en tu lógica de abajo.
+import * as XLSX from 'xlsx'; // Importado para consistencia, aunque se usa TSV/CSV-like
+
+// --- INTERFACES NECESARIAS ---
 
 export interface CuadranteBio {
   id: string;
@@ -10,7 +15,23 @@ export interface CuadranteBio {
   updated_at: string;
 }
 
+// Interfaz Turno (necesaria para exportCuadrantesXls)
+export interface TurnoBio {
+  id: string;
+  nombre_turno: string;
+  hora_inicio: string; // HH:mm:ss
+  hora_fin: string; // HH:mm:ss
+  // ... otros campos de turno
+}
+
+// --- HOOK USE CUADRANTES BIO ---
+
 export function useCuadrantesBio() {
+  // Nota: Asumo que useToast y sus tipos están disponibles y se pasan como "triggerToast" en la exportación.
+  // Si no quieres pasar useToast, puedes importarlo y usarlo directamente aquí.
+  // Para este ejemplo, lo manejaremos con un parámetro como lo definiste, o asumiendo el uso estándar:
+  const { toast } = useToast();
+
   const list = async (centerId: string | null, from: string, to: string): Promise<CuadranteBio[]> => {
     let qb = supabase.from('cuadrantes_biometricos').select('*').gte('fecha', from).lte('fecha', to).order('fecha');
     if (centerId) qb = qb.eq('centro_salud_id', centerId);
@@ -22,19 +43,20 @@ export function useCuadrantesBio() {
   const assign = async (rows: Array<Omit<CuadranteBio, 'id' | 'created_at' | 'updated_at'>>): Promise<number> => {
     const { error } = await supabase.from('cuadrantes_biometricos').upsert(rows, { onConflict: 'id_profesional,fecha' });
     if (error) throw error;
+    toast({ title: 'Asignación completada', description: `${rows.length} cuadrantes asignados/actualizados.` });
     return rows.length;
   };
 
-  // CORRECCIÓN: 'triggerToast' es la función que se llama para mostrar mensajes.
-  const exportPersonalXls = async (centerId: string | null, from: string, to: string, triggerToast: any) => {
+  const exportPersonalXls = async (centerId: string | null, from: string, to: string) => {
+    // Usamos el hook 'toast' importado en lugar del parámetro 'triggerToast' para un hook más limpio.
 
     // 1. VALIDACIÓN DE ENTRADA
     if (!centerId) {
-      triggerToast({ title: 'Error de exportación', description: 'Debe seleccionar un centro de salud para la exportación.', variant: 'destructive' });
+      toast({ title: 'Error de exportación', description: 'Debe seleccionar un centro de salud para la exportación.', variant: 'destructive' });
       return;
     }
     if (!from || !to || from.length !== 10 || to.length !== 10) {
-      triggerToast({ title: 'Error de exportación', description: 'Debe seleccionar un rango de fechas válido (YYYY-MM-DD).', variant: 'destructive' });
+      toast({ title: 'Error de exportación', description: 'Debe seleccionar un rango de fechas válido (YYYY-MM-DD).', variant: 'destructive' });
       return;
     }
 
@@ -51,14 +73,14 @@ export function useCuadrantesBio() {
       if (error) throw error;
       cuadData = data;
     } catch (e: any) {
-      triggerToast({ title: 'Error en la consulta de cuadrantes', description: e.message || 'Error desconocido al obtener cuadrantes.', variant: 'destructive' });
+      toast({ title: 'Error en la consulta de cuadrantes', description: e.message || 'Error desconocido al obtener cuadrantes.', variant: 'destructive' });
       return;
     }
 
     const profIdsToExport = Array.from(new Set((cuadData || []).map((c: any) => c.id_profesional))).filter(Boolean);
 
     if (profIdsToExport.length === 0) {
-      triggerToast({ title: 'Exportación cancelada', description: 'No se encontraron profesionales con cuadrantes asignados en el rango de fechas seleccionado.', variant: 'destructive' });
+      toast({ title: 'Exportación cancelada', description: 'No se encontraron profesionales con cuadrantes asignados en el rango de fechas seleccionado.', variant: 'destructive' });
       return;
     }
 
@@ -66,7 +88,7 @@ export function useCuadrantesBio() {
     let profs;
     try {
       let qb = supabase.from('profesionales_sanitarios')
-        .select('id, numero_enrolamiento_enno, nombre_completo, centro_salud_id, especialidad, area_profesional, nombre_centro, genero, telefono, email, estado_solicitud, numero_tarjeta_rfid')
+        .select('id, numero_enrolamiento_enno, nombre_completo, centro_salud_id, area_profesional, nombre_centro, numero_tarjeta_rfid')
         .eq('centro_salud_id', centerId)
         .eq('estado_solicitud', 'Aprobado')
         .in('id', profIdsToExport);
@@ -75,11 +97,12 @@ export function useCuadrantesBio() {
       if (error) throw error;
       profs = data || [];
     } catch (e: any) {
-      triggerToast({ title: 'Error en la consulta de profesionales', description: e.message || 'Error desconocido al obtener profesionales.', variant: 'destructive' });
+      toast({ title: 'Error en la consulta de profesionales', description: e.message || 'Error desconocido al obtener profesionales.', variant: 'destructive' });
       return;
     }
 
     // 4. CONSTRUIR el TSV (16 columnas)
+    // Nota: Este formato de 16 columnas es específico del software ZKTeco para importar empleados (Personal.xls)
     const headers = [
       'ID', 'Nombre', 'Depto.', 'Turno', 'Admin.', 'Registro de Huella',
       'Rostro', 'Registrar Contraseña', 'ID o Tarjeta', 'Bloqueo de zona horaria',
@@ -92,10 +115,11 @@ export function useCuadrantesBio() {
         const enNo = String(p.numero_enrolamiento_enno).slice(0, 8);
         const nombre = p.nombre_completo || 'Sin Nombre';
         const depto = p.nombre_centro || p.area_profesional || 'General';
-        const turnoNumber = '1';
+        const turnoNumber = '1'; // Valor estático por defecto
         const cardNo = typeof p.numero_tarjeta_rfid === 'string'
           ? p.numero_tarjeta_rfid.replace(/\D/g, '').slice(0, 10)
           : '0';
+        // Fechas grandes para indicar "siempre activo" en el dispositivo
         const fechaInicio = '2024-01-01';
         const fechaFin = '2099-12-31';
 
@@ -106,43 +130,95 @@ export function useCuadrantesBio() {
 
     // 5. VERIFICACIÓN DE FILAS FINALES
     if (rows.length === 0 && profIdsToExport.length > 0) {
-      triggerToast({ title: 'Exportación vacía', description: 'Se encontraron cuadrantes, pero los profesionales asociados no tienen número de enrolamiento (EnNo) asignado.', variant: 'destructive' });
+      toast({ title: 'Exportación vacía', description: 'Se encontraron cuadrantes, pero los profesionales asociados no tienen número de enrolamiento (EnNo) asignado.', variant: 'destructive' });
       return;
     }
 
     // 6. DESCARGA
-    const tsv = [headers, ...rows].map(r => r.join('\t')).join('\r\n');
-    const blob = new Blob([tsv], { type: 'application/vnd.ms-excel' });
+    // El formato TSV (valores separados por tabulaciones) se descarga como .xls para compatibilidad con ZKTeco.
+    const tsv = [headers.join('\t'), ...rows.map(r => r.join('\t'))].join('\r\n');
+    const blob = new Blob([tsv], { type: 'text/tsv;charset=utf-8' }); // Tipo más específico
+
     const a = document.createElement('a');
     const href = URL.createObjectURL(blob);
     a.href = href;
     a.download = 'Personal.xls';
+    document.body.appendChild(a); // Es buena práctica añadirlo al body antes de click
     a.click();
+    document.body.removeChild(a); // Y limpiarlo después
     setTimeout(() => URL.revokeObjectURL(href), 0);
-    a.remove();
 
-    triggerToast({ title: 'Exportación completada', description: `Se exportaron ${rows.length} profesionales.`, variant: 'success' });
+
+    toast({ title: 'Exportación completada', description: `Se exportaron ${rows.length} profesionales a Personal.xls.`, variant: 'success' });
   };
 
-  // Función exportCuadrantesXls (Corregida la sintaxis al final)
+  // Función exportCuadrantesXls (COMPLETADA)
   const exportCuadrantesXls = async (centerId: string | null, from: string, to: string) => {
-    const { data: cuad, error: e1 } = await supabase.from('cuadrantes_biometricos').select('id_profesional, turno_id, fecha').gte('fecha', from).lte('fecha', to).order('fecha');
-    if (e1) throw e1;
+    // 1. Obtener cuadrantes
+    let qbCuad = supabase.from('cuadrantes_biometricos').select('id_profesional, turno_id, fecha').gte('fecha', from).lte('fecha', to).order('fecha');
+    if (centerId) qbCuad = qbCuad.eq('centro_salud_id', centerId);
+    const { data: cuad, error: e1 } = await qbCuad;
+    if (e1) {
+      toast({ title: 'Error de consulta', description: e1.message, variant: 'destructive' });
+      throw e1;
+    }
+
+    // 2. Obtener turnos
     const { data: turnos, error: e2 } = await supabase.from('turnos_biometricos').select('id, nombre_turno, hora_inicio, hora_fin');
-    if (e2) throw e2;
-    const turnoMap = new Map(turnos?.map(t => [t.id, t] as const));
+    if (e2) {
+      toast({ title: 'Error de consulta', description: e2.message, variant: 'destructive' });
+      throw e2;
+    }
+    const turnoMap = new Map((turnos || []).map(t => [t.id, t] as [string, TurnoBio]));
+
+    // 3. Obtener mapeo de profesionales a EnNo (Necesario para el formato de exportación)
+    const profIds = Array.from(new Set(cuad?.map(c => c.id_profesional) || []));
+    const { data: profs, error: e3 } = await supabase.from('profesionales_sanitarios')
+      .select('id, numero_enrolamiento_enno')
+      .in('id', profIds);
+    if (e3) {
+      toast({ title: 'Error de consulta', description: e3.message, variant: 'destructive' });
+      throw e3;
+    }
+    const profEnNoMap = new Map((profs || []).map(p => [p.id, p.numero_enrolamiento_enno] as [string, string | null]));
+
 
     const headers = ['EmpNo', 'Date', 'ShiftName', 'Start', 'End'];
-    const rows = (cuad || []).map(c => {
-      const t = turnoMap.get(c.turno_id);
-      return [c.id_profesional, c.fecha, t?.nombre_turno || '', (t?.hora_inicio || '').slice(0, 5), (t?.hora_fin || '').slice(0, 5)];
-    });
-    const tsv = [headers, ...rows].map(r => r.join('\t')).join('\r\n');
-    const blob = new Blob([tsv], { type: 'application/vnd.ms-excel' });
+    const rows = (cuad || [])
+      .map(c => {
+        const enNo = profEnNoMap.get(c.id_profesional);
+        if (!enNo) return null; // Omitir si no hay EnNo
+
+        const t = turnoMap.get(c.turno_id);
+        return [
+          String(enNo), // EmpNo (número de enrolamiento)
+          c.fecha,
+          t?.nombre_turno || '',
+          (t?.hora_inicio || '').slice(0, 5), // HH:mm
+          (t?.hora_fin || '').slice(0, 5) // HH:mm
+        ];
+      })
+      .filter((r): r is string[] => r !== null);
+
+    if (rows.length === 0) {
+      toast({ title: 'Exportación vacía', description: 'No se encontraron cuadrantes con profesionales que tengan número de enrolamiento (EmpNo) asignado.', variant: 'warning' });
+      return;
+    }
+
+    // 4. Generar y descargar el archivo TSV (simulando XLS)
+    const tsv = [headers.join('\t'), ...rows.map(r => r.join('\t'))].join('\r\n');
+    const blob = new Blob([tsv], { type: 'text/tsv;charset=utf-8' });
+
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    const href = URL.createObjectURL(blob);
+    a.href = href;
     a.download = 'Cuadrantes.xls';
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(href), 0);
+
+    toast({ title: 'Exportación completada', description: `${rows.length} cuadrantes exportados a Cuadrantes.xls.`, variant: 'success' });
   };
 
   return { list, assign, exportPersonalXls, exportCuadrantesXls };

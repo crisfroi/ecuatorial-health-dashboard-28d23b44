@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   differenceInCalendarDays,
@@ -373,7 +373,7 @@ export function MetricasPanel() {
 }
 
 interface MetricCardProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: number;
   suffix?: string;

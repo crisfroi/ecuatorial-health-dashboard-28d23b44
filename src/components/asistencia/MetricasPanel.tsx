@@ -16,7 +16,6 @@ import {
   Clock3,
   Flame,
   Gauge,
-  ScanFace,
   ShieldCheck,
   UserCheck,
 } from 'lucide-react';

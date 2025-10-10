@@ -17,6 +17,11 @@ import { supabase } from '@/integrations/supabase/client';
 
 import { FichajesList, type FichajePreviewRow } from './FichajesList';
 
+interface CentroRow {
+  id: string;
+  nombre: string;
+}
+
 interface CentroOption {
   id: string;
   nombre: string;
@@ -37,31 +42,37 @@ export function ImportarFichajesPanel() {
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewName, setPreviewName] = useState<string>('');
 
-  const { data: centers = [] } = useQuery<CentroOption[]>(
-    ['centros-options'],
-    async () => {
-      const { data, error } = await supabase.from('centros_salud').select('id, nombre').order('nombre');
+  const { data: centers = [] } = useQuery<CentroOption[]>({
+    queryKey: ['centros-options'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('centros_salud').select('id, nombre').order('nombre').returns<CentroRow[]>();
       if (error) throw error;
-      return data || [];
+      return (data ?? []).map((centro) => ({ id: centro.id, nombre: centro.nombre }));
     },
-    { staleTime: 5 * 60_000 }
-  );
+    staleTime: 5 * 60_000,
+  });
 
   const centerIdFilter = selectedCenter === 'todos' ? null : selectedCenter;
 
-  const { data: devices = [] } = useQuery<Dispositivo[]>(
-    ['dispositivos', centerIdFilter, 'importar'],
-    () => list(centerIdFilter),
-    { staleTime: 30_000, initialData: [] }
-  );
+  const { data: devices = [] } = useQuery<Dispositivo[]>({
+    queryKey: ['dispositivos', centerIdFilter, 'importar'],
+    queryFn: () => list(centerIdFilter),
+    staleTime: 30_000,
+    initialData: [],
+  });
 
-  const { data: mappings = [] } = useQuery<EmpleadoDispositivoMap[]>(
-    ['device-mappings', selectedDevice, 'importar'],
-    () => listMappings(selectedDevice),
-    { enabled: Boolean(selectedDevice), staleTime: 60_000 }
-  );
+  const { data: mappings = [] } = useQuery<EmpleadoDispositivoMap[]>({
+    queryKey: ['device-mappings', selectedDevice, 'importar'],
+    queryFn: () => {
+      if (!selectedDevice) return Promise.resolve<EmpleadoDispositivoMap[]>([]);
+      return listMappings(selectedDevice);
+    },
+    enabled: Boolean(selectedDevice),
+    staleTime: 60_000,
+    initialData: [],
+  });
 
-  const mappedEmployees = useMemo(() => new Set((mappings || []).map((m) => m.en_no?.toString() ?? '')), [mappings]);
+  const mappedEmployees = useMemo(() => new Set(mappings.map((mapping) => mapping.en_no?.toString() ?? '')), [mappings]);
   const unmatchedPreview = useMemo(
     () => previewRows.filter((row) => row.enNo && !mappedEmployees.has(row.enNo)),
     [previewRows, mappedEmployees]
@@ -137,8 +148,9 @@ export function ImportarFichajesPanel() {
       setPreviewFile(file);
       setPreviewName(file.name);
       toast({ title: 'Archivo preparado', description: `${rows.length} registros listos para importar` });
-    } catch (error: any) {
-      toast({ title: 'No se pudo leer el archivo', description: error?.message || 'Revisa el formato del archivo', variant: 'destructive' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Revisa el formato del archivo';
+      toast({ title: 'No se pudo leer el archivo', description: message, variant: 'destructive' });
       setPreviewRows([]);
       setPreviewFile(null);
       setPreviewName('');
@@ -162,8 +174,9 @@ export function ImportarFichajesPanel() {
       setPreviewRows([]);
       setPreviewFile(null);
       setPreviewName('');
-    } catch (error: any) {
-      toast({ title: 'Error al importar', description: error?.message || 'Revisa el archivo y la asignación EnNo', variant: 'destructive' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Revisa el archivo y la asignación EnNo';
+      toast({ title: 'Error al importar', description: message, variant: 'destructive' });
     }
   };
 

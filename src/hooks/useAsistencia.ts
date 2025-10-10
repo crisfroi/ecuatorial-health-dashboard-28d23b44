@@ -53,7 +53,7 @@ export interface ConsolidatedDayEntry {
 type LogPayload = Omit<AttendanceLog, 'id' | 'id_dispositivo' | 'created_at'>;
 
 // ----------------------------------------------------------------------
-// 🛠️ USE DISPOSITIVOS FICHAJE (Asegura que tm_no se guarda)
+// 🛠️ USE DISPOSITIVOS FICHAJE
 // ----------------------------------------------------------------------
 
 export function useDispositivosFichaje() {
@@ -71,7 +71,7 @@ export function useDispositivosFichaje() {
   const create = async (payload: Partial<Dispositivo>) => {
     setLoading(true);
     try {
-      // CORREGIDO: tm_no incluido en el payload de inserción
+      // tm_no incluido en el payload de inserción
       const { data, error } = await supabase.from('dispositivos').insert({
         nombre: payload.nombre,
         ubicacion: payload.ubicacion || null,
@@ -88,7 +88,7 @@ export function useDispositivosFichaje() {
   };
 
   const update = async (id: string, patch: Partial<Dispositivo>) => {
-    // CORREGIDO: tm_no incluido en el payload de actualización
+    // tm_no incluido en el payload de actualización
     const { data, error } = await supabase.from('dispositivos').update({
       nombre: patch.nombre,
       ubicacion: patch.ubicacion,
@@ -113,14 +113,13 @@ export function useDispositivosFichaje() {
     return data || [];
   };
 
-  // IMPLEMENTACIÓN CORREGIDA DE UPSERT MAPPING PARA MANEJAR DOBLE RESTRICCIÓN DE UNICIDAD
+  // IMPLEMENTACIÓN DE UPSERT MAPPING
   const upsertMapping = async (
     id_dispositivo: string,
     en_no: string,
     id_profesional: string
   ): Promise<EmpleadoDispositivoMap> => {
     // 1. Intentar encontrar un mapeo existente para este PROFESIONAL y DISPOSITIVO
-    // Esto es crucial para la restricción UNIQUE (id_profesional, id_dispositivo)
     const { data: existingMap, error: fetchError } = await supabase
       .from('empleado_dispositivo_map')
       .select('id')
@@ -135,7 +134,7 @@ export function useDispositivosFichaje() {
     }
 
     if (existingMap) {
-      // 2. Si existe, ACTUALIZAMOS el EN_NO (y el trigger set_updated_at hará el resto)
+      // 2. Si existe, ACTUALIZAMOS el EN_NO
       const { data: updatedData, error: updateError } = await supabase
         .from('empleado_dispositivo_map')
         .update({ en_no: en_no })
@@ -144,8 +143,6 @@ export function useDispositivosFichaje() {
         .single();
 
       if (updateError) {
-        // Manejar el conflicto de la otra restricción: (id_dispositivo, en_no)
-        // Esto sucede si el nuevo 'en_no' ya está siendo usado por OTRO profesional en este dispositivo.
         if (updateError.code === '23505') {
           throw new Error('El número de empleado (EnNo) ya está asignado a otro profesional en este dispositivo.');
         }
@@ -167,11 +164,9 @@ export function useDispositivosFichaje() {
         .single();
 
       if (insertError) {
-        // Manejar el conflicto de la restricción: (id_dispositivo, en_no)
         if (insertError.code === '23505') {
           throw new Error('El número de empleado (EnNo) ya está asignado a otro profesional en este dispositivo.');
         }
-        // Manejar Foreign Key si los IDs son inválidos
         if (insertError.code === '23503') {
           throw new Error('ID de profesional o dispositivo no encontrado.');
         }
@@ -187,7 +182,7 @@ export function useDispositivosFichaje() {
 }
 
 // ----------------------------------------------------------------------
-// 🛠️ USE ASISTENCIA (Optimizado con LogPayload y validación TMNo)
+// 🛠️ USE ASISTENCIA
 // ----------------------------------------------------------------------
 
 export function useAsistencia() {
@@ -216,14 +211,14 @@ export function useAsistencia() {
       const parts = raw.split(/\t+|,|\s{2,}/).map(p => p.trim());
       if (!parts.length) continue;
 
-      let en_no: string | null = null;
+      let en_no_raw: string | null = null;
       let tm_no: string | null = null;
       let fecha_hora: string = new Date().toISOString();
       let inout: 'IN' | 'OUT' | null = null;
       let mode: string | null = null;
 
       if (headerMap) {
-        en_no = parts[headerMap['EnNo']] || null;
+        en_no_raw = parts[headerMap['EnNo']] || null;
         tm_no = parts[headerMap['TMNo']] || null;
         const dtRaw = parts[headerMap['DateTime']] || '';
         const normalized = dtRaw.replace(/\//g, '-');
@@ -240,15 +235,19 @@ export function useAsistencia() {
         const dtMatch = joined.match(/(\d{4}[/-]\d{2}[/-]\d{2}[ T]\d{2}:\d{2}(:\d{2})?)/);
         fecha_hora = dtMatch ? new Date(dtMatch[1].replace(/\//g, '-')).toISOString() : new Date().toISOString();
         const maybeEn = parts.find(p => /^\d{2,}$/.test(p));
-        en_no = maybeEn || null;
+        en_no_raw = maybeEn || null;
         const inoutToken = parts.find(p => /^I(n)?$|^O(ut)?$/i.test(p));
         inout = inoutToken ? (/^I/i.test(inoutToken) ? 'IN' : 'OUT') : null;
         mode = parts.find(p => /^(M|A|FP|FACE|FINGER|CARD|\d{1,2})$/i.test(p)) || null;
       }
 
+      // 🚨 CORRECCIÓN CLAVE: NORMALIZAR EL EN_NO PARA LA CONSULTA 🚨
+      // Aseguramos que el EnNo del fichaje se limpia de no-dígitos y se trunca.
+      const sanitized_en_no = en_no_raw ? String(en_no_raw).replace(/\D/g, '').slice(0, 10) : null;
+
       entries.push({
         id_profesional: null,
-        en_no,
+        en_no: sanitized_en_no, // Usar el valor sanitizado
         tm_no,
         inout,
         mode,
@@ -306,6 +305,7 @@ export function useAsistencia() {
     }
 
     // 3. Resolver id_profesional por en_no vía mapeo
+    // Dado que el EnNo de los logs ya está sanitizado, la consulta es segura
     const enNos = Array.from(new Set(validLogs.map(l => l.en_no).filter(Boolean))) as string[];
     let mappings: EmpleadoDispositivoMap[] = [];
     if (enNos.length) {
@@ -364,7 +364,10 @@ export function useAsistencia() {
         if (!ws) continue;
         const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
         const parsed: LogPayload[] = rows.map((r) => {
-          const en = r.EnNo || r.EmpNo || r.EmpID || r.Enno || r.enno || r.enNo || '';
+          const enRaw = r.EnNo || r.EmpNo || r.EmpID || r.Enno || r.enno || r.enNo || '';
+          // 🚨 CORRECCIÓN CLAVE: NORMALIZAR EL EN_NO DEL FICHAJE XLS 🚨
+          const sanitized_en_no = String(enRaw).replace(/\D/g, '').slice(0, 10) || null;
+
           const dt = r.DateTime || r.Datetime || r.TIME || r.Time || '';
           const io = r.INOUT || r.InOut || r.Dir || r.Direction || '';
           const md = r.Mode || r.method || r.Method || '';
@@ -379,7 +382,7 @@ export function useAsistencia() {
 
           return {
             id_profesional: null,
-            en_no: String(en) || null,
+            en_no: sanitized_en_no, // Usar el valor sanitizado
             tm_no: String(tm) || null, // <-- Se incluye TMNo
             inout,
             mode: md ? String(md) : null,
@@ -448,14 +451,15 @@ export function useAsistencia() {
       const { data: profs, error: profErr } = await qb;
       if (profErr) throw profErr;
 
+      // Pre-normalizar los EnNo de la base de datos para la búsqueda rápida
       const byEmpNo = new Map<string, string>();
       const byName = new Map<string, string>();
       (profs || []).forEach((p: any) => {
         const raw = String(p.numero_enrolamiento_enno ?? '').trim();
-        if (raw) {
-          byEmpNo.set(raw, p.id);
-          const numeric = raw.replace(/\D/g, '');
-          if (numeric) byEmpNo.set(numeric, p.id);
+        // Normalizamos los EnNo de la base de datos con la misma lógica
+        const normalized = raw.replace(/\D/g, '').slice(0, 10);
+        if (normalized) {
+          byEmpNo.set(normalized, p.id);
         }
         const name = String(p.nombre_completo ?? '').trim().toLowerCase();
         if (name) byName.set(name, p.id);
@@ -470,24 +474,31 @@ export function useAsistencia() {
         const rawEmp = String(
           r.EmpNo ?? r.ENNO ?? r.EnNo ?? r.EmpID ?? r.ID ?? r.Id ?? r.id ?? r.No ?? ''
         ).trim();
-        const cleanEmp = rawEmp.replace(/\s+/g, '');
-        const numericEmp = cleanEmp.replace(/\D/g, '');
-        const enNo = cleanEmp || numericEmp;
+
+        // 🚨 CORRECCIÓN CLAVE: NORMALIZAR EL EN_NO DEL ARCHIVO PERSONAL.XLS 🚨
+        // Usamos la misma lógica: limpiar no-dígitos y truncar a 10.
+        const enNo = rawEmp.replace(/\D/g, '').slice(0, 10);
+
         if (!enNo) {
           invalid.push(index + 2);
           return;
         }
 
         const name = String(r.Name ?? r.Nombre ?? r.EmpName ?? '').trim().toLowerCase();
-        let profId = byEmpNo.get(enNo) || byEmpNo.get(numericEmp) || byEmpNo.get(rawEmp) || null;
+
+        // Buscamos usando el EnNo NORMALIZADO
+        let profId = byEmpNo.get(enNo) || null;
+
         if (!profId && name) {
           profId = byName.get(name) || null;
         }
+
         if (!profId) {
-          unmatched.push(enNo || name || `fila ${index + 2}`);
+          unmatched.push(rawEmp || name || `fila ${index + 2}`);
           return;
         }
 
+        // Guardamos el mapeo con el EnNo NORMALIZADO
         mappings.push({ id_dispositivo: deviceId, en_no: enNo, id_profesional: profId });
 
         const cardRaw = String(
@@ -513,6 +524,7 @@ export function useAsistencia() {
         return 0;
       }
 
+      // El `onConflict: 'id_dispositivo,en_no'` funciona porque ya normalizamos `en_no`.
       const { error: mappingError } = await supabase
         .from('empleado_dispositivo_map')
         .upsert(mappings, { onConflict: 'id_dispositivo,en_no' });

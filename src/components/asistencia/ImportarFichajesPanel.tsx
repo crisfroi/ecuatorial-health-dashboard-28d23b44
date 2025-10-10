@@ -60,6 +60,7 @@ export function ImportarFichajesPanel() {
     staleTime: 30_000,
     initialData: [],
   });
+  console.log(`[Dispositivos Query] Dispositivos: ${devices.length} | Filtro Activo: ${centerIdFilter}`); 
 
   const { data: mappings = [] } = useQuery<EmpleadoDispositivoMap[]>({
     queryKey: ['device-mappings', selectedDevice, 'importar'],

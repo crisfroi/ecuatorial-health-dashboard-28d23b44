@@ -15,7 +15,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAsistencia } from '@/hooks/useAsistencia';
 import { useReportesAsistencia } from '@/hooks/useReportesAsistencia';
 import { supabase } from '@/integrations/supabase/client';
-import { cn } from '@/lib/utils';
 
 import { FichajesList } from './FichajesList';
 

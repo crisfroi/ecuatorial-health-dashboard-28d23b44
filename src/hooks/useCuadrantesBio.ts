@@ -1,6 +1,3 @@
-// useCuadrantesBio.ts
-// NOTA: Se ha eliminado la importación de useToast de este archivo,
-// ya que será pasado como argumento a la función exportPersonalXls.
 import { supabase } from '@/integrations/supabase/client';
 
 export interface CuadranteBio {
@@ -29,10 +26,17 @@ export function useCuadrantesBio() {
     return rows.length;
   };
 
-  // MODIFICADO: Ahora acepta 'toast' como el CUARTO argumento.
+  // MODIFICADO: Ahora acepta 'toast' como el CUARTO argumento para evitar el error de Hook.
+  // Se ha implementado la validación de fechas para evitar el error "invalid input syntax for type date: \"undefined\"".
   const exportPersonalXls = async (centerId: string | null, from: string, to: string, toast: any) => {
+    // PASO 0: VERIFICACIÓN INICIAL
     if (!centerId) {
       toast({ title: 'Error de exportación', description: 'Debe seleccionar un centro de salud para la exportación.', variant: 'destructive' });
+      return;
+    }
+    // SOLUCIÓN AL ERROR DE FECHA: Validar que 'from' y 'to' existan y no sean 'undefined'
+    if (!from || !to || from === 'undefined' || to === 'undefined') {
+      toast({ title: 'Error de exportación', description: 'Debe seleccionar un rango de fechas válido (Inicio y Fin).', variant: 'destructive' });
       return;
     }
 
@@ -55,7 +59,7 @@ export function useCuadrantesBio() {
 
     // 2. OBTENER la información de los profesionales
     let qb = supabase.from('profesionales_sanitarios')
-      // CRÍTICO: SELECCIONAR el nuevo campo NUMERO_ENROLAMIENTO_ENNO
+      // CRÍTICO: SELECCIONAR el campo NUMERO_ENROLAMIENTO_ENNO
       .select('id, numero_enrolamiento_enno, nombre_completo, centro_salud_id, especialidad, area_profesional, nombre_centro, genero, telefono, email, estado_solicitud, numero_tarjeta_rfid')
       .eq('centro_salud_id', centerId)
       .eq('estado_solicitud', 'Aprobado') // Solo personal aprobado
@@ -107,6 +111,7 @@ export function useCuadrantesBio() {
 
   // El resto de la función exportCuadrantesXls se mantiene sin cambios
   const exportCuadrantesXls = async (centerId: string | null, from: string, to: string) => {
+    // Se asume que list() ya verifica las fechas si se llama directamente
     const { data: cuad, error: e1 } = await supabase.from('cuadrantes_biometricos').select('id_profesional, turno_id, fecha').gte('fecha', from).lte('fecha', to).order('fecha');
     if (e1) throw e1;
     const { data: turnos, error: e2 } = await supabase.from('turnos_biometricos').select('id, nombre_turno, hora_inicio, hora_fin');

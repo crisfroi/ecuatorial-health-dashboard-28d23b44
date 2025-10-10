@@ -227,7 +227,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
         ["Distrito Sanitario", selectedDistrito || ""],
         ["Total exportado", String(globallyFilteredCentros.length)],
       ];
-      const wsMeta = XLSX.utils.aoa_to_sheet([["Clave","Valor"], ...meta]);
+      const wsMeta = XLSX.utils.aoa_to_sheet([["Clave", "Valor"], ...meta]);
       XLSX.utils.book_append_sheet(wb, wsMeta, 'Metadatos');
 
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -304,7 +304,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
         ["Estado filtro", filterEstado || ""],
         ["Total exportado", String(sorted.length)],
       ];
-      const wsMeta = XLSX.utils.aoa_to_sheet([["Clave","Valor"], ...meta]);
+      const wsMeta = XLSX.utils.aoa_to_sheet([["Clave", "Valor"], ...meta]);
       XLSX.utils.book_append_sheet(wb, wsMeta, 'Metadatos');
 
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -440,7 +440,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
             <div>
               <div className="font-medium">Personal requerido:</div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1">
-                {Object.entries(categorias).map(([k,v]) => (
+                {Object.entries(categorias).map(([k, v]) => (
                   <div key={k} className="bg-gray-50 rounded p-2">
                     <span className="text-xs uppercase text-gray-500">{k}</span>
                     <div className="text-lg font-bold">{v as number}</div>
@@ -575,7 +575,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                     <h4 className="font-semibold mb-2 flex items-center gap-2"><FileImage className="w-4 h-4" /> Fotos del Establecimiento</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {selectedCenter.fotos_establecimiento.map((foto: string, idx: number) => (
-                        <img key={idx} src={foto} alt={`Foto ${idx+1}`} className="w-full h-32 object-cover rounded border" />
+                        <img key={idx} src={foto} alt={`Foto ${idx + 1}`} className="w-full h-32 object-cover rounded border" />
                       ))}
                     </div>
                   </div>
@@ -694,56 +694,56 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
               {[...profesionalesDelCentro]
                 .sort((a, b) => (a?.nombre_completo || "").localeCompare(b?.nombre_completo || "", "es", { sensitivity: "base" }))
                 .map((prof) => (
-                <div key={prof.id} className={`border rounded-lg p-4 ${prof.estado_solicitud === "Aprobado" ? "border-green-200 bg-green-50" : "border-gray-200"}`}>
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <h4 className="font-semibold text-gray-900">{prof.nombre_completo}</h4>
+                  <div key={prof.id} className={`border rounded-lg p-4 ${prof.estado_solicitud === "Aprobado" ? "border-green-200 bg-green-50" : "border-gray-200"}`}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3">
+                          <h4 className="font-semibold text-gray-900">{prof.nombre_completo}</h4>
+                          <Badge
+                            variant="outline"
+                            className={prof.estado_solicitud === "Aprobado" ? "bg-green-100 text-green-800 border-green-300" : "bg-gray-100 text-gray-800"}
+                          >
+                            {prof.area_profesional}
+                          </Badge>
+                        </div>
+                        <div className="mt-2 space-y-1">
+                          {prof.telefono && (
+                            <p className="text-sm text-gray-600 flex items-center">
+                              <Phone className="w-3 h-3 mr-1" />
+                              {prof.telefono}
+                            </p>
+                          )}
+                          {prof.fecha_solicitud && (
+                            <p className="text-xs text-gray-500">
+                              Registrado: {new Date(prof.fecha_solicitud).toLocaleDateString('es-ES')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
                         <Badge
-                          variant="outline"
-                          className={prof.estado_solicitud === "Aprobado" ? "bg-green-100 text-green-800 border-green-300" : "bg-gray-100 text-gray-800"}
+                          variant={
+                            prof.estado_solicitud === "Aprobado"
+                              ? "default"
+                              : prof.estado_solicitud === "Rechazado"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                          className={
+                            prof.estado_solicitud === "Aprobado"
+                              ? "bg-green-600 text-white"
+                              : ""
+                          }
                         >
-                          {prof.area_profesional}
+                          {prof.estado_solicitud}
                         </Badge>
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedProfessional(prof as Profesional)}>
+                          <Eye className="w-4 h-4 mr-1" /> Ver
+                        </Button>
                       </div>
-                      <div className="mt-2 space-y-1">
-                        {prof.telefono && (
-                          <p className="text-sm text-gray-600 flex items-center">
-                            <Phone className="w-3 h-3 mr-1" />
-                            {prof.telefono}
-                          </p>
-                        )}
-                        {prof.fecha_solicitud && (
-                          <p className="text-xs text-gray-500">
-                            Registrado: {new Date(prof.fecha_solicitud).toLocaleDateString('es-ES')}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={
-                          prof.estado_solicitud === "Aprobado"
-                            ? "default"
-                            : prof.estado_solicitud === "Rechazado"
-                            ? "destructive"
-                            : "secondary"
-                        }
-                        className={
-                          prof.estado_solicitud === "Aprobado"
-                            ? "bg-green-600 text-white"
-                            : ""
-                        }
-                      >
-                        {prof.estado_solicitud}
-                      </Badge>
-                      <Button variant="ghost" size="sm" onClick={() => setSelectedProfessional(prof as Profesional)}>
-                        <Eye className="w-4 h-4 mr-1" /> Ver
-                      </Button>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
               {profesionalesDelCentro.length === 0 && (
                 <p className="text-center text-gray-500 py-8">
                   No hay profesionales asignados a este centro con los filtros aplicados.
@@ -996,7 +996,7 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                     <Input name="nombre" required />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Categor���a *</label>
+                    <label className="text-sm font-medium">Categoría *</label>
                     <Select name="categoria" required>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar categoría" />
@@ -1422,82 +1422,82 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardContent className="p-6">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-                    <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                  </CardContent>
-                </Card>
-              ))
+              <Card key={i} className="animate-pulse">
+                <CardContent className="p-6">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                </CardContent>
+              </Card>
+            ))
             : globallyFilteredCentros.map((centro) => (
-                <Card
-                  key={centro.id}
-                  className="hover:shadow-lg transition-shadow cursor-pointer"
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-1">
-                          {centro.nombre}
-                        </h3>
-                        <div className="flex items-center text-sm text-gray-500 mb-2">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          <span>
-                            {centro.provincia}, {centro.distrito}
-                          </span>
-                        </div>
+              <Card
+                key={centro.id}
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg mb-1">
+                        {centro.nombre}
+                      </h3>
+                      <div className="flex items-center text-sm text-gray-500 mb-2">
+                        <MapPin className="w-4 h-4 mr-1" />
+                        <span>
+                          {centro.provincia}, {centro.distrito}
+                        </span>
                       </div>
-                      <Badge className={getCategoryColor(centro.categoria)}>
-                        {centro.categoria}
+                    </div>
+                    <Badge className={getCategoryColor(centro.categoria)}>
+                      {centro.categoria}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center text-sm">
+                        <Users className="w-4 h-4 mr-2 text-blue-600" />
+                        <span>
+                          {centro.total_profesionales} profesionales
+                        </span>
+                      </div>
+                      <Badge className={getSectorColor(centro.sector)}>
+                        {centro.sector}
                       </Badge>
                     </div>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center text-sm">
-                          <Users className="w-4 h-4 mr-2 text-blue-600" />
-                          <span>
-                            {centro.total_profesionales} profesionales
-                          </span>
-                        </div>
-                        <Badge className={getSectorColor(centro.sector)}>
-                          {centro.sector}
-                        </Badge>
+                    {centro.distrito_sanitario && (
+                      <div className="text-sm text-gray-600 flex items-center">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        {centro.distrito_sanitario}
                       </div>
+                    )}
 
-                      {centro.distrito_sanitario && (
-                        <div className="text-sm text-gray-600 flex items-center">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {centro.distrito_sanitario}
-                        </div>
-                      )}
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full mt-4"
-                        onClick={() => {
-                          console.log("Selecting center:", centro);
-                          if (!centro.id) {
-                            toast({
-                              title: "Error",
-                              description: "El centro seleccionado no tiene un ID válido",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-                          setSelectedCenter(centro);
-                        }}
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        Ver Detalles
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-4"
+                      onClick={() => {
+                        console.log("Selecting center:", centro);
+                        if (!centro.id) {
+                          toast({
+                            title: "Error",
+                            description: "El centro seleccionado no tiene un ID válido",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setSelectedCenter(centro);
+                      }}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Ver Detalles
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
         </div>
       ) : (
         <Card>
@@ -1522,86 +1522,86 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
                 <tbody>
                   {isLoading
                     ? Array.from({ length: 5 }).map((_, i) => (
-                        <tr key={i} className="border-b animate-pulse">
-                          <td className="p-4">
-                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                          </td>
-                          <td className="p-4">
-                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                          </td>
-                          <td className="p-4">
-                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                          </td>
-                          <td className="p-4">
-                            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                          </td>
-                          <td className="p-4">
-                            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-                          </td>
-                          <td className="p-4">
-                            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                          </td>
-                          <td className="p-4">
-                            <div className="h-8 bg-gray-200 rounded w-20"></div>
-                          </td>
-                        </tr>
-                      ))
+                      <tr key={i} className="border-b animate-pulse">
+                        <td className="p-4">
+                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        </td>
+                        <td className="p-4">
+                          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                        </td>
+                        <td className="p-4">
+                          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                        </td>
+                        <td className="p-4">
+                          <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                        </td>
+                        <td className="p-4">
+                          <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                        </td>
+                        <td className="p-4">
+                          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                        </td>
+                        <td className="p-4">
+                          <div className="h-8 bg-gray-200 rounded w-20"></div>
+                        </td>
+                      </tr>
+                    ))
                     : globallyFilteredCentros.map((centro) => (
-                        <tr
-                          key={centro.id}
-                          className="border-b hover:bg-gray-50"
-                        >
-                          <td className="p-4">
-                            <div className="font-semibold">{centro.nombre}</div>
-                            <div className="text-sm text-gray-500">
-                              {centro.distrito}
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <Badge
-                              className={getCategoryColor(centro.categoria)}
-                            >
-                              {centro.categoria}
-                            </Badge>
-                          </td>
-                          <td className="p-4">{centro.provincia}</td>
-                          <td className="p-4">
-                            {centro.distrito_sanitario || "No especificado"}
-                          </td>
-                          <td className="p-4">
-                            <Badge className={getSectorColor(centro.sector)}>
-                              {centro.sector}
-                            </Badge>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center">
-                              <Users className="w-4 h-4 mr-2 text-blue-600" />
-                              {centro.total_profesionales}
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                console.log("Selecting center from table:", centro);
-                                if (!centro.id) {
-                                  toast({
-                                    title: "Error",
-                                    description: "El centro seleccionado no tiene un ID válido",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
-                                setSelectedCenter(centro);
-                              }}
-                            >
-                              <Eye className="w-4 h-4 mr-1" />
-                              Ver
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
+                      <tr
+                        key={centro.id}
+                        className="border-b hover:bg-gray-50"
+                      >
+                        <td className="p-4">
+                          <div className="font-semibold">{centro.nombre}</div>
+                          <div className="text-sm text-gray-500">
+                            {centro.distrito}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <Badge
+                            className={getCategoryColor(centro.categoria)}
+                          >
+                            {centro.categoria}
+                          </Badge>
+                        </td>
+                        <td className="p-4">{centro.provincia}</td>
+                        <td className="p-4">
+                          {centro.distrito_sanitario || "No especificado"}
+                        </td>
+                        <td className="p-4">
+                          <Badge className={getSectorColor(centro.sector)}>
+                            {centro.sector}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center">
+                            <Users className="w-4 h-4 mr-2 text-blue-600" />
+                            {centro.total_profesionales}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              console.log("Selecting center from table:", centro);
+                              if (!centro.id) {
+                                toast({
+                                  title: "Error",
+                                  description: "El centro seleccionado no tiene un ID válido",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+                              setSelectedCenter(centro);
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Ver
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
               {!isLoading && centros.length === 0 && (

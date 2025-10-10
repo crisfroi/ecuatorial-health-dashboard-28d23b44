@@ -48,19 +48,18 @@ export function DispositivosPanel() {
   const centerIdFilter = selectedCenter === 'todos' ? null : selectedCenter;
 
   // QUERY 2: Dispositivos de fichaje (Principal)
-  const { data: devices = [], isLoading: devicesLoading } = useQuery<Dispositivo[]>({
+  // **CAMBIO CLAVE: Se eliminó initialData: [] para forzar isLoading: true al inicio**
+  const { data: devices, isLoading: devicesLoading } = useQuery<Dispositivo[]>({
     queryKey: ['dispositivos', centerIdFilter],
     queryFn: () => list(centerIdFilter),
     // OPTIMIZACIÓN: Reducir staleTime para que la lista se sienta más "fresca"
-    // Sin embargo, si la lista cambia muy poco, un staleTime más largo está bien.
-    // 15 segundos es un buen equilibrio para esta entidad.
     staleTime: 15_000,
-    refetchOnWindowFocus: false, // Se mantiene, ya que la recarga al cambiar de pestaña no es crítica.
-    initialData: [],
+    refetchOnWindowFocus: false,
   });
 
   const sortedDevices = useMemo(
-    () => devices.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)),
+    // **AJUSTE CLAVE: Se utiliza 'devices ?? []' para asegurar que el array sea iterable**
+    () => (devices ?? []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre)),
     [devices]
   );
 

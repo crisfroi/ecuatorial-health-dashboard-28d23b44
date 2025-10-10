@@ -9,11 +9,17 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 
+// ----------------------------------------------------------------------
+// 1. ESQUEMA ZOD (Añadido tm_no)
+// ----------------------------------------------------------------------
+
 const dispositivoSchema = z.object({
   nombre: z.string().min(3, 'Ingrese un nombre válido'),
   ubicacion: z.string().max(120, 'Máximo 120 caracteres').optional().or(z.literal('')),
   centro_salud_id: z.string().optional().nullable(),
   activo: z.boolean().default(true),
+  // Campo técnico: tm_no (Número de Terminal)
+  tm_no: z.string().max(10, 'Máximo 10 caracteres').optional().or(z.literal('')),
 });
 
 export type DispositivoFormValues = z.infer<typeof dispositivoSchema>;
@@ -32,6 +38,10 @@ interface DispositivoFormProps {
   loading?: boolean;
 }
 
+// ----------------------------------------------------------------------
+// 2. COMPONENTE DE FORMULARIO
+// ----------------------------------------------------------------------
+
 export function DispositivoForm({
   initialValues,
   centers,
@@ -47,6 +57,8 @@ export function DispositivoForm({
       ubicacion: '',
       centro_salud_id: null,
       activo: true,
+      // Añadido tm_no a los valores por defecto
+      tm_no: '',
       ...initialValues,
     },
   });
@@ -57,6 +69,8 @@ export function DispositivoForm({
       ubicacion: initialValues?.ubicacion ?? '',
       centro_salud_id: initialValues?.centro_salud_id ?? null,
       activo: initialValues?.activo ?? true,
+      // Añadido tm_no al reset
+      tm_no: initialValues?.tm_no ?? '',
     });
   }, [initialValues, form]);
 
@@ -65,6 +79,8 @@ export function DispositivoForm({
       ...values,
       ubicacion: values.ubicacion?.trim() ? values.ubicacion.trim() : '',
       centro_salud_id: values.centro_salud_id ? values.centro_salud_id : null,
+      // Asegurar que tm_no se guarda como string vacío si está vacío (para la DB)
+      tm_no: values.tm_no?.trim() ? values.tm_no.trim() : '',
     };
     return onSubmit(payload);
   });
@@ -72,6 +88,30 @@ export function DispositivoForm({
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit} className="space-y-6">
+
+        {/* ========================================================== */}
+        {/* CAMPO: NÚMERO DE TERMINAL (TM No.) - Dato Técnico */}
+        {/* ========================================================== */}
+        <FormField
+          control={form.control}
+          name="tm_no"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Número de Terminal (TM No.)</FormLabel>
+              <FormControl>
+                <Input placeholder="Ej. 1, 2, 3 (ID único del dispositivo)" {...field} />
+              </FormControl>
+              <p className="text-sm text-red-500">
+                ⚠️ **CRÍTICO:** Este número debe coincidir con el ID configurado en el dispositivo físico y ser único en el sistema.
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* ========================================================== */}
+        {/* CAMPO: NOMBRE DEL DISPOSITIVO (Funcional) */}
+        {/* ========================================================== */}
         <FormField
           control={form.control}
           name="nombre"
@@ -86,6 +126,9 @@ export function DispositivoForm({
           )}
         />
 
+        {/* ========================================================== */}
+        {/* CAMPO: UBICACIÓN */}
+        {/* ========================================================== */}
         <FormField
           control={form.control}
           name="ubicacion"
@@ -100,6 +143,9 @@ export function DispositivoForm({
           )}
         />
 
+        {/* ========================================================== */}
+        {/* CAMPO: CENTRO DE SALUD */}
+        {/* ========================================================== */}
         <FormField
           control={form.control}
           name="centro_salud_id"
@@ -129,6 +175,9 @@ export function DispositivoForm({
           )}
         />
 
+        {/* ========================================================== */}
+        {/* CAMPO: ACTIVO */}
+        {/* ========================================================== */}
         <FormField
           control={form.control}
           name="activo"
@@ -147,6 +196,7 @@ export function DispositivoForm({
           )}
         />
 
+        {/* Botones de acción */}
         <div className="flex justify-end gap-3">
           {onCancel ? (
             <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>

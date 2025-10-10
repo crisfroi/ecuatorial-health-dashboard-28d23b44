@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
-// --- INTERFACES CORREGIDAS ---
+// --- INTERFACES GENERALES ---
 
 export interface Dispositivo {
   id: string;
@@ -30,7 +30,7 @@ export interface AttendanceLog {
   id_profesional: string | null;
   id_dispositivo: string;
   en_no: string | null;
-  tm_no?: string | null; // <-- CORREGIDO: Se asegura que esté en la interfaz de logs
+  tm_no?: string | null;
   inout: 'IN' | 'OUT' | null;
   mode: string | null;
   fecha_hora: string; // ISO
@@ -49,7 +49,12 @@ export interface ConsolidatedDayEntry {
   total_horas?: number; // hours
 }
 
-// --- USE DISPOSITIVOS FICHAJE ---
+// Lo que realmente genera el parser antes de la inserción.
+type LogPayload = Omit<AttendanceLog, 'id' | 'id_dispositivo' | 'created_at'>;
+
+// ----------------------------------------------------------------------
+// 🛠️ USE DISPOSITIVOS FICHAJE (Asegura que tm_no se guarda)
+// ----------------------------------------------------------------------
 
 export function useDispositivosFichaje() {
   const { toast } = useToast();
@@ -66,12 +71,13 @@ export function useDispositivosFichaje() {
   const create = async (payload: Partial<Dispositivo>) => {
     setLoading(true);
     try {
+      // CORREGIDO: tm_no incluido en el payload de inserción
       const { data, error } = await supabase.from('dispositivos').insert({
         nombre: payload.nombre,
         ubicacion: payload.ubicacion || null,
         centro_salud_id: payload.centro_salud_id || null,
         activo: payload.activo ?? true,
-        tm_no: payload.tm_no || null, // <-- CORREGIDO: Añadir tm_no
+        tm_no: payload.tm_no || null,
       }).select().single();
       if (error) throw error;
       toast({ title: 'Dispositivo creado', description: payload.nombre });
@@ -82,12 +88,13 @@ export function useDispositivosFichaje() {
   };
 
   const update = async (id: string, patch: Partial<Dispositivo>) => {
+    // CORREGIDO: tm_no incluido en el payload de actualización
     const { data, error } = await supabase.from('dispositivos').update({
       nombre: patch.nombre,
       ubicacion: patch.ubicacion,
       centro_salud_id: patch.centro_salud_id,
       activo: patch.activo,
-      tm_no: patch.tm_no, // <-- CORREGIDO: Añadir tm_no
+      tm_no: patch.tm_no,
     }).eq('id', id).select().single();
     if (error) throw error;
     toast({ title: 'Dispositivo actualizado' });
@@ -116,19 +123,20 @@ export function useDispositivosFichaje() {
   return { loading, list, create, update, remove, listMappings, upsertMapping };
 }
 
-// --- USE ASISTENCIA ---
+// ----------------------------------------------------------------------
+// 🛠️ USE ASISTENCIA (Optimizado con LogPayload y validación TMNo)
+// ----------------------------------------------------------------------
 
 export function useAsistencia() {
   const { toast } = useToast();
   const [importing, setImporting] = useState(false);
 
-  // Parser genérico TXT/DAT (ZKTeco-like). Detecta separadores y columnas.
-  const parseLines = (text: string) => {
+  // Parser genérico TXT/DAT
+  const parseLines = (text: string): LogPayload[] => {
     const linesRaw = text.split(/\r?\n/);
     const lines = linesRaw.map(l => l.replace(/\uFEFF/g, '').trim()).filter(Boolean);
 
-    // Tipo de datos corregido para incluir tm_no en el log
-    const entries: (Omit<AttendanceLog, 'id' | 'id_dispositivo' | 'created_at'> & { tm_no?: string | null })[] = [];
+    const entries: LogPayload[] = [];
 
     let headerMap: Record<string, number> | null = null;
     if (lines.length) {
@@ -146,16 +154,15 @@ export function useAsistencia() {
       if (!parts.length) continue;
 
       let en_no: string | null = null;
-      let tm_no: string | null = null; // <-- CORREGIDO: Declaración correcta de variable
+      let tm_no: string | null = null;
       let fecha_hora: string = new Date().toISOString();
       let inout: 'IN' | 'OUT' | null = null;
       let mode: string | null = null;
 
       if (headerMap) {
         en_no = parts[headerMap['EnNo']] || null;
-        tm_no = parts[headerMap['TMNo']] || null; // <-- Extracción de TMNo
+        tm_no = parts[headerMap['TMNo']] || null;
         const dtRaw = parts[headerMap['DateTime']] || '';
-        // soportar YYYY/MM/DD HH:mm:ss o YYYY-MM-DD HH:mm:ss
         const normalized = dtRaw.replace(/\//g, '-');
         const parsed = new Date(normalized);
         fecha_hora = isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
@@ -176,13 +183,22 @@ export function useAsistencia() {
         mode = parts.find(p => /^(M|A|FP|FACE|FINGER|CARD|\d{1,2})$/i.test(p)) || null;
       }
 
-      entries.push({ id_profesional: null, en_no, tm_no, inout: inout as any, mode, fecha_hora, raw_line: raw, source_file: undefined } as any);
+      entries.push({
+        id_profesional: null,
+        en_no,
+        tm_no,
+        inout,
+        mode,
+        fecha_hora,
+        raw_line: raw,
+        source_file: undefined
+      });
     }
 
     return entries;
   };
 
-  const insertLogs = async (deviceId: string, filename: string, logs: Omit<AttendanceLog, 'id' | 'id_dispositivo' | 'created_at'>[]) => {
+  const insertLogs = async (deviceId: string, filename: string, logs: LogPayload[]) => {
     if (!logs.length) return 0;
 
     // 1. OBTENER el TMNo esperado del dispositivo seleccionado
@@ -201,7 +217,7 @@ export function useAsistencia() {
     if (expectedTmNo) {
       validLogs = logs.filter(log => {
         const logTmNo = log.tm_no ? String(log.tm_no) : null;
-        // Si el log NO tiene TMNo, lo aceptamos (posiblemente fallback o formato antiguo sin la columna).
+        // Si el log NO tiene TMNo, lo aceptamos (posiblemente formato antiguo sin la columna).
         if (!logTmNo) return true;
 
         // Si tiene TMNo, DEBE coincidir con el esperado del dispositivo.
@@ -219,7 +235,6 @@ export function useAsistencia() {
         });
       }
     } else {
-      // Advertencia si no hay TMNo registrado, se importan todos los logs.
       console.warn(`Advertencia: El dispositivo seleccionado (ID: ${deviceId}) no tiene un TMNo registrado. Se importarán todos los logs sin validación de terminal.`);
     }
 
@@ -227,7 +242,7 @@ export function useAsistencia() {
       return 0;
     }
 
-    // 3. Resolver id_profesional por en_no vía mapeo (solo con logs válidos)
+    // 3. Resolver id_profesional por en_no vía mapeo
     const enNos = Array.from(new Set(validLogs.map(l => l.en_no).filter(Boolean))) as string[];
     let mappings: EmpleadoDispositivoMap[] = [];
     if (enNos.length) {
@@ -245,9 +260,9 @@ export function useAsistencia() {
       const profId = mappings.find(m => m.en_no === l.en_no)?.id_profesional || null;
       return {
         id_profesional: profId,
-        id_dispositivo: deviceId,
+        id_dispositivo: deviceId, // <-- AÑADIDO AQUÍ
         en_no: l.en_no,
-        tm_no: l.tm_no, // <-- Se incluye tm_no en la inserción
+        tm_no: l.tm_no,
         inout: l.inout,
         mode: l.mode,
         fecha_hora: l.fecha_hora,
@@ -274,7 +289,7 @@ export function useAsistencia() {
     }
   };
 
-  // Importar Reporte.xls (multi-hoja) con cabeceras estándar
+  // Importar Reporte.xls (multi-hoja)
   const importReporteXls = async (deviceId: string, file: File) => {
     setImporting(true);
     try {
@@ -285,7 +300,7 @@ export function useAsistencia() {
         const ws = wb.Sheets[sheetName];
         if (!ws) continue;
         const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
-        const parsed = rows.map((r) => {
+        const parsed: LogPayload[] = rows.map((r) => {
           const en = r.EnNo || r.EmpNo || r.EmpID || r.Enno || r.enno || r.enNo || '';
           const dt = r.DateTime || r.Datetime || r.TIME || r.Time || '';
           const io = r.INOUT || r.InOut || r.Dir || r.Direction || '';
@@ -308,8 +323,9 @@ export function useAsistencia() {
             fecha_hora,
             raw_line: JSON.stringify(r),
             source_file: file.name
-          } as any;
-        }).filter((e: any) => e.en_no && e.fecha_hora);
+          };
+        }).filter((e: LogPayload) => e.en_no && e.fecha_hora && !isNaN(new Date(e.fecha_hora).getTime()));
+
         total += await insertLogs(deviceId, `${file.name}#${sheetName}`, parsed);
       }
       toast({ title: 'Reporte importado', description: `${total} registros procesados` });

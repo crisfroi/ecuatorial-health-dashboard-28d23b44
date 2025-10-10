@@ -1,5 +1,4 @@
 import { useToast } from '@/hooks/use-toast';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface CuadranteBio {
@@ -13,8 +12,6 @@ export interface CuadranteBio {
 }
 
 export function useCuadrantesBio() {
-  const { toast } = useToast();
-
   const list = async (centerId: string | null, from: string, to: string): Promise<CuadranteBio[]> => {
     let qb = supabase.from('cuadrantes_biometricos').select('*').gte('fecha', from).lte('fecha', to).order('fecha');
     if (centerId) qb = qb.eq('centro_salud_id', centerId);
@@ -26,7 +23,6 @@ export function useCuadrantesBio() {
   const assign = async (rows: Array<Omit<CuadranteBio, 'id' | 'created_at' | 'updated_at'>>): Promise<number> => {
     const { error } = await supabase.from('cuadrantes_biometricos').upsert(rows, { onConflict: 'id_profesional,fecha' });
     if (error) throw error;
-    toast({ title: 'Cuadrante actualizado', description: `${rows.length} asignaciones` });
     return rows.length;
   };
 

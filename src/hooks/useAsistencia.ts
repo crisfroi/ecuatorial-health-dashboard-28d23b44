@@ -113,11 +113,74 @@ export function useDispositivosFichaje() {
     return data || [];
   };
 
-  const upsertMapping = async (id_dispositivo: string, en_no: string, id_profesional: string) => {
-    const { data, error } = await supabase.from('empleado_dispositivo_map').upsert({ id_dispositivo, en_no, id_profesional }, { onConflict: 'id_dispositivo,en_no' }).select().single();
-    if (error) throw error;
-    toast({ title: 'Mapeo guardado', description: `${en_no} → asignado` });
-    return data as EmpleadoDispositivoMap;
+  // IMPLEMENTACIÓN CORREGIDA DE UPSERT MAPPING PARA MANEJAR DOBLE RESTRICCIÓN DE UNICIDAD
+  const upsertMapping = async (
+    id_dispositivo: string,
+    en_no: string,
+    id_profesional: string
+  ): Promise<EmpleadoDispositivoMap> => {
+    // 1. Intentar encontrar un mapeo existente para este PROFESIONAL y DISPOSITIVO
+    // Esto es crucial para la restricción UNIQUE (id_profesional, id_dispositivo)
+    const { data: existingMap, error: fetchError } = await supabase
+      .from('empleado_dispositivo_map')
+      .select('id')
+      .eq('id_profesional', id_profesional)
+      .eq('id_dispositivo', id_dispositivo)
+      .limit(1)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error('Error al buscar mapeo existente:', fetchError);
+      throw new Error('Error al verificar mapeo existente.');
+    }
+
+    if (existingMap) {
+      // 2. Si existe, ACTUALIZAMOS el EN_NO (y el trigger set_updated_at hará el resto)
+      const { data: updatedData, error: updateError } = await supabase
+        .from('empleado_dispositivo_map')
+        .update({ en_no: en_no })
+        .eq('id', existingMap.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        // Manejar el conflicto de la otra restricción: (id_dispositivo, en_no)
+        // Esto sucede si el nuevo 'en_no' ya está siendo usado por OTRO profesional en este dispositivo.
+        if (updateError.code === '23505') {
+          throw new Error('El número de empleado (EnNo) ya está asignado a otro profesional en este dispositivo.');
+        }
+        console.error('Error al actualizar mapeo:', updateError);
+        throw new Error('No se pudo actualizar el mapeo.');
+      }
+      toast({ title: 'Mapeo actualizado', description: `${en_no} asignado` });
+      return updatedData as EmpleadoDispositivoMap;
+    } else {
+      // 3. Si no existe, INSERTAMOS un nuevo mapeo.
+      const { data: insertedData, error: insertError } = await supabase
+        .from('empleado_dispositivo_map')
+        .insert({
+          id_profesional: id_profesional,
+          en_no: en_no,
+          id_dispositivo: id_dispositivo,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        // Manejar el conflicto de la restricción: (id_dispositivo, en_no)
+        if (insertError.code === '23505') {
+          throw new Error('El número de empleado (EnNo) ya está asignado a otro profesional en este dispositivo.');
+        }
+        // Manejar Foreign Key si los IDs son inválidos
+        if (insertError.code === '23503') {
+          throw new Error('ID de profesional o dispositivo no encontrado.');
+        }
+        console.error('Error al insertar mapeo:', insertError);
+        throw new Error('No se pudo insertar el mapeo.');
+      }
+      toast({ title: 'Mapeo guardado', description: `${en_no} asignado` });
+      return insertedData as EmpleadoDispositivoMap;
+    }
   };
 
   return { loading, list, create, update, remove, listMappings, upsertMapping };

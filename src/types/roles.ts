@@ -114,6 +114,7 @@ export const ROLE_DEFINITIONS: Record<UserRole, RoleDefinition> = {
       'requests',
       'renewals',
       'guardias',
+      'asistencia',
       'analytics',
       'health-centers',
       'establecimientos',

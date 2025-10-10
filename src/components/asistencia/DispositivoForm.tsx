@@ -82,6 +82,13 @@ export function DispositivoForm({
       // Asegurar que tm_no se guarda como string vacío si está vacío (para la DB)
       tm_no: values.tm_no?.trim() ? values.tm_no.trim() : '',
     };
+
+    // ------------------------------------------------------------------
+    // 📢 LOG DE SALIDA (AÑADIDO PARA DEBUG)
+    // ------------------------------------------------------------------
+    console.log('✅ PAYLOAD FINAL DEL FORMULARIO (antes de llamar al hook):', payload);
+    // ------------------------------------------------------------------
+
     return onSubmit(payload);
   });
 

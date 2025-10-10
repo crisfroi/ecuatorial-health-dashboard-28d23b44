@@ -4,11 +4,11 @@ import { addMonths, eachDayOfInterval, endOfMonth, format, isSameDay, startOfMon
 import { es } from 'date-fns/locale';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 
-// Importaciones de iconos del primer componente para enriquecer la UI
+// Importaciones de iconos
 import {
   Calendar,
   Download,
@@ -34,9 +34,11 @@ import {
   RotateCcw,
   Search,
   CalendarPlus,
+  Edit,
+  Trash2,
 } from 'lucide-react';
 
-// --- Interfaces ---
+// --- INTERFACES Y TIPOS ---
 
 interface CentroOption {
   id: string;
@@ -57,12 +59,13 @@ interface ProfessionalOption {
 }
 
 interface AssignmentData {
+  id: string; // Asumo que existe un ID para futura edición/eliminación
   id_profesional: string;
   turno_id: string;
   fecha: string;
 }
 
-// --- Esquema y Tipos ---
+// --- Esquema y Tipos del Formulario ---
 
 const assignSchema = z.object({
   professionalIds: z.array(z.string()).min(1, 'Seleccione al menos un profesional'),
@@ -73,16 +76,16 @@ const assignSchema = z.object({
 
 type AssignFormValues = z.infer<typeof assignSchema>;
 
-type CalendarAssignments = Record<string, Array<{ professionalId: string; turnoId: string }>>;
+type CalendarAssignments = Record<string, Array<{ id: string, professionalId: string; turnoId: string }>>;
 
-// --- Constantes de Diseño (Adaptadas del primer código) ---
+// --- CONSTANTES DE DISEÑO ---
 
 const getTurnoBadgeColor = (tipo: string) => {
-  // Simulación de tipos de turno basados en el nombre
-  if (tipo.toLowerCase().includes('noche')) return 'bg-purple-100 text-purple-800';
-  if (tipo.toLowerCase().includes('tarde')) return 'bg-orange-100 text-orange-800';
-  if (tipo.toLowerCase().includes('mañana')) return 'bg-blue-100 text-blue-800';
-  return 'bg-gray-100 text-gray-800';
+  if (tipo.toLowerCase().includes('noche')) return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
+  if (tipo.toLowerCase().includes('tarde')) return 'bg-orange-100 text-orange-800 hover:bg-orange-200';
+  if (tipo.toLowerCase().includes('mañana')) return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+  if (tipo.toLowerCase().includes('localizable')) return 'bg-red-100 text-red-800 hover:bg-red-200';
+  return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
 };
 
 const getDayName = (dayIndex: number) => {
@@ -92,34 +95,25 @@ const getDayName = (dayIndex: number) => {
 
 const getMonthName = (month: number) => {
   const months = [
-    'Enero',
-    'Febrero',
-    'Marzo',
-    'Abril',
-    'Mayo',
-    'Junio',
-    'Julio',
-    'Agosto',
-    'Septiembre',
-    'Octubre',
-    'Noviembre',
-    'Diciembre',
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
   ];
   return months[month - 1];
 };
 
-// --- Componente Principal ---
+// --- COMPONENTE PRINCIPAL ---
 
 export function CuadrantesPanel() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  // Asumo que list devuelve AssignmentData[] que incluye el 'id' para CRUD futuro
   const { list, assign, exportPersonalXls, exportCuadrantesXls } = useCuadrantesBio();
 
   // Estados
   const [selectedCenter, setSelectedCenter] = useState<string>('todos');
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null); // Usado para determinar si es asignación por día o rango
   const [viewType, setViewType] = useState<'calendario' | 'lista'>('calendario');
   const [professionalSearch, setProfessionalSearch] = useState('');
 
@@ -131,7 +125,7 @@ export function CuadrantesPanel() {
   const currentMonthNumber = currentMonth.getMonth() + 1;
   const currentYearNumber = currentMonth.getFullYear();
 
-  // --- Data Fetching (useQuery) ---
+  // --- DATA FETCHING (useQuery) ---
 
   const { data: centers = [], isLoading: centersLoading } = useQuery<CentroOption[]>({
     queryKey: ['centros-options'],
@@ -156,12 +150,16 @@ export function CuadrantesPanel() {
   const { data: professionals = [], isLoading: professionalsLoading } = useQuery<ProfessionalOption[]>({
     queryKey: ['profesionales-centro', centerIdFilter],
     queryFn: async () => {
+      // FILTRO DE PROFESIONALES POR CENTRO
       const baseQuery = supabase
         .from('profesionales_sanitarios')
-        .select('id, nombre_completo, id_profesional_unico')
+        .select('id, nombre_completo, id_profesional_unico, centro_salud_id')
         .order('nombre_completo', { ascending: true });
 
+      // Si se selecciona 'todos', se limita a 200 para evitar carga excesiva.
+      // Si se selecciona un centro, se filtra por centro.
       const query = centerIdFilter ? baseQuery.eq('centro_salud_id', centerIdFilter) : baseQuery.limit(200);
+
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []).map((item) => ({
@@ -171,7 +169,7 @@ export function CuadrantesPanel() {
       }));
     },
     staleTime: 60_000,
-    enabled: centers.length > 0,
+    enabled: centers.length > 0, // Espera a cargar los centros
   });
 
   const {
@@ -182,10 +180,10 @@ export function CuadrantesPanel() {
     queryKey: ['cuadrantes', centerIdFilter, from, to],
     queryFn: () => list(centerIdFilter, from, to),
     staleTime: 15_000,
-    enabled: !!centerIdFilter || selectedCenter === 'todos',
+    enabled: !!centerIdFilter || selectedCenter === 'todos', // Permite cargar la vista general
   });
 
-  // --- Mutaciones ---
+  // --- MUTACIONES (Lógica de Creación/Asignación) ---
 
   const assignMutation = useMutation<number, Error, AssignFormValues>({
     mutationFn: async (payload) => {
@@ -196,7 +194,7 @@ export function CuadrantesPanel() {
         throw new Error('La fecha de inicio debe ser anterior o igual a la fecha final');
       }
       if (!centerIdFilter) {
-        throw new Error('Debe seleccionar un centro específico, no "Todos los centros", para asignar turnos.');
+        throw new Error('Debe seleccionar un centro específico para asignar turnos.');
       }
       if (payload.professionalIds.length === 0) {
         throw new Error('Debe seleccionar al menos un profesional.');
@@ -205,6 +203,7 @@ export function CuadrantesPanel() {
       const days = eachDayOfInterval({ start, end });
       const rows: Array<any> = [];
 
+      // Generación de múltiples filas de asignación (Multi-select en fechas)
       for (const day of days) {
         for (const professionalId of payload.professionalIds) {
           rows.push({
@@ -216,14 +215,13 @@ export function CuadrantesPanel() {
         }
       }
 
-      await assign(rows); // Esta función maneja la inserción múltiple
+      await assign(rows); // Lógica de negocio para insertar múltiples asignaciones
       return rows.length;
     },
     onSuccess: (total) => {
       toast({ title: 'Cuadrante actualizado', description: `${total} asignaciones registradas` });
       setAssignDialogOpen(false);
       setSelectedDate(null);
-      // Invalida solo la consulta de cuadrantes para no refetchar centros/profesionales
       queryClient.invalidateQueries({ queryKey: ['cuadrantes'], exact: false });
       void refetchAssignments();
     },
@@ -246,11 +244,17 @@ export function CuadrantesPanel() {
     return map;
   }, [turnos]);
 
+  // Lógica de visualización de cuadrantes registrados (resumen)
   const assignmentsByDate = useMemo<CalendarAssignments>(() => {
     const grouped: CalendarAssignments = {};
     assignments.forEach((assignment) => {
       grouped[assignment.fecha] = grouped[assignment.fecha] || [];
-      grouped[assignment.fecha].push({ professionalId: assignment.id_profesional, turnoId: assignment.turno_id });
+      // Asumo que assignment.id existe para identificar la asignación única
+      grouped[assignment.fecha].push({
+        id: assignment.id,
+        professionalId: assignment.id_profesional,
+        turnoId: assignment.turno_id
+      });
     });
     return grouped;
   }, [assignments]);
@@ -261,34 +265,24 @@ export function CuadrantesPanel() {
   );
 
   const daysInMonth = calendarDays.length;
-  const firstDayOfMonth = getDay(startOfMonth(currentMonth)); // 0 = Domingo, 1 = Lunes
+  // getDay retorna 0 para Domingo, 1 para Lunes. Se usa directamente.
+  const firstDayOfMonth = getDay(startOfMonth(currentMonth));
 
-  // --- Lógica del Formulario ---
+  // --- Lógica del Formulario y Handlers de UI ---
 
   const form = useForm<AssignFormValues>({
     resolver: zodResolver(assignSchema),
     defaultValues: {
       professionalIds: [],
       turnoId: '',
-      startDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : from,
-      endDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : from,
+      startDate: format(new Date(), 'yyyy-MM-dd'),
+      endDate: format(new Date(), 'yyyy-MM-dd'),
     },
     mode: 'onChange',
   });
 
-  // Sincronizar fechas en el formulario cuando se selecciona una fecha del calendario
-  useEffect(() => {
-    if (selectedDate) {
-      const dateString = format(selectedDate, 'yyyy-MM-dd');
-      form.setValue('startDate', dateString);
-      form.setValue('endDate', dateString);
-      form.clearErrors(['startDate', 'endDate']);
-    }
-  }, [selectedDate, form]);
-
-  // --- Handlers de UI ---
-
-  const handleOpenAssign = (date: Date) => {
+  // Handler para crear una asignación de un solo día (clic en celda del calendario)
+  const handleOpenAssignForDay = (date: Date) => {
     if (!centerIdFilter) {
       toast({
         title: 'Selección requerida',
@@ -298,13 +292,35 @@ export function CuadrantesPanel() {
       return;
     }
     setSelectedDate(date);
+    const dateString = format(date, 'yyyy-MM-dd');
     form.reset({
       professionalIds: [],
       turnoId: '',
-      startDate: format(date, 'yyyy-MM-dd'),
-      endDate: format(date, 'yyyy-MM-dd'),
+      startDate: dateString,
+      endDate: dateString,
     });
-    setProfessionalSearch(''); // Limpiar el filtro de búsqueda
+    setProfessionalSearch('');
+    setAssignDialogOpen(true);
+  };
+
+  // Handler para crear una asignación de rango de fechas (botón "Nueva Asignación")
+  const handleOpenNewAssignment = () => {
+    if (!centerIdFilter) {
+      toast({
+        title: 'Selección requerida',
+        description: 'Por favor, seleccione un centro de salud específico para asignar turnos.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setSelectedDate(null); // Indica que es un rango
+    form.reset({
+      professionalIds: [],
+      turnoId: '',
+      startDate: from, // Inicio del mes actual
+      endDate: to, // Fin del mes actual
+    });
+    setProfessionalSearch('');
     setAssignDialogOpen(true);
   };
 
@@ -329,7 +345,7 @@ export function CuadrantesPanel() {
     exportCuadrantesXls(centerIdFilter, from, to);
   }, [centerIdFilter, from, to, exportCuadrantesXls]);
 
-  // --- Vistas de Renderizado ---
+  // --- Vistas de Renderizado (Visualización de Cuadrantes) ---
 
   const renderCalendarView = () => {
     const calendarElements = [];
@@ -352,10 +368,11 @@ export function CuadrantesPanel() {
         <div
           key={day}
           className={cn(
-            'h-32 border border-gray-200 p-2 overflow-hidden hover:bg-gray-50 transition-colors cursor-pointer',
+            'h-32 border border-gray-200 p-2 overflow-hidden hover:bg-gray-50 transition-colors cursor-pointer group relative',
             isToday ? 'bg-blue-50 border-blue-300' : 'bg-white'
           )}
-          onClick={() => handleOpenAssign(dayDate)}
+          onClick={() => handleOpenAssignForDay(dayDate)}
+          title={`Click para asignar turnos el ${format(dayDate, 'dd/MM/yyyy')}`}
         >
           <div className={`text-lg font-medium mb-1 ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
             {day}
@@ -365,33 +382,34 @@ export function CuadrantesPanel() {
               const professional = professionalMap.get(assignment.professionalId);
               const turno = turnosMap.get(assignment.turnoId);
               return (
-                <div
+                <Badge
                   key={index}
-                  className="text-xs p-1 rounded truncate"
-                  style={{ backgroundColor: '#e3f2fd', color: '#1976d2' }}
-                  title={`${professional?.nombre || 'Sin asignar'} - ${turno?.nombre_turno || 'Turno'}`}
+                  className={cn("w-full truncate justify-start cursor-pointer", getTurnoBadgeColor(turno?.nombre_turno || 'ordinario'))}
+                  title={`${professional?.nombre || 'Profesional desconocido'} - ${turno?.nombre_turno || 'Turno sin nombre'}`}
                 >
-                  {professional?.nombre?.split(' ')[0] || 'Sin prof.'} ({turno?.nombre_turno.split(' ')[0] || 'T'})
-                </div>
+                  {professional?.nombre?.split(' ')[0] || 'Sin prof.'} ({turno?.nombre_turno.split(' ')[0].charAt(0) || 'T'})
+                </Badge>
               );
             })}
             {assignmentsDelDia.length > 2 && (
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 text-center">
                 +{assignmentsDelDia.length - 2} más
               </div>
             )}
           </div>
+          {/* Icono de Asignación Rápida */}
+          <CalendarPlus className="absolute top-2 right-2 h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       );
     }
 
     return (
-      <div className="grid grid-cols-7 gap-0 border border-gray-300 rounded-lg overflow-hidden">
+      <div className="grid grid-cols-7 gap-0 border border-gray-300 rounded-lg overflow-hidden shadow-md">
         {/* Encabezados de días */}
         {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => (
           <div
             key={dayIndex}
-            className="bg-gray-100 p-2 text-center text-sm font-medium text-gray-700 border-b border-gray-300"
+            className="bg-gray-100 p-2 text-center text-sm font-bold text-gray-700 border-b border-gray-300"
           >
             {getDayName(dayIndex)}
           </div>
@@ -411,7 +429,7 @@ export function CuadrantesPanel() {
           <Card key={fecha}>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center space-x-2">
-                <Calendar className="w-5 h-5" />
+                <Calendar className="w-5 h-5 text-gray-600" />
                 <span>
                   {format(new Date(fecha), "EEEE, dd 'de' LLLL 'de' yyyy", { locale: es })}
                 </span>
@@ -425,19 +443,31 @@ export function CuadrantesPanel() {
 
                   return (
                     <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      key={assignment.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                     >
-                      <div className="flex items-center space-x-3">
-                        <Users className="w-4 h-4 text-gray-500" />
-                        <span className="font-medium">{professional?.nombre || 'No asignado'}</span>
+                      <div className="flex items-center space-x-3 min-w-0">
+                        <Users className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        <span className="font-medium truncate" title={professional?.nombre}>
+                          {professional?.nombre || 'No asignado'}
+                        </span>
                         <Badge className={getTurnoBadgeColor(turno?.nombre_turno || 'ordinario')}>
+                          <Clock className="w-3 h-3 mr-1" />
                           {turno?.nombre_turno || 'Turno sin nombre'}
                         </Badge>
                       </div>
-                      <Badge variant="outline" className="text-xs">
-                        {turno?.hora_inicio?.slice(0, 5) || '--:--'} - {turno?.hora_fin?.slice(0, 5) || '--:--'}
-                      </Badge>
+                      <div className='flex items-center space-x-3'>
+                        <Badge variant="outline" className="text-xs">
+                          {turno?.hora_inicio?.slice(0, 5) || '--:--'} - {turno?.hora_fin?.slice(0, 5) || '--:--'}
+                        </Badge>
+                        {/* Botones de acción para CRUD futuro */}
+                        <Button variant="ghost" size="icon" className='h-7 w-7 text-gray-500' title="Editar asignación">
+                            <Edit className='h-4 w-4'/>
+                        </Button>
+                        <Button variant="ghost" size="icon" className='h-7 w-7 text-red-500' title="Eliminar asignación">
+                            <Trash2 className='h-4 w-4'/>
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}
@@ -452,7 +482,7 @@ export function CuadrantesPanel() {
               <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay asignaciones programadas</h3>
               <p className="text-gray-600">
-                Seleccione un centro y haga click en una fecha para asignar un turno.
+                Seleccione un centro y haga click en una fecha del calendario o use el botón **"Nueva Asignación"** para empezar.
               </p>
             </CardContent>
           </Card>
@@ -481,7 +511,8 @@ export function CuadrantesPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* HEADER PRINCIPAL */}
+      <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Cuadrantes de Asistencia Biométrico</h2>
           <p className="text-gray-600">
@@ -489,7 +520,7 @@ export function CuadrantesPanel() {
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-wrap gap-2">
           {/* Controles de mes */}
           <Button variant="outline" size="sm" onClick={() => handleMonthChange(-1)}>
             <ChevronLeft className="h-4 w-4" />
@@ -501,10 +532,10 @@ export function CuadrantesPanel() {
             <ChevronRight className="h-4 w-4" />
           </Button>
 
-          {/* Selector de Centro */}
+          {/* Selector de Centro (Filtro de vista y filtro de asignación) */}
           <Select value={selectedCenter} onValueChange={setSelectedCenter}>
             <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Centro" />
+              <SelectValue placeholder="Centro de Salud" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos los centros</SelectItem>
@@ -515,6 +546,11 @@ export function CuadrantesPanel() {
               ))}
             </SelectContent>
           </Select>
+          
+          {/* BOTÓN DE CREACIÓN DE CUADRANTE */}
+          <Button onClick={handleOpenNewAssignment} disabled={!centerIdFilter}>
+            <CalendarPlus className="mr-2 h-4 w-4" /> Nueva Asignación
+          </Button>
         </div>
       </div>
 
@@ -542,25 +578,25 @@ export function CuadrantesPanel() {
                   className="rounded-none"
                   title="Vista Calendario"
                 >
-                  <Grid className="w-4 h-4" />
+                  <Grid className="w-4 h-4 mr-1" /> Calendario
                 </Button>
                 <Button
                   variant={viewType === 'lista' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewType('lista')}
                   className="rounded-none"
-                  title="Vista Lista"
+                  title="Vista Lista (Resumen de asignaciones)"
                 >
-                  <List className="w-4 h-4" />
+                  <List className="w-4 h-4 mr-1" /> Lista
                 </Button>
               </div>
 
-              {/* Botones de acción */}
+              {/* Botones de acción de exportación */}
               <Button variant="secondary" onClick={handleExportPersonal} disabled={!centerIdFilter}>
-                <Download className="mr-2 h-4 w-4" /> Exportar Personal.xls
+                <Download className="mr-2 h-4 w-4" /> Personal.xls
               </Button>
               <Button variant="secondary" onClick={handleExportCuadrantes} disabled={!centerIdFilter}>
-                <Download className="mr-2 h-4 w-4" /> Exportar Cuadrantes.xls
+                <Download className="mr-2 h-4 w-4" /> Cuadrantes.xls
               </Button>
             </div>
           </div>
@@ -579,66 +615,56 @@ export function CuadrantesPanel() {
         </CardContent>
       </Card>
 
-      {/* Resumen Estadístico (Adaptado del primer código) */}
+      {/* Resumen Estadístico */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Asignaciones</p>
-                <p className="text-2xl font-bold">{assignments.length}</p>
-              </div>
-              <Calendar className="w-8 h-8 text-blue-600" />
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Asignaciones</p>
+              <p className="text-2xl font-bold">{assignments.length}</p>
             </div>
+            <Calendar className="w-8 h-8 text-blue-600" />
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Profesionales Asignados</p>
-                <p className="text-2xl font-bold">{totalAssignedProfessionals}</p>
-              </div>
-              <Users className="w-8 h-8 text-green-600" />
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Profesionales Asignados</p>
+              <p className="text-2xl font-bold">{totalAssignedProfessionals}</p>
             </div>
+            <Users className="w-8 h-8 text-green-600" />
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Turnos Biométricos</p>
-                <p className="text-2xl font-bold">{turnos.length}</p>
-              </div>
-              <Clock className="w-8 h-8 text-purple-600" />
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Turnos Biométricos</p>
+              <p className="text-2xl font-bold">{turnos.length}</p>
             </div>
+            <Clock className="w-8 h-8 text-purple-600" />
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Asignaciones Localizable</p>
-                <p className="text-2xl font-bold">{totalLocalizableAssignments}</p>
-              </div>
-              <Calendar className="w-8 h-8 text-red-600" />
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Asignaciones Localizable</p>
+              <p className="text-2xl font-bold">{totalLocalizableAssignments}</p>
             </div>
+            <Calendar className="w-8 h-8 text-red-600" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Diálogo de Asignación (Actualizado con Multi-Select) */}
+      {/* Diálogo de Asignación (Creación/Edición) */}
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Asignar Turno Biométrico</DialogTitle>
             <CardDescription className="pt-1">
-              {selectedDate
-                ? `Asignación para el rango: ${format(new Date(form.getValues('startDate')), 'dd/MM/yyyy')} a ${format(new Date(form.getValues('endDate')), 'dd/MM/yyyy')}`
-                : 'Asigne profesionales y un turno para el período seleccionado.'}
+              Asignación para el rango: **{format(new Date(form.getValues('startDate')), 'dd/MM/yyyy')}** a **{format(new Date(form.getValues('endDate')), 'dd/MM/yyyy')}**
             </CardDescription>
           </DialogHeader>
           <Form {...form}>
@@ -647,15 +673,15 @@ export function CuadrantesPanel() {
               className="space-y-6"
             >
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Columna 1: Selección de Fechas */}
+                {/* Columna 1: Selección de Fechas y Turno */}
                 <div className="col-span-1 space-y-4">
-                  <h3 className="text-lg font-semibold border-b pb-2">Rango de Fechas</h3>
+                  <h3 className="text-lg font-semibold border-b pb-2">Rango y Turno</h3>
                   <FormField
                     control={form.control}
                     name="startDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Inicio</FormLabel>
+                        <FormLabel>Fecha de Inicio</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
@@ -668,7 +694,7 @@ export function CuadrantesPanel() {
                     name="endDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Fin</FormLabel>
+                        <FormLabel>Fecha de Fin</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
@@ -677,14 +703,12 @@ export function CuadrantesPanel() {
                     )}
                   />
 
-                  {/* Selección de Turno */}
-                  <h3 className="text-lg font-semibold border-b pb-2 pt-4">Selección de Turno</h3>
                   <FormField
                     control={form.control}
                     name="turnoId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Turno</FormLabel>
+                        <FormLabel>Turno a Asignar</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -710,21 +734,21 @@ export function CuadrantesPanel() {
                   />
                 </div>
 
-                {/* Columna 2 y 3: Selección de Profesionales (Multi-Select) */}
+                {/* Columna 2 y 3: Selección Múltiple de Profesionales */}
                 <FormField
                   control={form.control}
                   name="professionalIds"
                   render={() => (
                     <FormItem className="md:col-span-2">
                       <h3 className="text-lg font-semibold border-b pb-2">
-                        Profesionales
+                        Selección Múltiple de Profesionales
                         {centerIdFilter ? (
                           <span className="text-sm font-normal text-muted-foreground ml-2">
                             ({professionals.length} en este centro)
                           </span>
                         ) : (
                           <span className="text-sm font-normal text-red-500 ml-2">
-                            (Seleccione un centro para ver y asignar)
+                            (Seleccione un centro para ver y asignar profesionales)
                           </span>
                         )}
                       </h3>
@@ -738,7 +762,7 @@ export function CuadrantesPanel() {
                         />
                       </div>
                       <FormLabel className="pt-2 block">
-                        Seleccionados: {form.getValues('professionalIds').length}
+                        Seleccionados: **{form.getValues('professionalIds').length}**
                       </FormLabel>
                       <ScrollArea className="h-64 w-full rounded-md border p-4 bg-gray-50">
                         {professionalsLoading ? (
@@ -781,7 +805,10 @@ export function CuadrantesPanel() {
                           ))
                         )}
                         {!filteredProfessionals.length && professionalSearch && (
-                           <div className="text-center text-sm text-gray-500 py-4">No se encontraron profesionales.</div>
+                           <div className="text-center text-sm text-gray-500 py-4">No se encontraron profesionales con ese filtro.</div>
+                        )}
+                        {!filteredProfessionals.length && !professionalSearch && centerIdFilter && (
+                           <div className="text-center text-sm text-gray-500 py-4">No hay profesionales registrados para este centro.</div>
                         )}
                       </ScrollArea>
                       <FormMessage />

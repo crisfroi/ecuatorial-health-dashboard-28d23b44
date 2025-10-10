@@ -32,7 +32,7 @@ import { ParametrosPersonalizadosCard } from "./professional-detail/ParametrosPe
 import { DisciplinaryHistoryCard } from "./professional-detail/DisciplinaryHistoryCard";
 
 interface ProfessionalDetailProps {
-  professional: Profesional; // <-- ¡El padre garantiza que esto nunca es null!
+  professional: Profesional;
   onClose: () => void;
   onProfessionalUpdate?: (updatedProfessional: Profesional) => void;
 }
@@ -43,9 +43,7 @@ const ProfessionalDetail = ({
   onProfessionalUpdate,
 }: ProfessionalDetailProps) => {
   
-  // 🚀 CORRECCIÓN CLAVE: El chequeo de 'professional' debe ir AQUÍ.
-  // Esto resuelve el error "Rendered more hooks than during the previous render" 
-  // al garantizar que si 'professional' es nulo, NINGÚN Hook es llamado.
+  // 🚀 ESTA ES LA CLAVE QUE SOLUCIONA EL ERROR DE HOOKS
   if (!professional) {
     return null; 
   }
@@ -54,14 +52,11 @@ const ProfessionalDetail = ({
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
   
-  // LÍNEA ~44: Acceso seguro a la propiedad
   const [localDocuments, setLocalDocuments] = useState(professional.documentos_adicionales || []); 
 
-  // Hooks que ahora reciben un ID de profesional válido de forma consistente
   const { data: notificationCount } = useNotificationCount(professional.id); 
   const sendSMSMutation = useSendSMSNotification();
 
-  // Sincronizar documentos locales con el prop inicial si cambia el ID del profesional
   useEffect(() => { 
       setLocalDocuments(professional.documentos_adicionales || []);
   }, [professional.id]);
@@ -187,7 +182,6 @@ const ProfessionalDetail = ({
   };
 
   return (
-    // CAMBIO CLAVE: Usamos open={true} para que se abra al montar el componente.
     <Dialog open={true} onOpenChange={onClose}> 
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>

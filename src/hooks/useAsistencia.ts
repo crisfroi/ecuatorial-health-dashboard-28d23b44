@@ -11,7 +11,7 @@ export interface Dispositivo {
   ubicacion?: string | null;
   centro_salud_id?: string | null;
   activo: boolean;
-  tm_no?: string | null; // ID del terminal (Terminal Number)
+  tm_no: number | string | null;
   created_at: string;
   updated_at: string;
 }
@@ -30,7 +30,7 @@ export interface AttendanceLog {
   id_profesional: string | null;
   id_dispositivo: string;
   en_no: string | null;
-  tm_no?: string | null;
+  tm_no: number | string | null;
   inout: 'IN' | 'OUT' | null;
   mode: string | null;
   fecha_hora: string; // ISO

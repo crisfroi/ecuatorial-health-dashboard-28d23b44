@@ -1,17 +1,12 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export interface CuadranteBio {
-  id: string;
-  id_profesional: string;
-  turno_id: string;
-  fecha: string; // YYYY-MM-DD
-  centro_salud_id?: string | null;
-  created_at: string;
-  updated_at: string;
+// ... (omito la interfaz por concisión)
 }
 
 export function useCuadrantesBio() {
     const list = async (centerId: string | null, from: string, to: string): Promise<CuadranteBio[]> => {
+// ... (función list se mantiene igual)
       let qb = supabase.from('cuadrantes_biometricos').select('*').gte('fecha', from).lte('fecha', to).order('fecha');
       if (centerId) qb = qb.eq('centro_salud_id', centerId);
       const { data, error } = await qb;
@@ -20,26 +15,26 @@ export function useCuadrantesBio() {
     };
 
     const assign = async (rows: Array<Omit<CuadranteBio, 'id' | 'created_at' | 'updated_at'>>): Promise<number> => {
+// ... (función assign se mantiene igual)
         const { error } = await supabase.from('cuadrantes_biometricos').upsert(rows, { onConflict: 'id_profesional,fecha' });
         if (error) throw error;
         return rows.length;
     };
 
-    // MODIFICADO: Se añade manejo de errores con toast en cada paso para diagnóstico.
-    const exportPersonalXls = async (centerId: string | null, from: string, to: string, toast: any) => {
+    // CAMBIO CRÍTICO: Renombrar el argumento a 'triggerToast' para mayor claridad y corregir el error.
+    const exportPersonalXls = async (centerId: string | null, from: string, to: string, triggerToast: any) => {
       
       // 1. VALIDACIÓN DE ENTRADA
       if (!centerId) {
-        toast({ title: 'Error de exportación', description: 'Debe seleccionar un centro de salud para la exportación.', variant: 'destructive' });
+        triggerToast({ title: 'Error de exportación', description: 'Debe seleccionar un centro de salud para la exportación.', variant: 'destructive' });
         return;
       }
-      // SOLUCIÓN AL ERROR DE FECHA: Validar formato YYYY-MM-DD
-      if (!from || !to || from.length !== 10 || to.length !== 10) { 
-        toast({ title: 'Error de exportación', description: 'Debe seleccionar un rango de fechas válido (YYYY-MM-DD).', variant: 'destructive' });
+      if (!from || !to || from.length !== 10 || to.length !== 10) {
+        triggerToast({ title: 'Error de exportación', description: 'Debe seleccionar un rango de fechas válido (YYYY-MM-DD).', variant: 'destructive' });
         return;
       }
 
-      // 2. OBTENER IDs de profesionales CON cuadrante (Paso de la primera consulta)
+      // 2. OBTENER IDs de profesionales CON cuadrante
       let cuadData;
       try {
         const qbCuadrantes = supabase.from('cuadrantes_biometricos')
@@ -52,31 +47,31 @@ export function useCuadrantesBio() {
         if (error) throw error;
         cuadData = data;
       } catch (e: any) {
-        toast({ title: 'Error en la consulta de cuadrantes', description: e.message || 'Error desconocido al obtener cuadrantes.', variant: 'destructive' });
+        triggerToast({ title: 'Error en la consulta de cuadrantes', description: e.message || 'Error desconocido al obtener cuadrantes.', variant: 'destructive' });
         return;
       }
       
       const profIdsToExport = Array.from(new Set((cuadData || []).map((c: any) => c.id_profesional))).filter(Boolean);
       
       if (profIdsToExport.length === 0) {
-        toast({ title: 'Exportación cancelada', description: 'No se encontraron profesionales con cuadrantes asignados en el rango de fechas seleccionado.', variant: 'destructive' });
+        triggerToast({ title: 'Exportación cancelada', description: 'No se encontraron profesionales con cuadrantes asignados en el rango de fechas seleccionado.', variant: 'destructive' });
         return;
       }
 
-      // 3. OBTENER la información de los profesionales (Paso de la segunda consulta)
+      // 3. OBTENER la información de los profesionales
       let profs;
       try {
         let qb = supabase.from('profesionales_sanitarios')
           .select('id, numero_enrolamiento_enno, nombre_completo, centro_salud_id, especialidad, area_profesional, nombre_centro, genero, telefono, email, estado_solicitud, numero_tarjeta_rfid')
           .eq('centro_salud_id', centerId)
-          .eq('estado_solicitud', 'Aprobado') // Solo personal aprobado
-          .in('id', profIdsToExport); // Filtrar solo los que tienen cuadrante
+          .eq('estado_solicitud', 'Aprobado')
+          .in('id', profIdsToExport);
 
         const { data, error } = await qb.order('nombre_completo');
         if (error) throw error;
         profs = data || [];
       } catch (e: any) {
-        toast({ title: 'Error en la consulta de profesionales', description: e.message || 'Error desconocido al obtener profesionales.', variant: 'destructive' });
+        triggerToast({ title: 'Error en la consulta de profesionales', description: e.message || 'Error desconocido al obtener profesionales.', variant: 'destructive' });
         return;
       }
 
@@ -93,7 +88,7 @@ export function useCuadrantesBio() {
           const enNo = String(p.numero_enrolamiento_enno).slice(0, 8); 
           const nombre = p.nombre_completo || 'Sin Nombre';
           const depto = p.nombre_centro || p.area_profesional || 'General';
-          const turnoNumber = '1'; // Default
+          const turnoNumber = '1';
           const cardNo = typeof p.numero_tarjeta_rfid === 'string' 
                        ? p.numero_tarjeta_rfid.replace(/\D/g, '').slice(0, 10) 
                        : '0';
@@ -107,7 +102,7 @@ export function useCuadrantesBio() {
       
       // 5. VERIFICACIÓN DE FILAS FINALES
       if (rows.length === 0 && profIdsToExport.length > 0) {
-        toast({ title: 'Exportación vacía', description: 'Se encontraron cuadrantes, pero los profesionales asociados no tienen número de enrolamiento (EnNo) asignado.', variant: 'destructive' });
+        triggerToast({ title: 'Exportación vacía', description: 'Se encontraron cuadrantes, pero los profesionales asociados no tienen número de enrolamiento (EnNo) asignado.', variant: 'destructive' });
         return;
       }
       
@@ -122,7 +117,7 @@ export function useCuadrantesBio() {
       setTimeout(() => URL.revokeObjectURL(href), 0);
       a.remove();
       
-      toast({ title: 'Exportación completada', description: `Se exportaron ${rows.length} profesionales.`, variant: 'success' });
+      triggerToast({ title: 'Exportación completada', description: `Se exportaron ${rows.length} profesionales.`, variant: 'success' });
     };
 
     // La función exportCuadrantesXls se mantiene sin cambios

@@ -26,7 +26,7 @@ import EducationCard from "./professional-detail/EducationCard";
 import WorkplaceCard from "./professional-detail/WorkplaceCard";
 import ProfessionalCardInfo from "./professional-detail/ProfessionalCardInfo";
 // NUEVOS COMPONENTES
-import StatusCard from "./professional-detail/StatusCard"; 
+import StatusCard from "./professional-detail/StatusCard";
 import ProfessionalDocumentsCard from "./professional-detail/ProfessionalDocumentsCard";
 import NotificationAlerts from "./professional-detail/NotificationAlerts";
 import { ParametrosPersonalizadosCard } from "./professional-detail/ParametrosPersonalizadosCard";
@@ -36,7 +36,7 @@ interface ProfessionalDetailProps {
   professional: Profesional;
   onClose: () => void;
   // Prop opcional para que el padre pueda actualizar el estado del profesional
-  onProfessionalUpdate?: (updatedProfessional: Profesional) => void; 
+  onProfessionalUpdate?: (updatedProfessional: Profesional) => void;
 }
 
 const ProfessionalDetail = ({
@@ -46,18 +46,20 @@ const ProfessionalDetail = ({
 }: ProfessionalDetailProps) => {
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
-  // Usamos estado local para los documentos_adicionales para que la lista se actualice sin recargar
-  const [localDocuments, setLocalDocuments] = useState(professional.documentos_adicionales || []);
 
+  // 💡 CORRECCIÓN APLICADA: Usamos Encadenamiento Opcional '?'
+  // para que si 'professional' es null al inicio, use un array vacío ([]).
+  const [localDocuments, setLocalDocuments] = useState(professional?.documentos_adicionales || []);
+
+  // 💡 CORRECCIÓN APLICADA: Usamos Encadenamiento Opcional '?' al acceder a 'professional.id'.
   const { data: notificationCount } = useNotificationCount(professional?.id);
-  const sendSMSMutation = useSendSMSNotification();
 
-  if (!professional) return null;
+  if (!professional) return null; // Esta verificación sigue siendo crucial para el renderizado
 
   // Sincronizar documentos locales con el prop inicial si cambia el ID del profesional
-  // o si es la primera vez que se renderiza.
   useEffect(() => {
-      setLocalDocuments(professional.documentos_adicionales || []);
+    // Como ya verificamos que 'professional' no es null, este acceso es seguro.
+    setLocalDocuments(professional.documentos_adicionales || []);
   }, [professional.id]);
 
 
@@ -78,13 +80,13 @@ const ProfessionalDetail = ({
 
   // Función para manejar la actualización de los documentos desde el sub-componente
   const handleDocumentsUpdate = (documents: string[]) => {
-    setLocalDocuments(documents); 
+    setLocalDocuments(documents);
     // Notificar al componente padre de que la lista de documentos ha cambiado
     if (onProfessionalUpdate) {
-        onProfessionalUpdate({
-            ...professional,
-            documentos_adicionales: documents,
-        });
+      onProfessionalUpdate({
+        ...professional,
+        documentos_adicionales: documents,
+      });
     }
   };
 
@@ -252,6 +254,7 @@ const ProfessionalDetail = ({
             </div>
             <div className="mb-4" style={{ breakInside: 'avoid' }}>
               <ProfessionalDocumentsCard
+                // Usamos localDocuments para que el subcomponente no falle
                 professional={{ ...professional, documentos_adicionales: localDocuments }}
                 onDocumentsUpdate={handleDocumentsUpdate}
               />

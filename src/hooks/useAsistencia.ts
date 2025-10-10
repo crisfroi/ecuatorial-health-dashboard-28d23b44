@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -122,7 +121,7 @@ export function useAsistencia() {
     let headerMap: Record<string, number> | null = null;
     if (lines.length) {
       const headerParts = lines[0].split(/\t+|,|\s{2,}/).map(s => s.trim());
-      const knownHeaders = ['No','TMNo','EnNo','Name','INOUT','Mode','DateTime'];
+      const knownHeaders = ['No', 'TMNo', 'EnNo', 'Name', 'INOUT', 'Mode', 'DateTime'];
       const isHeader = knownHeaders.every(h => headerParts.includes(h));
       if (isHeader) {
         headerMap = headerParts.reduce((acc, key, idx) => { acc[key] = idx; return acc; }, {} as Record<string, number>);
@@ -155,7 +154,7 @@ export function useAsistencia() {
         // Fallback heurístico
         const joined = raw.replace(/,/g, ' ');
         const dtMatch = joined.match(/(\d{4}[/-]\d{2}[/-]\d{2}[ T]\d{2}:\d{2}(:\d{2})?)/);
-        fecha_hora = dtMatch ? new Date(dtMatch[1].replace(/\//g,'-')).toISOString() : new Date().toISOString();
+        fecha_hora = dtMatch ? new Date(dtMatch[1].replace(/\//g, '-')).toISOString() : new Date().toISOString();
         const maybeEn = parts.find(p => /^\d{2,}$/.test(p));
         en_no = maybeEn || null;
         const inoutToken = parts.find(p => /^I(n)?$|^O(ut)?$/i.test(p));
@@ -233,13 +232,13 @@ export function useAsistencia() {
           const dt = r.DateTime || r.Datetime || r.TIME || r.Time || '';
           const io = r.INOUT || r.InOut || r.Dir || r.Direction || '';
           const md = r.Mode || r.method || r.Method || '';
-          const normalized = String(dt).replace(/\//g,'-');
+          const normalized = String(dt).replace(/\//g, '-');
           const fecha_hora = new Date(normalized).toISOString();
-          let inout: 'IN'|'OUT'|null = null;
+          let inout: 'IN' | 'OUT' | null = null;
           if (/^in$/i.test(io)) inout = 'IN';
           else if (/^out$/i.test(io)) inout = 'OUT';
           else if (/^[01]$/.test(String(io))) inout = null;
-          return { id_profesional: null, en_no: String(en)||null, inout, mode: md?String(md):null, fecha_hora, raw_line: JSON.stringify(r), source_file: file.name } as any;
+          return { id_profesional: null, en_no: String(en) || null, inout, mode: md ? String(md) : null, fecha_hora, raw_line: JSON.stringify(r), source_file: file.name } as any;
         }).filter((e: any) => e.en_no && e.fecha_hora);
         total += await insertLogs(deviceId, `${file.name}#${sheetName}`, parsed);
       }
@@ -294,7 +293,8 @@ export function useAsistencia() {
         return 0;
       }
 
-      let qb = supabase.from('profesionales_sanitarios').select('id, nombre_completo, id_profesional_unico, centro_salud_id, numero_tarjeta_rfid');
+      // CORRECCIÓN 1: Cambiar 'id_profesional_unico' por 'numero_enrolamiento_enno' en la consulta
+      let qb = supabase.from('profesionales_sanitarios').select('id, nombre_completo, numero_enrolamiento_enno, centro_salud_id, numero_tarjeta_rfid');
       if (centerId) qb = qb.eq('centro_salud_id', centerId);
       const { data: profs, error: profErr } = await qb;
       if (profErr) throw profErr;
@@ -302,7 +302,8 @@ export function useAsistencia() {
       const byEmpNo = new Map<string, string>();
       const byName = new Map<string, string>();
       (profs || []).forEach((p: any) => {
-        const raw = String(p.id_profesional_unico ?? '').trim();
+        // CORRECCIÓN 2: Usar 'numero_enrolamiento_enno' para mapear el ID de enrolamiento
+        const raw = String(p.numero_enrolamiento_enno ?? '').trim();
         if (raw) {
           byEmpNo.set(raw, p.id);
           const numeric = raw.replace(/\D/g, '');
@@ -460,7 +461,7 @@ export function useAsistencia() {
     const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `asistencia_${new Date().toISOString().slice(0,10)}.dat`;
+    a.download = `asistencia_${new Date().toISOString().slice(0, 10)}.dat`;
     a.click();
   };
 

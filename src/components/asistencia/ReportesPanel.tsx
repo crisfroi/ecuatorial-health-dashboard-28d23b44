@@ -60,7 +60,6 @@ export function ReportesPanel() {
     buildCenterSummary,
   } = useReportesAsistencia();
 
-  // useQuery v5 Syntax
   const centerQuery = useQuery<CentroOption[]>({
     queryKey: ['centros-options'],
     queryFn: async () => {
@@ -71,7 +70,6 @@ export function ReportesPanel() {
     staleTime: 5 * 60_000,
   });
 
-  // useQuery v5 Syntax
   const deviceQuery = useQuery<DeviceOption[]>({
     queryKey: ['dispositivos', centerId, 'reportes'],
     queryFn: async () => {
@@ -84,7 +82,6 @@ export function ReportesPanel() {
     staleTime: 60_000,
   });
 
-  // useQuery v5 Syntax
   const professionalQuery = useQuery<ProfessionalOption[]>({
     queryKey: ['profesionales-reportes', centerId],
     queryFn: async () => {
@@ -96,7 +93,7 @@ export function ReportesPanel() {
       if (centerId !== 'todos') query = query.eq('centro_salud_id', centerId);
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map((item) => ({
+      return (data || []).map((item: any) => ({
         id: item.id,
         nombre: item.nombre_completo || 'Sin nombre',
         empNo: item.id_profesional_unico,
@@ -116,7 +113,6 @@ export function ReportesPanel() {
     [from, to, centerId, deviceId, professionalId]
   );
 
-  // useQuery v5 Syntax
   const logsQuery = useQuery({
     queryKey: ['attendance-logs', filters],
     queryFn: () => fetchLogsWithMeta(filters),
@@ -151,7 +147,7 @@ export function ReportesPanel() {
 
   const fichajeRows = useMemo(
     () =>
-      (logsQuery.data || []).map((log) => ({
+      (logsQuery.data || []).map((log: any) => ({
         enNo: log.en_no,
         fechaHora: log.fecha_hora,
         mode: log.mode,
@@ -162,9 +158,6 @@ export function ReportesPanel() {
     [logsQuery.data]
   );
 
-  // ------------------------------------------------
-  // EL RETURN COMIENZA AQUÍ, LIBRE DE LLAVES ADICIONALES
-  // ------------------------------------------------
   return (
     <div className="space-y-6">
       <Card>
@@ -247,6 +240,7 @@ export function ReportesPanel() {
                     </SelectItem>
                   ))}
                 </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -318,180 +312,185 @@ export function ReportesPanel() {
               {logsQuery.isLoading ? (
                 <Skeleton className="h-64 w-full" />
               ) : enrichedEntries.length ? (
-                <div className="overflow-x-auto rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Profesional</TableHead>
-                        <TableHead>Entrada</TableHead>
-                        <TableHead>Salida</TableHead>
-                        <TableHead>Horas</TableHead>
-                        <TableHead>Centro</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {enrichedEntries.map((entry) => (
-                        <TableRow key={`${entry.empNo || entry.id_profesional || entry.en_no}-${entry.fecha}`}>
-                          <TableCell>{format(new Date(`${entry.fecha}T00:00:00`), "dd 'de' MMMM", { locale: es })}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{entry.professionalName || entry.empNo || 'Profesional'}</span>
-                              <span className="text-xs text-muted-foreground">EmpNo: {entry.empNo || '—'}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{formatTime(entry.entrada)}</TableCell>
-                          <TableCell>{formatTime(entry.salida)}</TableCell>
-                          <TableCell>{entry.total_horas?.toFixed(2) ?? '—'}</TableCell>
-                          <TableCell>{entry.centerName || 'Sin centro'}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-              ) : (
-                <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  No se encontraron registros en el periodo seleccionado.
-                </div>
-              )}
-            </TabsContent>
+                <div className="overflow-x-auto rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Fecha</TableHead>
+                        <TableHead>Profesional</TableHead>
+                        <TableHead>Entrada</TableHead>
+                        <TableHead>Salida</TableHead>
+                        <TableHead>Horas</TableHead>
+                        <TableHead>Centro</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {enrichedEntries.map((entry) => (
+                        <TableRow key={`${entry.empNo || entry.id_profesional || entry.en_no}-${entry.fecha}`}>
+                          <TableCell>{format(new Date(`${entry.fecha}T00:00:00`), "dd 'de' MMMM", { locale: es })}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{entry.professionalName || entry.empNo || 'Profesional'}</span>
+                              <span className="text-xs text-muted-foreground">EmpNo: {entry.empNo || '—'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{formatTime(entry.entrada)}</TableCell>
+                          <TableCell>{formatTime(entry.salida)}</TableCell>
+                          <TableCell>{entry.total_horas?.toFixed(2) ?? '—'}</TableCell>
+                          <TableCell>{entry.centerName || 'Sin centro'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+                  No se encontraron registros en el periodo seleccionado.
+                </div>
+              )}
+            </TabsContent>
 
-            <TabsContent value="semanal">
-              {logsQuery.isLoading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : weeklySummary.length ? (
-                <div className="overflow-x-auto rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Semana</TableHead>
-                        <TableHead>Días registrados</TableHead>
-                        <TableHead>Horas totales</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {weeklySummary.map((week) => (
-                        <TableRow key={week.weekKey}>
-                          <TableCell>{week.label}</TableCell>
-                          <TableCell>{week.dias}</TableCell>
-                          <TableCell>{week.horas.toFixed(2)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-              ) : (
-                <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  No hay consolidación semanal disponible.
-                </div>
-              )}
-            </TabsContent>
+            <TabsContent value="semanal">
+              {logsQuery.isLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : weeklySummary.length ? (
+                <div className="overflow-x-auto rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Semana</TableHead>
+                        <TableHead>Días registrados</TableHead>
+                        <TableHead>Horas totales</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {weeklySummary.map((week) => (
+                        <TableRow key={week.weekKey}>
+                          <TableCell>{week.label}</TableCell>
+                          <TableCell>{week.dias}</TableCell>
+                          <TableCell>{week.horas.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+                  No hay consolidación semanal disponible.
+                </div>
+              )}
+            </TabsContent>
 
-            <TabsContent value="mensual">
-              {logsQuery.isLoading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : monthlySummary.length ? (
-                <div className="overflow-x-auto rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Mes</TableHead>
-                        <TableHead>Días registrados</TableHead>
-                        <TableHead>Horas totales</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {monthlySummary.map((month) => (
-                        <TableRow key={month.monthKey}>
-                          <TableCell>{month.label}</TableCell>
-                          <TableCell>{month.dias}</TableCell>
-                          <TableCell>{month.horas.toFixed(2)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-              ) : (
-                <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  No hay consolidación mensual disponible.
-                </div>
-              )}
-            </TabsContent>
+            <TabsContent value="mensual">
+              {logsQuery.isLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : monthlySummary.length ? (
+                <div className="overflow-x-auto rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Mes</TableHead>
+                        <TableHead>Días registrados</TableHead>
+                        <TableHead>Horas totales</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {monthlySummary.map((month) => (
+                        <TableRow key={month.monthKey}>
+                          <TableCell>{month.label}</TableCell>
+                          <TableCell>{month.dias}</TableCell>
+                          <TableCell>{month.horas.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+                  No hay consolidación mensual disponible.
+                </div>
+              )}
+            </TabsContent>
 
-            <TabsContent value="profesional">
-              {logsQuery.isLoading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : professionalSummary.length ? (
-                <div className="overflow-x-auto rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Profesional</TableHead>
-                        <TableHead>Días asistidos</TableHead>
-                        <TableHead>Horas registradas</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {professionalSummary.map((professional) => (
-                        <TableRow key={professional.professionalId}>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{professional.professionalName}</span>
-                              <span className="text-xs text-muted-foreground">EmpNo: {professional.empNo || '—'}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{professional.dias}</TableCell>
-                          <TableCell>{professional.horas.toFixed(2)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-              ) : (
-                <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  No se encontraron profesionales con asistencia registrada.
-                </div>
-              )}
-            </TabsContent>
+            <TabsContent value="profesional">
+              {logsQuery.isLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : professionalSummary.length ? (
+                <div className="overflow-x-auto rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Profesional</TableHead>
+                        <TableHead>Días asistidos</TableHead>
+                        <TableHead>Horas registradas</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {professionalSummary.map((professional) => (
+                        <TableRow key={professional.professionalId}>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{professional.professionalName}</span>
+                              <span className="text-xs text-muted-foreground">EmpNo: {professional.empNo || '—'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{professional.dias}</TableCell>
+                          <TableCell>{professional.horas.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+                  No se encontraron profesionales con asistencia registrada.
+                </div>
+              )}
+            </TabsContent>
 
-            <TabsContent value="centro">
-              {logsQuery.isLoading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : centerSummary.length ? (
-                <div className="overflow-x-auto rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Centro</TableHead>
-                        <TableHead>Días registrados</TableHead>
-                        <TableHead>Horas totales</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {centerSummary.map((center) => (
-                        <TableRow key={center.centerId ?? 'sin-centro'}>
-                          <TableCell>{center.centerName || 'Sin centro'}</TableCell>
-                          <TableCell>{center.dias}</TableCell>
-                          <TableCell>{center.horas.toFixed(2)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-              ) : (
-                <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  No se encontraron centros con registros.
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            <TabsContent value="centro">
+              {logsQuery.isLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : centerSummary.length ? (
+                <div className="overflow-x-auto rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Centro</TableHead>
+                        <TableHead>Días registrados</TableHead>
+                        <TableHead>Horas totales</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {centerSummary.map((center) => (
+                        <TableRow key={center.centerId ?? 'sin-centro'}>
+                          <TableCell>{center.centerName || 'Sin centro'}</TableCell>
+                          <TableCell>{center.dias}</TableCell>
+                          <TableCell>{center.horas.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+                  No se encontraron centros con registros.
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Fichajes individuales</CardTitle>
-          <CardDescription>Vista previa de los registros importados con identificación del dispositivo.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FichajesList rows={fichajeRows} />
-        </CardContent>
-      </Card>
-    </div>
-              );
-} // <--- ESTA DEBE SER LA ÚNICA LLAVE DE CIERRE FINAL
+      <Card>
+        <CardHeader>
+          <CardTitle>Fichajes individuales</CardTitle>
+          <CardDescription>Vista previa de los registros importados con identificación del dispositivo.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FichajesList rows={fichajeRows} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

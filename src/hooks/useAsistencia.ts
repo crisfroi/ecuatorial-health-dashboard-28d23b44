@@ -77,7 +77,7 @@ export function useDispositivosFichaje() {
         ubicacion: payload.ubicacion || null,
         centro_salud_id: payload.centro_salud_id || null,
         activo: payload.activo ?? true,
-        tm_no: payload.tm_no || null,
+        tm_no: payload.tm_no,
       }).select().single();
       if (error) throw error;
       toast({ title: 'Dispositivo creado', description: payload.nombre });

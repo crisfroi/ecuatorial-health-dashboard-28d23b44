@@ -225,8 +225,6 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     refetch,
   } = useProfesionales(combinedQueryFilters);
 
-  // ... (roleFilteredProfesionales, getFilterStats, filteredProfesionales, sortedFilteredProfesionales, handleEditState, etc. sin cambios)
-
   // Aplicar primero filtros de rol (restricciones por centro para directivos)
   const roleFilteredProfesionales = filterProfessionalsData((profesionales || []) as Professional[]);
 
@@ -358,9 +356,12 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
 
   // Helper para mostrar los badges de arrays
   const ArrayBadges = ({ title, arr }: { title: string; arr?: string[] | number[] }) => {
+    // La comprobación inicial maneja undefined/null
     if (!arr || arr.length === 0) return null;
     return (
       <>
+        {/* Aquí es donde se generaba el error si 'arr' no era un array.
+            Como ahora lo forzamos a ser un array vacío en la llamada, esto es seguro. */}
         {arr.map((item, index) => (
           <Badge
             key={index}
@@ -447,9 +448,13 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
               {ArrayBadges({ title: "País Formación", arr: dashboardFilters?.pais_formacion })}
               {ArrayBadges({ title: "Institución", arr: dashboardFilters?.institucion })}
               {ArrayBadges({ title: "Año Graduación", arr: dashboardFilters?.año_graduacion })}
+              
+              {/* CORRECCIÓN APLICADA AQUÍ: Aseguramos que la expresión sea un array antes del .map */}
               {ArrayBadges({
                 title: "Estado Solicitud",
-                arr: dashboardFilters?.estado_solicitud?.filter(e => e !== 'Aprobado'),
+                // Usamos el encadenamiento opcional (?.) y el operador OR (|| [])
+                // para asegurar que siempre se pase un array (vacío o filtrado)
+                arr: (dashboardFilters?.estado_solicitud?.filter(e => e !== 'Aprobado') || []),
               })}
 
               {/* BADGES PARA OTROS FILTROS (VALOR ÚNICO/RANGO) */}

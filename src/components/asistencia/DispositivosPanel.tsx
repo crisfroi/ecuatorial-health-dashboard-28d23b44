@@ -34,87 +34,82 @@ export function DispositivosPanel() {
   const [deviceToDelete, setDeviceToDelete] = useState<Dispositivo | null>(null);
   const [mappingDevice, setMappingDevice] = useState<Dispositivo | null>(null);
 
-  const { data: centers = [], isLoading: centersLoading } = useQuery<CentroOption[]>(
-    ['centros-options'],
-    async () => {
+  const { data: centers = [], isLoading: centersLoading } = useQuery<CentroOption[]>({
+    queryKey: ['centros-options'],
+    queryFn: async () => {
       const { data, error } = await supabase.from('centros_salud').select('id, nombre').order('nombre');
       if (error) throw error;
-      return data || [];
+      return data ?? [];
     },
-    { staleTime: 5 * 60_000 }
-  );
+    staleTime: 5 * 60_000,
+  });
 
   const centerIdFilter = selectedCenter === 'todos' ? null : selectedCenter;
 
-  const { data: devices = [], isLoading: devicesLoading } = useQuery<Dispositivo[]>(
-    ['dispositivos', centerIdFilter],
-    () => list(centerIdFilter),
-    {
-      staleTime: 30_000,
-      refetchOnWindowFocus: false,
-      initialData: [],
-    }
-  );
+  const { data: devices = [], isLoading: devicesLoading } = useQuery<Dispositivo[]>({
+    queryKey: ['dispositivos', centerIdFilter],
+    queryFn: () => list(centerIdFilter),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    initialData: [],
+  });
 
   const sortedDevices = useMemo(
     () => devices.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)),
     [devices]
   );
 
-  const createMutation = useMutation(
-    (values: DispositivoFormValues) =>
+  const createMutation = useMutation({
+    mutationFn: (values: DispositivoFormValues) =>
       create({
         nombre: values.nombre,
         ubicacion: values.ubicacion,
         centro_salud_id: values.centro_salud_id,
         activo: values.activo,
       }),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
-        toast({ title: 'Dispositivo creado' });
-        setFormOpen(false);
-      },
-      onError: (error: any) => {
-        toast({ title: 'No se pudo crear', description: error?.message || 'Revise los datos ingresados', variant: 'destructive' });
-      },
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
+      toast({ title: 'Dispositivo creado' });
+      setFormOpen(false);
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Revise los datos ingresados';
+      toast({ title: 'No se pudo crear', description: message, variant: 'destructive' });
+    },
+  });
 
-  const updateMutation = useMutation(
-    (payload: { id: string; values: DispositivoFormValues }) =>
+  const updateMutation = useMutation({
+    mutationFn: (payload: { id: string; values: DispositivoFormValues }) =>
       update(payload.id, {
         nombre: payload.values.nombre,
         ubicacion: payload.values.ubicacion,
         centro_salud_id: payload.values.centro_salud_id,
         activo: payload.values.activo,
       }),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
-        toast({ title: 'Dispositivo actualizado' });
-        setFormOpen(false);
-        setEditingDevice(null);
-      },
-      onError: (error: any) => {
-        toast({ title: 'No se pudo actualizar', description: error?.message || 'Intente nuevamente', variant: 'destructive' });
-      },
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
+      toast({ title: 'Dispositivo actualizado' });
+      setFormOpen(false);
+      setEditingDevice(null);
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Intente nuevamente';
+      toast({ title: 'No se pudo actualizar', description: message, variant: 'destructive' });
+    },
+  });
 
-  const deleteMutation = useMutation(
-    (id: string) => remove(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
-        toast({ title: 'Dispositivo eliminado' });
-        setDeviceToDelete(null);
-      },
-      onError: (error: any) => {
-        toast({ title: 'No se pudo eliminar', description: error?.message || 'Intente nuevamente', variant: 'destructive' });
-      },
-    }
-  );
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
+      toast({ title: 'Dispositivo eliminado' });
+      setDeviceToDelete(null);
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Intente nuevamente';
+      toast({ title: 'No se pudo eliminar', description: message, variant: 'destructive' });
+    },
+  });
 
   const centersOptions = useMemo(() => [{ id: 'todos', nombre: 'Todos los centros' }, ...centers], [centers]);
 

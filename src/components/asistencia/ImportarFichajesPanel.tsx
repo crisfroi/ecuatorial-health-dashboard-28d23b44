@@ -55,9 +55,9 @@ export function ImportarFichajesPanel() {
   const centerIdFilter = selectedCenter === 'todos' ? null : selectedCenter;
 
   const { data: devices = [] } = useQuery<Dispositivo[]>({
-    queryKey: ['dispositivos', centerIdFilter, 'importar'],
+    queryKey: ['dispositivos', centerIdFilter],
     queryFn: () => list(centerIdFilter),
-    staleTime: 30_000,
+    staleTime: 0,
     initialData: [],
   });
   console.log(`[Dispositivos Query] Dispositivos: ${devices.length} | Filtro Activo: ${centerIdFilter}`); 

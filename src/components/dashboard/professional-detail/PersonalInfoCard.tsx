@@ -1,7 +1,12 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Globe, CreditCard, Phone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { User, Globe, CreditCard, Phone, Edit, Save, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import type { Profesional } from '@/hooks/useProfesionales';
 
 interface PersonalInfoCardProps {
@@ -9,6 +14,11 @@ interface PersonalInfoCardProps {
 }
 
 const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
+  const { toast } = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+  const [rfidValue, setRfidValue] = useState(professional.numero_tarjeta_rfid || '');
+  const [isSaving, setIsSaving] = useState(false);
+
   // Determinar qué documento mostrar
   const getDocumentInfo = () => {
     if (professional.numero_dip) {
@@ -22,6 +32,38 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
   };
 
   const documentInfo = getDocumentInfo();
+
+  const handleSaveRfid = async () => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profesionales_sanitarios')
+        .update({ numero_tarjeta_rfid: rfidValue || null })
+        .eq('id', professional.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'RFID actualizado',
+        description: 'El número de tarjeta RFID se ha guardado correctamente',
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating RFID:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo actualizar el número RFID',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setRfidValue(professional.numero_tarjeta_rfid || '');
+    setIsEditing(false);
+  };
 
   return (
     <Card>
@@ -102,6 +144,62 @@ const PersonalInfoCard = ({ professional }: PersonalInfoCardProps) => {
           <div>
             <span className="text-sm font-medium text-gray-600">Género:</span>
             <p>{professional.genero || 'No especificado'}</p>
+          </div>
+
+          <Separator className="my-2" />
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">Tarjeta RFID:</span>
+              {!isEditing ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  className="h-7 px-2"
+                >
+                  <Edit className="w-3 h-3" />
+                </Button>
+              ) : (
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSaveRfid}
+                    disabled={isSaving}
+                    className="h-7 px-2"
+                  >
+                    <Save className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelEdit}
+                    disabled={isSaving}
+                    className="h-7 px-2"
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            {isEditing ? (
+              <Input
+                value={rfidValue}
+                onChange={(e) => {
+                  const sanitized = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setRfidValue(sanitized);
+                }}
+                placeholder="Hasta 10 dígitos"
+                maxLength={10}
+                className="font-mono text-sm"
+                disabled={isSaving}
+              />
+            ) : (
+              <p className="font-mono text-sm">
+                {professional.numero_tarjeta_rfid || 'No asignado'}
+              </p>
+            )}
           </div>
         </div>
 

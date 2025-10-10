@@ -168,29 +168,6 @@ export const PersonalInfoStep = ({ form, nacionalidades, watchedValues }: Person
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="numero_tarjeta_rfid"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Número de tarjeta RFID</FormLabel>
-            <FormControl>
-              <Input
-                placeholder="Hasta 10 dígitos"
-                inputMode="numeric"
-                maxLength={10}
-                value={field.value ?? ''}
-                onChange={(e) => {
-                  const sanitized = e.target.value.replace(/\D/g, '').slice(0, 10);
-                  field.onChange(sanitized);
-                }}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
       {!isEcuatoguineana && (
         <FormField
           control={form.control}

@@ -95,18 +95,17 @@ El hook `useAsistencia.ts` también soporta:
 ### 🔧 FASE 2: MEJORAS A INFRAESTRUCTURA EXISTENTE (CORTO PLAZO)
 
 #### 2.1 **Campo RFID en Profesionales** ✅ CRÍTICO
-**Estado: PENDIENTE**
+**Estado: IMPLEMENTADO**
 **Archivos**: 
-- Migration: Agregar columna `numero_tarjeta_rfid` a `profesionales_sanitarios`
-- UI: Agregar campo en formulario de registro/edición
+- ✅ Migration: Columna `numero_tarjeta_rfid` YA EXISTE en `profesionales_sanitarios`
+- ✅ UI: Campo editable agregado en `PersonalInfoCard.tsx` (vista detallada del profesional)
+- ✅ Eliminado del formulario de registro inicial
 
-```sql
-ALTER TABLE profesionales_sanitarios 
-ADD COLUMN numero_tarjeta_rfid VARCHAR(10);
-
-CREATE INDEX idx_profesionales_rfid ON profesionales_sanitarios(numero_tarjeta_rfid) 
-WHERE numero_tarjeta_rfid IS NOT NULL;
-```
+**Implementación:**
+- El número RFID se gestiona DESPUÉS del registro
+- Se edita desde la vista detallada del profesional
+- Validación: Solo números, máximo 10 dígitos
+- Actualización directa a Supabase con feedback visual
 
 #### 2.2 **Relación Dispositivo-Centro** ✅ CRÍTICO
 **Estado: YA EXISTE** (columna `centro_salud_id` en tabla `dispositivos`)
@@ -274,7 +273,7 @@ KPIs a mostrar:
 ### Modificar Existentes (3):
 1. `src/components/asistencia/AsistenciaDashboard.tsx` - Integrar todas las pestañas
 2. `src/hooks/useCuadrantesBio.ts` - Incluir RFID en export
-3. `src/components/registration/PersonalInfoStep.tsx` - Campo RFID
+3. ✅ `src/components/dashboard/professional-detail/PersonalInfoCard.tsx` - Campo RFID editable (IMPLEMENTADO)
 
 ---
 

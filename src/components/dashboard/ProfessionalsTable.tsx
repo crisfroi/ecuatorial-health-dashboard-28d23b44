@@ -70,10 +70,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     {},
   );
 
-  // ELIMINAMOS EL ESTADO LOCAL DUPLICADO (areaOptions, localFilters)
   const { toast } = useToast();
-
-  // ELIMINAMOS EL useEffect para cargar áreas (lo gestiona DashboardFilters)
 
   const { updateProfesional } = useProfesionalesMutations();
   const { filterProfessionalsData, getFilterStats } = useRoleBasedData();
@@ -86,7 +83,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   // Función de exportación de Excel
   const exportProfessionalsToExcel = () => {
     try {
-      // ... (Lógica de exportación de Excel sin cambios en el cuerpo, pero adaptada a leer filtros de dashboardFilters)
+      // ... (Lógica de exportación de Excel sin cambios en el cuerpo)
       const header = [[
         "ID",
         "Nombre Completo",
@@ -162,8 +159,6 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     }
   };
 
-  // ELIMINAMOS TODOS LOS useEffects DE PERSISTENCIA Y SINCRONIZACIÓN DE localFilters
-
   const combinedQueryFilters = useMemo(() => {
     // Si no vienen filtros de estado, forzamos "Aprobado" (comportamiento por defecto de la tabla)
     const defaultEstado =
@@ -176,6 +171,8 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
       search: searchTerm.trim() || undefined,
 
       // Multi-Select Filters (leídos como array o undefined si están vacíos)
+      // Nota: El || [] de la llamada a la API es solo para seguridad, 
+      // pero aquí debe ser undefined si está vacío para evitar errores de consulta.
       genero: isArrayActive(dashboardFilters?.genero) ? dashboardFilters?.genero : undefined,
       area_profesional: isArrayActive(dashboardFilters?.area_profesional) ? dashboardFilters?.area_profesional : undefined,
       provincia: isArrayActive(dashboardFilters?.provincia) ? dashboardFilters?.provincia : undefined,
@@ -185,7 +182,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
       año_graduacion: isArrayActive(dashboardFilters?.año_graduacion) ? dashboardFilters?.año_graduacion : undefined,
       pais_formacion: isArrayActive(dashboardFilters?.pais_formacion) ? dashboardFilters?.pais_formacion : undefined,
       institucion: isArrayActive(dashboardFilters?.institucion) ? dashboardFilters?.institucion : undefined,
-      centro_id: isArrayActive(dashboardFilters?.centro_id) ? dashboardFilters?.centro_id : undefined,
+      centro_id: isArrayActive(dashboardFilters?.centro_id as string[] | undefined) ? dashboardFilters?.centro_id : undefined, // Añadida aserción para tipo
 
       // Estado de Solicitud (usa el array si existe, sino usa el valor por defecto)
       estado_solicitud: dashboardFilters?.estado_solicitud || defaultEstado,
@@ -340,7 +337,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     isArrayActive(dashboardFilters?.año_graduacion) ||
     isArrayActive(dashboardFilters?.pais_formacion) ||
     isArrayActive(dashboardFilters?.institucion) ||
-    isArrayActive(dashboardFilters?.centro_id) ||
+    isArrayActive(dashboardFilters?.centro_id as string[] | undefined) || // Añadida aserción para tipo
     // Chequear otros filtros de Dashboard
     dashboardFilters?.edad_minima !== undefined ||
     dashboardFilters?.edad_maxima !== undefined ||
@@ -356,12 +353,13 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
 
   // Helper para mostrar los badges de arrays
   const ArrayBadges = ({ title, arr }: { title: string; arr?: string[] | number[] }) => {
-    // La comprobación inicial maneja undefined/null
-    if (!arr || arr.length === 0) return null;
+    // ---------------------------------------------------------------------
+    // REFUERZO DE LA FUNCIÓN: Aseguramos que 'arr' sea un array antes de mapear.
+    if (!arr || !Array.isArray(arr) || arr.length === 0) return null;
+    // ---------------------------------------------------------------------
+
     return (
       <>
-        {/* Aquí es donde se generaba el error si 'arr' no era un array.
-            Como ahora lo forzamos a ser un array vacío en la llamada, esto es seguro. */}
         {arr.map((item, index) => (
           <Badge
             key={index}
@@ -438,22 +436,21 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                 </Badge>
               )}
 
-              {/* BADGES PARA MULTI-SELECT (ARRAYS) */}
-              {ArrayBadges({ title: "Área", arr: dashboardFilters?.area_profesional })}
-              {ArrayBadges({ title: "Provincia", arr: dashboardFilters?.provincia })}
-              {ArrayBadges({ title: "Género", arr: dashboardFilters?.genero })}
-              {ArrayBadges({ title: "Tipo Sector", arr: dashboardFilters?.tipo_sector })}
-              {ArrayBadges({ title: "Distrito Sanitario", arr: dashboardFilters?.distrito_sanitario })}
-              {ArrayBadges({ title: "Distrito", arr: dashboardFilters?.distrito })}
-              {ArrayBadges({ title: "País Formación", arr: dashboardFilters?.pais_formacion })}
-              {ArrayBadges({ title: "Institución", arr: dashboardFilters?.institucion })}
-              {ArrayBadges({ title: "Año Graduación", arr: dashboardFilters?.año_graduacion })}
-              
-              {/* CORRECCIÓN APLICADA AQUÍ: Aseguramos que la expresión sea un array antes del .map */}
+              {/* BADGES PARA MULTI-SELECT (ARRAYS) - ¡CORRECCIÓN '|| []' APLICADA A TODOS! */}
+              {ArrayBadges({ title: "Área", arr: dashboardFilters?.area_profesional || [] })}
+              {ArrayBadges({ title: "Provincia", arr: dashboardFilters?.provincia || [] })}
+              {ArrayBadges({ title: "Género", arr: dashboardFilters?.genero || [] })}
+              {ArrayBadges({ title: "Tipo Sector", arr: dashboardFilters?.tipo_sector || [] })}
+              {ArrayBadges({ title: "Distrito Sanitario", arr: dashboardFilters?.distrito_sanitario || [] })}
+              {ArrayBadges({ title: "Distrito", arr: dashboardFilters?.distrito || [] })}
+              {ArrayBadges({ title: "País Formación", arr: dashboardFilters?.pais_formacion || [] })}
+              {ArrayBadges({ title: "Institución", arr: dashboardFilters?.institucion || [] })}
+              {ArrayBadges({ title: "Año Graduación", arr: dashboardFilters?.año_graduacion || [] })}
+
+              {/* Filtro de Estado de Solicitud (Requiere filtro extra) */}
               {ArrayBadges({
                 title: "Estado Solicitud",
-                // Usamos el encadenamiento opcional (?.) y el operador OR (|| [])
-                // para asegurar que siempre se pase un array (vacío o filtrado)
+                // Filtramos 'Aprobado' y aseguramos un array vacío si es null/undefined
                 arr: (dashboardFilters?.estado_solicitud?.filter(e => e !== 'Aprobado') || []),
               })}
 
@@ -468,7 +465,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   Función Pública: {dashboardFilters.funcion_publica ? 'Sí' : 'No'}
                 </Badge>
               )}
-              {/* Agregue aquí más badges de filtros de valor único si es necesario */}
+              {/* Más filtros de valor único... */}
 
               {dashboardFilters?.vencimiento_proximo && (
                 <Badge
@@ -504,7 +501,6 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
           <CardHeader>
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <CardTitle className="flex items-center space-x-2">
-                {/* Nota: El título ahora es genérico ya que el filtro de estado viene del dashboard */}
                 <span>Profesionales</span>
                 <Badge variant="outline">{filteredProfesionales.length}</Badge>
               </CardTitle>
@@ -545,8 +541,6 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   <Copy className="w-4 h-4" />
                   Compartir filtros
                 </Button>
-
-                {/* ¡BLOQUE DE SELECTORES ELIMINADO! La lógica de filtros de selección (Área, Provincia, Género, Sector, Estado) se ha movido al componente DashboardFilters. */}
               </div>
             </div>
           </CardHeader>

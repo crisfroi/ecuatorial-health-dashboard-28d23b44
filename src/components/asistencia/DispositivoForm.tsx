@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 
 // ----------------------------------------------------------------------
-// 1. ESQUEMA ZOD (Añadido tm_no)
+// 1. ESQUEMA ZOD (Mantiene tm_no como string para el campo de entrada)
 // ----------------------------------------------------------------------
 
 const dispositivoSchema = z.object({
@@ -32,7 +32,9 @@ interface CentroOption {
 interface DispositivoFormProps {
   initialValues?: Partial<DispositivoFormValues>;
   centers: CentroOption[];
-  onSubmit: (values: DispositivoFormValues) => Promise<void> | void;
+  // Usamos 'any' en onSubmit para permitir que el payload tenga number/null para tm_no, 
+  // aunque el formulario lo maneje como string.
+  onSubmit: (values: any) => Promise<void> | void;
   onCancel?: () => void;
   submitLabel?: string;
   loading?: boolean;
@@ -57,7 +59,6 @@ export function DispositivoForm({
       ubicacion: '',
       centro_salud_id: null,
       activo: true,
-      // Añadido tm_no a los valores por defecto
       tm_no: '',
       ...initialValues,
     },
@@ -69,27 +70,44 @@ export function DispositivoForm({
       ubicacion: initialValues?.ubicacion ?? '',
       centro_salud_id: initialValues?.centro_salud_id ?? null,
       activo: initialValues?.activo ?? true,
-      // Añadido tm_no al reset
       tm_no: initialValues?.tm_no ?? '',
     });
   }, [initialValues, form]);
 
   const handleSubmit = form.handleSubmit((values) => {
-    const payload: DispositivoFormValues = {
+
+    // 1. LÓGICA CRÍTICA: Convertir el string tm_no a number o null para la DB
+    const rawTmNo = values.tm_no?.trim();
+    let tm_no_db_value: string | number | null = null;
+
+    if (rawTmNo) {
+      const num = Number(rawTmNo);
+      // Si el valor es un número válido (ej. "1"), lo enviamos como number (1)
+      // Si no es un número (ej. "ABC"), lo enviamos como string (si la DB lo permite)
+      tm_no_db_value = isNaN(num) ? rawTmNo : num;
+    } else {
+      // Si el campo está vacío, enviamos NULL para que la DB lo maneje correctamente
+      tm_no_db_value = null;
+    }
+
+    // 2. Construcción del Payload final para la base de datos
+    const payloadForDb = {
       ...values,
-      ubicacion: values.ubicacion?.trim() ? values.ubicacion.trim() : '',
+      // Usar NULL para ubicacion si está vacío (mejor que string vacío)
+      ubicacion: values.ubicacion?.trim() ? values.ubicacion.trim() : null,
       centro_salud_id: values.centro_salud_id ? values.centro_salud_id : null,
-      // Asegurar que tm_no se guarda como string vacío si está vacío (para la DB)
-      tm_no: values.tm_no?.trim() ? values.tm_no.trim() : '',
+      // Aplicamos el valor con el tipo correcto (number o null)
+      tm_no: tm_no_db_value,
     };
 
     // ------------------------------------------------------------------
-    // 📢 LOG DE SALIDA (AÑADIDO PARA DEBUG)
+    // 📢 LOG DE SALIDA (Actualizado para mostrar el tipo final)
     // ------------------------------------------------------------------
-    console.log('✅ PAYLOAD FINAL DEL FORMULARIO (antes de llamar al hook):', payload);
+    console.log('✅ PAYLOAD FINAL DEL FORMULARIO (con conversión a number/null):', payloadForDb);
     // ------------------------------------------------------------------
 
-    return onSubmit(payload);
+    // Llamamos a onSubmit con el payload modificado
+    return onSubmit(payloadForDb);
   });
 
   return (
@@ -106,6 +124,7 @@ export function DispositivoForm({
             <FormItem>
               <FormLabel>Número de Terminal (TM No.)</FormLabel>
               <FormControl>
+                {/* Nota: Type "text" para que React Hook Form lo maneje como string */}
                 <Input placeholder="Ej. 1, 2, 3 (ID único del dispositivo)" {...field} />
               </FormControl>
               <p className="text-sm text-red-500">

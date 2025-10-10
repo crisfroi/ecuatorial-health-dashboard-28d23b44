@@ -44,22 +44,28 @@ const ProfessionalDetail = ({
 }: ProfessionalDetailProps) => {
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
-  
-  // Los Hooks se llaman UNICAMENTE cuando professional existe.
-  const [localDocuments, setLocalDocuments] = useState(professional.documentos_adicionales || []); 
+
+  // ----------------------------------------------------------------------
+  // 🚀 CORRECCIÓN CLAVE (para ambos errores):
+  // 1. Fija el 'TypeError' (Cannot read properties of null) al impedir
+  //    que se acceda a 'professional.documentos_adicionales' si 'professional' es null.
+  // 2. Fija el error 'Rendered more hooks...' al garantizar que el número
+  //    de Hooks es consistente (si 'professional' es null, no se llama a NINGUNO).
+  if (!professional) return null;
+  // ----------------------------------------------------------------------
+
+  // AHORA es seguro llamar a todos los Hooks, ya que 'professional' existe.
+  const [localDocuments, setLocalDocuments] = useState(professional.documentos_adicionales || []);
 
   // Estos hooks ahora reciben un ID de profesional válido, por lo que son consistentes.
-  const { data: notificationCount } = useNotificationCount(professional.id); 
+  const { data: notificationCount } = useNotificationCount(professional.id);
   const sendSMSMutation = useSendSMSNotification();
 
   // Sincronizar documentos locales con el prop inicial si cambia el ID del profesional
-  useEffect(() => { 
-      setLocalDocuments(professional.documentos_adicionales || []);
+  useEffect(() => {
+    // El código del Hook es seguro porque la verificación inicial ya pasó.
+    setLocalDocuments(professional.documentos_adicionales || []);
   }, [professional.id]);
-
-  // ❌ LÍNEA ELIMINADA: Ya no es necesaria, el padre controla el montaje.
-  // if (!professional) return null; 
-
 
   // --- LÓGICA DE NEGOCIO ---
 
@@ -78,12 +84,12 @@ const ProfessionalDetail = ({
   const isRenewalSoon = daysUntilRenewal !== null && daysUntilRenewal <= 30;
 
   const handleDocumentsUpdate = (documents: string[]) => {
-    setLocalDocuments(documents); 
+    setLocalDocuments(documents);
     if (onProfessionalUpdate) {
-        onProfessionalUpdate({
-            ...professional,
-            documentos_adicionales: documents,
-        });
+      onProfessionalUpdate({
+        ...professional,
+        documentos_adicionales: documents,
+      });
     }
   };
 
@@ -124,7 +130,7 @@ const ProfessionalDetail = ({
           `perfil-${professional.nombre_completo?.replace(/\s+/g, "-") || "profesional"}.pdf`,
         );
       }
-      
+
       toast({
         title: "Descarga completada",
         description: `El perfil se ha descargado en formato ${format.toUpperCase()}`,
@@ -182,7 +188,7 @@ const ProfessionalDetail = ({
 
   return (
     // 🚀 CAMBIO CLAVE: Usamos open={true} para que se abra al montar el componente.
-    <Dialog open={true} onOpenChange={onClose}> 
+    <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">

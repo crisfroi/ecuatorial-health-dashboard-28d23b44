@@ -14,6 +14,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useDispositivosFichaje, type Dispositivo, type EmpleadoDispositivoMap, useAsistencia } from '@/hooks/useAsistencia';
 import { supabase } from '@/integrations/supabase/client';
 
+interface ProfesionalRow {
+  id: string;
+  nombre_completo: string | null;
+  id_profesional_unico: string | null;
+  numero_tarjeta_rfid: string | null;
+}
+
 interface MapeosProfesionalesDialogProps {
   device: Dispositivo | null;
   open: boolean;
@@ -44,19 +51,24 @@ export function MapeosProfesionalesDialog({ device, open, onOpenChange }: Mapeos
     }
   }, [open]);
 
-  const { data: mappings, isLoading: mappingsLoading, refetch } = useQuery<EmpleadoDispositivoMap[]>(
-    ['device-mappings', device?.id],
-    () => listMappings(device!.id),
-    {
-      enabled: open && !!device,
-      staleTime: 60_000,
-      initialData: [],
-    }
-  );
+  const {
+    data: mappings = [],
+    isLoading: mappingsLoading,
+    refetch,
+  } = useQuery<EmpleadoDispositivoMap[]>({
+    queryKey: ['device-mappings', device?.id],
+    queryFn: async () => {
+      if (!device) return [];
+      return listMappings(device.id);
+    },
+    enabled: open && !!device,
+    staleTime: 60_000,
+    initialData: [],
+  });
 
-  const { data: professionals } = useQuery<ProfessionalOption[]>(
-    ['device-professionals', device?.centro_salud_id],
-    async () => {
+  const { data: professionals = [] } = useQuery<ProfessionalOption[]>({
+    queryKey: ['device-professionals', device?.centro_salud_id],
+    queryFn: async () => {
       if (!device) return [];
       let query = supabase
         .from('profesionales_sanitarios')
@@ -66,21 +78,19 @@ export function MapeosProfesionalesDialog({ device, open, onOpenChange }: Mapeos
       if (device.centro_salud_id) {
         query = query.eq('centro_salud_id', device.centro_salud_id);
       }
-      const { data, error } = await query;
+      const { data, error } = await query.returns<ProfesionalRow[]>();
       if (error) throw error;
-      return (data || []).map((p) => ({
-        id: p.id,
-        nombre: p.nombre_completo || 'Sin nombre',
-        empNo: p.id_profesional_unico,
-        numero_tarjeta_rfid: (p as any).numero_tarjeta_rfid,
+      return (data ?? []).map((professional) => ({
+        id: professional.id,
+        nombre: professional.nombre_completo || 'Sin nombre',
+        empNo: professional.id_profesional_unico,
+        numero_tarjeta_rfid: professional.numero_tarjeta_rfid,
       }));
     },
-    {
-      enabled: open && !!device,
-      staleTime: 120_000,
-      initialData: [],
-    }
-  );
+    enabled: open && !!device,
+    staleTime: 120_000,
+    initialData: [],
+  });
 
   const professionalById = useMemo(() => {
     const map = new Map<string, ProfessionalOption>();
@@ -106,8 +116,9 @@ export function MapeosProfesionalesDialog({ device, open, onOpenChange }: Mapeos
       toast({ title: 'Mapeo guardado', description: `${sanitizedEn} asignado correctamente` });
       setEnNo('');
       setSelectedProfessional('');
-    } catch (error: any) {
-      toast({ title: 'No se pudo guardar', description: error?.message || 'Intente nuevamente', variant: 'destructive' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Intente nuevamente';
+      toast({ title: 'No se pudo guardar', description: message, variant: 'destructive' });
     }
   };
 
@@ -124,8 +135,9 @@ export function MapeosProfesionalesDialog({ device, open, onOpenChange }: Mapeos
       await refetch();
       queryClient.invalidateQueries({ queryKey: ['device-mappings', device.id] });
       toast({ title: 'Archivo procesado', description: `${file.name} importado correctamente` });
-    } catch (error: any) {
-      toast({ title: 'Error al importar', description: error?.message || 'Revise el archivo Personal.xls', variant: 'destructive' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Revise el archivo Personal.xls';
+      toast({ title: 'Error al importar', description: message, variant: 'destructive' });
     } finally {
       event.target.value = '';
     }
@@ -159,7 +171,7 @@ export function MapeosProfesionalesDialog({ device, open, onOpenChange }: Mapeos
                   <SelectValue placeholder="Seleccione un profesional" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(professionals || []).map((professional) => (
+                  {professionals.map((professional) => (
                     <SelectItem key={professional.id} value={professional.id}>
                       <div className="flex flex-col gap-0.5">
                         <span className="font-medium">{professional.nombre}</span>
@@ -208,7 +220,7 @@ export function MapeosProfesionalesDialog({ device, open, onOpenChange }: Mapeos
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(mappingsLoading ? [] : mappings || []).map((mapping) => {
+                  {(mappingsLoading ? [] : mappings).map((mapping) => {
                     const professional = professionalById.get(mapping.id_profesional);
                     return (
                       <TableRow key={mapping.id}>
@@ -230,7 +242,7 @@ export function MapeosProfesionalesDialog({ device, open, onOpenChange }: Mapeos
                       </TableRow>
                     );
                   })}
-                  {(!mappingsLoading && !mappings?.length) ? (
+                  {!mappingsLoading && mappings.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
                         No hay profesionales mapeados todavía.

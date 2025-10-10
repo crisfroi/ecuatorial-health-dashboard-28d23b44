@@ -57,15 +57,15 @@ export function MetricasPanel() {
     buildCenterSummary,
   } = useReportesAsistencia();
 
-  const centerQuery = useQuery<CentroOption[]>(
-    ['centros-options'],
-    async () => {
+  const centerQuery = useQuery<CentroOption[]>({
+    queryKey: ['centros-options'],
+    queryFn: async () => {
       const { data, error } = await supabase.from('centros_salud').select('id, nombre').order('nombre');
       if (error) throw error;
       return data || [];
     },
-    { staleTime: 5 * 60_000 }
-  );
+    staleTime: 5 * 60_000,
+  });
 
   const filters = useMemo(
     () => ({
@@ -78,11 +78,12 @@ export function MetricasPanel() {
     [from, to, centerId]
   );
 
-  const logsQuery = useQuery(
-    ['attendance-metrics', filters],
-    () => fetchLogsWithMeta(filters),
-    { keepPreviousData: true, staleTime: 60_000 }
-  );
+  const logsQuery = useQuery({
+    queryKey: ['attendance-metrics', filters],
+    queryFn: () => fetchLogsWithMeta(filters),
+    keepPreviousData: true,
+    staleTime: 60_000,
+  });
 
   const enrichedEntries = useMemo(
     () => buildEnrichedDailyEntries(logsQuery.data || []),

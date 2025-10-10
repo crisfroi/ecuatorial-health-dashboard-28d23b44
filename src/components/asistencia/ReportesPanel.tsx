@@ -60,31 +60,31 @@ export function ReportesPanel() {
     buildCenterSummary,
   } = useReportesAsistencia();
 
-  const centerQuery = useQuery<CentroOption[]>(
-    ['centros-options'],
-    async () => {
+  const centerQuery = useQuery<CentroOption[]>({
+    queryKey: ['centros-options'],
+    queryFn: async () => {
       const { data, error } = await supabase.from('centros_salud').select('id, nombre').order('nombre');
       if (error) throw error;
       return data || [];
     },
-    { staleTime: 5 * 60_000 }
-  );
+    staleTime: 5 * 60_000,
+  });
 
-  const deviceQuery = useQuery<DeviceOption[]>(
-    ['dispositivos', centerId, 'reportes'],
-    async () => {
+  const deviceQuery = useQuery<DeviceOption[]>({
+    queryKey: ['dispositivos', centerId, 'reportes'],
+    queryFn: async () => {
       let query = supabase.from('dispositivos').select('id, nombre');
       if (centerId !== 'todos') query = query.eq('centro_salud_id', centerId);
       const { data, error } = await query.order('nombre');
       if (error) throw error;
       return data || [];
     },
-    { staleTime: 60_000 }
-  );
+    staleTime: 60_000,
+  });
 
-  const professionalQuery = useQuery<ProfessionalOption[]>(
-    ['profesionales-reportes', centerId],
-    async () => {
+  const professionalQuery = useQuery<ProfessionalOption[]>({
+    queryKey: ['profesionales-reportes', centerId],
+    queryFn: async () => {
       let query = supabase
         .from('profesionales_sanitarios')
         .select('id, nombre_completo, id_profesional_unico')
@@ -93,14 +93,14 @@ export function ReportesPanel() {
       if (centerId !== 'todos') query = query.eq('centro_salud_id', centerId);
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map((item) => ({
+      return (data || []).map((item: any) => ({
         id: item.id,
         nombre: item.nombre_completo || 'Sin nombre',
         empNo: item.id_profesional_unico,
       }));
     },
-    { staleTime: 60_000 }
-  );
+    staleTime: 60_000,
+  });
 
   const filters = useMemo(
     () => ({
@@ -113,14 +113,12 @@ export function ReportesPanel() {
     [from, to, centerId, deviceId, professionalId]
   );
 
-  const logsQuery = useQuery(
-    ['attendance-logs', filters],
-    () => fetchLogsWithMeta(filters),
-    {
-      keepPreviousData: true,
-      staleTime: 30_000,
-    }
-  );
+  const logsQuery = useQuery({
+    queryKey: ['attendance-logs', filters],
+    queryFn: () => fetchLogsWithMeta(filters),
+    keepPreviousData: true,
+    staleTime: 30_000,
+  });
 
   const enrichedEntries = useMemo(
     () => buildEnrichedDailyEntries(logsQuery.data || []),
@@ -149,7 +147,7 @@ export function ReportesPanel() {
 
   const fichajeRows = useMemo(
     () =>
-      (logsQuery.data || []).map((log) => ({
+      (logsQuery.data || []).map((log: any) => ({
         enNo: log.en_no,
         fechaHora: log.fecha_hora,
         mode: log.mode,

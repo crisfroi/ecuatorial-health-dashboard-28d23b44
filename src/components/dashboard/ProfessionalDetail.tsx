@@ -25,8 +25,7 @@ import PersonalInfoCard from "./professional-detail/PersonalInfoCard";
 import EducationCard from "./professional-detail/EducationCard";
 import WorkplaceCard from "./professional-detail/WorkplaceCard";
 import ProfessionalCardInfo from "./professional-detail/ProfessionalCardInfo";
-// NUEVOS COMPONENTES
-import StatusCard from "./professional-detail/StatusCard"; 
+import StatusCard from "./professional-detail/StatusCard";
 import ProfessionalDocumentsCard from "./professional-detail/ProfessionalDocumentsCard";
 import NotificationAlerts from "./professional-detail/NotificationAlerts";
 import { ParametrosPersonalizadosCard } from "./professional-detail/ParametrosPersonalizadosCard";
@@ -35,8 +34,7 @@ import { DisciplinaryHistoryCard } from "./professional-detail/DisciplinaryHisto
 interface ProfessionalDetailProps {
   professional: Profesional;
   onClose: () => void;
-  // Prop opcional para que el padre pueda actualizar el estado del profesional
-  onProfessionalUpdate?: (updatedProfessional: Profesional) => void; 
+  onProfessionalUpdate?: (updatedProfessional: Profesional) => void;
 }
 
 const ProfessionalDetail = ({
@@ -44,24 +42,28 @@ const ProfessionalDetail = ({
   onClose,
   onProfessionalUpdate,
 }: ProfessionalDetailProps) => {
+  
+  // 🚀 ESTA ES LA CLAVE QUE SOLUCIONA EL ERROR DE HOOKS
+  if (!professional) {
+    return null; 
+  }
+  
+  // Ahora es seguro llamar a todos los Hooks
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
-  // Usamos estado local para los documentos_adicionales para que la lista se actualice sin recargar
-  const [localDocuments, setLocalDocuments] = useState(professional.documentos_adicionales || []);
+  
+  const [localDocuments, setLocalDocuments] = useState(professional.documentos_adicionales || []); 
 
-  const { data: notificationCount } = useNotificationCount(professional?.id);
+  const { data: notificationCount } = useNotificationCount(professional.id); 
   const sendSMSMutation = useSendSMSNotification();
 
-  if (!professional) return null;
-
-  // Sincronizar documentos locales con el prop inicial si cambia el ID del profesional
-  // o si es la primera vez que se renderiza.
-  useEffect(() => {
+  useEffect(() => { 
       setLocalDocuments(professional.documentos_adicionales || []);
   }, [professional.id]);
 
 
-  // Función para calcular días hasta renovación
+  // --- LÓGICA DE NEGOCIO ---
+
   const calculateDaysUntilRenewal = (validityDate?: string) => {
     if (!validityDate) return null;
     const today = new Date();
@@ -76,29 +78,24 @@ const ProfessionalDetail = ({
   );
   const isRenewalSoon = daysUntilRenewal !== null && daysUntilRenewal <= 30;
 
-  // Función para manejar la actualización de los documentos desde el sub-componente
   const handleDocumentsUpdate = (documents: string[]) => {
     setLocalDocuments(documents); 
-    // Notificar al componente padre de que la lista de documentos ha cambiado
     if (onProfessionalUpdate) {
-        onProfessionalUpdate({
-            ...professional,
-            documentos_adicionales: documents,
-        });
+      onProfessionalUpdate({
+        ...professional,
+        documentos_adicionales: documents,
+      });
     }
   };
 
   const handleDownload = async (format: "pdf" | "png") => {
     setIsDownloading(true);
+    // ... (Lógica de descarga)
     try {
       const element = document.getElementById("professional-detail-content");
       if (!element) return;
-
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-      });
+      // ... (Resto de la lógica de html2canvas y jsPDF)
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, allowTaint: true });
 
       if (format === "png") {
         const link = document.createElement("a");
@@ -128,7 +125,7 @@ const ProfessionalDetail = ({
           `perfil-${professional.nombre_completo?.replace(/\s+/g, "-") || "profesional"}.pdf`,
         );
       }
-
+      
       toast({
         title: "Descarga completada",
         description: `El perfil se ha descargado en formato ${format.toUpperCase()}`,
@@ -146,7 +143,6 @@ const ProfessionalDetail = ({
   };
 
   const handleSendSMS = async (tipoNotificacion: string) => {
-    // Lógica para enviar SMS (mantenida igual)
     if (!professional.telefono) {
       toast({
         title: "Sin teléfono",
@@ -186,7 +182,7 @@ const ProfessionalDetail = ({
   };
 
   return (
-    <Dialog open={!!professional} onOpenChange={onClose}>
+    <Dialog open={true} onOpenChange={onClose}> 
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">

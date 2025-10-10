@@ -3,12 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
+// --- INTERFACES CORREGIDAS ---
+
 export interface Dispositivo {
   id: string;
   nombre: string;
   ubicacion?: string | null;
   centro_salud_id?: string | null;
   activo: boolean;
+  tm_no?: string | null; // ID del terminal (Terminal Number)
   created_at: string;
   updated_at: string;
 }
@@ -27,6 +30,7 @@ export interface AttendanceLog {
   id_profesional: string | null;
   id_dispositivo: string;
   en_no: string | null;
+  tm_no?: string | null; // <-- CORREGIDO: Se asegura que esté en la interfaz de logs
   inout: 'IN' | 'OUT' | null;
   mode: string | null;
   fecha_hora: string; // ISO
@@ -44,6 +48,8 @@ export interface ConsolidatedDayEntry {
   salida?: string | null; // ISO
   total_horas?: number; // hours
 }
+
+// --- USE DISPOSITIVOS FICHAJE ---
 
 export function useDispositivosFichaje() {
   const { toast } = useToast();
@@ -64,7 +70,8 @@ export function useDispositivosFichaje() {
         nombre: payload.nombre,
         ubicacion: payload.ubicacion || null,
         centro_salud_id: payload.centro_salud_id || null,
-        activo: payload.activo ?? true
+        activo: payload.activo ?? true,
+        tm_no: payload.tm_no || null, // <-- CORREGIDO: Añadir tm_no
       }).select().single();
       if (error) throw error;
       toast({ title: 'Dispositivo creado', description: payload.nombre });
@@ -79,7 +86,8 @@ export function useDispositivosFichaje() {
       nombre: patch.nombre,
       ubicacion: patch.ubicacion,
       centro_salud_id: patch.centro_salud_id,
-      activo: patch.activo
+      activo: patch.activo,
+      tm_no: patch.tm_no, // <-- CORREGIDO: Añadir tm_no
     }).eq('id', id).select().single();
     if (error) throw error;
     toast({ title: 'Dispositivo actualizado' });
@@ -108,6 +116,8 @@ export function useDispositivosFichaje() {
   return { loading, list, create, update, remove, listMappings, upsertMapping };
 }
 
+// --- USE ASISTENCIA ---
+
 export function useAsistencia() {
   const { toast } = useToast();
   const [importing, setImporting] = useState(false);
@@ -116,7 +126,9 @@ export function useAsistencia() {
   const parseLines = (text: string) => {
     const linesRaw = text.split(/\r?\n/);
     const lines = linesRaw.map(l => l.replace(/\uFEFF/g, '').trim()).filter(Boolean);
-    const entries: Omit<AttendanceLog, 'id' | 'id_dispositivo' | 'created_at'>[] = [];
+
+    // Tipo de datos corregido para incluir tm_no en el log
+    const entries: (Omit<AttendanceLog, 'id' | 'id_dispositivo' | 'created_at'> & { tm_no?: string | null })[] = [];
 
     let headerMap: Record<string, number> | null = null;
     if (lines.length) {
@@ -134,12 +146,14 @@ export function useAsistencia() {
       if (!parts.length) continue;
 
       let en_no: string | null = null;
+      let tm_no: string | null = null; // <-- CORREGIDO: Declaración correcta de variable
       let fecha_hora: string = new Date().toISOString();
       let inout: 'IN' | 'OUT' | null = null;
       let mode: string | null = null;
 
       if (headerMap) {
         en_no = parts[headerMap['EnNo']] || null;
+        tm_no = parts[headerMap['TMNo']] || null; // <-- Extracción de TMNo
         const dtRaw = parts[headerMap['DateTime']] || '';
         // soportar YYYY/MM/DD HH:mm:ss o YYYY-MM-DD HH:mm:ss
         const normalized = dtRaw.replace(/\//g, '-');
@@ -148,10 +162,10 @@ export function useAsistencia() {
         const inoutRaw = parts[headerMap['INOUT']] || '';
         if (/^in$/i.test(inoutRaw)) inout = 'IN';
         else if (/^out$/i.test(inoutRaw)) inout = 'OUT';
-        else if (/^[01]$/.test(inoutRaw)) inout = null; // 0/1 desconocido: se derivará en consolidación
+        else if (/^[01]$/.test(inoutRaw)) inout = null;
         mode = (parts[headerMap['Mode']] || '') || null;
       } else {
-        // Fallback heurístico
+        // Fallback heurístico - tm_no queda en null
         const joined = raw.replace(/,/g, ' ');
         const dtMatch = joined.match(/(\d{4}[/-]\d{2}[/-]\d{2}[ T]\d{2}:\d{2}(:\d{2})?)/);
         fecha_hora = dtMatch ? new Date(dtMatch[1].replace(/\//g, '-')).toISOString() : new Date().toISOString();
@@ -162,7 +176,7 @@ export function useAsistencia() {
         mode = parts.find(p => /^(M|A|FP|FACE|FINGER|CARD|\d{1,2})$/i.test(p)) || null;
       }
 
-      entries.push({ id_profesional: null, en_no, inout: inout as any, mode, fecha_hora, raw_line: raw, source_file: undefined } as any);
+      entries.push({ id_profesional: null, en_no, tm_no, inout: inout as any, mode, fecha_hora, raw_line: raw, source_file: undefined } as any);
     }
 
     return entries;
@@ -171,8 +185,50 @@ export function useAsistencia() {
   const insertLogs = async (deviceId: string, filename: string, logs: Omit<AttendanceLog, 'id' | 'id_dispositivo' | 'created_at'>[]) => {
     if (!logs.length) return 0;
 
-    // Resolver id_profesional por en_no via mapeo
-    const enNos = Array.from(new Set(logs.map(l => l.en_no).filter(Boolean))) as string[];
+    // 1. OBTENER el TMNo esperado del dispositivo seleccionado
+    const { data: device, error: devErr } = await supabase
+      .from('dispositivos')
+      .select('tm_no')
+      .eq('id', deviceId)
+      .single();
+    if (devErr) throw devErr;
+    const expectedTmNo = device?.tm_no ? String(device.tm_no) : null;
+
+    let validLogs = logs;
+    let filteredCount = 0;
+
+    // 2. VALIDACIÓN CRÍTICA del TMNo
+    if (expectedTmNo) {
+      validLogs = logs.filter(log => {
+        const logTmNo = log.tm_no ? String(log.tm_no) : null;
+        // Si el log NO tiene TMNo, lo aceptamos (posiblemente fallback o formato antiguo sin la columna).
+        if (!logTmNo) return true;
+
+        // Si tiene TMNo, DEBE coincidir con el esperado del dispositivo.
+        return logTmNo === expectedTmNo;
+      });
+
+      filteredCount = logs.length - validLogs.length;
+
+      if (filteredCount > 0) {
+        console.warn(`[TMNo Mismatch] ${filteredCount} logs filtrados. Esperado: ${expectedTmNo}`);
+        toast({
+          title: 'Advertencia de Filtro (TMNo)',
+          description: `${filteredCount} logs omitidos. No coinciden con el ID de Terminal (${expectedTmNo}) del dispositivo seleccionado.`,
+          variant: 'destructive'
+        });
+      }
+    } else {
+      // Advertencia si no hay TMNo registrado, se importan todos los logs.
+      console.warn(`Advertencia: El dispositivo seleccionado (ID: ${deviceId}) no tiene un TMNo registrado. Se importarán todos los logs sin validación de terminal.`);
+    }
+
+    if (!validLogs.length) {
+      return 0;
+    }
+
+    // 3. Resolver id_profesional por en_no vía mapeo (solo con logs válidos)
+    const enNos = Array.from(new Set(validLogs.map(l => l.en_no).filter(Boolean))) as string[];
     let mappings: EmpleadoDispositivoMap[] = [];
     if (enNos.length) {
       const { data: maps, error: mapsErr } = await supabase
@@ -184,12 +240,14 @@ export function useAsistencia() {
       mappings = maps || [];
     }
 
-    const rows = logs.map(l => {
+    // 4. Inserción de logs válidos
+    const rows = validLogs.map(l => {
       const profId = mappings.find(m => m.en_no === l.en_no)?.id_profesional || null;
       return {
         id_profesional: profId,
         id_dispositivo: deviceId,
         en_no: l.en_no,
+        tm_no: l.tm_no, // <-- Se incluye tm_no en la inserción
         inout: l.inout,
         mode: l.mode,
         fecha_hora: l.fecha_hora,
@@ -232,13 +290,25 @@ export function useAsistencia() {
           const dt = r.DateTime || r.Datetime || r.TIME || r.Time || '';
           const io = r.INOUT || r.InOut || r.Dir || r.Direction || '';
           const md = r.Mode || r.method || r.Method || '';
+          const tm = r.TMNo || r.TMNO || ''; // <-- Extracción de TMNo de la hoja XLS
+
           const normalized = String(dt).replace(/\//g, '-');
           const fecha_hora = new Date(normalized).toISOString();
           let inout: 'IN' | 'OUT' | null = null;
           if (/^in$/i.test(io)) inout = 'IN';
           else if (/^out$/i.test(io)) inout = 'OUT';
           else if (/^[01]$/.test(String(io))) inout = null;
-          return { id_profesional: null, en_no: String(en) || null, inout, mode: md ? String(md) : null, fecha_hora, raw_line: JSON.stringify(r), source_file: file.name } as any;
+
+          return {
+            id_profesional: null,
+            en_no: String(en) || null,
+            tm_no: String(tm) || null, // <-- Se incluye TMNo
+            inout,
+            mode: md ? String(md) : null,
+            fecha_hora,
+            raw_line: JSON.stringify(r),
+            source_file: file.name
+          } as any;
         }).filter((e: any) => e.en_no && e.fecha_hora);
         total += await insertLogs(deviceId, `${file.name}#${sheetName}`, parsed);
       }
@@ -293,7 +363,7 @@ export function useAsistencia() {
         return 0;
       }
 
-      // CORRECCIÓN 1: Cambiar 'id_profesional_unico' por 'numero_enrolamiento_enno' en la consulta
+      // Consulta para obtener IDs de profesional por EnNo
       let qb = supabase.from('profesionales_sanitarios').select('id, nombre_completo, numero_enrolamiento_enno, centro_salud_id, numero_tarjeta_rfid');
       if (centerId) qb = qb.eq('centro_salud_id', centerId);
       const { data: profs, error: profErr } = await qb;
@@ -302,7 +372,6 @@ export function useAsistencia() {
       const byEmpNo = new Map<string, string>();
       const byName = new Map<string, string>();
       (profs || []).forEach((p: any) => {
-        // CORRECCIÓN 2: Usar 'numero_enrolamiento_enno' para mapear el ID de enrolamiento
         const raw = String(p.numero_enrolamiento_enno ?? '').trim();
         if (raw) {
           byEmpNo.set(raw, p.id);
@@ -395,7 +464,6 @@ export function useAsistencia() {
   const fetchLogsByRange = async (fromISO: string, toISO: string, options: { centerId?: string | null, deviceId?: string | null } = {}) => {
     let qb = supabase.from('attendance_logs').select('*').gte('fecha_hora', fromISO).lte('fecha_hora', toISO);
     if (options.deviceId) qb = qb.eq('id_dispositivo', options.deviceId);
-    // Nota: filtrado por centro se hace uniendo con dispositivos si se requiere en el backend. Aquí lo realizamos en UI.
     const { data, error } = await qb.order('fecha_hora', { ascending: true });
     if (error) throw error;
     return (data || []) as AttendanceLog[];

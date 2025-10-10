@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { useDispositivosFichaje, type Dispositivo } from '@/hooks/useAsistencia';
+import { useDispositivosFichaje, type Dispositivo } from '@/hooks/useAsistencia'; // Asegúrate de que esta ruta es correcta
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +34,7 @@ export function DispositivosPanel() {
   const [deviceToDelete, setDeviceToDelete] = useState<Dispositivo | null>(null);
   const [mappingDevice, setMappingDevice] = useState<Dispositivo | null>(null);
 
+  // QUERY 1: Centros de salud
   const { data: centers = [], isLoading: centersLoading } = useQuery<CentroOption[]>({
     queryKey: ['centros-options'],
     queryFn: async () => {
@@ -41,16 +42,20 @@ export function DispositivosPanel() {
       if (error) throw error;
       return data ?? [];
     },
-    staleTime: 5 * 60_000,
+    staleTime: 5 * 60_000, // Los centros no cambian a menudo.
   });
 
   const centerIdFilter = selectedCenter === 'todos' ? null : selectedCenter;
 
+  // QUERY 2: Dispositivos de fichaje (Principal)
   const { data: devices = [], isLoading: devicesLoading } = useQuery<Dispositivo[]>({
     queryKey: ['dispositivos', centerIdFilter],
     queryFn: () => list(centerIdFilter),
-    staleTime: 30_000,
-    refetchOnWindowFocus: false,
+    // OPTIMIZACIÓN: Reducir staleTime para que la lista se sienta más "fresca"
+    // Sin embargo, si la lista cambia muy poco, un staleTime más largo está bien.
+    // 15 segundos es un buen equilibrio para esta entidad.
+    staleTime: 15_000,
+    refetchOnWindowFocus: false, // Se mantiene, ya que la recarga al cambiar de pestaña no es crítica.
     initialData: [],
   });
 
@@ -59,15 +64,12 @@ export function DispositivosPanel() {
     [devices]
   );
 
+  // MUTACIÓN DE CREACIÓN
   const createMutation = useMutation({
-    mutationFn: (values: DispositivoFormValues) =>
-      create({
-        nombre: values.nombre,
-        ubicacion: values.ubicacion,
-        centro_salud_id: values.centro_salud_id,
-        activo: values.activo,
-      }),
+    // Recibe el payload pre-procesado del formulario (incluye tm_no como number | string | null)
+    mutationFn: (values: DispositivoFormValues) => create(values), // ✅ CORREGIDO: Pasar 'values' completo
     onSuccess: () => {
+      // OPTIMIZACIÓN: El invalidate es CRÍTICO para que el usuario vea su cambio de inmediato
       queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
       toast({ title: 'Dispositivo creado' });
       setFormOpen(false);
@@ -78,15 +80,12 @@ export function DispositivosPanel() {
     },
   });
 
+  // MUTACIÓN DE ACTUALIZACIÓN
   const updateMutation = useMutation({
-    mutationFn: (payload: { id: string; values: DispositivoFormValues }) =>
-      update(payload.id, {
-        nombre: payload.values.nombre,
-        ubicacion: payload.values.ubicacion,
-        centro_salud_id: payload.values.centro_salud_id,
-        activo: payload.values.activo,
-      }),
+    // Recibe el payload pre-procesado del formulario (incluye tm_no como number | string | null)
+    mutationFn: (payload: { id: string; values: DispositivoFormValues }) => update(payload.id, payload.values), // ✅ CORREGIDO: Pasar 'values' completo
     onSuccess: () => {
+      // OPTIMIZACIÓN: El invalidate es CRÍTICO para que el usuario vea su cambio de inmediato
       queryClient.invalidateQueries({ queryKey: ['dispositivos'] });
       toast({ title: 'Dispositivo actualizado' });
       setFormOpen(false);
@@ -98,6 +97,7 @@ export function DispositivosPanel() {
     },
   });
 
+  // MUTACIÓN DE ELIMINACIÓN
   const deleteMutation = useMutation({
     mutationFn: (id: string) => remove(id),
     onSuccess: () => {
@@ -120,8 +120,10 @@ export function DispositivosPanel() {
 
   const handleSubmit = async (values: DispositivoFormValues) => {
     if (editingDevice) {
+      // Nota: El payload que llega aquí ya fue transformado en DispositivoForm
       await updateMutation.mutateAsync({ id: editingDevice.id, values });
     } else {
+      // Nota: El payload que llega aquí ya fue transformado en DispositivoForm
       await createMutation.mutateAsync(values);
     }
   };
@@ -167,6 +169,7 @@ export function DispositivosPanel() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nombre</TableHead>
+                    <TableHead>TM No.</TableHead> {/* Añadir esta columna para ver el TM No */}
                     <TableHead>Centro</TableHead>
                     <TableHead>Ubicación</TableHead>
                     <TableHead>Estado</TableHead>
@@ -178,6 +181,7 @@ export function DispositivosPanel() {
                     sortedDevices.map((device) => (
                       <TableRow key={device.id}>
                         <TableCell className="font-medium">{device.nombre}</TableCell>
+                        <TableCell>{device.tm_no || 'N/A'}</TableCell> {/* Mostrar TM No. */}
                         <TableCell>{device.centro_salud_id ? centers.find((c) => c.id === device.centro_salud_id)?.nombre || '—' : 'Sin asignar'}</TableCell>
                         <TableCell>{device.ubicacion || '—'}</TableCell>
                         <TableCell>
@@ -188,8 +192,9 @@ export function DispositivosPanel() {
                             <Button variant="ghost" size="icon" onClick={() => setMappingDevice(device)} title="Mapeos">
                               <Settings2 className="h-4 w-4" />
                             </Button>
+                            {/* Usamos 'Settings2' en lugar de 'Plus' rotado para edición, por convención */}
                             <Button variant="ghost" size="icon" onClick={() => handleOpenForm(device)} title="Editar">
-                              <Plus className={cn('h-4 w-4 rotate-45')} />
+                              <Settings2 className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon" onClick={() => setDeviceToDelete(device)} title="Eliminar" className="text-destructive">
                               <Trash2 className="h-4 w-4" />
@@ -200,7 +205,7 @@ export function DispositivosPanel() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                         No se encontraron dispositivos para este centro.
                       </TableCell>
                     </TableRow>

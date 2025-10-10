@@ -353,10 +353,8 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
 
   // Helper para mostrar los badges de arrays
   const ArrayBadges = ({ title, arr }: { title: string; arr?: string[] | number[] }) => {
-    // ---------------------------------------------------------------------
     // REFUERZO DE LA FUNCIÓN: Aseguramos que 'arr' sea un array antes de mapear.
     if (!arr || !Array.isArray(arr) || arr.length === 0) return null;
-    // ---------------------------------------------------------------------
 
     return (
       <>
@@ -436,7 +434,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                 </Badge>
               )}
 
-              {/* BADGES PARA MULTI-SELECT (ARRAYS) - ¡CORRECCIÓN '|| []' APLICADA A TODOS! */}
+              {/* BADGES PARA MULTI-SELECT (ARRAYS) - (CORRECCIÓN || [] para arr.map) */}
               {ArrayBadges({ title: "Área", arr: dashboardFilters?.area_profesional || [] })}
               {ArrayBadges({ title: "Provincia", arr: dashboardFilters?.provincia || [] })}
               {ArrayBadges({ title: "Género", arr: dashboardFilters?.genero || [] })}
@@ -446,12 +444,14 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
               {ArrayBadges({ title: "País Formación", arr: dashboardFilters?.pais_formacion || [] })}
               {ArrayBadges({ title: "Institución", arr: dashboardFilters?.institucion || [] })}
               {ArrayBadges({ title: "Año Graduación", arr: dashboardFilters?.año_graduacion || [] })}
-
-              {/* Filtro de Estado de Solicitud (Requiere filtro extra) */}
+              
+              {/* Filtro de Estado de Solicitud (CORRECCIÓN Array.isArray() para arr.filter) */}
               {ArrayBadges({
                 title: "Estado Solicitud",
-                // Filtramos 'Aprobado' y aseguramos un array vacío si es null/undefined
-                arr: (dashboardFilters?.estado_solicitud?.filter(e => e !== 'Aprobado') || []),
+                arr: (Array.isArray(dashboardFilters?.estado_solicitud) 
+                      ? dashboardFilters.estado_solicitud.filter(e => e !== 'Aprobado') 
+                      : []
+                      ),
               })}
 
               {/* BADGES PARA OTROS FILTROS (VALOR ÚNICO/RANGO) */}

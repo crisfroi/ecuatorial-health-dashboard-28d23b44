@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast'; // Asumo que usas este hook para triggerToast
-import { useState } from 'react'; // Necesario para un hook que usa estado, aunque no se use en tu lógica de abajo.
-import * as XLSX from 'xlsx'; // Importado para consistencia, aunque se usa TSV/CSV-like
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import * as XLSX from 'xlsx';
 
 // --- INTERFACES NECESARIAS ---
 
@@ -27,9 +27,6 @@ export interface TurnoBio {
 // --- HOOK USE CUADRANTES BIO ---
 
 export function useCuadrantesBio() {
-  // Nota: Asumo que useToast y sus tipos están disponibles y se pasan como "triggerToast" en la exportación.
-  // Si no quieres pasar useToast, puedes importarlo y usarlo directamente aquí.
-  // Para este ejemplo, lo manejaremos con un parámetro como lo definiste, o asumiendo el uso estándar:
   const { toast } = useToast();
 
   const list = async (centerId: string | null, from: string, to: string): Promise<CuadranteBio[]> => {
@@ -40,9 +37,81 @@ export function useCuadrantesBio() {
     return data || [];
   };
 
+  // 🚨 FUNCIÓN ASSIGN CORREGIDA (IMPLEMENTA MAPEO AUTOMÁTICO) 🚨
   const assign = async (rows: Array<Omit<CuadranteBio, 'id' | 'created_at' | 'updated_at'>>): Promise<number> => {
-    const { error } = await supabase.from('cuadrantes_biometricos').upsert(rows, { onConflict: 'id_profesional,fecha' });
-    if (error) throw error;
+    // 1. Insertar/Actualizar Cuadrantes (Lógica existente)
+    const { error: e1 } = await supabase.from('cuadrantes_biometricos').upsert(rows, { onConflict: 'id_profesional,fecha' });
+    if (e1) throw e1;
+
+    // --- LÓGICA DE MAPEO AUTOMÁTICO DE ENNO A EMPLEADO_DISPOSITIVO_MAP ---
+    const professionalIds = Array.from(new Set(rows.map(r => r.id_profesional))).filter(Boolean);
+    // Asumimos que todas las filas de la asignación tienen el mismo centro
+    const centerId = rows[0]?.centro_salud_id;
+
+    if (professionalIds.length > 0 && centerId) {
+      // 2. Obtener el EnNo de los profesionales asignados
+      const { data: profs, error: e2 } = await supabase.from('profesionales_sanitarios')
+        .select('id, numero_enrolamiento_enno')
+        .in('id', professionalIds)
+        .eq('centro_salud_id', centerId)
+        .neq('numero_enrolamiento_enno', null); // Solo si tiene EnNo
+
+      if (e2) {
+        console.error('Error al obtener EnNo de profesionales:', e2);
+      } else {
+        const professionalsWithEnNo = profs || [];
+
+        // 3. Encontrar dispositivos activos en ese centro para el mapeo
+        // (ASUMIMOS QUE LA TABLA SE LLAMA dispositivos_fichaje)
+        const { data: devices, error: e3 } = await supabase.from('dispositivos_fichaje')
+          .select('id')
+          .eq('centro_salud_id', centerId)
+          .eq('activo', true);
+
+        if (e3) {
+          console.error('Error al obtener dispositivos activos:', e3);
+        } else {
+          const deviceIds = (devices || []).map(d => d.id);
+
+          // 4. Construir y actualizar las entradas en empleado_dispositivo_map
+          if (deviceIds.length > 0 && professionalsWithEnNo.length > 0) {
+            const mappingsToUpsert = [];
+            for (const prof of professionalsWithEnNo) {
+              // 🔑 NORMALIZACIÓN CRUCIAL: Eliminar no dígitos y truncar a 10 caracteres
+              const rawEnNo = prof.numero_enrolamiento_enno;
+              const sanitizedEnNo = rawEnNo ? String(rawEnNo).replace(/\D/g, '').slice(0, 10) : null;
+
+              if (!sanitizedEnNo) continue;
+
+              for (const deviceId of deviceIds) {
+                mappingsToUpsert.push({
+                  id_profesional: prof.id,
+                  en_no: sanitizedEnNo, // Usamos el EnNo limpio
+                  id_dispositivo: deviceId,
+                });
+              }
+            }
+
+            // Upsert en la tabla de mapeo (empleado_dispositivo_map)
+            const { error: e4 } = await supabase.from('empleado_dispositivo_map').upsert(
+              mappingsToUpsert,
+              { onConflict: 'id_profesional, id_dispositivo' } // Clave de unicidad
+            );
+
+            if (e4) {
+              console.error('Error al actualizar mapeo de dispositivo:', e4);
+              toast({
+                title: 'Aviso de Mapeo',
+                description: 'El cuadrante se guardó, pero no se pudo actualizar el mapeo de EnNo para los dispositivos.',
+                variant: 'warning'
+              });
+            }
+          }
+        }
+      }
+    }
+    // --- FIN LÓGICA DE MAPEO AUTOMÁTICO ---
+
     toast({ title: 'Asignación completada', description: `${rows.length} cuadrantes asignados/actualizados.` });
     return rows.length;
   };

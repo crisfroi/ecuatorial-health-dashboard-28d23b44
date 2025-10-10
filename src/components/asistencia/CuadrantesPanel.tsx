@@ -63,57 +63,60 @@ export function CuadrantesPanel() {
   const to = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
   const centerIdFilter = selectedCenter === 'todos' ? null : selectedCenter;
 
-  const { data: centers = [], isLoading: centersLoading } = useQuery<CentroOption[]>(
-    ['centros-options'],
-    async () => {
+  const { data: centers = [], isLoading: centersLoading } = useQuery<CentroOption[]>({
+    queryKey: ['centros-options'],
+    queryFn: async () => {
       const { data, error } = await supabase.from('centros_salud').select('id, nombre').order('nombre');
       if (error) throw error;
-      return data || [];
+      return data ?? [];
     },
-    { staleTime: 5 * 60_000 }
-  );
+    staleTime: 5 * 60_000,
+  });
 
-  const { data: turnos = [] } = useQuery<TurnoOption[]>(
-    ['turnos-bio'],
-    async () => {
+  const { data: turnos = [] } = useQuery<TurnoOption[]>({
+    queryKey: ['turnos-bio'],
+    queryFn: async () => {
       const { data, error } = await supabase.from('turnos_biometricos').select('id, nombre_turno, hora_inicio, hora_fin').order('nombre_turno');
       if (error) throw error;
-      return data || [];
+      return data ?? [];
     },
-    { staleTime: 5 * 60_000 }
-  );
+    staleTime: 5 * 60_000,
+  });
 
-  const { data: professionals = [], isLoading: professionalsLoading } = useQuery<ProfessionalOption[]>(
-    ['profesionales-centro', centerIdFilter],
-    async () => {
-      if (!centerIdFilter) {
-        const { data, error } = await supabase
-          .from('profesionales_sanitarios')
-          .select('id, nombre_completo, id_profesional_unico')
-          .order('nombre_completo', { ascending: true })
-          .limit(200);
-        if (error) throw error;
-        return (data || []).map((item) => ({ id: item.id, nombre: item.nombre_completo || 'Sin nombre', empNo: item.id_profesional_unico }));
-      }
-      const { data, error } = await supabase
+  const { data: professionals = [], isLoading: professionalsLoading } = useQuery<ProfessionalOption[]>({
+    queryKey: ['profesionales-centro', centerIdFilter],
+    queryFn: async () => {
+      const baseQuery = supabase
         .from('profesionales_sanitarios')
         .select('id, nombre_completo, id_profesional_unico')
-        .eq('centro_salud_id', centerIdFilter)
         .order('nombre_completo', { ascending: true });
+
+      const query = centerIdFilter ? baseQuery.eq('centro_salud_id', centerIdFilter) : baseQuery.limit(200);
+      const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map((item) => ({ id: item.id, nombre: item.nombre_completo || 'Sin nombre', empNo: item.id_profesional_unico }));
+      return (data ?? []).map((item) => ({
+        id: item.id,
+        nombre: item.nombre_completo || 'Sin nombre',
+        empNo: item.id_profesional_unico,
+      }));
     },
-    { staleTime: 60_000, enabled: centers.length > 0 }
-  );
+    staleTime: 60_000,
+    enabled: centers.length > 0,
+  });
 
-  const { data: assignments = [], isLoading: assignmentsLoading, refetch: refetchAssignments } = useQuery(
-    ['cuadrantes', centerIdFilter, from],
-    () => list(centerIdFilter, from, to),
-    { staleTime: 15_000, enabled: !!centerIdFilter || selectedCenter === 'todos' }
-  );
+  const {
+    data: assignments = [],
+    isLoading: assignmentsLoading,
+    refetch: refetchAssignments,
+  } = useQuery({
+    queryKey: ['cuadrantes', centerIdFilter, from, to],
+    queryFn: () => list(centerIdFilter, from, to),
+    staleTime: 15_000,
+    enabled: !!centerIdFilter || selectedCenter === 'todos',
+  });
 
-  const assignMutation = useMutation(
-    async (payload: AssignFormValues) => {
+  const assignMutation = useMutation<number, Error, AssignFormValues>({
+    mutationFn: async (payload) => {
       const start = new Date(payload.startDate);
       const end = new Date(payload.endDate);
       if (start > end) {
@@ -129,19 +132,17 @@ export function CuadrantesPanel() {
       await assign(rows);
       return rows.length;
     },
-    {
-      onSuccess: (total) => {
-        toast({ title: 'Cuadrante actualizado', description: `${total} asignaciones registradas` });
-        setAssignDialogOpen(false);
-        setSelectedDate(null);
-        queryClient.invalidateQueries({ queryKey: ['cuadrantes'] });
-        void refetchAssignments();
-      },
-      onError: (error: any) => {
-        toast({ title: 'No se pudo asignar', description: error?.message || 'Revise los datos y reintente', variant: 'destructive' });
-      },
-    }
-  );
+    onSuccess: (total) => {
+      toast({ title: 'Cuadrante actualizado', description: `${total} asignaciones registradas` });
+      setAssignDialogOpen(false);
+      setSelectedDate(null);
+      queryClient.invalidateQueries({ queryKey: ['cuadrantes'] });
+      void refetchAssignments();
+    },
+    onError: (error) => {
+      toast({ title: 'No se pudo asignar', description: error.message || 'Revise los datos y reintente', variant: 'destructive' });
+    },
+  });
 
   const form = useForm<AssignFormValues>({
     resolver: zodResolver(assignSchema),
@@ -160,19 +161,19 @@ export function CuadrantesPanel() {
 
   const professionalMap = useMemo(() => {
     const map = new Map<string, ProfessionalOption>();
-    (professionals || []).forEach((professional) => map.set(professional.id, professional));
+    professionals.forEach((professional) => map.set(professional.id, professional));
     return map;
   }, [professionals]);
 
   const turnosMap = useMemo(() => {
     const map = new Map<string, TurnoOption>();
-    (turnos || []).forEach((turno) => map.set(turno.id, turno));
+    turnos.forEach((turno) => map.set(turno.id, turno));
     return map;
   }, [turnos]);
 
   const assignmentsByDate = useMemo<CalendarAssignments>(() => {
     const grouped: CalendarAssignments = {};
-    (assignments || []).forEach((assignment) => {
+    assignments.forEach((assignment) => {
       grouped[assignment.fecha] = grouped[assignment.fecha] || [];
       grouped[assignment.fecha].push({ professionalId: assignment.id_profesional, turnoId: assignment.turno_id });
     });
@@ -331,7 +332,7 @@ export function CuadrantesPanel() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {(professionals || []).map((professional) => (
+                        {professionals.map((professional) => (
                           <SelectItem key={professional.id} value={professional.id}>
                             <div className="flex flex-col">
                               <span className="font-medium">{professional.nombre}</span>
@@ -359,7 +360,7 @@ export function CuadrantesPanel() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {(turnos || []).map((turno) => (
+                        {turnos.map((turno) => (
                           <SelectItem key={turno.id} value={turno.id}>
                             <div className="flex flex-col">
                               <span className="font-medium">{turno.nombre_turno}</span>

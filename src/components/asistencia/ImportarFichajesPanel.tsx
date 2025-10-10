@@ -85,34 +85,89 @@ export function ImportarFichajesPanel() {
 
   const parseTxtPreview = async (file: File): Promise<FichajePreviewRow[]> => {
     const text = await file.text();
-    const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-    if (!lines.length) return [];
-    const preview: FichajePreviewRow[] = [];
-    let headerProcessed = false;
-    for (const line of lines) {
-      const parts = line.split(/\t+|,|\s{2,}/).map((part) => part.trim()).filter(Boolean);
-      if (!parts.length) continue;
-      if (!headerProcessed) {
-        headerProcessed = /enno/i.test(parts.join('')) || /datetime/i.test(parts.join(''));
-        if (headerProcessed) continue;
-      }
-      const dateMatch = line.match(/(\d{4}[\/-]\d{2}[\/-]\d{2}[ T]\d{2}:\d{2}(:\d{2})?)/);
-      const fechaHora = dateMatch ? new Date(dateMatch[1].replace(/\//g, '-')).toISOString() : new Date().toISOString();
-
-      // CAMBIO CRÍTICO: En lugar de buscar el primer número (que era el 'No' o 'TMNo'),
-      // se asume que el EnNo está en la tercera columna (índice 2) en el formato de log proporcionado.
-      const enNoCandidate = (parts.length > 2 && /^\d{1,10}$/.test(parts[2])) ? parts[2] : null;
-
-      const modeCandidate = parts.find((value) => /^(IN|OUT|0|1|FINGER|CARD|FACE|\d{1,2})$/i.test(value)) || null;
-      preview.push({
-        enNo: enNoCandidate,
-        fechaHora,
-        mode: modeCandidate,
-        source: file.name,
-      });
-      if (preview.length >= 200) break;
+    const linesRaw = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    if (!linesRaw.length) return [];
+    
+    // Lógica para detectar y mapear la cabecera
+    const lines = [...linesRaw]; // Copia el array para modificarlo
+    let headerMap: Record<string, number> | null = null;
+    
+    // El formato de split intenta manejar tabulaciones, comas o 2+ espacios como delimitadores
+    const firstLineParts = lines[0].split(/\t+|,|\s{2,}/).map(s => s.trim());
+    const knownHeaders = ['No', 'TMNo', 'EnNo', 'Name', 'INOUT', 'Mode', 'DateTime'];
+    
+    // Comprueba si la primera línea contiene todas las cabeceras clave
+    const isHeader = knownHeaders.every(h => firstLineParts.includes(h));
+    
+    if (isHeader) {
+        // Mapea el nombre de la cabecera a su índice de columna
+        headerMap = firstLineParts.reduce((acc, key, idx) => { acc[key] = idx; return acc; }, {} as Record<string, number>);
+        lines.shift(); // Elimina la cabecera del array de datos
     }
-    return preview;
+
+    const entries: FichajePreviewRow[] = [];
+    
+    for (const raw of lines.slice(0, 200)) { // Limitar a 200 para previsualización
+        const parts = raw.split(/\t+|,|\s{2,}/).map((p) => p.trim()).filter(Boolean);
+        if (!parts.length || parts.length < 3) continue;
+
+        let enNo: string | null = null;
+        let fechaHora: string = new Date().toISOString();
+        let mode: string | null = null;
+        let inout: string | null = null;
+
+        if (headerMap) {
+            // Usa el mapa de cabeceras para una extracción precisa
+            const enNoIdx = headerMap['EnNo'];
+            const dtIdx = headerMap['DateTime'];
+            const inoutIdx = headerMap['INOUT'];
+            const modeIdx = headerMap['Mode'];
+
+            // 1. EnNo (Obligatorio para el mapeo)
+            enNo = parts[enNoIdx] && /^\d{1,10}$/.test(parts[enNoIdx]) ? String(parts[enNoIdx]) : null;
+
+            // 2. DateTime
+            const dtRaw = parts[dtIdx] || '';
+            const normalized = dtRaw.replace(/\//g, '-');
+            const parsed = new Date(normalized);
+            fechaHora = isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+
+            // 3. Mode y INOUT
+            mode = parts[modeIdx] || null;
+            const inoutRaw = parts[inoutIdx] || '';
+
+            if (/^in$/i.test(inoutRaw)) inout = 'IN';
+            else if (/^out$/i.test(inoutRaw)) inout = 'OUT';
+            // Si es 0/1 (generalmente 0=IN, 1=OUT), déjalo como null para que el proceso de importación
+            // en useAsistencia decida o use la heurística.
+            else if (/^[01]$/.test(inoutRaw)) inout = null; 
+            
+        } else {
+            // Fallback heurístico si no hay cabecera (menos fiable)
+            const joined = raw.replace(/,/g, ' ');
+            const dtMatch = joined.match(/(\d{4}[\/-]\d{2}[\/-]\d{2}[ T]\d{2}:\d{2}(:\d{2})?)/);
+            fechaHora = dtMatch ? new Date(dtMatch[1].replace(/\//g, '-')).toISOString() : new Date().toISOString();
+            
+            // Asumiendo que el EnNo es el primer número largo después del primer índice (No) o el segundo índice (TMNo)
+            // En este formato, es la tercera parte (índice 2)
+            enNo = (parts.length > 2 && /^\d{1,10}$/.test(parts[2])) ? parts[2] : null;
+
+            const inoutToken = parts.find(p => /^I(n)?$|^O(ut)?$/i.test(p));
+            inout = inoutToken ? (/^I/i.test(inoutToken) ? 'IN' : 'OUT') : null;
+            mode = parts.find(p => /^(M|A|FP|FACE|FINGER|CARD|\d{1,2})$/i.test(p)) || null;
+        }
+
+        if (enNo) { // Solo añadir si hay un EnNo válido
+            entries.push({
+                enNo: enNo,
+                fechaHora,
+                mode: mode,
+                inout: inout,
+                source: file.name,
+            });
+        }
+    }
+    return entries;
   };
 
   const parseXlsPreview = async (file: File): Promise<FichajePreviewRow[]> => {

@@ -12,7 +12,7 @@ import { MetricasPanel } from './MetricasPanel';
 const TAB_VALUES = [
   'dispositivos',
   'turnos',
-  'cuadrantes',
+  'Horarios',
   'importar',
   'reportes',
   'metricas',

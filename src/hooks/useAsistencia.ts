@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
@@ -52,7 +52,7 @@ export interface ConsolidatedDayEntry {
 // Lo que realmente genera el parser antes de la inserción.
 type LogPayload = Omit<AttendanceLog, 'id' | 'id_dispositivo' | 'created_at'>;
 
-// --- NUEVA INTERFAZ REQUERIDA (Turno Biométrico) ---
+// --- INTERFAZ REQUERIDA (Turno Biométrico) ---
 export interface TurnoBio {
   id: string;
   nombre_turno: string;
@@ -82,7 +82,6 @@ export function useDispositivosFichaje() {
   const create = async (payload: Partial<Dispositivo>) => {
     setLoading(true);
     try {
-      // tm_no incluido en el payload de inserción
       const { data, error } = await supabase.from('dispositivos').insert({
         nombre: payload.nombre,
         ubicacion: payload.ubicacion || null,
@@ -99,7 +98,6 @@ export function useDispositivosFichaje() {
   };
 
   const update = async (id: string, patch: Partial<Dispositivo>) => {
-    // tm_no incluido en el payload de actualización
     const { data, error } = await supabase.from('dispositivos').update({
       nombre: patch.nombre,
       ubicacion: patch.ubicacion,
@@ -124,7 +122,6 @@ export function useDispositivosFichaje() {
     return data || [];
   };
 
-  // IMPLEMENTACIÓN DE UPSERT MAPPING
   const upsertMapping = async (
     id_dispositivo: string,
     en_no: string,
@@ -193,7 +190,7 @@ export function useDispositivosFichaje() {
 }
 
 // ----------------------------------------------------------------------
-// 🚨 NUEVAS FUNCIONES DE LÓGICA DE HORARIOS 🚨
+// 🚨 FUNCIONES DE LÓGICA DE HORARIOS 🚨
 // ----------------------------------------------------------------------
 
 /**
@@ -222,7 +219,6 @@ export const getProfessionalSchedule = async (professionalId: string, dateString
   const dbDayOfWeek = date.getDay() === 0 ? 7 : date.getDay();
 
   // --- Prioridad 1: Excepción/Asignación Diaria (cuadrantes_biometricos) ---
-  // Esta es la fuente de verdad actual (guardias, vacaciones, cambios puntuales).
   const { data: dailyAssignment } = await supabase
     .from('cuadrantes_biometricos')
     .select('turno_id')
@@ -231,49 +227,42 @@ export const getProfessionalSchedule = async (professionalId: string, dateString
     .maybeSingle();
 
   if (dailyAssignment?.turno_id) {
-    // ¡Se encontró una asignación diaria! Se devuelve inmediatamente.
     return fetchTurno(dailyAssignment.turno_id);
   }
 
   // --- Prioridad 2: Horario Base Semanal (horarios_base_profesional) ---
-  // Esta es la nueva regla de respaldo a largo plazo.
   const { data: baseSchedule } = await supabase
     .from('horarios_base_profesional')
     .select('turno_id')
     .eq('id_profesional', professionalId)
     .eq('dia_semana', dbDayOfWeek)
     // La regla debe estar vigente en la fecha solicitada: 
-    // vigencia_desde <= fecha AND (vigencia_hasta IS NULL OR vigencia_hasta >= fecha)
     .lte('vigencia_desde', dateString)
     .or(`vigencia_hasta.is.null,vigencia_hasta.gte.${dateString}`)
     .maybeSingle();
 
   if (baseSchedule?.turno_id) {
-    // ¡Se encontró una regla base!
     return fetchTurno(baseSchedule.turno_id);
   }
 
-  // Si no se encuentra ninguna asignación en ambas tablas
   return null;
 };
 
-
 // ----------------------------------------------------------------------
-// 🛠️ USE ASISTENCIA
+// 🛠️ USE ASISTENCIA (Optimizado con Normalización de EnNo)
 // ----------------------------------------------------------------------
 
 export function useAsistencia() {
   const { toast } = useToast();
   const [importing, setImporting] = useState(false);
 
-  // Parser genérico TXT/DAT
+  // Parser genérico TXT/DAT (sin cambios)
   const parseLines = (text: string): LogPayload[] => {
     const linesRaw = text.split(/\r?\n/);
     const lines = linesRaw.map(l => l.replace(/\uFEFF/g, '').trim()).filter(Boolean);
-
     const entries: LogPayload[] = [];
-
     let headerMap: Record<string, number> | null = null;
+
     if (lines.length) {
       const headerParts = lines[0].split(/\t+|,|\s{2,}/).map(s => s.trim());
       const knownHeaders = ['No', 'TMNo', 'EnNo', 'Name', 'INOUT', 'Mode', 'DateTime'];
@@ -319,7 +308,6 @@ export function useAsistencia() {
       }
 
       // 🚨 CORRECCIÓN CLAVE: NORMALIZAR EL EN_NO PARA LA CONSULTA 🚨
-      // Aseguramos que el EnNo del fichaje se limpia de no-dígitos y se trunca.
       const sanitized_en_no = en_no_raw ? String(en_no_raw).replace(/\D/g, '').slice(0, 10) : null;
 
       entries.push({
@@ -352,14 +340,11 @@ export function useAsistencia() {
     let validLogs = logs;
     let filteredCount = 0;
 
-    // 2. VALIDACIÓN CRÍTICA del TMNo
+    // 2. VALIDACIÓN CRÍTICA del TMNo (sin cambios)
     if (expectedTmNo) {
       validLogs = logs.filter(log => {
         const logTmNo = log.tm_no ? String(log.tm_no) : null;
-        // Si el log NO tiene TMNo, lo aceptamos (posiblemente formato antiguo sin la columna).
         if (!logTmNo) return true;
-
-        // Si tiene TMNo, DEBE coincidir con el esperado del dispositivo.
         return logTmNo === expectedTmNo;
       });
 
@@ -382,12 +367,13 @@ export function useAsistencia() {
     }
 
     // 3. Resolver id_profesional por en_no vía mapeo
-    // Dado que el EnNo de los logs ya está sanitizado, la consulta es segura
+    // El EnNo de los logs ya está sanitizado desde parseLines
     const enNos = Array.from(new Set(validLogs.map(l => l.en_no).filter(Boolean))) as string[];
     let mappings: EmpleadoDispositivoMap[] = [];
     if (enNos.length) {
       const { data: maps, error: mapsErr } = await supabase
         .from('empleado_dispositivo_map')
+        // La consulta usa el en_no sanitizado (solo dígitos)
         .select('id_profesional,en_no')
         .in('en_no', enNos)
         .eq('id_dispositivo', deviceId);
@@ -395,12 +381,12 @@ export function useAsistencia() {
       mappings = maps || [];
     }
 
-    // 4. Inserción de logs válidos
+    // 4. Inserción de logs válidos (sin cambios)
     const rows = validLogs.map(l => {
       const profId = mappings.find(m => m.en_no === l.en_no)?.id_profesional || null;
       return {
         id_profesional: profId,
-        id_dispositivo: deviceId, // <-- AÑADIDO AQUÍ
+        id_dispositivo: deviceId,
         en_no: l.en_no,
         tm_no: l.tm_no,
         inout: l.inout,
@@ -429,7 +415,6 @@ export function useAsistencia() {
     }
   };
 
-  // Importar Reporte.xls (multi-hoja)
   const importReporteXls = async (deviceId: string, file: File) => {
     setImporting(true);
     try {
@@ -448,7 +433,7 @@ export function useAsistencia() {
           const dt = r.DateTime || r.Datetime || r.TIME || r.Time || '';
           const io = r.INOUT || r.InOut || r.Dir || r.Direction || '';
           const md = r.Mode || r.method || r.Method || '';
-          const tm = r.TMNo || r.TMNO || ''; // <-- Extracción de TMNo de la hoja XLS
+          const tm = r.TMNo || r.TMNO || '';
 
           const normalized = String(dt).replace(/\//g, '-');
           const fecha_hora = new Date(normalized).toISOString();
@@ -460,7 +445,7 @@ export function useAsistencia() {
           return {
             id_profesional: null,
             en_no: sanitized_en_no, // Usar el valor sanitizado
-            tm_no: String(tm) || null, // <-- Se incluye TMNo
+            tm_no: String(tm) || null,
             inout,
             mode: md ? String(md) : null,
             fecha_hora,
@@ -490,35 +475,22 @@ export function useAsistencia() {
         return 0;
       }
 
+      // NOTA: No se usa sheet_to_json con `{ header: 1 }` para detectar la cabecera en fila 3, 
+      // sino que se confía en la plantilla exportada para que los datos empiecen en la fila 4.
       const ws = wb.Sheets[firstSheetName];
       if (!ws) {
         toast({ title: 'Hoja inválida', description: 'No se pudo leer el contenido de la hoja seleccionada', variant: 'destructive' });
         return 0;
       }
 
-      const headerRows = XLSX.utils.sheet_to_json<Array<string | number>>(ws, { header: 1, defval: '' });
-      const headerRow = headerRows.find((row) => row.some((cell) => String(cell ?? '').trim().length > 0)) || [];
-      const normalizedHeaders = headerRow.map((cell) => String(cell || '').trim().toLowerCase());
-      const columnChecks = [
-        { keys: ['id', 'empno', 'emp no', 'enno', 'en no', 'no'], label: 'ID/EmpNo' },
-        { keys: ['name', 'nombre'], label: 'Nombre' },
-        { keys: ['turno', 'shift'], label: 'Turno' },
-      ];
-      const missing = columnChecks
-        .filter(({ keys }) => !normalizedHeaders.some((header) => keys.includes(header)))
-        .map(({ label }) => label);
-      if (missing.length) {
-        toast({
-          title: 'Formato Personal.xls no válido',
-          description: `Faltan columnas requeridas: ${missing.join(', ')}`,
-          variant: 'destructive',
-        });
-        return 0;
-      }
+      // Intentar leer los datos asumiendo que el encabezado está en la fila 3 (columna 3 del array)
+      const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(ws, {
+        defval: '',
+        range: 2, // Empezar a buscar datos a partir de la fila 3 (índice 2)
+      });
 
-      const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
       if (!rows.length) {
-        toast({ title: 'Archivo vacío', description: 'No se encontraron registros en el archivo Personal.xls', variant: 'destructive' });
+        toast({ title: 'Archivo vacío', description: 'No se encontraron registros en el archivo Personal.xls, asegúrese que la cabecera está en la fila 3.', variant: 'destructive' });
         return 0;
       }
 
@@ -556,8 +528,11 @@ export function useAsistencia() {
         // Usamos la misma lógica: limpiar no-dígitos y truncar a 10.
         const enNo = rawEmp.replace(/\D/g, '').slice(0, 10);
 
+        // La fila en el Excel es el índice de la fila de datos (0-based) + 4
+        const excelRowIndex = index + 4;
+
         if (!enNo) {
-          invalid.push(index + 2);
+          invalid.push(excelRowIndex);
           return;
         }
 
@@ -571,7 +546,7 @@ export function useAsistencia() {
         }
 
         if (!profId) {
-          unmatched.push(rawEmp || name || `fila ${index + 2}`);
+          unmatched.push(rawEmp || name || `fila ${excelRowIndex}`);
           return;
         }
 
@@ -710,7 +685,7 @@ export function useAsistencia() {
     consolidateDaily,
     generateAttendanceStats,
     exportDAT,
-    // 🚨 Nueva función de lógica de negocio 🚨
+    // La función clave que usamos en la lógica de negocio.
     getProfessionalSchedule
   };
 }

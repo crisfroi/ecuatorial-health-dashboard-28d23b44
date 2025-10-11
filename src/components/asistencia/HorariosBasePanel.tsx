@@ -147,7 +147,8 @@ const ImportPersonalDialog = ({ centerId, onComplete }: { centerId?: string | nu
 export function HorariosBasePanel() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth(); // ✅ user sí existe
+  const { user } = useAuth(); // Obtenemos el objeto 'user'
+  const userCenterId = user?.assigned_center_id;
   const { listByProfessional, save, remove } = useHorariosBase();
 
   // --- Estados y Hooks ---

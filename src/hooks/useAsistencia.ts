@@ -52,8 +52,19 @@ export interface ConsolidatedDayEntry {
 // Lo que realmente genera el parser antes de la inserción.
 type LogPayload = Omit<AttendanceLog, 'id' | 'id_dispositivo' | 'created_at'>;
 
+// --- NUEVA INTERFAZ REQUERIDA (Turno Biométrico) ---
+export interface TurnoBio {
+  id: string;
+  nombre_turno: string;
+  hora_inicio: string; // Ej: '08:00:00'
+  hora_fin: string; // Ej: '16:00:00'
+  tolerancia_entrada_min: number;
+  tolerancia_salida_min: number;
+  // ... otros campos relevantes de turnos_biometricos
+}
+
 // ----------------------------------------------------------------------
-// 🛠️ USE DISPOSITIVOS FICHAJE
+// 🛠️ USE DISPOSITIVOS FICHAJE (SIN CAMBIOS)
 // ----------------------------------------------------------------------
 
 export function useDispositivosFichaje() {
@@ -180,6 +191,72 @@ export function useDispositivosFichaje() {
 
   return { loading, list, create, update, remove, listMappings, upsertMapping };
 }
+
+// ----------------------------------------------------------------------
+// 🚨 NUEVAS FUNCIONES DE LÓGICA DE HORARIOS 🚨
+// ----------------------------------------------------------------------
+
+/**
+ * Helper para obtener el detalle completo del turno por su ID.
+ */
+const fetchTurno = async (turnoId: string): Promise<TurnoBio | null> => {
+  const { data } = await supabase
+    .from('turnos_biometricos')
+    .select('*')
+    .eq('id', turnoId)
+    .maybeSingle();
+  return data as TurnoBio | null;
+}
+
+/**
+ * 🚨 FUNCIÓN CRÍTICA DE JERARQUÍA 🚨
+ * Resuelve el Turno Aplicable para un profesional en una fecha específica,
+ * respetando la jerarquía: Cuadrante Diario > Horario Base Semanal.
+ */
+export const getProfessionalSchedule = async (professionalId: string, dateString: string): Promise<TurnoBio | null> => {
+  if (!professionalId) return null;
+
+  // 1. Calcular el día de la semana para la consulta Base Semanal (1=Lunes, 7=Domingo)
+  const date = new Date(dateString);
+  // getDay() retorna 0=Domingo, 1=Lunes... 6=Sábado. Lo ajustamos a 1=Lunes, 7=Domingo.
+  const dbDayOfWeek = date.getDay() === 0 ? 7 : date.getDay();
+
+  // --- Prioridad 1: Excepción/Asignación Diaria (cuadrantes_biometricos) ---
+  // Esta es la fuente de verdad actual (guardias, vacaciones, cambios puntuales).
+  const { data: dailyAssignment } = await supabase
+    .from('cuadrantes_biometricos')
+    .select('turno_id')
+    .eq('id_profesional', professionalId)
+    .eq('fecha', dateString)
+    .maybeSingle();
+
+  if (dailyAssignment?.turno_id) {
+    // ¡Se encontró una asignación diaria! Se devuelve inmediatamente.
+    return fetchTurno(dailyAssignment.turno_id);
+  }
+
+  // --- Prioridad 2: Horario Base Semanal (horarios_base_profesional) ---
+  // Esta es la nueva regla de respaldo a largo plazo.
+  const { data: baseSchedule } = await supabase
+    .from('horarios_base_profesional')
+    .select('turno_id')
+    .eq('id_profesional', professionalId)
+    .eq('dia_semana', dbDayOfWeek)
+    // La regla debe estar vigente en la fecha solicitada: 
+    // vigencia_desde <= fecha AND (vigencia_hasta IS NULL OR vigencia_hasta >= fecha)
+    .lte('vigencia_desde', dateString)
+    .or(`vigencia_hasta.is.null,vigencia_hasta.gte.${dateString}`)
+    .maybeSingle();
+
+  if (baseSchedule?.turno_id) {
+    // ¡Se encontró una regla base!
+    return fetchTurno(baseSchedule.turno_id);
+  }
+
+  // Si no se encuentra ninguna asignación en ambas tablas
+  return null;
+};
+
 
 // ----------------------------------------------------------------------
 // 🛠️ USE ASISTENCIA
@@ -624,5 +701,16 @@ export function useAsistencia() {
     a.click();
   };
 
-  return { importing, importFile, importReporteXls, importPersonalXls, fetchLogsByRange, consolidateDaily, generateAttendanceStats, exportDAT };
+  return {
+    importing,
+    importFile,
+    importReporteXls,
+    importPersonalXls,
+    fetchLogsByRange,
+    consolidateDaily,
+    generateAttendanceStats,
+    exportDAT,
+    // 🚨 Nueva función de lógica de negocio 🚨
+    getProfessionalSchedule
+  };
 }

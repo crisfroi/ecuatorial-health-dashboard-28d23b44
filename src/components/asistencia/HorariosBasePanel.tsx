@@ -217,8 +217,8 @@ export function HorariosBasePanel() {
       const lowerCaseSearch = searchTerm.toLowerCase();
       return professionals.filter(p =>
           p.nombre_completo.toLowerCase().includes(lowerCaseSearch) ||
-          p.numero_enrolamiento_enno?.toLowerCase().includes(lowerCaseSearch) ||
-          p.numero_tarjeta_rfid?.toLowerCase().includes(lowerCaseSearch)
+          String(p.numero_enrolamiento_enno || '').toLowerCase().includes(lowerCaseSearch) || 
+          String(p.numero_tarjeta_rfid || '').toLowerCase().includes(lowerCaseSearch)
       );
   }, [professionals, searchTerm]);
 

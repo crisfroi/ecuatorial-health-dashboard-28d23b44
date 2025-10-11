@@ -29,7 +29,7 @@ export default function AsistenciaDashboard() {
         <CardHeader className="space-y-2">
           <CardTitle>Asistencia biométrica</CardTitle>
           <CardDescription>
-            Administra dispositivos, cuadrantes, importaciones y reportes de asistencia para todos los centros.
+            Administra dispositivos, Horarios, importaciones y reportes de asistencia para todos los centros.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -37,7 +37,7 @@ export default function AsistenciaDashboard() {
             <TabsList className="grid grid-cols-2 gap-2 md:grid-cols-6">
               <TabsTrigger value="dispositivos">Dispositivos</TabsTrigger>
               <TabsTrigger value="turnos">Turnos</TabsTrigger>
-              <TabsTrigger value="cuadrantes">Horarios Base</TabsTrigger> {/* Etiqueta cambiada para mayor claridad */}
+              <TabsTrigger value="Horarios">Horarios Base</TabsTrigger> {/* Etiqueta cambiada para mayor claridad */}
               <TabsTrigger value="importar">Importar fichajes</TabsTrigger>
               <TabsTrigger value="reportes">Reportes</TabsTrigger>
               <TabsTrigger value="metricas">Métricas</TabsTrigger>
@@ -53,7 +53,7 @@ export default function AsistenciaDashboard() {
         <TabsContent value="turnos">
           <TurnosBiometricos selectedCenter={null} />
         </TabsContent>
-        <TabsContent value="cuadrantes">
+        <TabsContent value="Horarios">
           <HorariosBasePanel /> {/* <-- COMPONENTE REEMPLAZADO */}
         </TabsContent>
         <TabsContent value="importar">

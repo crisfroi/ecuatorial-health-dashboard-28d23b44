@@ -153,7 +153,8 @@ export function HorariosBasePanel() {
 
   // --- Estados y Hooks ---
   const [selectedCenterId, setSelectedCenterId] = useState<string>(user?.assigned_center_id || '');
-  const [selectedProfessionalId, setSelectedProfessionalId] = useState('');
+  const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
+  const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(''); // Estado para la búsqueda
 
@@ -410,30 +411,33 @@ export function HorariosBasePanel() {
                 <div className='space-y-2'><Skeleton className='h-8 w-full' /><Skeleton className='h-8 w-full' /></div>
               ) : !selectedCenterId ? (
                 <div className='text-center text-sm text-muted-foreground'>Seleccione un centro.</div>
-              ) : ( <div className='space-y-1'>
-                  {filteredProfessionals.length === 0 ? (
-                    <p className='text-center text-sm text-muted-foreground'>
-                      No se encontraron profesionales.
-                    </p>
-                  ) : (
-                    filteredProfessionals.map((p) => (
-                      <Button
-                        key={p.id}
-                        variant={p.id === selectedProfessionalId ? 'default' : 'ghost'} // Destacar el seleccionado
-                        className={cn(
-                          'w-full justify-start', 
-                          p.id === selectedProfessionalId && 'pointer-events-none' // Evitar clic si ya está seleccionado
-                        )}
-                        onClick={() => {
-                          setSelectedProfessionalId(p.id);
-                          saveForm.setValue('id_profesional', p.id);
-                        }}
-                      >
-                        {p.nombre_completo}
-                      </Button>
-                    ))
-                  )}
-                </div> )}
+                ) : (<div className='space-y-1'>
+                  {filteredProfessionals.length === 0 ? (
+                      <p className='text-center text-sm text-muted-foreground'>
+                        No se encontraron profesionales.
+                      </p>
+                    ) : (
+                        filteredProfessionals.map((p) => (
+                          <Button
+                        key={p.id}
+                        variant={p.id === selectedProfessionalId ? 'default' : 'ghost'} // Destacar el seleccionado
+                        className={cn('w-full justify-start', p.id === selectedProfessionalId && 'pointer-events-none' // Evitar clic si ya está seleccionado )}
+                         onClick = {() => {// Alternar la selección
+                          setSelectedProfessionalIds(prevIds => {
+                            if (prevIds.includes(p.id)) {
+                              // Deseleccionar
+                              return prevIds.filter(id => id !== p.id);
+                            } else {
+                              // Seleccionar
+                              return [...prevIds, p.id];
+                            }
+                          });setSelectedProfessionalId(p.id); saveForm.setValue('id_profesional', p.id);
+                         }}>
+                    {p.nombre_completo}
+              </Button>
+              ))
+              )}
+            </div> )}
               {/* Información del profesional seleccionado */}
               <div className='mt-4 text-sm text-muted-foreground space-y-1'>
                 {selectedProfessional ? (

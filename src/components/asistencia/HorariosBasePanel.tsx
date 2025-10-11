@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 // Asumo que 'useHorariosBase' es un hook creado por usted
@@ -147,11 +147,11 @@ const ImportPersonalDialog = ({ centerId, onComplete }: { centerId?: string | nu
 export function HorariosBasePanel() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { userCenterId } = useAuth();
+  const { user } = useAuth(); // ✅ user sí existe
   const { listByProfessional, save, remove } = useHorariosBase();
 
   // --- Estados y Hooks ---
-  const [selectedCenterId, setSelectedCenterId] = useState<string>(userCenterId || '');
+  const [selectedCenterId, setSelectedCenterId] = useState<string>(user?.assigned_center_id || '');
   const [selectedProfessionalId, setSelectedProfessionalId] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(''); // Estado para la búsqueda

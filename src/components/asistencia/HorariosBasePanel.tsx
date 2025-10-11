@@ -67,7 +67,7 @@ const safeFormatDate = (dateString: string | undefined): string => {
 
 // --- COMPONENTE PRINCIPAL ---
 
-export function CuadrantesPanel() {
+export function HorariosBasePanel() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { list, assign, exportPersonalXls, exportCuadrantesXls, saveCuadranteMaestro } = useCuadrantesBio(); 

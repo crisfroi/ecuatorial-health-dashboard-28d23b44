@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, getDay, isAfter, isBefore } from 'date-fns';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useForm } from 'react-hook-form';
-import * as XLSX from 'xlsx'; // Importación necesaria para la exportación
+import * as XLSX from 'xlsx';
 
-import { CalendarDays, Save, Plus, Trash2, Download, Upload, Info } from 'lucide-react';
+import { CalendarDays, Save, Plus, Trash2, Download, Upload, Info, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -17,7 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { HorarioBase, HorarioBasePayload, useHorariosBase } from '@/hooks/useHorariosBase';
+// Asumo que 'useHorariosBase' es un hook creado por usted
+import { HorarioBase, HorarioBasePayload, useHorariosBase } from '@/hooks/useHorariosBase'; 
 import { useAsistencia } from '@/hooks/useAsistencia';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -44,7 +45,11 @@ const DIAS_SEMANA = [
   { value: 7, label: 'Domingo' },
 ];
 
-// 🚨 Interfaz actualizada con los campos necesarios para la exportación de Personal.xls
+interface CentroOption {
+  id: string;
+  nombre: string;
+}
+
 interface ProfessionalRow {
   id: string;
   nombre_completo: string;
@@ -80,9 +85,8 @@ const ImportPersonalDialog = ({ centerId, onComplete }: { centerId?: string | nu
     };
     setLoading(true);
     try {
-      // Llama a la lógica de negocio en useAsistencia
       await importPersonalXls(DEVICE_ID_PLACEHOLDER, file, centerId);
-      onComplete(); // Llama a invalidar queries
+      onComplete();
       setOpen(false);
     } catch (error: any) {
       toast({
@@ -92,7 +96,7 @@ const ImportPersonalDialog = ({ centerId, onComplete }: { centerId?: string | nu
       });
     } finally {
       setLoading(false);
-      setFile(null); // Limpiar el archivo seleccionado
+      setFile(null);
     }
   };
 
@@ -146,37 +150,57 @@ export function HorariosBasePanel() {
   const { userCenterId } = useAuth();
   const { listByProfessional, save, remove } = useHorariosBase();
 
+  // --- Estados y Hooks ---
+  const [selectedCenterId, setSelectedCenterId] = useState<string>(userCenterId || '');
   const [selectedProfessionalId, setSelectedProfessionalId] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(''); // Estado para la búsqueda
+
+  // Sincronizar selectedCenterId al cargar el userCenterId inicial
+  useEffect(() => {
+    if (userCenterId && !selectedCenterId) {
+      setSelectedCenterId(userCenterId);
+    }
+  }, [userCenterId]);
+
 
   // --- Data Fetching (Queries) ---
-
-  // 1. Obtener Turnos Biométricos (Turnos disponibles)
-  const { data: turnos = [], isLoading: isLoadingTurnos } = useQuery<TurnoRow[]>({
-    queryKey: ['turnosBio', userCenterId],
+  
+  // 0. Obtener Centros de Salud (NUEVO)
+  const { data: centers = [], isLoading: isLoadingCenters } = useQuery<CentroOption[]>({
+    queryKey: ['centers'],
     queryFn: async () => {
-      if (!userCenterId) return [];
-      const { data, error } = await supabase.from('turnos_biometricos').select('id, nombre_turno').eq('centro_salud_id', userCenterId);
+      const { data, error } = await supabase.from('centros_salud').select('id, nombre');
       if (error) throw error;
       return data || [];
     },
-    enabled: !!userCenterId,
   });
 
-  // 2. Obtener Profesionales (🚨 ACTUALIZADO PARA INCLUIR CAMPOS DE EXPORTACIÓN 🚨)
-  const { data: professionals = [], isLoading: isLoadingProfs } = useQuery<ProfessionalRow[]>({
-    queryKey: ['professionals', userCenterId],
+  // 1. Obtener Turnos Biométricos
+  const { data: turnos = [], isLoading: isLoadingTurnos } = useQuery<TurnoRow[]>({
+    queryKey: ['turnosBio', selectedCenterId],
     queryFn: async () => {
-      if (!userCenterId) return [];
-      const { data, error } = await supabase.from('profesionales_sanitarios')
-        .select('id, nombre_completo, numero_enrolamiento_enno, numero_tarjeta_rfid, fecha_nacimiento, area_profesional')
-        .eq('centro_salud_id', userCenterId)
-        .order('nombre_completo');
+      if (!selectedCenterId) return [];
+      const { data, error } = await supabase.from('turnos_biometricos').select('id, nombre_turno').eq('centro_salud_id', selectedCenterId);
       if (error) throw error;
-      // Añadir mapeo de nombre_completo a nombre para asegurar compatibilidad si fuera necesario, aunque se usa nombre_completo en esta interfaz.
       return data || [];
     },
-    enabled: !!userCenterId,
+    enabled: !!selectedCenterId,
+  });
+
+  // 2. Obtener Profesionales (Incluyendo campos de exportación)
+  const { data: professionals = [], isLoading: isLoadingProfs } = useQuery<ProfessionalRow[]>({
+    queryKey: ['professionals', selectedCenterId],
+    queryFn: async () => {
+      if (!selectedCenterId) return [];
+      const { data, error } = await supabase.from('profesionales_sanitarios')
+        .select('id, nombre_completo, numero_enrolamiento_enno, numero_tarjeta_rfid, fecha_nacimiento, area_profesional')
+        .eq('centro_salud_id', selectedCenterId)
+        .order('nombre_completo');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedCenterId,
   });
 
   // 3. Obtener Horarios Base del Profesional Seleccionado
@@ -185,6 +209,17 @@ export function HorariosBasePanel() {
     queryFn: () => listByProfessional(selectedProfessionalId),
     enabled: !!selectedProfessionalId,
   });
+
+  // --- Lógica de Búsqueda y Filtrado de Profesionales ---
+  const filteredProfessionals = useMemo(() => {
+      if (!searchTerm) return professionals;
+      const lowerCaseSearch = searchTerm.toLowerCase();
+      return professionals.filter(p =>
+          p.nombre_completo.toLowerCase().includes(lowerCaseSearch) ||
+          p.numero_enrolamiento_enno?.toLowerCase().includes(lowerCaseSearch) ||
+          p.numero_tarjeta_rfid?.toLowerCase().includes(lowerCaseSearch)
+      );
+  }, [professionals, searchTerm]);
 
   // --- Formulario de Guardado (Mutations) ---
   const saveForm = useForm<z.infer<typeof saveHorarioSchema>>({
@@ -203,6 +238,7 @@ export function HorariosBasePanel() {
     onSuccess: () => {
       toast({ title: 'Regla guardada', description: 'El horario base se ha actualizado.' });
       queryClient.invalidateQueries({ queryKey: ['horariosBase', selectedProfessionalId] });
+      setIsDialogOpen(false); // Cierra el diálogo al guardar con éxito
       saveForm.reset({
         ...saveForm.getValues(),
         turno_id: '',
@@ -218,95 +254,87 @@ export function HorariosBasePanel() {
   });
 
   const onSubmit = (values: z.infer<typeof saveHorarioSchema>) => {
-    if (!userCenterId) {
+    if (!selectedCenterId) {
       toast({ title: 'Error', description: 'ID de Centro de Salud no disponible.', variant: 'destructive' });
       return;
     }
     const payload: HorarioBasePayload = {
       ...values,
       dia_semana: Number(values.dia_semana),
-      centro_salud_id: userCenterId,
+      centro_salud_id: selectedCenterId,
       vigencia_hasta: values.vigencia_hasta || null,
     };
     saveMutation.mutate(payload);
   };
 
-  // --- Funciones de Exportación (Personal.xls) - CORREGIDA Y COMPLETA ---
+  // --- Funciones de Exportación (Personal.xls) - CORRECTA ---
   const handleExport = () => {
     if (!professionals.length) {
-      toast({ title: 'Error', description: 'No hay profesionales para exportar.', variant: 'destructive' });
-      return;
+        toast({ title: 'Error', description: 'No hay profesionales para exportar.', variant: 'destructive' });
+        return;
     }
 
     // --- 1. Definición de Cabeceras EXACTAS (16 campos) ---
     const headers = [
-      'ID', 'Nombre', 'Depto.', 'Turno', 'Admin.', 'Registro de Huella', 'Rostro', 'Registrar Contraseña',
-      'ID o Tarjeta', 'Bloqueo de zona horaria', 'Grupo', 'Modo Verificar', 'Cumpleaños', 'Inicio:', 'Fin:', 'Perfil'
+        'ID', 'Nombre', 'Depto.', 'Turno', 'Admin.', 'Registro de Huella', 'Rostro', 'Registrar Contraseña', 
+        'ID o Tarjeta', 'Bloqueo de zona horaria', 'Grupo', 'Modo Verificar', 'Cumpleaños', 'Inicio:', 'Fin:', 'Perfil'
     ];
-
+    
     // --- 2. Mapeo de Datos con Formato y Campos Requeridos ---
     const data = professionals.map((p) => {
+        
+        let birthdayFormatted = '';
+        if (p.fecha_nacimiento) {
+            try {
+                const dob = new Date(p.fecha_nacimiento + 'T00:00:00'); 
+                if (!isNaN(dob.getTime())) {
+                    birthdayFormatted = format(dob, 'MM/dd'); // Formato esperado: MM/DD
+                }
+            } catch (e) { /* Fecha inválida */ }
+        }
 
-      // --- Cálculo de Cumpleaños (MM/DD) ---
-      let birthdayFormatted = '';
-      if (p.fecha_nacimiento) {
-        try {
-          // p.fecha_nacimiento viene como 'AAAA-MM-DD'. Lo convertimos a MM/DD
-          const dob = new Date(p.fecha_nacimiento + 'T00:00:00');
-          if (!isNaN(dob.getTime())) {
-            // Formato esperado: MM/DD
-            birthdayFormatted = format(dob, 'MM/dd');
-          }
-        } catch (e) { /* Fecha inválida */ }
-      }
-
-      return {
-        ID: p.numero_enrolamiento_enno || '', // Mapeado a numero_enrolamiento_enno
-        Nombre: p.nombre_completo,
-        'Depto.': p.area_profesional || '', // Mapeado a area_profesional
-        Turno: '',          // Vacío por defecto
-        'Admin.': 0,        // Fijo 0 (no admin)
-        'Registro de Huella': 0, // Fijo 0
-        Rostro: 0,          // Fijo 0
-        'Registrar Contraseña': 0, // Fijo 0
-        'ID o Tarjeta': p.numero_tarjeta_rfid || '', // Mapeado a numero_tarjeta_rfid
-        'Bloqueo de zona horaria': 0, // Fijo 0
-        Grupo: 0,           // Fijo 0
-        'Modo Verificar': 0, // Fijo 0
-        Cumpleaños: birthdayFormatted, // Formato MM/DD
-        'Inicio:': '',      // Vacío 
-        'Fin:': '',         // Vacío 
-        Perfil: '',         // Vacío
-      };
+        return {
+            ID: p.numero_enrolamiento_enno || '', 
+            Nombre: p.nombre_completo,
+            'Depto.': p.area_profesional || '',
+            Turno: '',          
+            'Admin.': 0,        
+            'Registro de Huella': 0, 
+            Rostro: 0,          
+            'Registrar Contraseña': 0, 
+            'ID o Tarjeta': p.numero_tarjeta_rfid || '', 
+            'Bloqueo de zona horaria': 0, 
+            Grupo: 0,           
+            'Modo Verificar': 0, 
+            Cumpleaños: birthdayFormatted, 
+            'Inicio:': '',      
+            'Fin:': '',         
+            Perfil: '',         
+        };
     });
 
     // --- 3. Generación del Archivo Excel (XLSX) con la estructura de filas correcta ---
     const wb = XLSX.utils.book_new();
-    // Creamos la hoja de datos, omitiendo la cabecera por ahora
     const ws = XLSX.utils.json_to_sheet(data, { header: headers, skipHeader: true });
 
-    // Fila 1 (A1): Instrucciones/Notas (Fila 2 queda vacía)
     XLSX.utils.sheet_add_aoa(ws, [['NOTA: Esta es la plantilla de Personal para el dispositivo biométrico. Los datos comienzan en la Fila 4.']], { origin: 'A1' });
-
-    // Fila 3 (A3): Cabecera real (los headers exactos)
-    XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A3' });
-
-    // Fila 4 (A4): Datos de la tabla
-    XLSX.utils.sheet_add_json(ws, data, {
-      skipHeader: true,
-      origin: 'A4',
+    
+    XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A3' }); 
+    
+    XLSX.utils.sheet_add_json(ws, data, { 
+        skipHeader: true, 
+        origin: 'A4', 
     });
 
     XLSX.utils.book_append_sheet(wb, ws, 'Personal');
-    XLSX.writeFile(wb, 'Personal.xls'); // Nombre de archivo correcto
+    XLSX.writeFile(wb, 'Personal.xls'); 
 
     toast({ title: 'Exportación de Personal', description: 'El archivo Personal.xls con la plantilla biométrica está listo.' });
   };
-
+  
 
   const handleImportComplete = () => {
-    // Invalida la query de profesionales para obtener los nuevos EnNo/RFID
-    queryClient.invalidateQueries({ queryKey: ['professionals', userCenterId] });
+    queryClient.invalidateQueries({ queryKey: ['professionals', selectedCenterId] });
   };
 
   // --- Renderizado ---
@@ -321,13 +349,38 @@ export function HorariosBasePanel() {
           <CardDescription>
             Define las reglas de turno fijas a largo plazo por profesional.
           </CardDescription>
+          {/* Selector de Centro (NUEVO) */}
+          <div className='pt-2'>
+            <Label htmlFor="center-select">Centro de Salud</Label>
+            {isLoadingCenters ? (
+              <Skeleton className='h-9 w-64' />
+            ) : (
+              <Select
+                value={selectedCenterId}
+                onValueChange={(val) => {
+                  setSelectedCenterId(val);
+                  setSelectedProfessionalId(''); // Limpiar selección al cambiar de centro
+                }}
+              >
+                <SelectTrigger id="center-select" className='w-[300px]'>
+                  <SelectValue placeholder="Seleccione un Centro..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {centers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
         </div>
         <div className='flex space-x-2'>
-          <Button variant="outline" onClick={handleExport} disabled={isLoadingProfs || !professionals.length}>
+          <Button variant="outline" onClick={handleExport} disabled={isLoadingProfs || !professionals.length || !selectedCenterId}>
             <Download className='mr-2 h-4 w-4' /> **Exportar Personal.xls**
           </Button>
-          {/* Botón que abre el Dialog de Importación */}
-          <ImportPersonalDialog centerId={userCenterId} onComplete={handleImportComplete} />
+          <ImportPersonalDialog centerId={selectedCenterId} onComplete={handleImportComplete} />
         </div>
       </CardHeader>
       <CardContent>
@@ -339,9 +392,23 @@ export function HorariosBasePanel() {
               <CardTitle className='text-base'>Seleccionar Profesional</CardTitle>
               <CardDescription>Busque al profesional para ver/editar sus reglas.</CardDescription>
             </CardHeader>
-            <ScrollArea className='h-[400px] p-4'>
+            <div className='px-4 pb-4'>
+                <div className='relative'>
+                    <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
+                    <Input
+                        placeholder='Buscar por nombre, EnNo o RFID...'
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className='pl-8'
+                        disabled={isLoadingProfs || !selectedCenterId}
+                    />
+                </div>
+            </div>
+            <ScrollArea className='h-[340px] p-4 pt-0'>
               {isLoadingProfs ? (
                 <div className='space-y-2'><Skeleton className='h-8 w-full' /><Skeleton className='h-8 w-full' /></div>
+              ) : !selectedCenterId ? (
+                <div className='text-center text-sm text-muted-foreground'>Seleccione un centro.</div>
               ) : (
                 <Select
                   value={selectedProfessionalId}
@@ -354,7 +421,7 @@ export function HorariosBasePanel() {
                     <SelectValue placeholder="Seleccionar un profesional..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {professionals.map((p) => (
+                    {filteredProfessionals.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.nombre_completo}
                       </SelectItem>
@@ -362,6 +429,7 @@ export function HorariosBasePanel() {
                   </SelectContent>
                 </Select>
               )}
+              {/* Información del profesional seleccionado */}
               <div className='mt-4 text-sm text-muted-foreground space-y-1'>
                 {selectedProfessional ? (
                   <>
@@ -385,7 +453,10 @@ export function HorariosBasePanel() {
               <CardTitle className='text-base'>Reglas Activas</CardTitle>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button size='sm' disabled={!selectedProfessionalId} onClick={() => saveForm.setValue('id_profesional', selectedProfessionalId)}>
+                  <Button size='sm' disabled={!selectedProfessionalId} onClick={() => {
+                    saveForm.setValue('id_profesional', selectedProfessionalId);
+                    setIsDialogOpen(true);
+                  }}>
                     <Plus className='mr-2 h-4 w-4' /> Añadir Regla
                   </Button>
                 </DialogTrigger>
@@ -519,8 +590,7 @@ export function HorariosBasePanel() {
                               onClick={() => {
                                 const isConfirmed = window.confirm('¿Está seguro de eliminar esta regla de horario base?');
                                 if (isConfirmed) {
-                                  // Asumo que 'remove' es una función de useHorariosBase que maneja la mutación de eliminación.
-                                  remove(h.id);
+                                  remove(h.id); 
                                 }
                               }}
                             >

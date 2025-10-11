@@ -1,853 +1,646 @@
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { addMonths, eachDayOfInterval, endOfMonth, format, isSameDay, startOfMonth, subMonths, getDay } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { format, getDay, isAfter, isBefore } from 'date-fns';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useForm } from 'react-hook-form';
+import * as XLSX from 'xlsx';
 
+import { CalendarDays, Save, Plus, Trash2, Download, Upload, Info, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useCuadrantesBio, type CuadranteMaestroOption, type CuadranteBio } from '@/hooks/useCuadrantesBio'; 
-import { supabase } from '@/integrations/supabase/client';
-import { cn } from '@/lib/utils';
+// He mantenido la ruta, pero la lógica interna se ha corregido para usar 'user.assigned_center_id'
+import { useAuth } from '@/hooks/useAuth'; 
+// Asumo que 'useHorariosBase' es un hook creado por usted
+import { HorarioBase, HorarioBasePayload, useHorariosBase } from '@/hooks/useHorariosBase'; 
+import { useAsistencia } from '@/hooks/useAsistencia';
+import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Calendar, Download, Grid, List, Users, Clock, ChevronLeft, ChevronRight, RotateCcw, Search,
-  CalendarPlus, Edit, Trash2, Save, X
-} from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-// --- INTERFACES Y TIPOS ---
-
-interface CentroOption { id: string; nombre: string; }
-interface TurnoOption { id: string; nombre_turno: string; hora_inicio?: string | null; hora_fin?: string | null; }
-interface ProfessionalOption { id: string; nombre: string; empNo?: string | null; }
-
-// Esquema para la Asignación
-const assignSchema = z.object({
-  professionalIds: z.array(z.string()).min(1, 'Seleccione al menos un profesional'),
-  turnoId: z.string().min(1, 'Seleccione un turno'),
-  startDate: z.string().min(1, 'Seleccione la fecha de inicio'),
-  endDate: z.string().min(1, 'Seleccione la fecha de fin'),
-  // 🚨 CORRECCIÓN 1: Nuevo campo para la selección de días de la semana
-  selectedWeekdays: z.array(z.coerce.number().min(0).max(6)).min(1, 'Seleccione al menos un día de la semana'), 
-});
-type AssignFormValues = z.infer<typeof assignSchema>;
-type CalendarAssignments = Record<string, Array<{ id: string, professionalId: string; turnoId: string }>>;
-
-// Esquema para Guardar Cuadrante Maestro
-const saveCuadranteSchema = z.object({
-    nombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
+// --- Esquemas de Validación ---
+const saveHorarioSchema = z.object({
+  id_profesional: z.string().min(1, 'Seleccione un profesional.'),
+  turno_id: z.string().min(1, 'Seleccione un turno.'),
+  dia_semana: z.string().min(1, 'Seleccione el día.'),
+  vigencia_desde: z.string().min(1, 'Ingrese la fecha de inicio.'),
+  vigencia_hasta: z.string().nullable().optional(),
 });
 
-// --- CONSTANTES DE DISEÑO Y HELPERS ---
-const getTurnoBadgeColor = (tipo: string) => { /* ... */ };
-const getDayName = (dayIndex: number) => ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][dayIndex];
-const getMonthName = (month: number) => [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-][month - 1];
+// --- Helpers ---
+const DIAS_SEMANA = [
+  { value: 1, label: 'Lunes' },
+  { value: 2, label: 'Martes' },
+  { value: 3, label: 'Miércoles' },
+  { value: 4, label: 'Jueves' },
+  { value: 5, label: 'Viernes' },
+  { value: 6, label: 'Sábado' },
+  { value: 7, label: 'Domingo' },
+];
 
-// 🚨 CORRECCIÓN: Función segura para formatear fechas
-const safeFormatDate = (dateString: string | undefined): string => {
-    if (!dateString) return '---';
-    const date = new Date(dateString);
-    // Verificar si es una fecha inválida (getTime() devuelve NaN)
-    if (isNaN(date.getTime())) return 'Fecha Inválida'; 
-    return format(date, 'dd/MM/yyyy');
+interface CentroOption {
+  id: string;
+  nombre: string;
+}
+
+interface ProfessionalRow {
+  id: string;
+  nombre_completo: string;
+  numero_enrolamiento_enno: string | null;
+  numero_tarjeta_rfid: string | null;
+  fecha_nacimiento?: string | null; 
+  area_profesional?: string | null; 
+}
+
+interface TurnoRow {
+  id: string;
+  nombre_turno: string;
+}
+
+// ----------------------------------------------------------------------
+// ⚡️ COMPONENTE DE DIÁLOGO DE IMPORTACIÓN ⚡️
+// ----------------------------------------------------------------------
+
+const ImportPersonalDialog = ({ centerId, onComplete }: { centerId?: string | null, onComplete: () => void }) => {
+  const { toast } = useToast();
+  // Asumo que 'useAsistencia' tiene el método 'importPersonalXls'
+  const { importPersonalXls } = useAsistencia(); 
+  const [open, setOpen] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const DEVICE_ID_PLACEHOLDER = 'N/A';
+
+  const handleConfirmImport = async () => {
+    if (!file || !centerId) {
+      toast({ title: 'Error', description: 'Debe seleccionar un archivo y tener un Centro de Salud asignado.', variant: 'destructive' });
+      return;
+    };
+    setLoading(true);
+    try {
+      await importPersonalXls(DEVICE_ID_PLACEHOLDER, file, centerId);
+      onComplete();
+      setOpen(false);
+    } catch (error: any) {
+      toast({
+        title: 'Error de Importación',
+        description: error.message || 'No se pudo procesar el archivo Personal.xls.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+      setFile(null);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="secondary" disabled={!centerId}>
+          <Upload className='mr-2 h-4 w-4' /> Importar Mapeo (.xls)
+        </Button>
+      </DialogTrigger>
+      <DialogContent className='sm:max-w-[425px]'>
+        <DialogHeader>
+          <DialogTitle>Importar Mapeo de Personal (Personal.xls)</DialogTitle>
+          <DialogDescription>
+            Cargue el archivo Personal.xls para actualizar masivamente los números de enrolamiento (EmpNo) y las tarjetas RFID de los profesionales.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="file" className="text-right">Archivo</Label>
+            <Input
+              id="file"
+              type="file"
+              accept=".xls,.xlsx"
+              onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+              className="col-span-3"
+            />
+          </div>
+          <p className='text-sm text-muted-foreground col-span-4 flex items-center pt-2'>
+            <Info className='h-4 w-4 mr-2 text-blue-500' />
+            El archivo debe usar la plantilla exportada y la cabecera debe estar en la **fila 3**.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancelar</Button>
+          <Button onClick={handleConfirmImport} disabled={loading || !file}><Save className='mr-2 h-4 w-4' /> {loading ? 'Procesando...' : 'Confirmar Importación'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 
-// --- COMPONENTE PRINCIPAL ---
+// ----------------------------------------------------------------------
+// ⚡️ COMPONENTE PRINCIPAL HorariosBasePanel ⚡️
+// ----------------------------------------------------------------------
 
 export function HorariosBasePanel() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { list, assign, exportPersonalXls, exportCuadrantesXls, saveCuadranteMaestro } = useCuadrantesBio(); 
+  // 🚨 CORRECCIÓN: Obtener el assigned_center_id del objeto 'user'
+  const { user } = useAuth();
+  const userCenterId = user?.assigned_center_id;
+  // Fin de la Corrección
 
-  // Estados
-  const [selectedCenter, setSelectedCenter] = useState<string>('todos');
-  const [selectedMaestroId, setSelectedMaestroId] = useState<string>('todos'); 
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [saveMaestroDialogOpen, setSaveMaestroDialogOpen] = useState(false); 
-  const [viewType, setViewType] = useState<'calendario' | 'lista'>('calendario');
-  const [professionalSearch, setProfessionalSearch] = useState('');
+  const { listByProfessional, save, remove } = useHorariosBase();
 
-  // Fechas y Filtros
-  const from = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
-  const to = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
-  const centerIdFilter = selectedCenter === 'todos' ? null : selectedCenter;
+  // --- Estados y Hooks ---
+  const [selectedCenterId, setSelectedCenterId] = useState<string>(userCenterId || '');
+  const [selectedProfessionalId, setSelectedProfessionalId] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(''); 
 
-  const currentMonthNumber = currentMonth.getMonth() + 1;
-  const currentYearNumber = currentMonth.getFullYear();
-
-  // --- DATA FETCHING (useQuery) ---
-  const { data: centers = [] } = useQuery<CentroOption[]>({ /* ... */ });
-  const { data: turnos = [] } = useQuery<TurnoOption[]>({ /* ... */ });
-  const { data: professionals = [], isLoading: professionalsLoading } = useQuery<ProfessionalOption[]>({ /* ... */ });
-  const { data: cuadrantesMaestros = [], isLoading: maestrosLoading } = useQuery<CuadranteMaestroOption[]>({
-    queryKey: ['cuadrantes-maestros', centerIdFilter],
-    queryFn: async () => { /* ... Lógica de carga del maestro ... */ 
-      if (!centerIdFilter) return [];
-      const { data } = await supabase.from('cuadrantes_maestros').select('id, nombre, centro_salud_id').eq('centro_salud_id', centerIdFilter).order('nombre');
-      // Mock de seguridad
-      return data ?? [{ id: 'master-1', nombre: 'Guardia Estándar', centro_salud_id: centerIdFilter }];
-    },
-    staleTime: 5 * 60_000,
-    enabled: !!centerIdFilter, 
-  });
+  // Sincronizar selectedCenterId al cargar el userCenterId inicial
+  useEffect(() => {
+    if (userCenterId && !selectedCenterId) {
+      setSelectedCenterId(userCenterId);
+    }
+  }, [userCenterId, selectedCenterId]);
 
 
-  const {
-    data: assignments = [],
-    isLoading: assignmentsLoading,
-    refetch: refetchAssignments,
-  } = useQuery<CuadranteBio[]>({
-    queryKey: ['cuadrantes', centerIdFilter, from, to, selectedMaestroId],
-    queryFn: () => list(centerIdFilter, from, to, selectedMaestroId),
-    staleTime: 15_000,
-    enabled: !!centerIdFilter || selectedMaestroId !== 'todos', 
-  });
-
-  // --- MUTACIONES ---
-  const assignMutation = useMutation<number, Error, AssignFormValues>({
-    mutationFn: async (payload) => {
-      // ... (Lógica de asignación a fechas)
-      const start = new Date(payload.startDate);
-      const end = new Date(payload.endDate);
-      const selectedWeekdays = payload.selectedWeekdays; // Obtener los días de la semana seleccionados
-
-      if (start > end || !centerIdFilter || payload.professionalIds.length === 0 || selectedWeekdays.length === 0) {
-        throw new Error('Revise las fechas, el centro, los días de la semana y la selección de profesionales.');
-      }
-      const days = eachDayOfInterval({ start, end });
-      const rows: Array<Omit<CuadranteBio, 'id' | 'created_at' | 'updated_at'>> = [];
-
-      for (const day of days) {
-        // 🚨 CORRECCIÓN 1: Filtrar por los días de la semana seleccionados (getDay() retorna 0-6, donde 0 es Domingo)
-        if (selectedWeekdays.includes(getDay(day))) {
-            for (const professionalId of payload.professionalIds) {
-                rows.push({
-                    id_profesional: professionalId,
-                    turno_id: payload.turnoId,
-                    fecha: format(day, 'yyyy-MM-dd'),
-                    centro_salud_id: centerIdFilter,
-                    cuadrante_maestro_id: selectedMaestroId !== 'todos' ? selectedMaestroId : null, 
-                });
-            }
-        }
-      }
-      await assign(rows);
-      return rows.length;
-    },
-    onSuccess: (total) => {
-      toast({ title: 'Cuadrante actualizado', description: `${total} asignaciones registradas` });
-      setAssignDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['cuadrantes'], exact: false });
-      void refetchAssignments();
-    },
-    onError: (error) => {
-      toast({ title: 'No se pudo asignar', description: error.message || 'Revise los datos y reintente', variant: 'destructive' });
+  // --- Data Fetching (Queries) ---
+  
+  // 0. Obtener Centros de Salud 
+  const { data: centers = [], isLoading: isLoadingCenters } = useQuery<CentroOption[]>({
+    queryKey: ['centers'],
+    queryFn: async () => {
+      // Usamos el cliente Supabase directamente (asumiendo que RLS controla la visibilidad)
+      const { data, error } = await supabase.from('centros_salud').select('id, nombre').order('nombre');
+      if (error) throw error;
+      return data || [];
     },
   });
 
-  const saveMaestroMutation = useMutation<CuadranteMaestroOption, Error, { nombre: string }>({
-      mutationFn: async ({ nombre }) => {
-          if (!centerIdFilter) throw new Error('Debe seleccionar un centro para guardar la plantilla.');
-          
-          const payload = assignForm.getValues();
-          const start = new Date(payload.startDate);
-          const end = new Date(payload.endDate);
-          const selectedWeekdays = payload.selectedWeekdays; // Obtener los días de la semana seleccionados
-          
-          if (start > end) throw new Error('La fecha de inicio debe ser anterior o igual a la fecha final');
-          if (payload.professionalIds.length === 0) throw new Error('Debe seleccionar al menos un profesional.');
-          if (selectedWeekdays.length === 0) throw new Error('Debe seleccionar al menos un día de la semana.');
-
-
-          const days = eachDayOfInterval({ start, end });
-          const rowsToSave: Array<Omit<CuadranteBio, 'id' | 'created_at' | 'updated_at'>> = [];
-
-          for (const day of days) {
-            // 🚨 CORRECCIÓN 1: Filtrar por los días de la semana seleccionados
-            if (selectedWeekdays.includes(getDay(day))) {
-                for (const professionalId of payload.professionalIds) {
-                    rowsToSave.push({
-                        id_profesional: professionalId,
-                        turno_id: payload.turnoId,
-                        fecha: format(day, 'yyyy-MM-dd'),
-                        centro_salud_id: centerIdFilter,
-                        cuadrante_maestro_id: null, 
-                    });
-                }
-            }
-          }
-          
-          if (rowsToSave.length === 0) throw new Error('No hay asignaciones válidas para guardar en la plantilla. Revise las fechas y los días de la semana.');
-          
-          return saveCuadranteMaestro(nombre, centerIdFilter, rowsToSave); 
-      },
-      onSuccess: (newMaestro) => {
-          toast({ title: 'Plantilla Guardada', description: `El cuadrante '${newMaestro.nombre}' ha sido guardado como plantilla.`, variant: 'success' });
-          setSaveMaestroDialogOpen(false);
-          setAssignDialogOpen(false); 
-          queryClient.invalidateQueries({ queryKey: ['cuadrantes-maestros'] });
-          setSelectedMaestroId(newMaestro.id); 
-          void refetchAssignments();
-      },
-      onError: (error) => {
-          toast({ title: 'Error al guardar', description: error.message, variant: 'destructive' });
-      }
+  // 1. Obtener Turnos Biométricos
+  const { data: turnos = [], isLoading: isLoadingTurnos } = useQuery<TurnoRow[]>({
+    queryKey: ['turnosBio', selectedCenterId],
+    queryFn: async () => {
+      if (!selectedCenterId) return [];
+      const { data, error } = await supabase.from('turnos_biometricos').select('id, nombre_turno').eq('centro_salud_id', selectedCenterId).order('nombre_turno');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedCenterId,
   });
 
+  // 2. Obtener Profesionales (Incluyendo campos de exportación)
+  const { data: professionals = [], isLoading: isLoadingProfs } = useQuery<ProfessionalRow[]>({
+    queryKey: ['professionals', selectedCenterId],
+    queryFn: async () => {
+      if (!selectedCenterId) return [];
+      const { data, error } = await supabase.from('profesionales_sanitarios')
+        .select('id, nombre_completo, numero_enrolamiento_enno, numero_tarjeta_rfid, fecha_nacimiento, area_profesional')
+        .eq('centro_salud_id', selectedCenterId)
+        .order('nombre_completo');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedCenterId,
+  });
 
-  // --- Mapeos y Datos Derivados ---
+  // 3. Obtener Horarios Base del Profesional Seleccionado
+  const { data: horariosBase = [], isLoading: isLoadingHorarios } = useQuery<HorarioBase[]>({
+    queryKey: ['horariosBase', selectedProfessionalId],
+    queryFn: () => listByProfessional(selectedProfessionalId),
+    enabled: !!selectedProfessionalId,
+  });
 
-  const professionalMap = useMemo(() => { 
-    return professionals.reduce((acc, p) => { acc[p.id] = p; return acc; }, {} as Record<string, ProfessionalOption>);
-  }, [professionals]);
-  
-  const turnosMap = useMemo(() => { 
-    return turnos.reduce((acc, t) => { acc[t.id] = t; return acc; }, {} as Record<string, TurnoOption>);
-  }, [turnos]);
-  
-  // 🚨 CORRECCIÓN 2: Centros ordenados alfabéticamente
-  const sortedCenters = useMemo(() => {
-    return [...centers].sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [centers]);
-  
-  // 🚨 CORRECCIÓN 4: Turnos ordenados alfabéticamente
-  const sortedTurnos = useMemo(() => {
-    return [...turnos].sort((a, b) => a.nombre_turno.localeCompare(b.nombre_turno));
-  }, [turnos]);
+  // --- Lógica de Búsqueda y Filtrado de Profesionales ---
+  const filteredProfessionals = useMemo(() => {
+      if (!searchTerm) return professionals;
+      const lowerCaseSearch = searchTerm.toLowerCase();
+      return professionals.filter(p =>
+          p.nombre_completo.toLowerCase().includes(lowerCaseSearch) ||
+          p.numero_enrolamiento_enno?.toLowerCase().includes(lowerCaseSearch) ||
+          p.numero_tarjeta_rfid?.toLowerCase().includes(lowerCaseSearch)
+      );
+  }, [professionals, searchTerm]);
 
-
-  const assignmentsByDate = useMemo<CalendarAssignments>(() => { 
-    return assignments.reduce((acc, a) => {
-      const dateKey = a.fecha;
-      acc[dateKey] = acc[dateKey] || [];
-      acc[dateKey].push({ id: a.id, professionalId: a.id_profesional, turnoId: a.turno_id });
-      return acc;
-    }, {} as CalendarAssignments);
-  }, [assignments]);
-  
-  const calendarDays = useMemo(
-    () => eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) }),
-    [currentMonth]
-  );
-  const daysInMonth = calendarDays.length;
-  const firstDayOfMonth = getDay(startOfMonth(currentMonth));
-  
-  const filteredProfessionals = useMemo(() => { 
-    const search = professionalSearch.toLowerCase();
-    if (!search) return professionals;
-    return professionals.filter(p => p.nombre.toLowerCase().includes(search) || p.empNo?.toString().includes(search));
-  }, [professionals, professionalSearch]);
-
-
-  // --- Lógica del Formulario y Handlers de UI ---
-
-  // 🚨 CORRECCIÓN 1: Incluir el nuevo campo 'selectedWeekdays' en defaultValues
-  const assignForm = useForm<AssignFormValues>({
-    resolver: zodResolver(assignSchema),
+  // --- Formulario de Guardado (Mutations) ---
+  const saveForm = useForm<z.infer<typeof saveHorarioSchema>>({
+    resolver: zodResolver(saveHorarioSchema),
     defaultValues: {
-      professionalIds: [],
-      turnoId: '',
-      startDate: format(new Date(), 'yyyy-MM-dd'),
-      endDate: format(new Date(), 'yyyy-MM-dd'),
-      selectedWeekdays: [1, 2, 3, 4, 5], // Lunes a Viernes por defecto
+      id_profesional: selectedProfessionalId,
+      dia_semana: String(getDay(new Date()) === 0 ? 7 : getDay(new Date())),
+      vigencia_desde: format(new Date(), 'yyyy-MM-dd'),
+      vigencia_hasta: null,
+      turno_id: '',
     },
   });
 
-  const saveMaestroForm = useForm<{ nombre: string }>({ 
-    resolver: zodResolver(saveCuadranteSchema),
-    defaultValues: { nombre: '' }
+  const saveMutation = useMutation({
+    mutationFn: (payload: HorarioBasePayload) => save(payload),
+    onSuccess: () => {
+      toast({ title: 'Regla guardada', description: 'El horario base se ha actualizado.' });
+      queryClient.invalidateQueries({ queryKey: ['horariosBase', selectedProfessionalId] });
+      setIsDialogOpen(false); 
+      saveForm.reset({
+        ...saveForm.getValues(),
+        turno_id: '',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Error al guardar la regla de horario base.',
+        variant: 'destructive',
+      });
+    },
   });
 
-  const handleOpenAssignForDay = (date: Date) => {
-    // ... Lógica para abrir el diálogo con la fecha pre-seleccionada
-    assignForm.reset({
-      professionalIds: [],
-      turnoId: assignForm.getValues('turnoId') || '',
-      startDate: format(date, 'yyyy-MM-dd'),
-      endDate: format(date, 'yyyy-MM-dd'),
-      selectedWeekdays: [getDay(date)], // Solo el día seleccionado por defecto
-    });
-    setProfessionalSearch('');
-    setAssignDialogOpen(true);
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => remove(id),
+    onSuccess: () => {
+        toast({ title: 'Regla eliminada', description: 'El horario base ha sido eliminado.' });
+        queryClient.invalidateQueries({ queryKey: ['horariosBase', selectedProfessionalId] });
+    },
+    onError: (error: any) => {
+        toast({
+            title: 'Error',
+            description: error.message || 'Error al eliminar la regla.',
+            variant: 'destructive',
+        });
+    },
+});
+
+  const handleRemove = (id: string) => {
+    const isConfirmed = window.confirm('¿Está seguro de eliminar esta regla de horario base?');
+    if (isConfirmed) {
+      removeMutation.mutate(id); 
+    }
   };
 
-  const handleOpenNewAssignment = () => {
-    // Abre el diálogo para una asignación de rango
-    assignForm.reset({
-      professionalIds: [],
-      turnoId: '',
-      startDate: format(startOfMonth(currentMonth), 'yyyy-MM-dd'),
-      endDate: format(endOfMonth(currentMonth), 'yyyy-MM-dd'),
-      selectedWeekdays: [1, 2, 3, 4, 5], // Lunes a Viernes por defecto
-    });
-    setProfessionalSearch('');
-    setAssignDialogOpen(true);
+  const onSubmit = (values: z.infer<typeof saveHorarioSchema>) => {
+    if (!selectedCenterId) {
+      toast({ title: 'Error', description: 'ID de Centro de Salud no disponible.', variant: 'destructive' });
+      return;
+    }
+    const payload: HorarioBasePayload = {
+      ...values,
+      dia_semana: Number(values.dia_semana),
+      centro_salud_id: selectedCenterId,
+      vigencia_hasta: values.vigencia_hasta || null,
+    };
+    saveMutation.mutate(payload);
   };
 
-  const handleMonthChange = (direction: -1 | 1) => {
-      setCurrentMonth((prev) => (direction === -1 ? subMonths(prev, 1) : addMonths(prev, 1)));
-      setSelectedMaestroId('todos');
-  };
-  
-  const handleExportPersonal = () => {
-      exportPersonalXls(centerIdFilter, from, to);
-  };
-  const handleExportCuadrantes = () => {
-      exportCuadrantesXls(centerIdFilter, from, to);
-  };
-
-
-  const handleCenterChange = (id: string) => {
-      setSelectedCenter(id);
-      setSelectedMaestroId('todos'); 
-  };
-
-  const handleMaestroChange = (id: string) => {
-      setSelectedMaestroId(id);
-      if (id !== 'todos') {
-          setViewType('lista'); 
-      }
-  };
-
-
-  const renderCalendarView = () => {
-    // ... (Lógica de renderCalendarView) ...
-    return (
-        <div className="grid grid-cols-7 gap-px text-sm">
-            {/* Encabezado del calendario */}
-            {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((day, index) => (
-                <div key={day} className={`text-center font-bold py-2 border-b ${index >= 5 ? 'text-red-500' : 'text-gray-700'}`}>
-                    {day}
-                </div>
-            ))}
-
-            {/* Celdas de relleno inicial */}
-            {Array.from({ length: firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1 }).map((_, index) => (
-                <div key={`empty-${index}`} className="p-2 bg-gray-50 border-r border-b min-h-[100px]"></div>
-            ))}
-
-            {/* Días del mes */}
-            {calendarDays.map((day, index) => {
-                const dateKey = format(day, 'yyyy-MM-dd');
-                const dayAssignments = assignmentsByDate[dateKey] || [];
-                const isWeekend = getDay(day) === 0 || getDay(day) === 6;
-                const isToday = isSameDay(day, new Date());
-
-                return (
-                    <div
-                        key={dateKey}
-                        className={cn(
-                            'p-2 border-r border-b min-h-[100px] flex flex-col',
-                            isWeekend ? 'bg-gray-100' : 'bg-white',
-                            isToday && 'border-4 border-blue-200 ring-2 ring-blue-500/50'
-                        )}
-                    >
-                        <div className={cn(
-                            'flex justify-between items-center text-xs font-semibold mb-1',
-                            isWeekend ? 'text-red-600' : 'text-gray-800'
-                        )}>
-                            <span>{format(day, 'd')}</span>
-                            {dayAssignments.length > 0 && (
-                                <Badge variant="default" className="bg-blue-500 hover:bg-blue-600 cursor-pointer" onClick={() => handleOpenAssignForDay(day)}>
-                                    {dayAssignments.length} Asig.
-                                </Badge>
-                            )}
-                            <Button variant="ghost" size="icon" className="h-6 w-6 ml-1 text-gray-400 hover:text-blue-500" onClick={() => handleOpenAssignForDay(day)}>
-                                <CalendarPlus className="h-3 w-3" />
-                            </Button>
-                        </div>
-                        
-                        {/* Listado de asignaciones */}
-                        <div className="flex-grow text-xs space-y-0.5 overflow-y-auto max-h-[70px]">
-                            {dayAssignments.slice(0, 3).map((assignment) => {
-                                const prof = professionalMap[assignment.professionalId];
-                                const turno = turnosMap[assignment.turnoId];
-                                if (!prof || !turno) return null;
-
-                                return (
-                                    <Badge key={assignment.id} className="w-full justify-start text-[10px] py-0.5 px-1 font-normal truncate" style={{ backgroundColor: getTurnoBadgeColor(turno.nombre_turno) }}>
-                                        <Clock className="h-2 w-2 mr-1" /> 
-                                        {prof.nombre.split(' ')[0]} - {turno.nombre_turno.split(' ')[0]}
-                                    </Badge>
-                                );
-                            })}
-                            {dayAssignments.length > 3 && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                    + {dayAssignments.length - 3} más
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
-  };
-
-  const renderListView = () => {
-    // ... (Lógica de renderListView) ...
-    // Se agrupan las asignaciones por profesional para la vista de lista
-    const assignmentsByProfessional = assignments.reduce((acc, a) => {
-        const key = a.id_profesional;
-        acc[key] = acc[key] || [];
-        acc[key].push(a);
-        return acc;
-    }, {} as Record<string, CuadranteBio[]>);
-    
-    const professionalIdsWithAssignments = Object.keys(assignmentsByProfessional);
-
-    if (professionalIdsWithAssignments.length === 0) {
-        return <div className="text-center py-10 text-gray-500">No hay asignaciones para los filtros seleccionados.</div>;
+  // --- Funciones de Exportación (Personal.xls) ---
+  const handleExport = useCallback(() => {
+    if (!professionals.length) {
+        toast({ title: 'Error', description: 'No hay profesionales para exportar.', variant: 'destructive' });
+        return;
     }
 
-    return (
-        <ScrollArea className="h-[600px] w-full pr-4">
-            <div className="space-y-6">
-                {professionalIdsWithAssignments.map(profId => {
-                    const professional = professionalMap[profId];
-                    const profAssignments = assignmentsByProfessional[profId].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
-                    
-                    if (!professional) return null;
+    const headers = [
+        'ID', 'Nombre', 'Depto.', 'Turno', 'Admin.', 'Registro de Huella', 'Rostro', 'Registrar Contraseña', 
+        'ID o Tarjeta', 'Bloqueo de zona horaria', 'Grupo', 'Modo Verificar', 'Cumpleaños', 'Inicio:', 'Fin:', 'Perfil'
+    ];
+    
+    const data = professionals.map((p) => {
+        
+        let birthdayFormatted = '';
+        if (p.fecha_nacimiento) {
+            try {
+                // Asegura que la fecha se interprete como UTC para evitar problemas de zona horaria en la conversión de formato
+                const dob = new Date(p.fecha_nacimiento + 'T00:00:00'); 
+                if (!isNaN(dob.getTime())) {
+                    birthdayFormatted = format(dob, 'MM/dd'); 
+                }
+            } catch (e) { /* Fecha inválida */ }
+        }
 
-                    // Agrupar por Turno para un resumen más limpio
-                    const groupedByTurno = profAssignments.reduce((acc, a) => {
-                        const turnoKey = a.turno_id;
-                        acc[turnoKey] = acc[turnoKey] || [];
-                        acc[turnoKey].push(a);
-                        return acc;
-                    }, {} as Record<string, CuadranteBio[]>);
+        return {
+            ID: p.numero_enrolamiento_enno || '', 
+            Nombre: p.nombre_completo,
+            'Depto.': p.area_profesional || '',
+            Turno: '',          
+            'Admin.': 0,        
+            'Registro de Huella': 0, 
+            Rostro: 0,          
+            'Registrar Contraseña': 0, 
+            'ID o Tarjeta': p.numero_tarjeta_rfid || '', 
+            'Bloqueo de zona horaria': 0, 
+            Grupo: 0,           
+            'Modo Verificar': 0, 
+            Cumpleaños: birthdayFormatted, 
+            'Inicio:': '',      
+            'Fin:': '',         
+            Perfil: '',         
+        };
+    });
 
-                    return (
-                        <Card key={profId} className="border-l-4 border-blue-500">
-                            <CardHeader className="py-3 px-4 flex-row justify-between items-center">
-                                <CardTitle className="text-lg">{professional.nombre}</CardTitle>
-                                <Badge variant="secondary" className="font-normal">EmpNo: {professional.empNo || '—'}</Badge>
-                            </CardHeader>
-                            <CardContent className="py-3 px-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                    {Object.entries(groupedByTurno).map(([turnoId, assignments]) => {
-                                        const turno = turnosMap[turnoId];
-                                        if (!turno) return null;
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(data, { header: headers, skipHeader: true });
 
-                                        // Encontrar el primer y último día de asignación para ese turno
-                                        const firstDay = assignments[0].fecha;
-                                        const lastDay = assignments[assignments.length - 1].fecha;
-                                        
-                                        return (
-                                            <div key={turnoId} className="p-3 border rounded-md bg-gray-50 space-y-1">
-                                                <Badge className="font-semibold" style={{ backgroundColor: getTurnoBadgeColor(turno.nombre_turno) }}>
-                                                    {turno.nombre_turno}
-                                                </Badge>
-                                                <p className="text-xs text-gray-700">
-                                                    **Días Asignados:** {assignments.length}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    **Rango:** {safeFormatDate(firstDay)} - {safeFormatDate(lastDay)}
-                                                </p>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
-            </div>
-        </ScrollArea>
-    );
+    XLSX.utils.sheet_add_aoa(ws, [['NOTA: Esta es la plantilla de Personal para el dispositivo biométrico. Los datos comienzan en la Fila 4.']], { origin: 'A1' });
+    
+    XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A3' }); 
+    
+    XLSX.utils.sheet_add_json(ws, data, { 
+        skipHeader: true, 
+        origin: 'A4', 
+    });
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Personal');
+    XLSX.writeFile(wb, 'Personal.xls'); 
+
+    toast({ title: 'Exportación de Personal', description: 'El archivo Personal.xls con la plantilla biométrica está listo.' });
+  }, [professionals, toast]);
+  
+
+  const handleImportComplete = () => {
+    queryClient.invalidateQueries({ queryKey: ['professionals', selectedCenterId] });
   };
 
+  // --- Renderizado ---
+
+  const selectedProfessional = professionals.find(p => p.id === selectedProfessionalId);
 
   return (
-    <div className="space-y-6">
-      {/* HEADER PRINCIPAL */}
-      <div className="flex justify-between items-center flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Cuadrantes de Asistencia Biométrico</h2>
-          <p className="text-gray-600">
-            Programación de turnos para {getMonthName(currentMonthNumber)} {currentYearNumber}
-          </p>
-        </div>
-
-        <div className="flex items-center space-x-2 flex-wrap gap-2">
-          {/* Controles de mes */}
-          <Button variant="outline" size="sm" onClick={() => handleMonthChange(-1)}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date())} title="Ir al mes actual">
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => handleMonthChange(1)}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-
-          {/* Selector de Centro (Filtro de vista y filtro de asignación) */}
-          {/* 🚨 CORRECCIÓN 2: Uso de sortedCenters */}
-          <Select value={selectedCenter} onValueChange={handleCenterChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Seleccionar Centro" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los Centros</SelectItem>
-              {sortedCenters.map((center) => (
-                <SelectItem key={center.id} value={center.id}>
-                  {center.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Selector de Cuadrante Maestro */}
-          <Select value={selectedMaestroId} onValueChange={handleMaestroChange} disabled={!centerIdFilter || maestrosLoading}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Seleccionar Plantilla" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Asignaciones por Fecha</SelectItem>
-              {cuadrantesMaestros.map((maestro) => (
-                <SelectItem key={maestro.id} value={maestro.id}>
-                  {maestro.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          {/* BOTÓN DE CREACIÓN DE CUADRANTE */}
-          <Button onClick={handleOpenNewAssignment} disabled={!centerIdFilter}>
-            <CalendarPlus className="mr-2 h-4 w-4" /> Nueva Asignación
-          </Button>
-        </div>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center space-x-2">
-              <Badge variant="outline" className="text-base py-1 px-3 font-semibold">
-                {selectedMaestroId !== 'todos' 
-                  ? 'Plantilla Seleccionada' 
-                  : format(currentMonth, "LLLL yyyy", { locale: es })}
-              </Badge>
-              {centerIdFilter && (
-                <Badge variant="secondary" className="text-sm py-1 px-2">
-                  Centro: {centers.find(c => c.id === centerIdFilter)?.nombre || 'Seleccionado'}
-                </Badge>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center space-x-2">
-              {/* Controles de vista */}
-              <div className="flex border rounded-lg overflow-hidden">
-                <Button
-                  variant={viewType === 'calendario' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewType('calendario')}
-                  className="rounded-none"
-                  title="Vista Calendario"
-                >
-                  <Grid className="w-4 h-4 mr-1" /> Calendario
-                </Button>
-                <Button
-                  variant={viewType === 'lista' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewType('lista')}
-                  className="rounded-none"
-                  title="Vista Lista (Resumen de asignaciones)"
-                >
-                  <List className="w-4 h-4 mr-1" /> Lista
-                </Button>
-              </div>
-
-              {/* Botones de acción de exportación */}
-              <Button variant="secondary" onClick={handleExportPersonal} disabled={!centerIdFilter}>
-                <Download className="mr-2 h-4 w-4" /> Personal.xls
-              </Button>
-              <Button variant="secondary" onClick={handleExportCuadrantes} disabled={!centerIdFilter}>
-                <Download className="mr-2 h-4 w-4" /> Cuadrantes.xls
-              </Button>
-            </div>
+    <Card className='w-full'>
+      <CardHeader className='flex flex-row items-center justify-between'>
+        <div className='space-y-1'>
+          <CardTitle>Horarios Base Semanales</CardTitle>
+          <CardDescription>
+            Define las reglas de turno fijas a largo plazo por profesional.
+          </CardDescription>
+          {/* Selector de Centro */}
+          <div className='pt-2'>
+            <Label htmlFor="center-select">Centro de Salud</Label>
+            {isLoadingCenters ? (
+              <Skeleton className='h-9 w-64' />
+            ) : (
+              <Select
+                value={selectedCenterId}
+                onValueChange={(val) => {
+                  setSelectedCenterId(val);
+                  setSelectedProfessionalId(''); 
+                }}
+              >
+                <SelectTrigger id="center-select" className='w-[300px]'>
+                  <SelectValue placeholder="Seleccione un Centro..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {centers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {!selectedCenterId && !isLoadingCenters && (
+                <Alert variant="default" className='mt-2'>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Centro no seleccionado</AlertTitle>
+                    <AlertDescription>Seleccione un Centro de Salud para cargar profesionales y turnos.</AlertDescription>
+                </Alert>
+            )}
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4 p-6">
-          {assignmentsLoading || professionalsLoading ? (
-             <div className="text-center py-8">
-               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-               <p className="mt-2 text-gray-600">Cargando datos...</p>
-             </div>
-          ) : (
-            <div className="min-h-[500px]">
-              {viewType === 'calendario' ? renderCalendarView() : renderListView()}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+        <div className='flex space-x-2'>
+          <Button variant="outline" onClick={handleExport} disabled={isLoadingProfs || !professionals.length || !selectedCenterId}>
+            <Download className='mr-2 h-4 w-4' /> **Exportar Personal.xls**
+          </Button>
+          <ImportPersonalDialog centerId={selectedCenterId} onComplete={handleImportComplete} />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
 
-      {/* Diálogo de Asignación (Creación/Edición) */}
-      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Asignar Turno Biométrico</DialogTitle>
-            {/* 🚨 CORRECCIÓN APLICADA AQUÍ: Uso de la función segura */}
-            <CardDescription className="pt-1">
-              Asignación para el rango: **{safeFormatDate(assignForm.getValues('startDate'))}** a **{safeFormatDate(assignForm.getValues('endDate'))}**
-            </CardDescription>
-          </DialogHeader>
-          <Form {...assignForm}>
-            <form
-              onSubmit={assignForm.handleSubmit((values) => assignMutation.mutate(values))}
-              className="space-y-6"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Columna 1: Selección de Fechas y Turno */}
-                <div className="col-span-1 space-y-4">
-                  <h3 className="text-lg font-semibold border-b pb-2">Rango, Días y Turno</h3>
-                  <FormField
-                    control={assignForm.control} name="startDate" render={({ field }) => (<FormItem><FormLabel>Fecha de Inicio</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                  <FormField
-                    control={assignForm.control} name="endDate" render={({ field }) => (<FormItem><FormLabel>Fecha de Fin</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)}/>
-                  
-                  {/* 🚨 CORRECCIÓN 1: Selección Múltiple de Días de la Semana */}
-                  <FormField
-                      control={assignForm.control}
-                      name="selectedWeekdays"
-                      render={() => (
-                          <FormItem>
-                              <div className="mb-2">
-                                  <FormLabel className="text-base">Días de la Semana a Asignar</FormLabel>
-                              </div>
-                              <div className="grid grid-cols-7 gap-1">
-                                  {/* 0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb */}
-                                  {['D', 'L', 'Ma', 'Mi', 'J', 'V', 'S'].map((day, index) => (
-                                      <FormField
-                                          key={index}
-                                          control={assignForm.control}
-                                          name="selectedWeekdays"
-                                          render={({ field }) => {
-                                              const weekdayValue = index;
-                                              return (
-                                                  <FormItem
-                                                      key={weekdayValue}
-                                                      className="flex flex-col items-center justify-center space-y-0"
-                                                  >
-                                                      <FormControl>
-                                                          <Checkbox
-                                                              // Comprobar si el valor numérico (0-6) está incluido
-                                                              checked={field.value?.includes(weekdayValue)}
-                                                              onCheckedChange={(checked) => {
-                                                                  const newValue = checked
-                                                                      ? [...field.value, weekdayValue]
-                                                                      : field.value.filter(
-                                                                            (value) => value !== weekdayValue
-                                                                        );
-                                                                  field.onChange(newValue.sort());
-                                                              }}
-                                                          />
-                                                      </FormControl>
-                                                      <FormLabel className="text-xs font-normal pt-1 cursor-pointer">
-                                                          {day}
-                                                      </FormLabel>
-                                                  </FormItem>
-                                              );
-                                          }}
-                                      />
-                                  ))}
-                              </div>
-                              <FormMessage />
-                          </FormItem>
-                      )}
-                  />
-
-
-                  <FormField
-                    control={assignForm.control}
-                    name="turnoId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Turno a Asignar</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un turno" /></SelectTrigger></FormControl>
-                          <SelectContent>
-                            {/* 🚨 CORRECCIÓN 4: Uso de sortedTurnos */}
-                            {sortedTurnos.map((turno) => (
-                              <SelectItem key={turno.id} value={turno.id}>
-                                <div className="flex flex-col"><span className="font-medium">{turno.nombre_turno}</span><span className="text-xs text-muted-foreground"> {turno.hora_inicio?.slice(0, 5) || '--:--'} - {turno.hora_fin?.slice(0, 5) || '--:--'} </span></div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Botón de Guardar como Plantilla */}
-                  <Button 
-                    type="button" 
-                    variant="secondary" 
-                    onClick={() => setSaveMaestroDialogOpen(true)} 
-                    className='w-full'
-                    disabled={!centerIdFilter || !assignForm.formState.isValid || assignForm.getValues('professionalIds').length === 0}
-                  >
-                      <Save className='mr-2 h-4 w-4' /> Guardar como Cuadrante Maestro
-                  </Button>
+          {/* Columna 1: Selección de Profesional */}
+          <Card className='col-span-1 h-full'>
+            <CardHeader>
+              <CardTitle className='text-base'>Seleccionar Profesional</CardTitle>
+              <CardDescription>Busque al profesional para ver/editar sus reglas.</CardDescription>
+            </CardHeader>
+            <div className='px-4 pb-4'>
+                <div className='relative'>
+                    <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
+                    <Input
+                        placeholder='Buscar por nombre, EnNo o RFID...'
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className='pl-8'
+                        disabled={isLoadingProfs || !selectedCenterId}
+                    />
                 </div>
+            </div>
+            <ScrollArea className='h-[340px] p-4 pt-0'>
+              {isLoadingProfs ? (
+                <div className='space-y-2'><Skeleton className='h-8 w-full' /><Skeleton className='h-8 w-full' /></div>
+              ) : !selectedCenterId ? (
+                <div className='text-center text-sm text-muted-foreground'>Seleccione un centro.</div>
+              ) : (
+                <Select
+                  value={selectedProfessionalId}
+                  onValueChange={(val) => {
+                    setSelectedProfessionalId(val);
+                    saveForm.setValue('id_profesional', val);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar un profesional..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredProfessionals.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nombre_completo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {/* Información del profesional seleccionado */}
+              <div className='mt-4 text-sm text-muted-foreground space-y-1'>
+                {selectedProfessional ? (
+                  <>
+                    <p>EnNo: <Badge variant="secondary">{selectedProfessional.numero_enrolamiento_enno || 'N/A'}</Badge></p>
+                    <p>RFID: <Badge variant="secondary">{selectedProfessional.numero_tarjeta_rfid || 'N/A'}</Badge></p>
+                    <p className='text-xs pt-2'>
+                      <Info className='inline h-3 w-3 mr-1' />
+                      Utilice "Importar Mapeo" para actualizar EnNo/RFID.
+                    </p>
+                  </>
+                ) : (
+                  <p>Seleccione un profesional para ver sus horarios.</p>
+                )}
+              </div>
+            </ScrollArea>
+          </Card>
 
-                {/* Columna 2 y 3: Selección Múltiple de Profesionales */}
-                <FormField
-                  control={assignForm.control}
-                  name="professionalIds"
-                  render={({ field: { value: selectedIds, onChange } }) => ( 
-                    <FormItem className="md:col-span-2">
-                      <h3 className="text-lg font-semibold border-b pb-2">
-                        Selección Múltiple de Profesionales
-                      </h3>
-                      <div className="flex items-center space-x-2">
-                        <Search className="w-4 h-4 text-gray-500" />
-                        <Input
-                          placeholder="Buscar profesional por nombre o EmpNo..."
-                          value={professionalSearch}
-                          onChange={(e) => setProfessionalSearch(e.target.value)}
-                          disabled={!centerIdFilter || professionalsLoading}
+          {/* Columna 2: Reglas de Horario Existentes */}
+          <Card className='col-span-2'>
+            <CardHeader className='flex flex-row items-center justify-between'>
+              <CardTitle className='text-base'>Reglas Activas</CardTitle>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size='sm' disabled={!selectedProfessionalId || !selectedCenterId} onClick={() => {
+                    saveForm.setValue('id_profesional', selectedProfessionalId);
+                    setIsDialogOpen(true);
+                  }}>
+                    <Plus className='mr-2 h-4 w-4' /> Añadir Regla
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className='sm:max-w-[425px]'>
+                  <DialogHeader>
+                    <DialogTitle>Añadir Regla de Horario Base</DialogTitle>
+                    <DialogDescription>
+                      Asigne un turno fijo a un día de la semana con un periodo de vigencia.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...saveForm}>
+                    <form onSubmit={saveForm.handleSubmit(onSubmit)} className='grid gap-4 py-4'>
+                      <FormField
+                        control={saveForm.control}
+                        name="dia_semana"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Día de la Semana</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Seleccione un día" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {DIAS_SEMANA.map(d => (
+                                  <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={saveForm.control}
+                        name="turno_id"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Turno Asignado</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger disabled={isLoadingTurnos}>
+                                  <SelectValue placeholder="Seleccione un turno" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {turnos.map(t => (
+                                  <SelectItem key={t.id} value={t.id}>{t.nombre_turno}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className='flex space-x-2'>
+                        <FormField
+                          control={saveForm.control}
+                          name="vigencia_desde"
+                          render={({ field }) => (
+                            <FormItem className='flex-1'>
+                              <FormLabel>Vigencia Desde</FormLabel>
+                              <FormControl>
+                                <Input type="date" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={saveForm.control}
+                          name="vigencia_hasta"
+                          render={({ field }) => (
+                            <FormItem className='flex-1'>
+                              <FormLabel>Vigencia Hasta (Opcional)</FormLabel>
+                              <FormControl>
+                                <Input type="date" {...field} value={field.value || ''} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
                       </div>
-                      
-                      {/* 🚨 CORRECCIÓN 3: Retroalimentación de la selección con Badges */}
-                      <FormLabel className="pt-2 block">
-                        Profesionales Seleccionados: **{selectedIds.length}**
-                      </FormLabel>
-                      {selectedIds.length > 0 && (
-                          <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto border p-2 rounded-md bg-white">
-                              {selectedIds.slice(0, 10).map((id) => { // Mostrar los primeros 10
-                                  const professional = professionalMap[id];
-                                  return (
-                                      professional ? (
-                                          <Badge 
-                                              key={id} 
-                                              variant="secondary" 
-                                              className="cursor-pointer group hover:bg-red-100 hover:text-red-700 transition-colors text-xs"
-                                              // Permite deseleccionar al hacer click en el badge
-                                              onClick={() => onChange(selectedIds.filter(value => value !== id))} 
-                                          >
-                                              {professional.nombre.split(' ')[0]} 
-                                              <X className="ml-1 h-3 w-3 opacity-50 group-hover:opacity-100" />
-                                          </Badge>
-                                      ) : null
-                                  );
-                              })}
-                              {selectedIds.length > 10 && (
-                                  <Badge variant="outline" className='text-xs'>+ {selectedIds.length - 10} más</Badge>
-                              )}
-                          </div>
-                      )}
-                      
-                      <ScrollArea className="h-64 w-full rounded-md border p-4 bg-gray-50 mt-4">
-                        {professionalsLoading ? (
-                          <div className="text-center text-sm text-gray-500">Cargando profesionales...</div>
-                        ) : (
-                          filteredProfessionals.map((professional) => (
-                            <FormItem
-                              key={professional.id}
-                              className="flex flex-row items-start space-x-3 space-y-0 p-2 hover:bg-white rounded-md transition-colors"
-                            >
-                              <FormControl>
-                                <Checkbox
-                                  checked={selectedIds?.includes(professional.id)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? onChange([...selectedIds, professional.id])
-                                      : onChange(selectedIds.filter((value) => value !== professional.id));
-                                  }}
-                                  disabled={!centerIdFilter}
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel className="font-medium cursor-pointer">{professional.nombre}</FormLabel>
-                                <div className="text-xs text-muted-foreground">EmpNo: {professional.empNo || '—'}</div>
-                              </div>
-                            </FormItem>
-                          ))
-                        )}
-                        {!filteredProfessionals.length && professionalSearch && (<div className="text-center text-sm text-gray-500 py-4">No se encontraron profesionales con ese filtro.</div>)}
-                      </ScrollArea>
-                      <FormMessage>{assignForm.formState.errors.professionalIds?.message}</FormMessage>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setAssignDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={
-                    assignMutation.isLoading ||
-                    !centerIdFilter ||
-                    assignForm.getValues('professionalIds').length === 0 ||
-                    !assignForm.formState.isValid
-                  }
-                >
-                  <CalendarPlus className="mr-2 h-4 w-4" /> Guardar asignaciones
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Diálogo para Guardar Cuadrante Maestro */}
-      <Dialog open={saveMaestroDialogOpen} onOpenChange={setSaveMaestroDialogOpen}>
-          <DialogContent className='sm:max-w-md'>
-              <DialogHeader>
-                  <DialogTitle>Guardar como Plantilla Maestra</DialogTitle>
-                  <DialogDescription>
-                      Asigna un nombre a la configuración actual para usarla como plantilla recurrente.
-                  </DialogDescription>
-              </DialogHeader>
-              <Form {...saveMaestroForm}>
-                  <form onSubmit={saveMaestroForm.handleSubmit((values) => saveMaestroMutation.mutate(values))} className='space-y-4'>
-                      <FormField
-                          control={saveMaestroForm.control}
-                          name="nombre"
-                          render={({ field }) => (
-                              <FormItem>
-                                  <FormLabel>Nombre de la Plantilla</FormLabel>
-                                  <FormControl>
-                                      <Input placeholder="Ej: Turnos Fijos L-V" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                              </FormItem>
-                          )}
-                      />
-                      <DialogFooter>
-                          <Button type="button" variant="outline" onClick={() => setSaveMaestroDialogOpen(false)}>Cancelar</Button>
-                          <Button 
-                            type="submit" 
-                            disabled={saveMaestroMutation.isLoading || !saveMaestroForm.formState.isValid}
-                          >
-                              <Save className='mr-2 h-4 w-4' /> Confirmar Guardado
-                          </Button>
+                      <DialogFooter className='pt-4'>
+                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                        <Button type="submit" disabled={saveMutation.isLoading}>
+                          <Save className='mr-2 h-4 w-4' /> Guardar Regla
+                        </Button>
                       </DialogFooter>
-                  </form>
-              </Form>
-          </DialogContent>
-      </Dialog>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className='h-[400px] pr-4'>
+                {isLoadingHorarios || removeMutation.isLoading ? (
+                  <div className='space-y-2'><Skeleton className='h-12 w-full' /><Skeleton className='h-12 w-full' /></div>
+                ) : !horariosBase.length ? (
+                  <div className='text-center py-10 text-muted-foreground'>
+                    {selectedProfessionalId ? 'No hay reglas de horario base definidas para este profesional.' : 'Seleccione un profesional.'}
+                  </div>
+                ) : (
+                  <div className='space-y-3'>
+                    {horariosBase.map((h) => {
+                      const turnoNombre = turnos.find(t => t.id === h.turno_id)?.nombre_turno || 'Turno Desconocido';
+                      const dia = DIAS_SEMANA.find(d => d.value === h.dia_semana)?.label || 'Día Desconocido';
 
-    </div>
+                      const today = format(new Date(), 'yyyy-MM-dd');
+                      const isFuture = isAfter(new Date(h.vigencia_desde), new Date(today));
+                      const isExpired = h.vigencia_hasta && isBefore(new Date(h.vigencia_hasta), new Date(today));
+
+                      return (
+                        <div key={h.id} className={cn(
+                          'flex items-center justify-between p-3 border rounded-lg',
+                          isExpired ? 'bg-red-50/50 border-red-200' : 'hover:bg-accent'
+                        )}>
+                          <div>
+                            <p className='font-semibold'>{dia} - {turnoNombre}</p>
+                            <p className='text-sm text-muted-foreground'>
+                              Vigencia: {format(new Date(h.vigencia_desde), 'dd/MM/yyyy')} - {h.vigencia_hasta ? format(new Date(h.vigencia_hasta), 'dd/MM/yyyy') : 'Indefinido'}
+                            </p>
+                          </div>
+                          <div className='flex items-center space-x-2'>
+                            {isFuture && <Badge variant='secondary'>Futuro</Badge>}
+                            {isExpired && <Badge variant='destructive'>Expirado</Badge>}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemove(h.id)}
+                              disabled={removeMutation.isLoading}
+                            >
+                              <Trash2 className='h-4 w-4 text-red-500' />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+            </CardContent>
+            <CardFooter>
+              <div className='text-xs text-muted-foreground flex items-center space-x-1'>
+                <CalendarDays className='h-3 w-3' />
+                <p>Las reglas base se utilizan cuando no hay asignación en el cuadrante diario.</p>
+              </div>
+            </CardFooter>
+          </Card>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query'; // useMutation eliminado
 import { format, getDay, isAfter, isBefore } from 'date-fns';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 // Asumo que 'useHorariosBase' es un hook creado por usted
-import { HorarioBase, HorarioBasePayload, useHorariosBase } from '@/hooks/useHorariosBase'; 
+import { HorarioBase, HorarioBasePayload, useHorariosBase } from '@/hooks/useHorariosBase';
 import { useAsistencia } from '@/hooks/useAsistencia';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -149,11 +149,12 @@ export function HorariosBasePanel() {
   const queryClient = useQueryClient();
   const { user } = useAuth(); // Obtenemos el objeto 'user'
   const userCenterId = user?.assigned_center_id;
-  const { listByProfessional, save, remove } = useHorariosBase();
+  const { listByProfessional, save, remove } = useHorariosBase(); // 'save' se usa directamente en onSubmit
 
   // --- Estados y Hooks ---
   const [selectedCenterId, setSelectedCenterId] = useState<string>(user?.assigned_center_id || '');
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
+  // ESTADO PARA LA SELECCIÓN MÚLTIPLE
   const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(''); // Estado para la búsqueda
@@ -167,7 +168,7 @@ export function HorariosBasePanel() {
 
 
   // --- Data Fetching (Queries) ---
-  
+
   // 0. Obtener Centros de Salud (NUEVO)
   const { data: centers = [], isLoading: isLoadingCenters } = useQuery<CentroOption[]>({
     queryKey: ['centers'],
@@ -207,6 +208,7 @@ export function HorariosBasePanel() {
 
   // 3. Obtener Horarios Base del Profesional Seleccionado
   const { data: horariosBase = [], isLoading: isLoadingHorarios } = useQuery<HorarioBase[]>({
+    // Usamos selectedProfessionalId (single) para mostrar la vista de reglas.
     queryKey: ['horariosBase', selectedProfessionalId],
     queryFn: () => listByProfessional(selectedProfessionalId),
     enabled: !!selectedProfessionalId,
@@ -214,16 +216,16 @@ export function HorariosBasePanel() {
 
   // --- Lógica de Búsqueda y Filtrado de Profesionales ---
   const filteredProfessionals = useMemo(() => {
-      if (!searchTerm) return professionals;
-      const lowerCaseSearch = searchTerm.toLowerCase();
-      return professionals.filter(p =>
-          p.nombre_completo.toLowerCase().includes(lowerCaseSearch) ||
-          String(p.numero_enrolamiento_enno || '').toLowerCase().includes(lowerCaseSearch) || 
-          String(p.numero_tarjeta_rfid || '').toLowerCase().includes(lowerCaseSearch)
-      );
+    if (!searchTerm) return professionals;
+    const lowerCaseSearch = searchTerm.toLowerCase();
+    return professionals.filter(p =>
+      p.nombre_completo.toLowerCase().includes(lowerCaseSearch) ||
+      String(p.numero_enrolamiento_enno || '').toLowerCase().includes(lowerCaseSearch) ||
+      String(p.numero_tarjeta_rfid || '').toLowerCase().includes(lowerCaseSearch)
+    );
   }, [professionals, searchTerm]);
 
-  // --- Formulario de Guardado (Mutations) ---
+  // --- Formulario de Guardado (react-hook-form) ---
   const saveForm = useForm<z.infer<typeof saveHorarioSchema>>({
     resolver: zodResolver(saveHorarioSchema),
     defaultValues: {
@@ -235,84 +237,108 @@ export function HorariosBasePanel() {
     },
   });
 
-  const saveMutation = useMutation({
-    mutationFn: (payload: HorarioBasePayload) => save(payload),
-    onSuccess: () => {
-      toast({ title: 'Regla guardada', description: 'El horario base se ha actualizado.' });
-      queryClient.invalidateQueries({ queryKey: ['horariosBase', selectedProfessionalId] });
-      setIsDialogOpen(false); // Cierra el diálogo al guardar con éxito
-      saveForm.reset({
-        ...saveForm.getValues(),
-        turno_id: '',
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.message || 'Error al guardar la regla de horario base.',
-        variant: 'destructive',
-      });
-    },
-  });
 
-  const onSubmit = (values: z.infer<typeof saveHorarioSchema>) => {
+  // --- LÓGICA DE ASIGNACIÓN MÚLTIPLE (REEMPLAZA A saveMutation) ---
+  const onSubmit = async (values: z.infer<typeof saveHorarioSchema>) => {
     if (!selectedCenterId) {
       toast({ title: 'Error', description: 'ID de Centro de Salud no disponible.', variant: 'destructive' });
       return;
     }
-    const payload: HorarioBasePayload = {
+
+    if (selectedProfessionalIds.length === 0) {
+      toast({ title: 'Error', description: 'Debe seleccionar al menos un profesional.', variant: 'destructive' });
+      return;
+    }
+
+    // 1. Crear el payload base con los valores del formulario
+    const basePayload = {
       ...values,
       dia_semana: Number(values.dia_semana),
       centro_salud_id: selectedCenterId,
       vigencia_hasta: values.vigencia_hasta || null,
     };
-    saveMutation.mutate(payload);
+
+    // 2. Crear una promesa de guardado por cada profesional seleccionado
+    const mutationPromises = selectedProfessionalIds.map(id_profesional => {
+      const payload: HorarioBasePayload = {
+        ...basePayload,
+        id_profesional, // Sobreescribir el ID profesional para la asignación
+      };
+      return save(payload); // Usar la función 'save' directa del hook
+    });
+
+    try {
+      await Promise.all(mutationPromises);
+
+      // 3. Manejo de éxito
+      toast({ title: 'Reglas guardadas', description: `Se asignó la regla a ${selectedProfessionalIds.length} profesionales.` });
+
+      // Invalidar solo la vista del profesional seleccionado actualmente
+      queryClient.invalidateQueries({ queryKey: ['horariosBase', selectedProfessionalId] });
+      // También invalidar profesionales si el save tiene side effects
+      queryClient.invalidateQueries({ queryKey: ['professionals', selectedCenterId] });
+
+      setIsDialogOpen(false);
+      saveForm.reset({
+        ...saveForm.getValues(),
+        turno_id: '',
+      });
+
+    } catch (error: any) {
+      // 4. Manejo de errores
+      toast({
+        title: 'Error de Asignación Múltiple',
+        description: error.message || 'Error al guardar la regla de horario base en uno o más profesionales.',
+        variant: 'destructive',
+      });
+    }
   };
+
 
   // --- Funciones de Exportación (Personal.xls) - CORRECTA ---
   const handleExport = () => {
     if (!professionals.length) {
-        toast({ title: 'Error', description: 'No hay profesionales para exportar.', variant: 'destructive' });
-        return;
+      toast({ title: 'Error', description: 'No hay profesionales para exportar.', variant: 'destructive' });
+      return;
     }
 
     // --- 1. Definición de Cabeceras EXACTAS (16 campos) ---
     const headers = [
-        'ID', 'Nombre', 'Depto.', 'Turno', 'Admin.', 'Registro de Huella', 'Rostro', 'Registrar Contraseña', 
-        'ID o Tarjeta', 'Bloqueo de zona horaria', 'Grupo', 'Modo Verificar', 'Cumpleaños', 'Inicio:', 'Fin:', 'Perfil'
+      'ID', 'Nombre', 'Depto.', 'Turno', 'Admin.', 'Registro de Huella', 'Rostro', 'Registrar Contraseña',
+      'ID o Tarjeta', 'Bloqueo de zona horaria', 'Grupo', 'Modo Verificar', 'Cumpleaños', 'Inicio:', 'Fin:', 'Perfil'
     ];
-    
+
     // --- 2. Mapeo de Datos con Formato y Campos Requeridos ---
     const data = professionals.map((p) => {
-        
-        let birthdayFormatted = '';
-        if (p.fecha_nacimiento) {
-            try {
-                const dob = new Date(p.fecha_nacimiento + 'T00:00:00'); 
-                if (!isNaN(dob.getTime())) {
-                    birthdayFormatted = format(dob, 'MM/dd'); // Formato esperado: MM/DD
-                }
-            } catch (e) { /* Fecha inválida */ }
-        }
 
-        return {
-            ID: p.numero_enrolamiento_enno || '', 
-            Nombre: p.nombre_completo,
-            'Depto.': p.area_profesional || '',
-            Turno: '',          
-            'Admin.': 0,        
-            'Registro de Huella': 0, 
-            Rostro: 0,          
-            'Registrar Contraseña': 0, 
-            'ID o Tarjeta': p.numero_tarjeta_rfid || '', 
-            'Bloqueo de zona horaria': 0, 
-            Grupo: 0,           
-            'Modo Verificar': 0, 
-            Cumpleaños: birthdayFormatted, 
-            'Inicio:': '',      
-            'Fin:': '',         
-            Perfil: '',         
-        };
+      let birthdayFormatted = '';
+      if (p.fecha_nacimiento) {
+        try {
+          const dob = new Date(p.fecha_nacimiento + 'T00:00:00');
+          if (!isNaN(dob.getTime())) {
+            birthdayFormatted = format(dob, 'MM/dd'); // Formato esperado: MM/DD
+          }
+        } catch (e) { /* Fecha inválida */ }
+      }
+
+      return {
+        ID: p.numero_enrolamiento_enno || '',
+        Nombre: p.nombre_completo,
+        'Depto.': p.area_profesional || '',
+        Turno: '',
+        'Admin.': 0,
+        'Registro de Huella': 0,
+        Rostro: 0,
+        'Registrar Contraseña': 0,
+        'ID o Tarjeta': p.numero_tarjeta_rfid || '',
+        'Bloqueo de zona horaria': 0,
+        Grupo: 0,
+        'Modo Verificar': 0,
+        Cumpleaños: birthdayFormatted,
+        'Inicio:': '',
+        'Fin:': '',
+        Perfil: '',
+      };
     });
 
     // --- 3. Generación del Archivo Excel (XLSX) con la estructura de filas correcta ---
@@ -320,16 +346,16 @@ export function HorariosBasePanel() {
     const ws = XLSX.utils.json_to_sheet(data, { header: headers, skipHeader: true });
 
     XLSX.utils.sheet_add_aoa(ws, [['NOTA: Esta es la plantilla de Personal para el dispositivo biométrico. Los datos comienzan en la Fila 4.']], { origin: 'A1' });
-    
-    XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A3' }); 
-    
-    XLSX.utils.sheet_add_json(ws, data, { 
-        skipHeader: true, 
-        origin: 'A4', 
+
+    XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A3' });
+
+    XLSX.utils.sheet_add_json(ws, data, {
+      skipHeader: true,
+      origin: 'A4',
     });
 
     XLSX.utils.book_append_sheet(wb, ws, 'Personal');
-    XLSX.writeFile(wb, 'Personal.xls'); 
+    XLSX.writeFile(wb, 'Personal.xls');
 
     toast({ title: 'Exportación de Personal', description: 'El archivo Personal.xls con la plantilla biométrica está listo.' });
   };
@@ -360,6 +386,7 @@ export function HorariosBasePanel() {
                 onValueChange={(val) => {
                   setSelectedCenterId(val);
                   setSelectedProfessionalId(''); // Limpiar selección al cambiar de centro
+                  setSelectedProfessionalIds([]); // Limpiar selección múltiple
                 }}
               >
                 <SelectTrigger id="center-select" className='w-[300px]'>
@@ -390,52 +417,61 @@ export function HorariosBasePanel() {
           <Card className='col-span-1 h-full'>
             <CardHeader>
               <CardTitle className='text-base'>Seleccionar Profesional</CardTitle>
-              <CardDescription>Busque al profesional para ver/editar sus reglas.</CardDescription>
+              <CardDescription>Busque y seleccione uno o más profesionales para asignar reglas.</CardDescription>
             </CardHeader>
             <div className='px-4 pb-4'>
-                <div className='relative'>
-                    <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
-                    <Input
-                        placeholder='Buscar por nombre, EnNo o RFID...'
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className='pl-8'
-                        disabled={isLoadingProfs || !selectedCenterId}
-                    />
-                </div>
+              <div className='relative'>
+                <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
+                <Input
+                  placeholder='Buscar por nombre, EnNo o RFID...'
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className='pl-8'
+                  disabled={isLoadingProfs || !selectedCenterId}
+                />
+              </div>
             </div>
             <ScrollArea className='h-[340px] p-4 pt-0'>
               {isLoadingProfs ? (
                 <div className='space-y-2'><Skeleton className='h-8 w-full' /><Skeleton className='h-8 w-full' /></div>
               ) : !selectedCenterId ? (
                 <div className='text-center text-sm text-muted-foreground'>Seleccione un centro.</div>
-                ) : (<div className='space-y-1'>
-                  {filteredProfessionals.length === 0 ? (
-                      <p className='text-center text-sm text-muted-foreground'>
-                        No se encontraron profesionales.
-                      </p>
-                    ) : (
-                        filteredProfessionals.map((p) => (
-                          <Button
-                        key={p.id}
-                        variant={p.id === selectedProfessionalId ? 'default' : 'ghost'} // Destacar el seleccionado
-                        className={cn('w-full justify-start', p.id === selectedProfessionalId && 'pointer-events-none' // Evitar clic si ya está seleccionado )}
-                         onClick = {() => {// Alternar la selección
-                          setSelectedProfessionalIds(prevIds => {
-                            if (prevIds.includes(p.id)) {
-                              // Deseleccionar
-                              return prevIds.filter(id => id !== p.id);
-                            } else {
-                              // Seleccionar
-                              return [...prevIds, p.id];
-                            }
-                          });setSelectedProfessionalId(p.id); saveForm.setValue('id_profesional', p.id);
-                         }}>
-                    {p.nombre_completo}
-              </Button>
-              ))
-              )}
-            </div> )}
+              ) : (<div className='space-y-1'>
+                {filteredProfessionals.length === 0 ? (
+                  <p className='text-center text-sm text-muted-foreground'>
+                    No se encontraron profesionales.
+                  </p>
+                ) : (
+                  filteredProfessionals.map((p) => (
+                    <Button
+                      key={p.id}
+                      // Usa selectedProfessionalIds para la selección múltiple
+                      variant={selectedProfessionalIds.includes(p.id) ? 'default' : 'ghost'}
+                      // Sintaxis corregida y estilo para selección múltiple
+                      className={cn('w-full justify-start', {
+                        'ring-2 ring-offset-2 ring-primary': selectedProfessionalIds.includes(p.id)
+                      })}
+                      onClick={() => {
+                        // Alternar la selección
+                        setSelectedProfessionalIds(prevIds => {
+                          if (prevIds.includes(p.id)) {
+                            // Deseleccionar
+                            return prevIds.filter(id => id !== p.id);
+                          } else {
+                            // Seleccionar
+                            return [...prevIds, p.id];
+                          }
+                        });
+                        // Mantener la selección única (selectedProfessionalId) para ver las reglas existentes
+                        setSelectedProfessionalId(p.id);
+                      }}
+                    >
+                      {p.nombre_completo}
+                    </Button>
+                  ))
+                )}
+              </div>)
+              }
               {/* Información del profesional seleccionado */}
               <div className='mt-4 text-sm text-muted-foreground space-y-1'>
                 {selectedProfessional ? (
@@ -460,11 +496,20 @@ export function HorariosBasePanel() {
               <CardTitle className='text-base'>Reglas Activas</CardTitle>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button size='sm' disabled={!selectedProfessionalId} onClick={() => {
-                    saveForm.setValue('id_profesional', selectedProfessionalId);
-                    setIsDialogOpen(true);
-                  }}>
-                    <Plus className='mr-2 h-4 w-4' /> Añadir Regla
+                  <Button
+                    size='sm'
+                    // Deshabilitar si no hay profesionales seleccionados
+                    disabled={selectedProfessionalIds.length === 0}
+                    onClick={() => {
+                      // Poner el ID del primer seleccionado en el form (necesario para la validación del esquema)
+                      saveForm.setValue('id_profesional', selectedProfessionalIds[0] || '');
+                      setIsDialogOpen(true);
+                    }}
+                  >
+                    <Plus className='mr-2 h-4 w-4' />
+                    {selectedProfessionalIds.length > 1
+                      ? `Asignar a ${selectedProfessionalIds.length} Profs`
+                      : 'Añadir Regla'}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className='sm:max-w-[425px]'>
@@ -550,8 +595,9 @@ export function HorariosBasePanel() {
                       </div>
                       <DialogFooter className='pt-4'>
                         <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                        <Button type="submit" disabled={saveMutation.isLoading}>
-                          <Save className='mr-2 h-4 w-4' /> Guardar Regla
+                        <Button type="submit" disabled={saveForm.formState.isSubmitting}>
+                          <Save className='mr-2 h-4 w-4' />
+                          {saveForm.formState.isSubmitting ? 'Guardando...' : 'Guardar Regla'}
                         </Button>
                       </DialogFooter>
                     </form>
@@ -597,7 +643,7 @@ export function HorariosBasePanel() {
                               onClick={() => {
                                 const isConfirmed = window.confirm('¿Está seguro de eliminar esta regla de horario base?');
                                 if (isConfirmed) {
-                                  remove(h.id); 
+                                  remove(h.id);
                                 }
                               }}
                             >

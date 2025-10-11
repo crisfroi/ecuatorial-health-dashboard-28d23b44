@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { TurnosBiometricos } from '@/components/guardias/tabs/TurnosBiometricos';
 
 import { DispositivosPanel } from './DispositivosPanel';
-import { CuadrantesPanel } from './CuadrantesPanel';
+import { CuadrantesPanel } from './CuadrantesPanel'; // <--- YA ESTABA IMPORTADO
 import { ImportarFichajesPanel } from './ImportarFichajesPanel';
 import { ReportesPanel } from './ReportesPanel';
 import { MetricasPanel } from './MetricasPanel';
@@ -54,7 +54,7 @@ export default function AsistenciaDashboard() {
           <TurnosBiometricos selectedCenter={null} />
         </TabsContent>
         <TabsContent value="cuadrantes">
-          <CuadrantesPanel />
+          <CuadrantesPanel /> {/* <--- USA CuadrantesPanel */}
         </TabsContent>
         <TabsContent value="importar">
           <ImportarFichajesPanel />

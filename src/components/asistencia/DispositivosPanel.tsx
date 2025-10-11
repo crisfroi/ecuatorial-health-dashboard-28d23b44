@@ -168,7 +168,7 @@ export function DispositivosPanel() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nombre</TableHead>
-                    <TableHead>TM No.</TableHead> {/* Añadir esta columna para ver el TM No */}
+                    <TableHead>TM No.</TableHead>
                     <TableHead>Centro</TableHead>
                     <TableHead>Ubicación</TableHead>
                     <TableHead>Estado</TableHead>
@@ -180,7 +180,7 @@ export function DispositivosPanel() {
                     sortedDevices.map((device) => (
                       <TableRow key={device.id}>
                         <TableCell className="font-medium">{device.nombre}</TableCell>
-                        <TableCell>{device.tm_no || 'N/A'}</TableCell> {/* Mostrar TM No. */}
+                        <TableCell>{device.tm_no || 'N/A'}</TableCell>
                         <TableCell>{device.centro_salud_id ? centers.find((c) => c.id === device.centro_salud_id)?.nombre || '—' : 'Sin asignar'}</TableCell>
                         <TableCell>{device.ubicacion || '—'}</TableCell>
                         <TableCell>
@@ -191,7 +191,6 @@ export function DispositivosPanel() {
                             <Button variant="ghost" size="icon" onClick={() => setMappingDevice(device)} title="Mapeos">
                               <Settings2 className="h-4 w-4" />
                             </Button>
-                            {/* Usamos 'Settings2' en lugar de 'Plus' rotado para edición, por convención */}
                             <Button variant="ghost" size="icon" onClick={() => handleOpenForm(device)} title="Editar">
                               <Settings2 className="h-4 w-4" />
                             </Button>

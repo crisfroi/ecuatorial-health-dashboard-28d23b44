@@ -333,8 +333,6 @@ export function HorariosBasePanel() {
 
     toast({ title: 'Exportación de Personal', description: 'El archivo Personal.xls con la plantilla biométrica está listo.' });
   };
-  
-
   const handleImportComplete = () => {
     queryClient.invalidateQueries({ queryKey: ['professionals', selectedCenterId] });
   };

@@ -17,13 +17,13 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'; // Nuevo: Acordeón
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/Auth/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { HorarioBase, HorarioBasePayload, useHorariosBase } from '@/hooks/useHorariosBase';
-import { useTurnosBio } from '@/hooks/useTurnosBio';
+import { useTurnosBio } from '@/hooks/useTurnosBio'; // Nuevo: Hook de Turnos
 
 const saveHorarioSchema = z.object({
   profesionalIds: z.array(z.string()).min(1, 'Seleccione al menos un profesional.'),
@@ -63,21 +63,20 @@ export function HorariosBasePanel() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  // Asumo que useHorariosBase, useAuth y otras dependencias están definidas
   const { listByProfessional, save, remove } = useHorariosBase();
 
-  const [selectedCenterId, setSelectedCenterId] = useState<string>(user?.assigned_center_id ?? '');
+  const [selectedCenterId, setSelectedCenterId] = useState<string | null>(user?.assigned_center_id ?? null);
   const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([]);
   const [activeProfessionalId, setActiveProfessionalId] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Estados para el formulario de creación rápida de turno
+  // NUEVOS ESTADOS para el formulario de creación rápida de turno
   const [quickTurnoNombre, setQuickTurnoNombre] = useState('');
   const [quickTurnoInicio, setQuickTurnoInicio] = useState('08:00');
   const [quickTurnoFin, setQuickTurnoFin] = useState('16:00');
   const [quickTurnoTol, setQuickTurnoTol] = useState(5);
-  const [quickTurnoTipo, setQuickTurnoTipo] = useState<'diurno'|'nocturno'|'festivo'>('diurno');
+  const [quickTurnoTipo, setQuickTurnoTipo] = useState<'diurno' | 'nocturno' | 'festivo'>('diurno');
 
 
   useEffect(() => {
@@ -107,7 +106,7 @@ export function HorariosBasePanel() {
     staleTime: 5 * 60_000,
   });
 
-  // Usamos el hook de turnos adaptado, depende de selectedCenterId
+  // Usamos el hook de turnos adaptado
   const { turnosQuery, createMutation: createTurnoMutation } = useTurnosBio(selectedCenterId);
 
   const professionalsQuery = useQuery<ProfessionalRow[]>({
@@ -208,10 +207,10 @@ export function HorariosBasePanel() {
     }, {
       onSuccess: () => {
         // Limpiar el formulario
-        setQuickTurnoNombre(''); 
-        setQuickTurnoInicio('08:00'); 
-        setQuickTurnoFin('16:00'); 
-        setQuickTurnoTol(5); 
+        setQuickTurnoNombre('');
+        setQuickTurnoInicio('08:00');
+        setQuickTurnoFin('16:00');
+        setQuickTurnoTol(5);
         setQuickTurnoTipo('diurno');
       }
     });
@@ -224,8 +223,10 @@ export function HorariosBasePanel() {
     const term = searchTerm.toLowerCase();
     return source.filter((professional) => {
       const name = (professional.nombre_completo ?? '').toLowerCase();
+      // CORRECCIÓN: Usar String() para asegurar que la propiedad es una cadena.
       const enNo = String(professional.numero_enrolamiento_enno ?? '').toLowerCase();
       const rfid = String(professional.numero_tarjeta_rfid ?? '').toLowerCase();
+      // FIN DE LA CORRECCIÓN
 
       return name.includes(term) || enNo.includes(term) || rfid.includes(term);
     });
@@ -283,10 +284,7 @@ export function HorariosBasePanel() {
   };
 
   const handleRemove = (id: string) => {
-    // Usamos un modal o confirmación UI customizada en lugar de window.confirm
-    // Por ahora, asumimos que tienes un modal customizado implementado.
-    if (!confirm('¿Está seguro de eliminar esta regla de horario base?')) {
-       // NOTA: Si no puedes usar window.confirm, reemplaza esta línea por un modal customizado
+    if (!window.confirm('¿Está seguro de eliminar esta regla de horario base?')) {
       return;
     }
     removeMutation.mutate(id);
@@ -448,71 +446,71 @@ export function HorariosBasePanel() {
                   {/* INICIO: Acordeón de Creación Rápida de Turno (Mejora UX/UI) */}
                   {/* ================================================================= */}
                   <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value="item-1" className="border rounded-lg px-4">
-                          <AccordionTrigger className="hover:no-underline text-sm font-medium py-3">
-                              <Timer className="mr-2 h-4 w-4" /> ¿Falta un turno? Creación Rápida
-                          </AccordionTrigger>
-                          <AccordionContent className="pt-2 pb-4 space-y-3">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                  <Input 
-                                      placeholder="Nombre del Turno (ej: Mañana 8-16)" 
-                                      value={quickTurnoNombre} 
-                                      onChange={e => setQuickTurnoNombre(e.target.value)} 
-                                      className="w-44" 
-                                      disabled={createTurnoMutation.isPending || !selectedCenterId}
-                                  />
-                                  <div className="flex items-center gap-1">
-                                      <span className="text-sm">Inicio</span>
-                                      <Input 
-                                          type="time" 
-                                          value={quickTurnoInicio} 
-                                          onChange={e => setQuickTurnoInicio(e.target.value)} 
-                                          disabled={createTurnoMutation.isPending || !selectedCenterId}
-                                      />
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                      <span className="text-sm">Fin</span>
-                                      <Input 
-                                          type="time" 
-                                          value={quickTurnoFin} 
-                                          onChange={e => setQuickTurnoFin(e.target.value)} 
-                                          disabled={createTurnoMutation.isPending || !selectedCenterId}
-                                      />
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                      <span className="text-sm">Tol (min)</span>
-                                      <Input 
-                                          type="number" 
-                                          value={quickTurnoTol} 
-                                          onChange={e => setQuickTurnoTol(parseInt(e.target.value||'0',10))} 
-                                          className="w-24" 
-                                          disabled={createTurnoMutation.isPending || !selectedCenterId}
-                                      />
-                                  </div>
-                                  <Select 
-                                      value={quickTurnoTipo} 
-                                      onValueChange={(v: any) => setQuickTurnoTipo(v)}
-                                      disabled={createTurnoMutation.isPending || !selectedCenterId}
-                                  >
-                                      <SelectTrigger className="w-40">
-                                          <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                          <SelectItem value="diurno">Diurno</SelectItem>
-                                          <SelectItem value="nocturno">Nocturno</SelectItem>
-                                          <SelectItem value="festivo">Festivo</SelectItem>
-                                      </SelectContent>
-                                  </Select>
-                                  <Button 
-                                      onClick={handleQuickCreateTurno} 
-                                      disabled={createTurnoMutation.isPending || !quickTurnoNombre.trim() || !selectedCenterId}
-                                      className="ml-auto"
-                                  >
-                                      {createTurnoMutation.isPending ? 'Creando...' : 'Crear Turno'}
-                                  </Button>
-                              </div>
-                          </AccordionContent>
-                      </AccordionItem>
+                    <AccordionItem value="item-1" className="border rounded-lg px-4">
+                      <AccordionTrigger className="hover:no-underline text-sm font-medium py-3">
+                        <Timer className="mr-2 h-4 w-4" /> ¿Falta un turno? Creación Rápida
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-2 pb-4 space-y-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Input
+                            placeholder="Nombre del Turno (ej: Mañana 8-16)"
+                            value={quickTurnoNombre}
+                            onChange={e => setQuickTurnoNombre(e.target.value)}
+                            className="w-44"
+                            disabled={createTurnoMutation.isPending || !selectedCenterId}
+                          />
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm">Inicio</span>
+                            <Input
+                              type="time"
+                              value={quickTurnoInicio}
+                              onChange={e => setQuickTurnoInicio(e.target.value)}
+                              disabled={createTurnoMutation.isPending || !selectedCenterId}
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm">Fin</span>
+                            <Input
+                              type="time"
+                              value={quickTurnoFin}
+                              onChange={e => setQuickTurnoFin(e.target.value)}
+                              disabled={createTurnoMutation.isPending || !selectedCenterId}
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm">Tol (min)</span>
+                            <Input
+                              type="number"
+                              value={quickTurnoTol}
+                              onChange={e => setQuickTurnoTol(parseInt(e.target.value || '0', 10))}
+                              className="w-24"
+                              disabled={createTurnoMutation.isPending || !selectedCenterId}
+                            />
+                          </div>
+                          <Select
+                            value={quickTurnoTipo}
+                            onValueChange={(v: any) => setQuickTurnoTipo(v)}
+                            disabled={createTurnoMutation.isPending || !selectedCenterId}
+                          >
+                            <SelectTrigger className="w-40">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="diurno">Diurno</SelectItem>
+                              <SelectItem value="nocturno">Nocturno</SelectItem>
+                              <SelectItem value="festivo">Festivo</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            onClick={handleQuickCreateTurno}
+                            disabled={createTurnoMutation.isPending || !quickTurnoNombre.trim() || !selectedCenterId}
+                            className="ml-auto"
+                          >
+                            {createTurnoMutation.isPending ? 'Creando...' : 'Crear Turno'}
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
                   </Accordion>
                   {/* ================================================================= */}
                   {/* FIN: Acordeón de Creación Rápida de Turno */}
@@ -524,10 +522,9 @@ export function HorariosBasePanel() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Turno</FormLabel>
-                        <Select 
-                          // CORRECCIÓN CLAVE: Deshabilitar si está cargando O si no hay centro seleccionado
-                          disabled={turnosQuery.isLoading || !selectedCenterId} 
-                          onValueChange={field.onChange} 
+                        <Select
+                          disabled={turnosQuery.isLoading}
+                          onValueChange={field.onChange}
                           value={field.value}
                         >
                           <FormControl>
@@ -536,22 +533,18 @@ export function HorariosBasePanel() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                              {turnosQuery.isLoading ? (
-                                  <SelectItem value="" disabled>Cargando turnos...</SelectItem>
-                              ) : // Manejo del caso sin turnos
-                                (turnosQuery.data ?? []).length === 0 ? (
-                                  <SelectItem value="" disabled>No hay turnos. Use la opción "Creación Rápida".</SelectItem>
-                              ) : (
-                                  // Iteración correcta sobre los datos
-                                  (turnosQuery.data ?? []).map((turno) => (
-                                      <SelectItem key={turno.id} value={turno.id}>
-                                          {turno.nombre_turno}
-                                          <span className="text-xs text-muted-foreground ml-2">
-                                            ({turno.hora_inicio.slice(0,5)} - {turno.hora_fin.slice(0,5)})
-                                          </span>
-                                      </SelectItem>
-                                  ))
-                              )}
+                            {turnosQuery.isLoading ? (
+                              <SelectItem value="" disabled>Cargando turnos...</SelectItem>
+                            ) : (
+                              (turnosQuery.data ?? []).map((turno) => (
+                                <SelectItem key={turno.id} value={turno.id}>
+                                  {turno.nombre_turno}
+                                  <span className="text-xs text-muted-foreground ml-2">
+                                    ({turno.hora_inicio.slice(0, 5)} - {turno.hora_fin.slice(0, 5)})
+                                  </span>
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -606,7 +599,7 @@ export function HorariosBasePanel() {
             <CardHeader>
               <CardTitle className="text-base">Profesionales</CardTitle>
               <CardDescription>Seleccione quienes recibirán la regla.</CardDescription>
-            </CardDescription>
+            </CardHeader>
             <div className="px-6 pb-4">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -636,36 +629,37 @@ export function HorariosBasePanel() {
                     const isSelected = selectedProfessionalIds.includes(professional.id);
                     const isActive = activeProfessionalId === professional.id;
                     return (
-                      <div 
-                          key={professional.id}
-                          onClick={() => handleProfessionalToggle(professional.id)}
-                          className={cn(
-                              'flex w-full items-center justify-between rounded-lg border p-3 text-left transition cursor-pointer',
-                              isSelected ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-accent'
-                          )}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  handleProfessionalToggle(professional.id);
-                              }
-                          }}
+                      // CÓDIGO CORREGIDO PARA EL WARNING DE ANIDAMIENTO DE BOTONES
+                      <div // CAMBIO CLAVE: Usamos <div> en lugar de <button>
+                        key={professional.id}
+                        onClick={() => handleProfessionalToggle(professional.id)}
+                        className={cn(
+                          'flex w-full items-center justify-between rounded-lg border p-3 text-left transition cursor-pointer',
+                          isSelected ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-accent'
+                        )}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleProfessionalToggle(professional.id);
+                          }
+                        }}
                       >
-                          <div>
-                              <p className="font-medium">{professional.nombre_completo ?? 'Sin nombre'}</p>
-                              <p className="text-xs text-muted-foreground">
-                                  EnNo: {professional.numero_enrolamiento_enno ?? '—'} · RFID: {professional.numero_tarjeta_rfid ?? '—'}
-                              </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                              {isActive && <Badge variant="secondary">Visualizando</Badge>}
-                              <Checkbox
-                                  checked={isSelected}
-                                  onCheckedChange={() => handleProfessionalToggle(professional.id)} 
-                                  onClick={(e) => e.stopPropagation()} 
-                              />
-                          </div>
+                        <div>
+                          <p className="font-medium">{professional.nombre_completo ?? 'Sin nombre'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            EnNo: {professional.numero_enrolamiento_enno ?? '—'} · RFID: {professional.numero_tarjeta_rfid ?? '—'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isActive && <Badge variant="secondary">Visualizando</Badge>}
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => handleProfessionalToggle(professional.id)}
+                            onClick={(e) => e.stopPropagation()} // Detenemos la propagación para evitar doble evento
+                          />
+                        </div>
                       </div>
                     );
                   })}
@@ -699,8 +693,8 @@ export function HorariosBasePanel() {
                   <div className="space-y-3">
                     {(horariosBaseQuery.data ?? []).map((horario) => {
                       const dayLabel = DAYS_OF_WEEK.find((day) => day.value === horario.dia_semana)?.label ?? 'Día';
-                      const turno = (turnosQuery.data ?? []).find((t) => t.id === horario.turno_id);
-                      const turnoNombre = turno ? `${turno.nombre_turno} (${turno.hora_inicio.slice(0,5)} - ${turno.hora_fin.slice(0,5)})` : 'Turno Desconocido';
+                      // Buscamos el nombre del turno usando los datos de la nueva query
+                      const turnoNombre = (turnosQuery.data ?? []).find((turno) => turno.id === horario.turno_id)?.nombre_turno ?? 'Turno (ID: ' + horario.turno_id.slice(0, 4) + '...)';
                       const desde = format(new Date(horario.vigencia_desde), 'dd/MM/yyyy');
                       const hasta = horario.vigencia_hasta ? format(new Date(horario.vigencia_hasta), 'dd/MM/yyyy') : 'Indefinido';
 

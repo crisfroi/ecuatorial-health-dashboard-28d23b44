@@ -1,44 +1,39 @@
-import { useMemo, useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, getDay, isAfter, isBefore } from 'date-fns';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { format } from 'date-fns';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as XLSX from 'xlsx';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { CalendarDays, Download, Info, Plus, Save, Search, Trash2 } from 'lucide-react';
 
-import { CalendarDays, Save, Plus, Trash2, Download, Search, Check, Info } from 'lucide-react'; // Añadida 'Info' para el Badge
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-// 🚨 CORRECCIÓN/OPTIMIZACIÓN DE AUTH 🚨: Importamos useRole desde la ruta confirmada para permisos y user.
-import { useRole } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { cn } from '@/lib/utils';
-// Asumo que 'useHorariosBase' es un hook creado por usted
-import { HorarioBase, HorarioBasePayload, useHorariosBase } from '@/hooks/useHorariosBase';
-import { useAsistencia } from '@/hooks/useAsistencia';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Checkbox } from '@/components/ui/checkbox'; // Importar Checkbox
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
+import { HorarioBase, HorarioBasePayload, useHorariosBase } from '@/hooks/useHorariosBase';
 
-// --- Esquemas de Validación ---
-// MODIFICADO: id_profesional es ahora un array de strings, dia_semana es un array de strings.
 const saveHorarioSchema = z.object({
-  id_profesional: z.array(z.string()).min(1, 'Seleccione al menos un profesional.'),
-  turno_id: z.string().min(1, 'Seleccione un turno.'),
-  dia_semana: z.array(z.string()).min(1, 'Seleccione al menos un día.'), // MODIFICADO A ARRAY
-  vigencia_desde: z.string().min(1, 'Ingrese la fecha de inicio.'),
-  vigencia_hasta: z.string().nullable().optional(),
+  profesionalIds: z.array(z.string()).min(1, 'Seleccione al menos un profesional.'),
+  turnoId: z.string().min(1, 'Seleccione un turno.'),
+  diasSemana: z.array(z.number()).min(1, 'Seleccione al menos un día.'),
+  vigenciaDesde: z.string().min(1, 'Ingrese la fecha de inicio.'),
+  vigenciaHasta: z.string().nullable().optional(),
 });
 
-// --- Helpers ---
-const DIAS_SEMANA = [
+type SaveHorarioFormValues = z.infer<typeof saveHorarioSchema>;
+
+const DAYS_OF_WEEK = [
   { value: 1, label: 'Lunes' },
   { value: 2, label: 'Martes' },
   { value: 3, label: 'Miércoles' },
@@ -55,11 +50,11 @@ interface CentroOption {
 
 interface ProfessionalRow {
   id: string;
-  nombre_completo: string;
+  nombre_completo: string | null;
   numero_enrolamiento_enno: string | null;
   numero_tarjeta_rfid: string | null;
-  fecha_nacimiento?: string | null; // AAAA-MM-DD para Cumpleaños
-  area_profesional?: string | null; // Depto.
+  fecha_nacimiento?: string | null;
+  area_profesional?: string | null;
 }
 
 interface TurnoRow {
@@ -67,202 +62,244 @@ interface TurnoRow {
   nombre_turno: string;
 }
 
-// ----------------------------------------------------------------------
-// ⚡️ COMPONENTE PRINCIPAL HorariosBasePanel ⚡️
-// ----------------------------------------------------------------------
-
-export function HorariosBasePanel() {
+export default function HorariosBasePanel() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  // 🚨 CORRECCIÓN/OPTIMIZACIÓN DE AUTH 🚨: Usamos useRole, que también incluye 'user'
-  const { user } = useRole();
-  const userCenterId = user?.assigned_center_id;
+  const { user } = useAuth();
   const { listByProfessional, save, remove } = useHorariosBase();
 
-  // --- Estados y Hooks ---
-  const [selectedCenterId, setSelectedCenterId] = useState<string>(user?.assigned_center_id || '');
-  // MODIFICADO: Ahora es un array para selección múltiple.
+  const [selectedCenterId, setSelectedCenterId] = useState<string>(user?.assigned_center_id ?? '');
   const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<string[]>([]);
-  // El ID individual es solo para la visualización de reglas
-  const [professionalIdForDisplay, setProfessionalIdForDisplay] = useState<string>('');
-
+  const [activeProfessionalId, setActiveProfessionalId] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(''); // Estado para la búsqueda
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Sincronizar selectedCenterId al cargar el userCenterId inicial
   useEffect(() => {
-    if (userCenterId && !selectedCenterId) {
-      setSelectedCenterId(userCenterId);
+    if (!selectedCenterId && user?.assigned_center_id) {
+      setSelectedCenterId(user.assigned_center_id);
     }
-  }, [userCenterId, selectedCenterId]);
+  }, [selectedCenterId, user?.assigned_center_id]);
 
+  useEffect(() => {
+    if (selectedProfessionalIds.length === 0) {
+      setActiveProfessionalId('');
+      return;
+    }
 
-  // --- Data Fetching (Queries) ---
+    if (!selectedProfessionalIds.includes(activeProfessionalId)) {
+      setActiveProfessionalId(selectedProfessionalIds[0] ?? '');
+    }
+  }, [selectedProfessionalIds, activeProfessionalId]);
 
-  // 0. Obtener Centros de Salud (NUEVO)
-  const { data: centers = [], isLoading: isLoadingCenters } = useQuery<CentroOption[]>({
-    queryKey: ['centers'],
+  const centersQuery = useQuery<CentroOption[]>({
+    queryKey: ['centros-salud'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('centros_salud').select('id, nombre');
+      const { data, error } = await supabase.from('centros_salud').select('id, nombre').order('nombre');
       if (error) throw error;
-      return data || [];
+      return data ?? [];
     },
+    staleTime: 5 * 60_000,
   });
 
-  // 1. Obtener Turnos Biométricos
-  const { data: turnos = [], isLoading: isLoadingTurnos } = useQuery<TurnoRow[]>({
-    queryKey: ['turnosBio', selectedCenterId],
+  const turnosQuery = useQuery<TurnoRow[]>({
+    queryKey: ['turnos-bio', selectedCenterId],
     queryFn: async () => {
       if (!selectedCenterId) return [];
-      const { data, error } = await supabase.from('turnos_biometricos').select('id, nombre_turno').eq('centro_salud_id', selectedCenterId);
+      const { data, error } = await supabase
+        .from('turnos_biometricos')
+        .select('id, nombre_turno')
+        .eq('centro_salud_id', selectedCenterId)
+        .order('nombre_turno');
       if (error) throw error;
-      return data || [];
+      return data ?? [];
     },
-    enabled: !!selectedCenterId,
+    enabled: Boolean(selectedCenterId),
+    staleTime: 60_000,
   });
 
-  // 2. Obtener Profesionales (Incluyendo campos de exportación)
-  const { data: professionals = [], isLoading: isLoadingProfs } = useQuery<ProfessionalRow[]>({
-    queryKey: ['professionals', selectedCenterId],
+  const professionalsQuery = useQuery<ProfessionalRow[]>({
+    queryKey: ['profesionales-centro', selectedCenterId],
     queryFn: async () => {
       if (!selectedCenterId) return [];
-      const { data, error } = await supabase.from('profesionales_sanitarios')
+      const { data, error } = await supabase
+        .from('profesionales_sanitarios')
         .select('id, nombre_completo, numero_enrolamiento_enno, numero_tarjeta_rfid, fecha_nacimiento, area_profesional')
         .eq('centro_salud_id', selectedCenterId)
         .order('nombre_completo');
       if (error) throw error;
-      return data || [];
+      return data ?? [];
     },
-    enabled: !!selectedCenterId,
+    enabled: Boolean(selectedCenterId),
   });
 
-  // 3. Obtener Horarios Base del Profesional para la pantalla de reglas
-  const { data: horariosBase = [], isLoading: isLoadingHorarios } = useQuery<HorarioBase[]>({
-    queryKey: ['horariosBase', professionalIdForDisplay],
-    queryFn: () => listByProfessional(professionalIdForDisplay),
-    enabled: !!professionalIdForDisplay,
+  const horariosBaseQuery = useQuery<HorarioBase[]>({
+    queryKey: ['horarios-base', activeProfessionalId],
+    queryFn: () => listByProfessional(activeProfessionalId),
+    enabled: Boolean(activeProfessionalId),
   });
 
-  // --- Lógica de Búsqueda y Filtrado de Profesionales ---
-  const filteredProfessionals = useMemo(() => {
-    if (!searchTerm) return professionals;
-    const lowerCaseSearch = searchTerm.toLowerCase();
-    return professionals.filter(p =>
-      p.nombre_completo.toLowerCase().includes(lowerCaseSearch) ||
-      String(p.numero_enrolamiento_enno || '').toLowerCase().includes(lowerCaseSearch) ||
-      String(p.numero_tarjeta_rfid || '').toLowerCase().includes(lowerCaseSearch)
-    );
-  }, [professionals, searchTerm]);
-
-  // --- Formulario de Guardado (Mutations) ---
-  const saveForm = useForm<z.infer<typeof saveHorarioSchema>>({
+  const saveForm = useForm<SaveHorarioFormValues>({
     resolver: zodResolver(saveHorarioSchema),
     defaultValues: {
-      id_profesional: [], // Array vacío por defecto
-      dia_semana: [String(getDay(new Date()) === 0 ? 7 : getDay(new Date()))], // Array
-      vigencia_desde: format(new Date(), 'yyyy-MM-dd'),
-      vigencia_hasta: null,
-      turno_id: '',
+      profesionalIds: [],
+      turnoId: '',
+      diasSemana: [DAYS_OF_WEEK[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1].value],
+      vigenciaDesde: format(new Date(), 'yyyy-MM-dd'),
+      vigenciaHasta: null,
     },
   });
 
-  // Sincronizar el estado de IDs seleccionados con el formulario al abrir el diálogo
   useEffect(() => {
-    if (isDialogOpen) {
-      saveForm.setValue('id_profesional', selectedProfessionalIds);
-    }
-  }, [isDialogOpen, selectedProfessionalIds, saveForm]); // Añadir saveForm a dependencias
+    saveForm.setValue('profesionalIds', selectedProfessionalIds);
+  }, [saveForm, selectedProfessionalIds]);
 
   const saveMutation = useMutation({
-    // La mutación ahora acepta un array de payloads para inserciones múltiples
-    mutationFn: (payloads: HorarioBasePayload[]) => {
-      // Usamos Promise.all para guardar todas las reglas de una vez
-      return Promise.all(payloads.map(p => save(p)));
-    },
-    onSuccess: () => {
-      toast({ title: 'Reglas guardadas', description: `Se han guardado las reglas para ${selectedProfessionalIds.length} profesional(es).` });
-      // Invalidar la query del profesional que se está viendo
-      queryClient.invalidateQueries({ queryKey: ['horariosBase', professionalIdForDisplay] });
-      setIsDialogOpen(false); // Cierra el diálogo al guardar con éxito
-      saveForm.reset({
-        ...saveForm.getValues(),
-        turno_id: '',
-        id_profesional: selectedProfessionalIds, // Mantener IDs seleccionados
+    mutationFn: (payloads: HorarioBasePayload[]) => save(payloads),
+    onSuccess: (_, payloads) => {
+      const affectedProfessionals = payloads.length
+        ? Array.from(new Set(payloads.map((payload) => payload.id_profesional)))
+        : selectedProfessionalIds;
+
+      affectedProfessionals.forEach((id) => {
+        queryClient.invalidateQueries({ queryKey: ['horarios-base', id] });
       });
-    },
-    onError: (error: any) => {
+
       toast({
-        title: 'Error',
-        description: error.message || 'Error al guardar la regla(s) de horario base.',
-        variant: 'destructive',
+        title: 'Reglas guardadas',
+        description: `${payloads.length} regla${payloads.length === 1 ? '' : 's'} asignada${payloads.length === 1 ? '' : 's'} correctamente.`,
       });
+
+      setIsDialogOpen(false);
+      saveForm.reset({
+        profesionalIds: selectedProfessionalIds,
+        turnoId: '',
+        diasSemana: [],
+        vigenciaDesde: format(new Date(), 'yyyy-MM-dd'),
+        vigenciaHasta: null,
+      });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'No se pudo guardar la regla.';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     },
   });
 
-  // MODIFICADO: Maneja la lógica de inserción múltiple
-  const onSubmit = (values: z.infer<typeof saveHorarioSchema>) => {
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => remove(id),
+    onSuccess: () => {
+      if (activeProfessionalId) {
+        queryClient.invalidateQueries({ queryKey: ['horarios-base', activeProfessionalId] });
+      }
+      toast({ title: 'Regla eliminada', description: 'La regla de horario fue eliminada correctamente.' });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'No se pudo eliminar la regla.';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    },
+  });
+
+  const filteredProfessionals = useMemo(() => {
+    const source = professionalsQuery.data ?? [];
+    if (!searchTerm.trim()) return source;
+
+    const term = searchTerm.toLowerCase();
+    return source.filter((professional) => {
+      const name = (professional.nombre_completo ?? '').toLowerCase();
+      const enNo = (professional.numero_enrolamiento_enno ?? '').toLowerCase();
+      const rfid = (professional.numero_tarjeta_rfid ?? '').toLowerCase();
+      return name.includes(term) || enNo.includes(term) || rfid.includes(term);
+    });
+  }, [professionalsQuery.data, searchTerm]);
+
+  const activeProfessional = useMemo(() => {
+    return (professionalsQuery.data ?? []).find((professional) => professional.id === activeProfessionalId) ?? null;
+  }, [professionalsQuery.data, activeProfessionalId]);
+
+  const handleProfessionalToggle = (id: string) => {
+    setSelectedProfessionalIds((prev) => {
+      const isSelected = prev.includes(id);
+      const next = isSelected ? prev.filter((current) => current !== id) : [...prev, id];
+      return next;
+    });
+    setActiveProfessionalId((previous) => {
+      if (previous === id && selectedProfessionalIds.length === 1) {
+        return '';
+      }
+      if (!selectedProfessionalIds.includes(id)) {
+        return id;
+      }
+      const remaining = selectedProfessionalIds.filter((current) => current !== id);
+      return remaining[0] ?? '';
+    });
+  };
+
+  const handleSubmit = (values: SaveHorarioFormValues) => {
     if (!selectedCenterId) {
-      toast({ title: 'Error', description: 'ID de Centro de Salud no disponible.', variant: 'destructive' });
+      toast({ title: 'Centro requerido', description: 'Seleccione un centro de salud antes de guardar.', variant: 'destructive' });
       return;
     }
 
     const payloads: HorarioBasePayload[] = [];
 
-    // Generar un payload para CADA profesional seleccionado y CADA día seleccionado
-    values.id_profesional.forEach(profId => {
-      values.dia_semana.forEach(diaString => {
-        const payload: HorarioBasePayload = {
-          id_profesional: profId,
-          turno_id: values.turno_id,
-          dia_semana: Number(diaString), // Convertir a número
+    values.profesionalIds.forEach((profesionalId) => {
+      values.diasSemana.forEach((day) => {
+        payloads.push({
+          id_profesional: profesionalId,
+          turno_id: values.turnoId,
+          dia_semana: day,
           centro_salud_id: selectedCenterId,
-          vigencia_desde: values.vigencia_desde,
-          vigencia_hasta: values.vigencia_hasta || null,
-        };
-        payloads.push(payload);
+          vigencia_desde: values.vigenciaDesde,
+          vigencia_hasta: values.vigenciaHasta || null,
+        });
       });
     });
+
+    if (!payloads.length) {
+      toast({ title: 'Sin datos', description: 'Seleccione profesionales y días válidos.', variant: 'destructive' });
+      return;
+    }
 
     saveMutation.mutate(payloads);
   };
 
-  // --- Funciones de Exportación (Personal.xls) - SIN CAMBIOS ---
+  const handleRemove = (id: string) => {
+    if (!window.confirm('¿Está seguro de eliminar esta regla de horario base?')) {
+      return;
+    }
+    removeMutation.mutate(id);
+  };
+
   const handleExport = () => {
+    const professionals = professionalsQuery.data ?? [];
     if (!professionals.length) {
-      toast({ title: 'Error', description: 'No hay profesionales para exportar.', variant: 'destructive' });
+      toast({ title: 'Sin datos', description: 'No hay profesionales para exportar.', variant: 'destructive' });
       return;
     }
 
-    // --- 1. Definición de Cabeceras EXACTAS (16 campos) ---
     const headers = [
       'ID', 'Nombre', 'Depto.', 'Turno', 'Admin.', 'Registro de Huella', 'Rostro', 'Registrar Contraseña',
-      'ID o Tarjeta', 'Bloqueo de zona horaria', 'Grupo', 'Modo Verificar', 'Cumpleaños', 'Inicio:', 'Fin:', 'Perfil'
+      'ID o Tarjeta', 'Bloqueo de zona horaria', 'Grupo', 'Modo Verificar', 'Cumpleaños', 'Inicio:', 'Fin:', 'Perfil',
     ];
 
-    // --- 2. Mapeo de Datos con Formato y Campos Requeridos ---
-    const data = professionals.map((p) => {
-
+    const rows = professionals.map((professional) => {
       let birthdayFormatted = '';
-      if (p.fecha_nacimiento) {
-        try {
-          // Asegura que se parsea correctamente como fecha UTC/local al agregar la hora
-          const dob = new Date(p.fecha_nacimiento + 'T00:00:00');
-          if (!isNaN(dob.getTime())) {
-            birthdayFormatted = format(dob, 'MM/dd'); // Formato esperado: MM/DD
-          }
-        } catch (e) { /* Fecha inválida */ }
+      if (professional.fecha_nacimiento) {
+        const date = new Date(`${professional.fecha_nacimiento}T00:00:00`);
+        if (!Number.isNaN(date.getTime())) {
+          birthdayFormatted = format(date, 'MM/dd');
+        }
       }
 
       return {
-        ID: p.numero_enrolamiento_enno || '',
-        Nombre: p.nombre_completo,
-        'Depto.': p.area_profesional || '',
+        ID: professional.numero_enrolamiento_enno ?? '',
+        Nombre: professional.nombre_completo ?? '',
+        'Depto.': professional.area_profesional ?? '',
         Turno: '',
         'Admin.': 0,
         'Registro de Huella': 0,
         Rostro: 0,
         'Registrar Contraseña': 0,
-        'ID o Tarjeta': p.numero_tarjeta_rfid || '',
+        'ID o Tarjeta': professional.numero_tarjeta_rfid ?? '',
         'Bloqueo de zona horaria': 0,
         Grupo: 0,
         'Modo Verificar': 0,
@@ -273,355 +310,286 @@ export function HorariosBasePanel() {
       };
     });
 
-    // --- 3. Generación del Archivo Excel (XLSX) con la estructura de filas correcta ---
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data, { header: headers, skipHeader: true });
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers, skipHeader: true });
 
-    XLSX.utils.sheet_add_aoa(ws, [['NOTA: Esta es la plantilla de Personal para el dispositivo biométrico. Los datos comienzan en la Fila 4.']], { origin: 'A1' });
+    XLSX.utils.sheet_add_aoa(
+      worksheet,
+      [['NOTA: Esta es la plantilla de Personal para el dispositivo biométrico. Los datos comienzan en la fila 4.']],
+      { origin: 'A1' },
+    );
 
-    XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A3' });
+    XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: 'A3' });
+    XLSX.utils.sheet_add_json(worksheet, rows, { origin: 'A4', skipHeader: true });
 
-    XLSX.utils.sheet_add_json(ws, data, {
-      skipHeader: true,
-      origin: 'A4',
-    });
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Personal');
+    XLSX.writeFile(workbook, 'Personal.xls');
 
-    XLSX.utils.book_append_sheet(wb, ws, 'Personal');
-    XLSX.writeFile(wb, 'Personal.xls');
-
-    toast({ title: 'Exportación de Personal', description: 'El archivo Personal.xls con la plantilla biométrica está listo.' });
+    toast({ title: 'Exportación creada', description: `Se generó la plantilla con ${professionals.length} profesional(es).` });
   };
 
-  // --- Renderizado ---
-
-  // Usamos professionalIdForDisplay para mostrar la información en el panel de la derecha
-  const professionalDisplay = professionals.find(p => p.id === professionalIdForDisplay);
-
   return (
-    <Card className='w-full'>
-      <CardHeader className='flex flex-row items-center justify-between'>
-        <div className='space-y-1'>
+    <Card className="w-full">
+      <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-2">
           <CardTitle>Horarios Base Semanales</CardTitle>
-          <CardDescription>
-            Define las reglas de turno fijas a largo plazo por profesional.
-          </CardDescription>
-          {/* Selector de Centro */}
-          <div className='pt-2'>
-            <Label htmlFor="center-select">Centro de Salud</Label>
-            {isLoadingCenters ? (
-              <Skeleton className='h-9 w-64' />
-            ) : (
-              <Select
-                value={selectedCenterId}
-                onValueChange={(val) => {
-                  setSelectedCenterId(val);
-                  setProfessionalIdForDisplay(''); // Limpiar visualización
-                  setSelectedProfessionalIds([]); // Limpiar selección múltiple
-                }}
-              >
-                <SelectTrigger id="center-select" className='w-[300px]'>
-                  <SelectValue placeholder="Seleccione un Centro..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {centers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+          <CardDescription>Defina reglas de turno recurrentes por profesional.</CardDescription>
+          <div className="pt-2">
+            <FormItem className="flex flex-col gap-2">
+              <FormLabel>Centro de Salud</FormLabel>
+              {centersQuery.isLoading ? (
+                <Skeleton className="h-9 w-64" />
+              ) : (
+                <Select
+                  value={selectedCenterId}
+                  onValueChange={(value) => {
+                    setSelectedCenterId(value);
+                    setSelectedProfessionalIds([]);
+                    setActiveProfessionalId('');
+                  }}
+                >
+                  <SelectTrigger className="w-[280px]">
+                    <SelectValue placeholder="Seleccione un centro" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(centersQuery.data ?? []).map((center) => (
+                      <SelectItem key={center.id} value={center.id}>
+                        {center.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </FormItem>
           </div>
         </div>
-        <div className='flex space-x-2'>
-          <Button variant="outline" onClick={handleExport} disabled={isLoadingProfs || !professionals.length || !selectedCenterId}>
-            <Download className='mr-2 h-4 w-4' /> **Exportar Personal.xls**
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            disabled={!selectedCenterId || professionalsQuery.isLoading || !(professionalsQuery.data ?? []).length}
+          >
+            <Download className="mr-2 h-4 w-4" /> Exportar Personal.xls
           </Button>
-          {/* ELIMINADO: Componente ImportPersonalDialog */}
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                onClick={() => setIsDialogOpen(true)}
+                disabled={!selectedProfessionalIds.length || !selectedCenterId}
+              >
+                <Plus className="mr-2 h-4 w-4" /> Añadir regla
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[480px]">
+              <DialogHeader>
+                <DialogTitle>Registrar horario base</DialogTitle>
+                <DialogDescription>
+                  Seleccione los días y el turno que aplicará para los profesionales elegidos.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...saveForm}>
+                <form onSubmit={saveForm.handleSubmit(handleSubmit)} className="grid gap-4 py-4">
+                  <FormField
+                    control={saveForm.control}
+                    name="diasSemana"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Días de la semana</FormLabel>
+                        <div className="grid grid-cols-3 gap-2">
+                          {DAYS_OF_WEEK.map((day) => {
+                            const isChecked = field.value?.includes(day.value) ?? false;
+                            return (
+                              <div key={day.value} className="flex items-center space-x-2 rounded-md border p-2">
+                                <Checkbox
+                                  checked={isChecked}
+                                  onCheckedChange={(checked) => {
+                                    const nextValue = checked === true
+                                      ? [...field.value, day.value]
+                                      : field.value.filter((current) => current !== day.value);
+                                    field.onChange(nextValue);
+                                  }}
+                                />
+                                <span className="text-sm">{day.label}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={saveForm.control}
+                    name="turnoId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Turno</FormLabel>
+                        <Select disabled={turnosQuery.isLoading} onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione un turno" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {(turnosQuery.data ?? []).map((turno) => (
+                              <SelectItem key={turno.id} value={turno.id}>
+                                {turno.nombre_turno}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                      control={saveForm.control}
+                      name="vigenciaDesde"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Vigencia desde</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={saveForm.control}
+                      name="vigenciaHasta"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Vigencia hasta (opcional)</FormLabel>
+                          <FormControl>
+                            <Input type="date" value={field.value ?? ''} onChange={(event) => field.onChange(event.target.value || null)} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={saveMutation.isPending}>
+                      <Save className="mr-2 h-4 w-4" /> {saveMutation.isPending ? 'Guardando...' : 'Guardar reglas'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
       </CardHeader>
       <CardContent>
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-
-          {/* Columna 1: Selección Múltiple de Profesional */}
-          <Card className='col-span-1 h-full'>
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card className="md:col-span-1">
             <CardHeader>
-              <CardTitle className='text-base'>Seleccionar Profesional(es)</CardTitle>
-              <CardDescription>Use las casillas para seleccionar uno o varios profesionales.</CardDescription>
+              <CardTitle className="text-base">Profesionales</CardTitle>
+              <CardDescription>Seleccione quienes recibirán la regla.</CardDescription>
             </CardHeader>
-            <div className='px-4 pb-4'>
-              <div className='relative'>
-                <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
+            <div className="px-6 pb-4">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder='Buscar por nombre, EnNo o RFID...'
+                  className="pl-8"
+                  placeholder="Buscar por nombre, EnNo o RFID"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className='pl-8'
-                  disabled={isLoadingProfs || !selectedCenterId}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  disabled={!selectedCenterId || professionalsQuery.isLoading}
                 />
               </div>
             </div>
-            <ScrollArea className='h-[340px] p-4 pt-0'>
-              {isLoadingProfs ? (
-                <div className='space-y-2'><Skeleton className='h-8 w-full' /><Skeleton className='h-8 w-full' /></div>
+            <ScrollArea className="h-[360px] px-6">
+              {professionalsQuery.isLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
               ) : !selectedCenterId ? (
-                <div className='text-center text-sm text-muted-foreground'>Seleccione un centro.</div>
-              ) : (<div className='space-y-1'>
-                {filteredProfessionals.length === 0 ? (
-                  <p className='text-center text-sm text-muted-foreground'>
-                    No se encontraron profesionales.
-                  </p>
-                ) : (
-                  filteredProfessionals.map((p) => (
-                    // MODIFICADO: Uso de un div con checkbox para selección múltiple
-                    <div
-                      key={p.id}
-                      className={cn(
-                        'flex items-center space-x-3 p-2 rounded-lg cursor-pointer hover:bg-accent',
-                        selectedProfessionalIds.includes(p.id) && 'bg-accent font-medium'
-                      )}
-                      onClick={() => {
-                        const newSelectedIds = selectedProfessionalIds.includes(p.id)
-                          ? selectedProfessionalIds.filter(id => id !== p.id) // Deseleccionar
-                          : [p.id]; // Seleccionar (temporalmente solo uno para la visualización de reglas)
-
-                        // Si es la primera selección, o se hace clic en el mismo que se ve, actualiza la visualización
-                        if (!professionalIdForDisplay || professionalIdForDisplay === p.id) {
-                          setProfessionalIdForDisplay(newSelectedIds[0] || ''); // Muestra el primero o nada
-                        }
-
-                        setSelectedProfessionalIds(prevIds =>
-                          prevIds.includes(p.id)
-                            ? prevIds.filter(id => id !== p.id)
-                            : [...prevIds, p.id]
-                        );
-                      }}
-                    >
-                      <Checkbox
-                        id={`prof-${p.id}`}
-                        checked={selectedProfessionalIds.includes(p.id)}
-                        // Importante: El onClick del div maneja el cambio de estado,
-                        // pero este onClick asegura que la visualización de reglas
-                        // siempre siga al profesional que se está viendo activamente.
-                        onClick={(e) => {
-                          e.stopPropagation(); // Previene que el click del div se dispare
-                          if (!selectedProfessionalIds.includes(p.id)) {
-                            setProfessionalIdForDisplay(p.id); // Si se va a seleccionar, este será el visible
-                          } else if (professionalIdForDisplay === p.id) {
-                            // Si se deselecciona el visible, muestra el primer ID restante o nada
-                            const remainingIds = selectedProfessionalIds.filter(id => id !== p.id);
-                            setProfessionalIdForDisplay(remainingIds[0] || '');
-                          }
-                        }}
-                        className='h-4 w-4 rounded-sm'
-                      />
-                      <Label htmlFor={`prof-${p.id}`} className='cursor-pointer flex-1'>
-                        {p.nombre_completo}
-                        {p.id === professionalIdForDisplay && (
-                          <Badge className='ml-2 h-4 bg-blue-500/10 text-blue-600 hover:bg-blue-500/10'>Visualizando</Badge>
+                <p className="text-center text-sm text-muted-foreground">Seleccione un centro para listar profesionales.</p>
+              ) : filteredProfessionals.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground">No se encontraron profesionales.</p>
+              ) : (
+                <div className="space-y-2">
+                  {filteredProfessionals.map((professional) => {
+                    const isSelected = selectedProfessionalIds.includes(professional.id);
+                    const isActive = activeProfessionalId === professional.id;
+                    return (
+                      <button
+                        key={professional.id}
+                        type="button"
+                        onClick={() => handleProfessionalToggle(professional.id)}
+                        className={cn(
+                          'flex w-full items-center justify-between rounded-lg border p-3 text-left transition',
+                          isSelected ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-accent'
                         )}
-                      </Label>
-                    </div>
-                  ))
-                )}
-              </div>)}
-              {/* Información del profesional seleccionado para visualización de reglas */}
-              <div className='mt-4 text-sm text-muted-foreground space-y-1 border-t pt-4'>
-                {professionalDisplay ? (
-                  <>
-                    <p className='font-semibold'>Visualizando: {professionalDisplay.nombre_completo}</p>
-                    <p>EnNo: <Badge variant="secondary">{professionalDisplay.numero_enrolamiento_enno || 'N/A'}</Badge></p>
-                    <p>RFID: <Badge variant="secondary">{professionalDisplay.numero_tarjeta_rfid || 'N/A'}</Badge></p>
-                    <p className='text-xs pt-2'>
-                      <Info className='inline h-3 w-3 mr-1' />
-                      {selectedProfessionalIds.length} profesional(es) seleccionado(s) para nueva regla.
-                    </p>
-                  </>
-                ) : (
-                  <p>Seleccione un profesional para ver sus horarios.</p>
-                )}
-              </div>
+                      >
+                        <div>
+                          <p className="font-medium">{professional.nombre_completo ?? 'Sin nombre'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            EnNo: {professional.numero_enrolamiento_enno ?? '—'} · RFID: {professional.numero_tarjeta_rfid ?? '—'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isActive && <Badge variant="secondary">Visualizando</Badge>}
+                          <Checkbox checked={isSelected} onCheckedChange={() => handleProfessionalToggle(professional.id)} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </ScrollArea>
+            <div className="border-t p-4 text-xs text-muted-foreground">
+              <Info className="mr-1 inline h-3 w-3" /> {selectedProfessionalIds.length} profesional(es) seleccionado(s).
+            </div>
           </Card>
-
-          {/* Columna 2: Reglas de Horario Existentes */}
-          <Card className='col-span-2'>
-            <CardHeader className='flex flex-row items-center justify-between'>
-              <CardTitle className='text-base'>Reglas Activas {professionalDisplay ? `(${professionalDisplay.nombre_completo})` : ''}</CardTitle>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size='sm' disabled={selectedProfessionalIds.length === 0} onClick={() => {
-                    saveForm.setValue('id_profesional', selectedProfessionalIds);
-                    setIsDialogOpen(true);
-                  }}>
-                    <Plus className='mr-2 h-4 w-4' /> Añadir Regla ({selectedProfessionalIds.length} Prof(s))
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className='sm:max-w-[425px]'>
-                  <DialogHeader>
-                    <DialogTitle>Añadir Regla de Horario Base</DialogTitle>
-                    <DialogDescription>
-                      Asigne un turno fijo a uno o varios días de la semana con un periodo de vigencia.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <Form {...saveForm}>
-                    <form onSubmit={saveForm.handleSubmit(onSubmit)} className='grid gap-4 py-4'>
-                      {/* MODIFICADO: Selección Múltiple de Días */}
-                      <FormField
-                        control={saveForm.control}
-                        name="dia_semana"
-                        render={() => (
-                          <FormItem>
-                            <FormLabel>Días de la Semana</FormLabel>
-                            <div className='grid grid-cols-3 gap-2'>
-                              {DIAS_SEMANA.map(d => (
-                                <FormField
-                                  key={d.value}
-                                  control={saveForm.control}
-                                  name="dia_semana"
-                                  render={({ field }) => {
-                                    return (
-                                      <FormItem
-                                        key={d.value}
-                                        className="flex flex-row items-start space-x-3 space-y-0"
-                                      >
-                                        <FormControl>
-                                          <Checkbox
-                                            checked={field.value?.includes(String(d.value))}
-                                            onCheckedChange={(checked) => {
-                                              return checked
-                                                ? field.onChange([...field.value, String(d.value)])
-                                                : field.onChange(
-                                                  field.value?.filter(
-                                                    (value) => value !== String(d.value)
-                                                  )
-                                                );
-                                            }}
-                                            className='h-4 w-4 rounded-sm'
-                                          />
-                                        </FormControl>
-                                        <FormLabel className="font-normal cursor-pointer">
-                                          {d.label}
-                                        </FormLabel>
-                                      </FormItem>
-                                    );
-                                  }}
-                                />
-                              ))}
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      {/* Turno Asignado - Sin cambios */}
-                      <FormField
-                        control={saveForm.control}
-                        name="turno_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Turno Asignado</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger disabled={isLoadingTurnos}>
-                                  <SelectValue placeholder="Seleccione un turno" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {turnos.map(t => (
-                                  <SelectItem key={t.id} value={t.id}>{t.nombre_turno}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      {/* Vigencia - Sin cambios */}
-                      <div className='flex space-x-2'>
-                        <FormField
-                          control={saveForm.control}
-                          name="vigencia_desde"
-                          render={({ field }) => (
-                            <FormItem className='flex-1'>
-                              <FormLabel>Vigencia Desde</FormLabel>
-                              <FormControl>
-                                <Input type="date" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={saveForm.control}
-                          name="vigencia_hasta"
-                          render={({ field }) => (
-                            <FormItem className='flex-1'>
-                              <FormLabel>Vigencia Hasta (Opcional)</FormLabel>
-                              <FormControl>
-                                <Input type="date" {...field} value={field.value || ''} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <DialogFooter className='pt-4'>
-                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                        <Button type="submit" disabled={saveMutation.isLoading}>
-                          <Save className='mr-2 h-4 w-4' /> {saveMutation.isLoading ? 'Guardando...' : `Guardar Regla (${selectedProfessionalIds.length} Prof(s))`}
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                </DialogContent>
-              </Dialog>
+          <Card className="md:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Reglas activas</CardTitle>
+              {activeProfessional && (
+                <Badge variant="outline">{activeProfessional.nombre_completo}</Badge>
+              )}
             </CardHeader>
             <CardContent>
-              <ScrollArea className='h-[400px] pr-4'>
-                {isLoadingHorarios ? (
-                  <div className='space-y-2'><Skeleton className='h-12 w-full' /><Skeleton className='h-12 w-full' /></div>
-                ) : !horariosBase.length ? (
-                  <div className='text-center py-10 text-muted-foreground'>
-                    {professionalIdForDisplay ? 'No hay reglas de horario base definidas para este profesional.' : 'Seleccione un profesional.'}
+              <ScrollArea className="h-[420px] pr-4">
+                {horariosBaseQuery.isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
                   </div>
+                ) : !activeProfessionalId ? (
+                  <div className="py-10 text-center text-muted-foreground">Seleccione un profesional para ver sus horarios.</div>
+                ) : (horariosBaseQuery.data ?? []).length === 0 ? (
+                  <div className="py-10 text-center text-muted-foreground">No hay reglas registradas para este profesional.</div>
                 ) : (
-                  <div className='space-y-3'>
-                    {horariosBase.map((h) => {
-                      const turnoNombre = turnos.find(t => t.id === h.turno_id)?.nombre_turno || 'Turno Desconocido';
-                      const dia = DIAS_SEMANA.find(d => d.value === h.dia_semana)?.label || 'Día Desconocido';
-
-                      const today = format(new Date(), 'yyyy-MM-dd');
-                      const isFuture = isAfter(new Date(h.vigencia_desde), new Date(today));
-                      const isExpired = h.vigencia_hasta && isBefore(new Date(h.vigencia_hasta), new Date(today));
+                  <div className="space-y-3">
+                    {(horariosBaseQuery.data ?? []).map((horario) => {
+                      const dayLabel = DAYS_OF_WEEK.find((day) => day.value === horario.dia_semana)?.label ?? 'Día';
+                      const turnoNombre = (turnosQuery.data ?? []).find((turno) => turno.id === horario.turno_id)?.nombre_turno ?? 'Turno';
+                      const desde = format(new Date(horario.vigencia_desde), 'dd/MM/yyyy');
+                      const hasta = horario.vigencia_hasta ? format(new Date(horario.vigencia_hasta), 'dd/MM/yyyy') : 'Indefinido';
 
                       return (
-                        <div key={h.id} className={cn(
-                          'flex items-center justify-between p-3 border rounded-lg',
-                          isExpired ? 'bg-red-50/50 border-red-200' : 'hover:bg-accent'
-                        )}>
+                        <div key={horario.id} className="flex items-center justify-between rounded-lg border p-3">
                           <div>
-                            <p className='font-semibold'>{dia} - {turnoNombre}</p>
-                            <p className='text-sm text-muted-foreground'>
-                              Vigencia: {format(new Date(h.vigencia_desde), 'dd/MM/yyyy')} - {h.vigencia_hasta ? format(new Date(h.vigencia_hasta), 'dd/MM/yyyy') : 'Indefinido'}
-                            </p>
+                            <p className="font-semibold">{dayLabel} · {turnoNombre}</p>
+                            <p className="text-sm text-muted-foreground">Vigencia: {desde} - {hasta}</p>
                           </div>
-                          <div className='flex items-center space-x-2'>
-                            {isFuture && <Badge variant='secondary'>Futuro</Badge>}
-                            {isExpired && <Badge variant='destructive'>Expirado</Badge>}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                const isConfirmed = window.confirm('¿Está seguro de eliminar esta regla de horario base?');
-                                if (isConfirmed) {
-                                  remove(h.id);
-                                  // Invalida la query del profesional que se está viendo
-                                  queryClient.invalidateQueries({ queryKey: ['horariosBase', professionalIdForDisplay] });
-                                }
-                              }}
-                            >
-                              <Trash2 className='h-4 w-4 text-red-500' />
-                            </Button>
-                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemove(horario.id)}
+                            disabled={removeMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         </div>
                       );
                     })}
@@ -630,9 +598,8 @@ export function HorariosBasePanel() {
               </ScrollArea>
             </CardContent>
             <CardFooter>
-              <div className='text-xs text-muted-foreground flex items-center space-x-1'>
-                <CalendarDays className='h-3 w-3' />
-                <p>Las reglas base se utilizan cuando no hay asignación en el cuadrante diario.</p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <CalendarDays className="h-3 w-3" /> Estas reglas se aplican cuando no existe un cuadrante diario específico.
               </div>
             </CardFooter>
           </Card>
@@ -641,6 +608,3 @@ export function HorariosBasePanel() {
     </Card>
   );
 }
-
-// Exportación del componente.
-export default HorariosBasePanel;

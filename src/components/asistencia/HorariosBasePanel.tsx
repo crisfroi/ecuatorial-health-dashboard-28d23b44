@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CalendarDays, Download, Info, Plus, Save, Search, Trash2 } from 'lucide-react';
+import { CalendarDays, Download, Info, Plus, Save, Search, Trash2, Timer } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,11 +17,13 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'; // Nuevo: Acordeón
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/Auth/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { HorarioBase, HorarioBasePayload, useHorariosBase } from '@/hooks/useHorariosBase';
+import { useTurnosBio } from '@/hooks/useTurnosBio'; // Nuevo: Hook de Turnos
 
 const saveHorarioSchema = z.object({
   profesionalIds: z.array(z.string()).min(1, 'Seleccione al menos un profesional.'),
@@ -57,11 +59,6 @@ interface ProfessionalRow {
   area_profesional?: string | null;
 }
 
-interface TurnoRow {
-  id: string;
-  nombre_turno: string;
-}
-
 export function HorariosBasePanel() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -73,6 +70,14 @@ export function HorariosBasePanel() {
   const [activeProfessionalId, setActiveProfessionalId] = useState<string>('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // NUEVOS ESTADOS para el formulario de creación rápida de turno
+  const [quickTurnoNombre, setQuickTurnoNombre] = useState('');
+  const [quickTurnoInicio, setQuickTurnoInicio] = useState('08:00');
+  const [quickTurnoFin, setQuickTurnoFin] = useState('16:00');
+  const [quickTurnoTol, setQuickTurnoTol] = useState(5);
+  const [quickTurnoTipo, setQuickTurnoTipo] = useState<'diurno' | 'nocturno' | 'festivo'>('diurno');
+
 
   useEffect(() => {
     if (!selectedCenterId && user?.assigned_center_id) {
@@ -101,21 +106,8 @@ export function HorariosBasePanel() {
     staleTime: 5 * 60_000,
   });
 
-  const turnosQuery = useQuery<TurnoRow[]>({
-    queryKey: ['turnos-bio', selectedCenterId],
-    queryFn: async () => {
-      if (!selectedCenterId) return [];
-      const { data, error } = await supabase
-        .from('turnos_biometricos')
-        .select('id, nombre_turno')
-        .eq('centro_salud_id', selectedCenterId)
-        .order('nombre_turno');
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: Boolean(selectedCenterId),
-    staleTime: 60_000,
-  });
+  // Usamos el hook de turnos adaptado
+  const { turnosQuery, createMutation: createTurnoMutation } = useTurnosBio(selectedCenterId);
 
   const professionalsQuery = useQuery<ProfessionalRow[]>({
     queryKey: ['profesionales-centro', selectedCenterId],
@@ -198,6 +190,32 @@ export function HorariosBasePanel() {
     },
   });
 
+  // Función para la creación rápida de turnos
+  const handleQuickCreateTurno = () => {
+    if (!quickTurnoNombre.trim() || !selectedCenterId) {
+      toast({ title: 'Datos incompletos', description: 'Ingrese un nombre para el turno y seleccione un centro.', variant: 'destructive' });
+      return;
+    }
+
+    createTurnoMutation.mutate({
+      nombre_turno: quickTurnoNombre.trim(),
+      hora_inicio: `${quickTurnoInicio}:00`,
+      hora_fin: `${quickTurnoFin}:00`,
+      tolerancia_minutos: quickTurnoTol,
+      tipo: quickTurnoTipo,
+      centro_salud_id: selectedCenterId,
+    }, {
+      onSuccess: () => {
+        // Limpiar el formulario
+        setQuickTurnoNombre('');
+        setQuickTurnoInicio('08:00');
+        setQuickTurnoFin('16:00');
+        setQuickTurnoTol(5);
+        setQuickTurnoTipo('diurno');
+      }
+    });
+  };
+
   const filteredProfessionals = useMemo(() => {
     const source = professionalsQuery.data ?? [];
     if (!searchTerm.trim()) return source;
@@ -205,8 +223,11 @@ export function HorariosBasePanel() {
     const term = searchTerm.toLowerCase();
     return source.filter((professional) => {
       const name = (professional.nombre_completo ?? '').toLowerCase();
+      // CORRECCIÓN: Usar String() para asegurar que la propiedad es una cadena.
       const enNo = String(professional.numero_enrolamiento_enno ?? '').toLowerCase();
       const rfid = String(professional.numero_tarjeta_rfid ?? '').toLowerCase();
+      // FIN DE LA CORRECCIÓN
+
       return name.includes(term) || enNo.includes(term) || rfid.includes(term);
     });
   }, [professionalsQuery.data, searchTerm]);
@@ -335,7 +356,6 @@ export function HorariosBasePanel() {
           <CardTitle>Horarios Base Semanales</CardTitle>
           <CardDescription>Defina reglas de turno recurrentes por profesional.</CardDescription>
           <div className="pt-2">
-            {/* INICIO DE LA CORRECCIÓN: Se reemplaza FormItem y FormLabel por div y label */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Centro de Salud
@@ -364,7 +384,6 @@ export function HorariosBasePanel() {
                 </Select>
               )}
             </div>
-            {/* FIN DE LA CORRECCIÓN */}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -422,24 +441,110 @@ export function HorariosBasePanel() {
                       </FormItem>
                     )}
                   />
+
+                  {/* ================================================================= */}
+                  {/* INICIO: Acordeón de Creación Rápida de Turno (Mejora UX/UI) */}
+                  {/* ================================================================= */}
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="item-1" className="border rounded-lg px-4">
+                      <AccordionTrigger className="hover:no-underline text-sm font-medium py-3">
+                        <Timer className="mr-2 h-4 w-4" /> ¿Falta un turno? Creación Rápida
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-2 pb-4 space-y-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Input
+                            placeholder="Nombre del Turno (ej: Mañana 8-16)"
+                            value={quickTurnoNombre}
+                            onChange={e => setQuickTurnoNombre(e.target.value)}
+                            className="w-44"
+                            disabled={createTurnoMutation.isPending || !selectedCenterId}
+                          />
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm">Inicio</span>
+                            <Input
+                              type="time"
+                              value={quickTurnoInicio}
+                              onChange={e => setQuickTurnoInicio(e.target.value)}
+                              disabled={createTurnoMutation.isPending || !selectedCenterId}
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm">Fin</span>
+                            <Input
+                              type="time"
+                              value={quickTurnoFin}
+                              onChange={e => setQuickTurnoFin(e.target.value)}
+                              disabled={createTurnoMutation.isPending || !selectedCenterId}
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm">Tol (min)</span>
+                            <Input
+                              type="number"
+                              value={quickTurnoTol}
+                              onChange={e => setQuickTurnoTol(parseInt(e.target.value || '0', 10))}
+                              className="w-24"
+                              disabled={createTurnoMutation.isPending || !selectedCenterId}
+                            />
+                          </div>
+                          <Select
+                            value={quickTurnoTipo}
+                            onValueChange={(v: any) => setQuickTurnoTipo(v)}
+                            disabled={createTurnoMutation.isPending || !selectedCenterId}
+                          >
+                            <SelectTrigger className="w-40">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="diurno">Diurno</SelectItem>
+                              <SelectItem value="nocturno">Nocturno</SelectItem>
+                              <SelectItem value="festivo">Festivo</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            onClick={handleQuickCreateTurno}
+                            disabled={createTurnoMutation.isPending || !quickTurnoNombre.trim() || !selectedCenterId}
+                            className="ml-auto"
+                          >
+                            {createTurnoMutation.isPending ? 'Creando...' : 'Crear Turno'}
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                  {/* ================================================================= */}
+                  {/* FIN: Acordeón de Creación Rápida de Turno */}
+                  {/* ================================================================= */}
+
                   <FormField
                     control={saveForm.control}
                     name="turnoId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Turno</FormLabel>
-                        <Select disabled={turnosQuery.isLoading} onValueChange={field.onChange} value={field.value}>
+                        <Select
+                          disabled={turnosQuery.isLoading}
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Seleccione un turno" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {(turnosQuery.data ?? []).map((turno) => (
-                              <SelectItem key={turno.id} value={turno.id}>
-                                {turno.nombre_turno}
-                              </SelectItem>
-                            ))}
+                            {turnosQuery.isLoading ? (
+                              <SelectItem value="" disabled>Cargando turnos...</SelectItem>
+                            ) : (
+                              (turnosQuery.data ?? []).map((turno) => (
+                                <SelectItem key={turno.id} value={turno.id}>
+                                  {turno.nombre_turno}
+                                  <span className="text-xs text-muted-foreground ml-2">
+                                    ({turno.hora_inicio.slice(0, 5)} - {turno.hora_fin.slice(0, 5)})
+                                  </span>
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -524,42 +629,38 @@ export function HorariosBasePanel() {
                     const isSelected = selectedProfessionalIds.includes(professional.id);
                     const isActive = activeProfessionalId === professional.id;
                     return (
+                      // CÓDIGO CORREGIDO PARA EL WARNING DE ANIDAMIENTO DE BOTONES
                       <div // CAMBIO CLAVE: Usamos <div> en lugar de <button>
-    key={professional.id}
-    onClick={() => handleProfessionalToggle(professional.id)}
-    className={cn(
-        'flex w-full items-center justify-between rounded-lg border p-3 text-left transition cursor-pointer',
-        isSelected ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-accent'
-    )}
-    // Añadimos atributos de accesibilidad estándar para simular un botón
-    role="button"
-    tabIndex={0}
-    onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleProfessionalToggle(professional.id);
-        }
-    }}
->
-    <div>
-        <p className="font-medium">{professional.nombre_completo ?? 'Sin nombre'}</p>
-        <p className="text-xs text-muted-foreground">
-            EnNo: {professional.numero_enrolamiento_enno ?? '—'} · RFID: {professional.numero_tarjeta_rfid ?? '—'}
-        </p>
-    </div>
-    <div className="flex items-center gap-2">
-        {isActive && <Badge variant="secondary">Visualizando</Badge>}
-        <Checkbox
-            checked={isSelected}
-            // Mantenemos la lógica de selección, el onClick del <div> padre ya se encarga
-            onCheckedChange={() => handleProfessionalToggle(professional.id)} 
-            
-            // CORRECCIÓN CLAVE: Detenemos la propagación del evento de clic
-            // para que el clic en el Checkbox no dispare también el onClick del <div>
-            onClick={(e) => e.stopPropagation()} 
-        />
-    </div>
-</div>
+                        key={professional.id}
+                        onClick={() => handleProfessionalToggle(professional.id)}
+                        className={cn(
+                          'flex w-full items-center justify-between rounded-lg border p-3 text-left transition cursor-pointer',
+                          isSelected ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-accent'
+                        )}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleProfessionalToggle(professional.id);
+                          }
+                        }}
+                      >
+                        <div>
+                          <p className="font-medium">{professional.nombre_completo ?? 'Sin nombre'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            EnNo: {professional.numero_enrolamiento_enno ?? '—'} · RFID: {professional.numero_tarjeta_rfid ?? '—'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isActive && <Badge variant="secondary">Visualizando</Badge>}
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => handleProfessionalToggle(professional.id)}
+                            onClick={(e) => e.stopPropagation()} // Detenemos la propagación para evitar doble evento
+                          />
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -592,7 +693,8 @@ export function HorariosBasePanel() {
                   <div className="space-y-3">
                     {(horariosBaseQuery.data ?? []).map((horario) => {
                       const dayLabel = DAYS_OF_WEEK.find((day) => day.value === horario.dia_semana)?.label ?? 'Día';
-                      const turnoNombre = (turnosQuery.data ?? []).find((turno) => turno.id === horario.turno_id)?.nombre_turno ?? 'Turno';
+                      // Buscamos el nombre del turno usando los datos de la nueva query
+                      const turnoNombre = (turnosQuery.data ?? []).find((turno) => turno.id === horario.turno_id)?.nombre_turno ?? 'Turno (ID: ' + horario.turno_id.slice(0, 4) + '...)';
                       const desde = format(new Date(horario.vigencia_desde), 'dd/MM/yyyy');
                       const hasta = horario.vigencia_hasta ? format(new Date(horario.vigencia_hasta), 'dd/MM/yyyy') : 'Indefinido';
 

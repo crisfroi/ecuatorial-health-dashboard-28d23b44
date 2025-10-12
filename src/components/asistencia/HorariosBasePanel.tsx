@@ -524,26 +524,42 @@ export function HorariosBasePanel() {
                     const isSelected = selectedProfessionalIds.includes(professional.id);
                     const isActive = activeProfessionalId === professional.id;
                     return (
-                      <button
-                        key={professional.id}
-                        type="button"
-                        onClick={() => handleProfessionalToggle(professional.id)}
-                        className={cn(
-                          'flex w-full items-center justify-between rounded-lg border p-3 text-left transition',
-                          isSelected ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-accent'
-                        )}
-                      >
-                        <div>
-                          <p className="font-medium">{professional.nombre_completo ?? 'Sin nombre'}</p>
-                          <p className="text-xs text-muted-foreground">
-                            EnNo: {professional.numero_enrolamiento_enno ?? '—'} · RFID: {professional.numero_tarjeta_rfid ?? '—'}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {isActive && <Badge variant="secondary">Visualizando</Badge>}
-                          <Checkbox checked={isSelected} onCheckedChange={() => handleProfessionalToggle(professional.id)} />
-                        </div>
-                      </button>
+                      <div // CAMBIO CLAVE: Usamos <div> en lugar de <button>
+    key={professional.id}
+    onClick={() => handleProfessionalToggle(professional.id)}
+    className={cn(
+        'flex w-full items-center justify-between rounded-lg border p-3 text-left transition cursor-pointer',
+        isSelected ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-accent'
+    )}
+    // Añadimos atributos de accesibilidad estándar para simular un botón
+    role="button"
+    tabIndex={0}
+    onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleProfessionalToggle(professional.id);
+        }
+    }}
+>
+    <div>
+        <p className="font-medium">{professional.nombre_completo ?? 'Sin nombre'}</p>
+        <p className="text-xs text-muted-foreground">
+            EnNo: {professional.numero_enrolamiento_enno ?? '—'} · RFID: {professional.numero_tarjeta_rfid ?? '—'}
+        </p>
+    </div>
+    <div className="flex items-center gap-2">
+        {isActive && <Badge variant="secondary">Visualizando</Badge>}
+        <Checkbox
+            checked={isSelected}
+            // Mantenemos la lógica de selección, el onClick del <div> padre ya se encarga
+            onCheckedChange={() => handleProfessionalToggle(professional.id)} 
+            
+            // CORRECCIÓN CLAVE: Detenemos la propagación del evento de clic
+            // para que el clic en el Checkbox no dispare también el onClick del <div>
+            onClick={(e) => e.stopPropagation()} 
+        />
+    </div>
+</div>
                     );
                   })}
                 </div>

@@ -62,7 +62,7 @@ interface TurnoRow {
   nombre_turno: string;
 }
 
-export default function HorariosBasePanel() {
+export function HorariosBasePanel() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();

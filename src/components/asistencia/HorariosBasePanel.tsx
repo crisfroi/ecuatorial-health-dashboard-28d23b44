@@ -19,7 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'; // Nuevo: Acordeón
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/Auth/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { HorarioBase, HorarioBasePayload, useHorariosBase } from '@/hooks/useHorariosBase';

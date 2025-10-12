@@ -410,7 +410,8 @@ export function HorariosBasePanel() {
                   Seleccione los días y el turno que aplicará para los profesionales elegidos.
                 </DialogDescription>
               </DialogHeader>
-              <Form {...saveForm}>
+              <ScrollArea className="max-h-[500px] overflow-y-auto pr-4">
+                <Form {...saveForm}>
                 <form onSubmit={saveForm.handleSubmit(handleSubmit)} className="grid gap-4 py-4">
                   <FormField
                     control={saveForm.control}
@@ -578,7 +579,8 @@ export function HorariosBasePanel() {
                         </FormItem>
                       )}
                     />
-                  </div>
+                    </div>
+                  </ScrollArea>
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                       Cancelar

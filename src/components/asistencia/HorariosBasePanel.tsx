@@ -403,184 +403,179 @@ export function HorariosBasePanel() {
                 <Plus className="mr-2 h-4 w-4" /> Añadir regla
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[480px]">
-              <DialogHeader>
-                <DialogTitle>Registrar horario base</DialogTitle>
-                <DialogDescription>
-                  Seleccione los días y el turno que aplicará para los profesionales elegidos.
-                </DialogDescription>
-              </DialogHeader>
-              <ScrollArea className="max-h-[500px] overflow-y-auto pr-4">
+             <ScrollArea className="max-h-[500px] overflow-y-auto pr-4"> {/* <-- INICIO: SCROLL AQUI */}
                 <Form {...saveForm}>
-                <form onSubmit={saveForm.handleSubmit(handleSubmit)} className="grid gap-4 py-4">
-                  <FormField
-                    control={saveForm.control}
-                    name="diasSemana"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Días de la semana</FormLabel>
-                        <div className="grid grid-cols-3 gap-2">
-                          {DAYS_OF_WEEK.map((day) => {
-                            const isChecked = field.value?.includes(day.value) ?? false;
-                            return (
-                              <div key={day.value} className="flex items-center space-x-2 rounded-md border p-2">
-                                <Checkbox
-                                  checked={isChecked}
-                                  onCheckedChange={(checked) => {
-                                    const nextValue = checked === true
-                                      ? [...field.value, day.value]
-                                      : field.value.filter((current) => current !== day.value);
-                                    field.onChange(nextValue);
-                                  }}
-                                />
-                                <span className="text-sm">{day.label}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <form onSubmit={saveForm.handleSubmit(handleSubmit)} className="grid gap-4 py-4">
+                    <FormField
+                      control={saveForm.control}
+                      name="diasSemana"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Días de la semana</FormLabel>
+                          <div className="grid grid-cols-3 gap-2">
+                            {DAYS_OF_WEEK.map((day) => {
+                              const isChecked = field.value?.includes(day.value) ?? false;
+                              return (
+                                <div key={day.value} className="flex items-center space-x-2 rounded-md border p-2">
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={(checked) => {
+                                      const nextValue = checked === true
+                                        ? [...field.value, day.value]
+                                        : field.value.filter((current) => current !== day.value);
+                                      field.onChange(nextValue);
+                                    }}
+                                  />
+                                  <span className="text-sm">{day.label}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  {/* ================================================================= */}
-                  {/* INICIO: Acordeón de Creación Rápida de Turno (Mejora UX/UI) */}
-                  {/* ================================================================= */}
-                  <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="item-1" className="border rounded-lg px-4">
-                      <AccordionTrigger className="hover:no-underline text-sm font-medium py-3">
-                        <Timer className="mr-2 h-4 w-4" /> ¿Falta un turno? Creación Rápida
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-2 pb-4 space-y-3">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Input
-                            placeholder="Nombre del Turno (ej: Mañana 8-16)"
-                            value={quickTurnoNombre}
-                            onChange={e => setQuickTurnoNombre(e.target.value)}
-                            className="w-44"
-                            disabled={createTurnoMutation.isPending || !selectedCenterId}
-                          />
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm">Inicio</span>
+                    {/* ================================================================= */}
+                    {/* INICIO: Acordeón de Creación Rápida de Turno (Mejora UX/UI) */}
+                    {/* ================================================================= */}
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="item-1" className="border rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline text-sm font-medium py-3">
+                          <Timer className="mr-2 h-4 w-4" /> ¿Falta un turno? Creación Rápida
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-2 pb-4 space-y-3">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Input
-                              type="time"
-                              value={quickTurnoInicio}
-                              onChange={e => setQuickTurnoInicio(e.target.value)}
+                              placeholder="Nombre del Turno (ej: Mañana 8-16)"
+                              value={quickTurnoNombre}
+                              onChange={e => setQuickTurnoNombre(e.target.value)}
+                              className="w-44"
                               disabled={createTurnoMutation.isPending || !selectedCenterId}
                             />
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm">Fin</span>
-                            <Input
-                              type="time"
-                              value={quickTurnoFin}
-                              onChange={e => setQuickTurnoFin(e.target.value)}
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm">Inicio</span>
+                              <Input
+                                type="time"
+                                value={quickTurnoInicio}
+                                onChange={e => setQuickTurnoInicio(e.target.value)}
+                                disabled={createTurnoMutation.isPending || !selectedCenterId}
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm">Fin</span>
+                              <Input
+                                type="time"
+                                value={quickTurnoFin}
+                                onChange={e => setQuickTurnoFin(e.target.value)}
+                                disabled={createTurnoMutation.isPending || !selectedCenterId}
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm">Tol (min)</span>
+                              <Input
+                                type="number"
+                                value={quickTurnoTol}
+                                onChange={e => setQuickTurnoTol(parseInt(e.target.value || '0', 10))}
+                                className="w-24"
+                                disabled={createTurnoMutation.isPending || !selectedCenterId}
+                              />
+                            </div>
+                            <Select
+                              value={quickTurnoTipo}
+                              onValueChange={(v: any) => setQuickTurnoTipo(v)}
                               disabled={createTurnoMutation.isPending || !selectedCenterId}
-                            />
+                            >
+                              <SelectTrigger className="w-40">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="diurno">Diurno</SelectItem>
+                                <SelectItem value="nocturno">Nocturno</SelectItem>
+                                <SelectItem value="festivo">Festivo</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              onClick={handleQuickCreateTurno}
+                              disabled={createTurnoMutation.isPending || !quickTurnoNombre.trim() || !selectedCenterId}
+                              className="ml-auto"
+                            >
+                              {createTurnoMutation.isPending ? 'Creando...' : 'Crear Turno'}
+                            </Button>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm">Tol (min)</span>
-                            <Input
-                              type="number"
-                              value={quickTurnoTol}
-                              onChange={e => setQuickTurnoTol(parseInt(e.target.value || '0', 10))}
-                              className="w-24"
-                              disabled={createTurnoMutation.isPending || !selectedCenterId}
-                            />
-                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                    {/* ================================================================= */}
+                    {/* FIN: Acordeón de Creación Rápida de Turno */}
+                    {/* ================================================================= */}
+
+                    <FormField
+                      control={saveForm.control}
+                      name="turnoId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Turno</FormLabel>
                           <Select
-                            value={quickTurnoTipo}
-                            onValueChange={(v: any) => setQuickTurnoTipo(v)}
-                            disabled={createTurnoMutation.isPending || !selectedCenterId}
+                            disabled={turnosQuery.isLoading}
+                            onValueChange={field.onChange}
+                            value={field.value}
                           >
-                            <SelectTrigger className="w-40">
-                              <SelectValue />
-                            </SelectTrigger>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccione un turno" />
+                              </SelectTrigger>
+                            </FormControl>
                             <SelectContent>
-                              <SelectItem value="diurno">Diurno</SelectItem>
-                              <SelectItem value="nocturno">Nocturno</SelectItem>
-                              <SelectItem value="festivo">Festivo</SelectItem>
+                              {turnosQuery.isLoading ? (
+                                <SelectItem value="" disabled>Cargando turnos...</SelectItem>
+                              ) : (
+                                (turnosQuery.data ?? []).map((turno) => (
+                                  <SelectItem key={turno.id} value={turno.id}>
+                                    {turno.nombre_turno}
+                                    <span className="text-xs text-muted-foreground ml-2">
+                                      ({turno.hora_inicio.slice(0, 5)} - {turno.hora_fin.slice(0, 5)})
+                                    </span>
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
-                          <Button
-                            onClick={handleQuickCreateTurno}
-                            disabled={createTurnoMutation.isPending || !quickTurnoNombre.trim() || !selectedCenterId}
-                            className="ml-auto"
-                          >
-                            {createTurnoMutation.isPending ? 'Creando...' : 'Crear Turno'}
-                          </Button>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                  {/* ================================================================= */}
-                  {/* FIN: Acordeón de Creación Rápida de Turno */}
-                  {/* ================================================================= */}
-
-                  <FormField
-                    control={saveForm.control}
-                    name="turnoId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Turno</FormLabel>
-                        <Select
-                          disabled={turnosQuery.isLoading}
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccione un turno" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {turnosQuery.isLoading ? (
-                              <SelectItem value="" disabled>Cargando turnos...</SelectItem>
-                            ) : (
-                              (turnosQuery.data ?? []).map((turno) => (
-                                <SelectItem key={turno.id} value={turno.id}>
-                                  {turno.nombre_turno}
-                                  <span className="text-xs text-muted-foreground ml-2">
-                                    ({turno.hora_inicio.slice(0, 5)} - {turno.hora_fin.slice(0, 5)})
-                                  </span>
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <FormField
-                      control={saveForm.control}
-                      name="vigenciaDesde"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Vigencia desde</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={saveForm.control}
-                      name="vigenciaHasta"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Vigencia hasta (opcional)</FormLabel>
-                          <FormControl>
-                            <Input type="date" value={field.value ?? ''} onChange={(event) => field.onChange(event.target.value || null)} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <FormField
+                        control={saveForm.control}
+                        name="vigenciaDesde"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Vigencia desde</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={saveForm.control}
+                        name="vigenciaHasta"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Vigencia hasta (opcional)</FormLabel>
+                            <FormControl>
+                              <Input type="date" value={field.value ?? ''} onChange={(event) => field.onChange(event.target.value || null)} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
-                  </ScrollArea>
+                  </form>
+                </Form>
+              </ScrollArea>
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                       Cancelar

@@ -335,8 +335,11 @@ export function HorariosBasePanel() {
           <CardTitle>Horarios Base Semanales</CardTitle>
           <CardDescription>Defina reglas de turno recurrentes por profesional.</CardDescription>
           <div className="pt-2">
-            <FormItem className="flex flex-col gap-2">
-              <FormLabel>Centro de Salud</FormLabel>
+            {/* INICIO DE LA CORRECCIÓN: Se reemplaza FormItem y FormLabel por div y label */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Centro de Salud
+              </label>
               {centersQuery.isLoading ? (
                 <Skeleton className="h-9 w-64" />
               ) : (
@@ -360,7 +363,8 @@ export function HorariosBasePanel() {
                   </SelectContent>
                 </Select>
               )}
-            </FormItem>
+            </div>
+            {/* FIN DE LA CORRECCIÓN */}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

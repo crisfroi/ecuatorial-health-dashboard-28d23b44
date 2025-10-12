@@ -205,8 +205,8 @@ export function HorariosBasePanel() {
     const term = searchTerm.toLowerCase();
     return source.filter((professional) => {
       const name = (professional.nombre_completo ?? '').toLowerCase();
-      const enNo = (professional.numero_enrolamiento_enno ?? '').toLowerCase();
-      const rfid = (professional.numero_tarjeta_rfid ?? '').toLowerCase();
+      const enNo = String(professional.numero_enrolamiento_enno ?? '').toLowerCase();
+      const rfid = String(professional.numero_tarjeta_rfid ?? '').toLowerCase();
       return name.includes(term) || enNo.includes(term) || rfid.includes(term);
     });
   }, [professionalsQuery.data, searchTerm]);

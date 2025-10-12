@@ -403,7 +403,14 @@ export function HorariosBasePanel() {
                 <Plus className="mr-2 h-4 w-4" /> Añadir regla
               </Button>
             </DialogTrigger>
-             <ScrollArea className="max-h-[500px] overflow-y-auto pr-4"> {/* <-- INICIO: SCROLL AQUI */}
+            <DialogContent className="sm:max-w-[480px]">
+              <DialogHeader>
+                <DialogTitle>Registrar horario base</DialogTitle>
+                <DialogDescription>
+                  Seleccione los días y el turno que aplicará para los profesionales elegidos.
+                </DialogDescription>
+              </DialogHeader>
+              <ScrollArea className="max-h-[500px] overflow-y-auto pr-4">
                 <Form {...saveForm}>
                   <form onSubmit={saveForm.handleSubmit(handleSubmit)} className="grid gap-4 py-4">
                     <FormField
@@ -576,16 +583,14 @@ export function HorariosBasePanel() {
                   </form>
                 </Form>
               </ScrollArea>
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Cancelar
-                    </Button>
-                    <Button type="submit" disabled={saveMutation.isPending}>
-                      <Save className="mr-2 h-4 w-4" /> {saveMutation.isPending ? 'Guardando...' : 'Guardar reglas'}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={saveMutation.isPending}>
+                  <Save className="mr-2 h-4 w-4" /> {saveMutation.isPending ? 'Guardando...' : 'Guardar reglas'}
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>

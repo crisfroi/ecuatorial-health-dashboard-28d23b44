@@ -405,6 +405,7 @@ export function HorariosBasePanel() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[480px]">
               <DialogHeader>
+              <ScrollArea className="max-h-[500px] overflow-y-auto pr-4">
                 <DialogTitle>Registrar horario base</DialogTitle>
                 <DialogDescription>
                   Seleccione los días y el turno que aplicará para los profesionales elegidos.
@@ -579,6 +580,7 @@ export function HorariosBasePanel() {
                       )}
                     />
                   </div>
+                  </ScrollArea>
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                       Cancelar

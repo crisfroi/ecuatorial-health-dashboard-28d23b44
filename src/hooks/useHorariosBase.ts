@@ -24,7 +24,7 @@ export interface HorarioBase extends HorarioBasePayload {
   updated_at: string;
 }
 
-// --- HOOK ---
+// --- HOOK CORREGIDO ---
 
 export function useHorariosBase() {
   const { toast } = useToast();
@@ -51,36 +51,43 @@ export function useHorariosBase() {
   };
 
   /**
-   * Guarda (crea o actualiza) una regla de horario base.
+   * Guarda (crea) una o múltiples reglas de horario base.
+   * Acepta un array de payloads para inserción masiva.
+   *
+   * @param payloads Array de HorarioBasePayload.
    */
-  const save = async (payload: HorarioBasePayload, existingId?: string) => {
-    let qb = supabase.from('horarios_base_profesional');
+  const save = async (payloads: HorarioBasePayload[]) => {
+    if (!payloads || payloads.length === 0) return [];
 
-    if (existingId) {
-      // Actualización: si se proporciona un ID existente
-      qb = qb.update(payload).eq('id', existingId).select().single();
-    } else {
-      // Creación: nuevo registro
-      qb = qb.insert(payload).select().single();
-    }
-
-    const { data, error } = await qb;
+    // Se utiliza insert para la inserción masiva.
+    const { data, error } = await supabase
+      .from('horarios_base_profesional')
+      .insert(payloads)
+      // Usamos .select() para obtener los IDs de los registros insertados
+      .select();
 
     if (error) {
-      if (error.code === '23505') { // Código de violación de unicidad (si se solapa una regla)
+      if (error.code === '23505') { // Código de violación de unicidad/exclusión
         toast({
-          title: 'Error de Solapamiento',
-          description: 'Ya existe una regla de horario que se solapa con el profesional y el día seleccionados en ese período de vigencia.',
+          title: 'Error de Solapamiento/Duplicidad',
+          description: `Una o más de las ${payloads.length} reglas intentadas se solapa con reglas existentes para el mismo profesional y día.`,
           variant: 'destructive'
         });
-        throw new Error('Regla solapada: Ya existe una regla activa para ese día.');
+        // Lanzar error para que la mutación de React Query lo maneje
+        throw new Error('Solapamiento de reglas detectado. Revise las vigencias.');
       }
       console.error("Error guardando horario base:", error);
       throw error;
     }
 
-    toast({ title: 'Horario Base guardado', description: `Regla guardada para el día ${payload.dia_semana}` });
-    return data as HorarioBase;
+    const uniqueProfessionals = new Set(payloads.map(p => p.id_profesional)).size;
+
+    toast({
+      title: 'Reglas de Horario Base guardadas',
+      description: `${payloads.length} reglas asignadas a ${uniqueProfessionals} profesional(es).`
+    });
+
+    return data as HorarioBase[];
   };
 
   /**

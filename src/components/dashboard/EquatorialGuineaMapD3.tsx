@@ -15,8 +15,8 @@ import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
 import { useDistrictStats } from "@/hooks/useAdvancedAnalytics";
 // Import GeoJSONs (ADM1 = provincias, ADM2 = distritos)
 // Large files, but needed for accurate choropleth
-import ADM1 from "@/data/geoBoundaries-GNQ-ADM1.geojson";
-import ADM2 from "@/data/geoBoundaries-GNQ-ADM2.geojson";
+import ADM1_URL from "@/data/geoBoundaries-GNQ-ADM1.geojson?url";
+import ADM2_URL from "@/data/geoBoundaries-GNQ-ADM2.geojson?url";
 
 interface EquatorialGuineaMapD3Props {
   onNavigateToProvince?: (name: string) => void;
@@ -245,7 +245,7 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
             <MapPin className="w-5 h-5 text-teal-600" />
             Mapa de Guinea Ecuatorial
           </h3>
-          <p className="text-gray-600">Vista coroplética por provincias o distritos sanitarios</p>
+          <p className="text-gray-600">Vista coropl��tica por provincias o distritos sanitarios</p>
         </div>
         <div className="flex items-center gap-3">
           <Select value={level} onValueChange={(v) => setLevel(v as Level)}>

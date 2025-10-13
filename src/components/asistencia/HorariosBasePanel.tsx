@@ -403,7 +403,7 @@ export function HorariosBasePanel() {
                 <Plus className="mr-2 h-4 w-4" /> Añadir regla
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[480px]">
+           <DialogContent className="sm:max-w-[480px]">
               <DialogHeader>
                 <DialogTitle>Registrar horario base</DialogTitle>
                 <DialogDescription>
@@ -412,7 +412,8 @@ export function HorariosBasePanel() {
               </DialogHeader>
               <ScrollArea className="max-h-[500px] overflow-y-auto pr-4">
                 <Form {...saveForm}>
-                  <form onSubmit={saveForm.handleSubmit(handleSubmit)} className="grid gap-4 py-4">
+                  {/* CORRECCIÓN 1: Añadir el atributo id al form */}
+                  <form id="save-horario-form" onSubmit={saveForm.handleSubmit(handleSubmit)} className="grid gap-4 py-4">
                     <FormField
                       control={saveForm.control}
                       name="diasSemana"
@@ -587,7 +588,8 @@ export function HorariosBasePanel() {
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={saveMutation.isPending}>
+                {/* CORRECCIÓN 2: Añadir el atributo form para referenciar el formulario */}
+                <Button type="submit" form="save-horario-form" disabled={saveMutation.isPending}>
                   <Save className="mr-2 h-4 w-4" /> {saveMutation.isPending ? 'Guardando...' : 'Guardar reglas'}
                 </Button>
               </DialogFooter>

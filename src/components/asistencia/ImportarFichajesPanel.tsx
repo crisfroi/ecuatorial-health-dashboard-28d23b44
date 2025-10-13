@@ -17,6 +17,25 @@ import { supabase } from '@/integrations/supabase/client';
 
 import { FichajesList, type FichajePreviewRow } from './FichajesList';
 
+// --- NUEVAS INTERFACES PARA MANEJAR EL NOMBRE COMPLETO ---
+
+// 1. Tipo para la relación anidada de profesionales sanitarios
+interface ProfesionalSanitario {
+  nombre_completo: string;
+}
+
+// 2. Tipo para el mapeo que incluye el nombre completo (resultado de la JOIN)
+type MappedEmployeeWithDetails = EmpleadoDispositivoMap & {
+  profesionales_sanitarios: ProfesionalSanitario | null;
+};
+
+// 3. Tipo enriquecido para las filas de previsualización que incluye el nombre
+type EnrichedFichajePreviewRow = FichajePreviewRow & {
+  nombre_completo?: string | null;
+};
+
+// ---------------------------------------------------------
+
 interface CentroRow {
   id: string;
   nombre: string;
@@ -32,7 +51,7 @@ type FileKind = 'txt' | 'xls';
 export function ImportarFichajesPanel() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { list, listMappings } = useDispositivosFichaje();
+  const { list } = useDispositivosFichaje();
   const { importFile, importReporteXls, importing } = useAsistencia();
 
   const [selectedCenter, setSelectedCenter] = useState<string>('todos');
@@ -62,22 +81,78 @@ export function ImportarFichajesPanel() {
   });
   console.log(`[Dispositivos Query] Dispositivos: ${devices.length} | Filtro Activo: ${centerIdFilter}`); 
 
-  const { data: mappings = [] } = useQuery<EmpleadoDispositivoMap[]>({
-    queryKey: ['device-mappings', selectedDevice, 'importar'],
-    queryFn: () => {
-      if (!selectedDevice) return Promise.resolve<EmpleadoDispositivoMap[]>([]);
-      return listMappings(selectedDevice);
+  // --- CONSULTA DIRECTA CON JOIN/RELACIÓN PARA OBTENER EL NOMBRE ---
+  const { data: mappings = [] } = useQuery<MappedEmployeeWithDetails[]>({
+    queryKey: ['device-mappings', selectedDevice, 'importar', 'with_name'],
+    queryFn: async () => {
+      if (!selectedDevice) return [];
+
+      // Consulta con select anidado para obtener el nombre completo (JOIN a profesionales_sanitarios)
+      const { data, error } = await supabase
+        .from('empleado_dispositivo_map')
+        .select(`
+          id,
+          en_no,
+          id_profesional,
+          id_dispositivo,
+          profesionales_sanitarios (
+            nombre_completo
+          )
+        `)
+        .eq('id_dispositivo', selectedDevice)
+        .returns<MappedEmployeeWithDetails[]>();
+
+      if (error) throw error;
+      return data ?? [];
     },
     enabled: Boolean(selectedDevice),
     staleTime: 60_000,
     initialData: [],
   });
 
-  const mappedEmployees = useMemo(() => new Set(mappings.map((mapping) => mapping.en_no?.toString() ?? '')), [mappings]);
+  // El Set se usa para contar cuántos registros tienen mapeo (EnNo). Confirma que las claves son correctas.
+  const mappedEmployees = useMemo(
+    // NORMALIZACIÓN: Aseguramos que la clave de mapeo esté limpia (.trim())
+    () => new Set(mappings.map((mapping) => mapping.en_no?.toString().trim() ?? '')),
+    [mappings]
+  );
+  
   const unmatchedPreview = useMemo(
-    () => previewRows.filter((row) => row.enNo && !mappedEmployees.has(row.enNo)),
+    // NORMALIZACIÓN: Aseguramos que la clave del registro esté limpia (.trim()) para la verificación
+    () => previewRows.filter((row) => row.enNo && !mappedEmployees.has(row.enNo.trim())),
     [previewRows, mappedEmployees]
   );
+
+  // 1. Crear un mapa de EnNo (limpio) a Nombre Completo del profesional
+  const enNoToProfNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    mappings.forEach((m) => {
+      const enNoKey = m.en_no.trim();
+      
+      // DEFENSA DE TIPO: Nos aseguramos de que el nombre sea siempre una cadena si existe
+      // Esto maneja el caso de que la relación sea NULL o que nombre_completo sea NULL.
+      const profName = m.profesionales_sanitarios?.nombre_completo ?? '';
+
+      // Solo agregamos la clave al mapa si se encontró un nombre
+      if (profName) {
+        map.set(enNoKey, profName);
+      }
+    });
+    return map;
+  }, [mappings]);
+
+  // 2. Enriquecer los registros de previsualización con el nombre_completo
+  const previewRowsWithMapping = useMemo<EnrichedFichajePreviewRow[]>(() => {
+    return previewRows.map((row) => ({
+      ...row,
+      // NORMALIZACIÓN: Usamos row.enNo.trim() para buscar en el mapa de nombres
+      nombre_completo: row.enNo ? enNoToProfNameMap.get(row.enNo.trim()) ?? null : null,
+    }));
+  }, [previewRows, enNoToProfNameMap]);
+
+  // ---------------------------------------------------------------------------------
+  // --- PARSERS DE ARCHIVO (SIN CAMBIOS DE LÓGICA DE NEGOCIO, SOLO MANTENIMIENTO) ---
+  // ---------------------------------------------------------------------------------
 
   const handleChooseFile = () => {
     fileInputRef.current?.click();
@@ -123,8 +198,8 @@ export function ImportarFichajesPanel() {
             const inoutIdx = headerMap['INOUT'];
             const modeIdx = headerMap['Mode'];
 
-            // 1. EnNo (Obligatorio para el mapeo)
-            enNo = parts[enNoIdx] && /^\d{1,10}$/.test(parts[enNoIdx]) ? String(parts[enNoIdx]) : null;
+            // 1. EnNo (Obligatorio para el mapeo) - Aseguramos .trim()
+            enNo = parts[enNoIdx] && /^\d{1,10}$/.test(parts[enNoIdx].trim()) ? String(parts[enNoIdx].trim()) : null;
 
             // 2. DateTime
             const dtRaw = parts[dtIdx] || '';
@@ -150,7 +225,7 @@ export function ImportarFichajesPanel() {
             
             // Asumiendo que el EnNo es el primer número largo después del primer índice (No) o el segundo índice (TMNo)
             // En este formato, es la tercera parte (índice 2)
-            enNo = (parts.length > 2 && /^\d{1,10}$/.test(parts[2])) ? parts[2] : null;
+            enNo = (parts.length > 2 && /^\d{1,10}$/.test(parts[2].trim())) ? parts[2].trim() : null;
 
             const inoutToken = parts.find(p => /^I(n)?$|^O(ut)?$/i.test(p));
             inout = inoutToken ? (/^I/i.test(inoutToken) ? 'IN' : 'OUT') : null;
@@ -178,6 +253,7 @@ export function ImportarFichajesPanel() {
     const sheet = workbook.Sheets[sheetName];
     const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
     return rows.slice(0, 200).map((row) => {
+      // Asegurar .trim() en la lectura para consistencia
       const enNo = String(row.EnNo || row.EmpNo || row.ID || row.Id || '').trim() || null;
       const dateValue = row.DateTime || row.Datetime || row.TIME || row.Time || row.Fecha || row.FechaHora || '';
       const normalized = String(dateValue).replace(/\//g, '-');
@@ -239,6 +315,10 @@ export function ImportarFichajesPanel() {
       toast({ title: 'Error al importar', description: message, variant: 'destructive' });
     }
   };
+
+  // ---------------------------------------------------------------------------------
+  // --- RENDERIZADO ---
+  // ---------------------------------------------------------------------------------
 
   return (
     <div className="space-y-6">
@@ -319,6 +399,7 @@ export function ImportarFichajesPanel() {
             <Alert variant={unmatchedPreview.length ? 'destructive' : 'default'}>
               <Info className="h-4 w-4" />
               <AlertTitle>
+                {/* Contador de registros sin mapeo */}
                 {unmatchedPreview.length
                   ? `${unmatchedPreview.length} registros sin mapeo EnNo`
                   : 'Archivo listo para importar'}
@@ -331,7 +412,8 @@ export function ImportarFichajesPanel() {
             </Alert>
           ) : null}
 
-          <FichajesList rows={previewRows} compact />
+          {/* Se pasa la lista enriquecida con el nombre_completo */}
+          <FichajesList rows={previewRowsWithMapping} compact />
         </CardContent>
         <CardFooter className="flex justify-between">
           <div className="text-xs text-muted-foreground">

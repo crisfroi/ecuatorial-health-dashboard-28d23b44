@@ -48,19 +48,18 @@ export function DispositivosPanel() {
   const centerIdFilter = selectedCenter === 'todos' ? null : selectedCenter;
 
   // QUERY 2: Dispositivos de fichaje (Principal)
-  const { data: devices = [], isLoading: devicesLoading } = useQuery<Dispositivo[]>({
+  // **CAMBIO CLAVE: Se eliminó initialData: [] para forzar isLoading: true al inicio**
+  const { data: devices, isLoading: devicesLoading } = useQuery<Dispositivo[]>({
     queryKey: ['dispositivos', centerIdFilter],
     queryFn: () => list(centerIdFilter),
     // OPTIMIZACIÓN: Reducir staleTime para que la lista se sienta más "fresca"
-    // Sin embargo, si la lista cambia muy poco, un staleTime más largo está bien.
-    // 15 segundos es un buen equilibrio para esta entidad.
     staleTime: 15_000,
-    refetchOnWindowFocus: false, // Se mantiene, ya que la recarga al cambiar de pestaña no es crítica.
-    initialData: [],
+    refetchOnWindowFocus: false,
   });
 
   const sortedDevices = useMemo(
-    () => devices.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)),
+    // **AJUSTE CLAVE: Se utiliza 'devices ?? []' para asegurar que el array sea iterable**
+    () => (devices ?? []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre)),
     [devices]
   );
 
@@ -169,7 +168,7 @@ export function DispositivosPanel() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nombre</TableHead>
-                    <TableHead>TM No.</TableHead> {/* Añadir esta columna para ver el TM No */}
+                    <TableHead>TM No.</TableHead>
                     <TableHead>Centro</TableHead>
                     <TableHead>Ubicación</TableHead>
                     <TableHead>Estado</TableHead>
@@ -181,7 +180,7 @@ export function DispositivosPanel() {
                     sortedDevices.map((device) => (
                       <TableRow key={device.id}>
                         <TableCell className="font-medium">{device.nombre}</TableCell>
-                        <TableCell>{device.tm_no || 'N/A'}</TableCell> {/* Mostrar TM No. */}
+                        <TableCell>{device.tm_no || 'N/A'}</TableCell>
                         <TableCell>{device.centro_salud_id ? centers.find((c) => c.id === device.centro_salud_id)?.nombre || '—' : 'Sin asignar'}</TableCell>
                         <TableCell>{device.ubicacion || '—'}</TableCell>
                         <TableCell>
@@ -192,7 +191,6 @@ export function DispositivosPanel() {
                             <Button variant="ghost" size="icon" onClick={() => setMappingDevice(device)} title="Mapeos">
                               <Settings2 className="h-4 w-4" />
                             </Button>
-                            {/* Usamos 'Settings2' en lugar de 'Plus' rotado para edición, por convención */}
                             <Button variant="ghost" size="icon" onClick={() => handleOpenForm(device)} title="Editar">
                               <Settings2 className="h-4 w-4" />
                             </Button>

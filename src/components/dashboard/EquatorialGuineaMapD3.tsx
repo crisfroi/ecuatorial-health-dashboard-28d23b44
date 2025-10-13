@@ -59,9 +59,25 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
   const { data: estadisticas } = useEstadisticasAvanzadas();
   const { data: districtStats = [] } = useDistrictStats();
 
-  // Choose GeoJSON by level
-  const geoData: FeatureCollection = useMemo(() => {
-    return (level === "provincias" ? (ADM1 as any) : (ADM2 as any)) as FeatureCollection;
+  // GeoJSON state loaded via URL
+  const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
+  useEffect(() => {
+    const url = level === "provincias" ? ADM1_URL : ADM2_URL;
+    let cancelled = false;
+    (async () => {
+      try {
+        setError(null);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = (await res.json()) as FeatureCollection;
+        if (!cancelled) setGeoData(json);
+      } catch (e: any) {
+        if (!cancelled) setError(`Error cargando GeoJSON (${level}): ${e?.message || e}`);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [level]);
 
   // Build value maps for choropleth
@@ -245,7 +261,7 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
             <MapPin className="w-5 h-5 text-teal-600" />
             Mapa de Guinea Ecuatorial
           </h3>
-          <p className="text-gray-600">Vista coropl��tica por provincias o distritos sanitarios</p>
+          <p className="text-gray-600">Vista coroplética por provincias o distritos sanitarios</p>
         </div>
         <div className="flex items-center gap-3">
           <Select value={level} onValueChange={(v) => setLevel(v as Level)}>

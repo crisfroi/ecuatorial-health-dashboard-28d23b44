@@ -77,14 +77,14 @@ export function useActualizarEstado() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { expedienteId: string; nuevoEstado: ExpedienteEstado; comentario?: string }) => {
-      const token = (await supabase.auth.getSession()).data.session?.access_token || "";
-      const res = await fetch("/functions/v1/expediente-actualizar-estado", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ accion: "cambio_estado", payload: input }),
+      // FIX: Reemplazar fetch relativo con supabase.functions.invoke
+      const { data: json, error: functionError } = await supabase.functions.invoke("expediente-actualizar-estado", {
+        body: { accion: "cambio_estado", payload: input },
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || "Error actualizando estado");
+
+      if (functionError) throw new Error(`Error en la llamada a la función Edge: ${functionError.message}`);
+      if ((json as any)?.error) throw new Error((json as any)?.error || "Error actualizando estado");
+
       return json;
     },
     onSuccess: () => {
@@ -98,14 +98,14 @@ export function useAgregarNota() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { expedienteId: string; comentario: string }) => {
-      const token = (await supabase.auth.getSession()).data.session?.access_token || "";
-      const res = await fetch("/functions/v1/expediente-actualizar-estado", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ accion: "nota", payload: input }),
+      // FIX: Reemplazar fetch relativo con supabase.functions.invoke
+      const { data: json, error: functionError } = await supabase.functions.invoke("expediente-actualizar-estado", {
+        body: { accion: "nota", payload: input },
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || "Error agregando nota");
+
+      if (functionError) throw new Error(`Error en la llamada a la función Edge: ${functionError.message}`);
+      if ((json as any)?.error) throw new Error((json as any)?.error || "Error agregando nota");
+
       return json;
     },
     onSuccess: () => {
@@ -119,19 +119,20 @@ export function useAdjuntarDocumento() {
   return useMutation({
     mutationFn: async (input: { expedienteId: string; file: File; comentario?: string }) => {
       const path = `${input.expedienteId}/${Date.now()}_${input.file.name}`;
+      // 1. Subida del archivo (usa el SDK, está bien)
       const up = await supabase.storage.from("expedientes").upload(path, input.file, { upsert: true });
       if (up.error) throw up.error;
       const pub = supabase.storage.from("expedientes").getPublicUrl(up.data.path);
       const url = pub.data.publicUrl;
 
-      const token = (await supabase.auth.getSession()).data.session?.access_token || "";
-      const res = await fetch("/functions/v1/expediente-actualizar-estado", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ accion: "adjuntar_documento", payload: { expedienteId: input.expedienteId, documentoUrl: url, comentario: input.comentario } }),
+      // 2. Llamada a la función Edge (CORREGIDA)
+      const { data: json, error: functionError } = await supabase.functions.invoke("expediente-actualizar-estado", {
+        body: { accion: "adjuntar_documento", payload: { expedienteId: input.expedienteId, documentoUrl: url, comentario: input.comentario } },
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || "Error adjuntando documento");
+
+      if (functionError) throw new Error(`Error en la llamada a la función Edge: ${functionError.message}`);
+      if ((json as any)?.error) throw new Error((json as any)?.error || "Error adjuntando documento");
+
       return { ...json, url };
     },
     onSuccess: () => {
@@ -155,14 +156,18 @@ export function useGenerarResolucion() {
       autoridadNombre?: string;
       observaciones?: string;
     }) => {
-      const token = (await supabase.auth.getSession()).data.session?.access_token || "";
-      const res = await fetch("/functions/v1/generar-resolucion-expediente", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(input),
+      // FIX: Reemplazar fetch relativo con supabase.functions.invoke
+      const { data: json, error: functionError } = await supabase.functions.invoke("generar-resolucion-expediente", {
+        body: input,
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || "Error generando resolución");
+
+      if (functionError) {
+        throw new Error(`Error en la llamada a la función Edge: ${functionError.message}`);
+      }
+
+      // La función Edge devuelve { ok: true, pdfUrl: string } o { error: string }
+      if ((json as any)?.error) throw new Error((json as any)?.error || "Error generando resolución");
+
       return json as { ok: true; pdfUrl: string };
     },
     onSuccess: () => {

@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import * as d3 from "d3";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -160,20 +161,24 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
 
   // Draw map
   useEffect(() => {
-    // 🚨 FIX: Salir si las dimensiones aún son 0 (o si los datos no están)
-    if (!geoData || !svgRef.current || width === 0 || height === 0) return;
+    if (!geoData || !svgRef.current) return;
 
     try {
       const svg = d3.select(svgRef.current);
       svg.selectAll("*").remove();
 
-      // Usar dimensiones dinámicas
+      // Dimensiones con fallback para evitar bloqueos por width/height 0
+      const fallbackW = 800;
+      const fallbackH = 540;
+      const W = width > 0 ? width : fallbackW;
+      const H = height > 0 ? height : fallbackH;
+
       const margin = { top: 20, right: 20, bottom: 20, left: 20 };
 
       // Se reserva el espacio para la leyenda en la parte inferior del contenedor
       const legendSpace = 60;
-      const innerW = width - margin.left - margin.right;
-      const innerH = height - margin.top - margin.bottom - legendSpace;
+      const innerW = W - margin.left - margin.right;
+      const innerH = H - margin.top - margin.bottom - legendSpace;
 
       // Centroids son usados para separar las islas (latitud < 0) del continente
       const features = geoData.features;
@@ -194,7 +199,7 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
 
       // 1. Configuración del SVG y Grupo Principal
       const mapGroup = svg
-        .attr("viewBox", `0 0 ${width} ${height}`)
+        .attr("viewBox", `0 0 ${W} ${H}`)
         .attr("preserveAspectRatio", "xMidYMid meet")
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
@@ -365,7 +370,7 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
       }
       setError(`Error renderizando el mapa: ${e?.message || e}`);
     }
-  }, [geoData, provinciaValues, distritoValues, minValue, maxValue, level, onNavigateToProvince, width, height]); // 🚨 FIX: Añadir width y height como dependencias
+  }, [geoData, provinciaValues, distritoValues, minValue, maxValue, level, onNavigateToProvince, width, height]);
 
   if (error) {
     return (
@@ -444,8 +449,8 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
           </CardHeader>
           <CardContent>
             {/* 🚨 FIX: Usar el contenedor para obtener las dimensiones */}
-            <div ref={mapContainerRef} className="relative bg-gray-50 rounded-lg p-4 flex justify-center items-center overflow-hidden" style={{ height: `${Math.max(height, 480)}px` }}>
-              <svg ref={svgRef} width={width} height={Math.max(height, 480)} className="w-full" />
+            <div ref={mapContainerRef} className="relative bg-gray-50 rounded-lg p-4 flex justify-center items-center overflow-hidden" style={{ height: `${Math.max(height || 540, 480)}px` }}>
+              <svg ref={svgRef} className="w-full h-full" />
 
               {hoveredName && (
                 <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-xl border z-10 min-w-64">

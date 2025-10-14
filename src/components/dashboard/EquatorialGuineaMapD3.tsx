@@ -11,20 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Users, Building, Eye, RefreshCw, Map as MapIcon } from "lucide-react";
-// Supongo que estos hooks están definidos en el entorno
-// import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
-// import { useDistrictStats } from "@/hooks/useAdvancedAnalytics";
-
-// Simulación de los hooks de datos para que el componente sea ejecutable
-const useEstadisticasAvanzadas = () => ({ data: { porProvincia: { "Bioko Norte Province": 150, "Litoral Province": 80, "Annobon Province": 5 } } });
-const useDistrictStats = () => ({
-  data: [
-    { distrito_sanitario: "Malabo", total_profesionales: 90, total_centros: 12 },
-    { distrito_sanitario: "Bata", total_profesionales: 60, total_centros: 8 },
-    { distrito_sanitario: "Ebebiyin", total_profesionales: 25, total_centros: 4 },
-  ],
-});
-// Fin de la simulación
+import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
+import { useDistrictStats } from "@/hooks/useAdvancedAnalytics";
 
 // Import GeoJSONs (ADM1 = provincias, ADM2 = distritos)
 // Estos imports deben funcionar correctamente si la ruta es correcta en tu entorno.
@@ -393,7 +381,7 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
     );
   }
 
-  if (!geoData || width === 0) {
+  if (!geoData) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -456,8 +444,8 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
           </CardHeader>
           <CardContent>
             {/* 🚨 FIX: Usar el contenedor para obtener las dimensiones */}
-            <div ref={mapContainerRef} className="relative bg-gray-50 rounded-lg p-4 flex justify-center items-center overflow-hidden" style={{ height: `${height}px` }}>
-              <svg ref={svgRef} width={width} height={height} className="w-full" />
+            <div ref={mapContainerRef} className="relative bg-gray-50 rounded-lg p-4 flex justify-center items-center overflow-hidden" style={{ height: `${Math.max(height, 480)}px` }}>
+              <svg ref={svgRef} width={width} height={Math.max(height, 480)} className="w-full" />
 
               {hoveredName && (
                 <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-xl border z-10 min-w-64">

@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import * as d3 from "d3";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -10,521 +11,352 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  MapPin,
-  Users,
-  Building,
-  Stethoscope,
-  GraduationCap,
-  Eye,
-  RefreshCw,
-} from "lucide-react";
-import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
+import { MapPin, Users, Building, Eye, Map as MapIcon } from "lucide-react";
+import 'leaflet/dist/leaflet.css';
 
-interface ProvinceData {
-  id: string;
-  name: string;
-  professionals: number;
-  centers: number;
-  doctors: number;
-  nurses: number;
-  pharmacists: number;
-  publicSector: number;
-  privateSector: number;
-  approved: number;
-  pending: number;
+// --- SIMULACIÓN DE DATOS ---
+const useEstadisticasAvanzadas = () => ({ data: { porProvincia: { "Bioko Norte Province": 150, "Litoral Province": 80, "Annobon Province": 5, "Centro Sur Province": 40, "Kie-Ntem Province": 35, "Wele-Nzas Province": 30, "Bioko Sur Province": 15, "Djibloho Province": 10 } } });
+const useDistrictStats = () => ({
+  data: [
+    { distrito_sanitario: "Malabo", total_profesionales: 90, total_centros: 12 },
+    { distrito_sanitario: "Bata", total_profesionales: 60, total_centros: 8 },
+    { distrito_sanitario: "Ebebiyin", total_profesionales: 25, total_centros: 4 },
+    { distrito_sanitario: "Luba", total_profesionales: 10, total_centros: 2 },
+    { distrito_sanitario: "Riaba", total_profesionales: 5, total_centros: 1 },
+    { distrito_sanitario: "Mongomo", total_profesionales: 15, total_centros: 3 },
+    { distrito_sanitario: "Añisoc", total_profesionales: 12, total_centros: 2 },
+    { distrito_sanitario: "Akonibe", total_profesionales: 8, total_centros: 1 },
+    { distrito_sanitario: "Micomeseng", total_profesionales: 18, total_centros: 3 },
+    { distrito_sanitario: "Mbini", total_profesionales: 6, total_centros: 1 },
+  ],
+});
+// Fin de la simulación
+
+// --- URLs DIRECTAS A LOS ARCHIVOS GeoJSON RAW EN GITHUB ---
+// Usamos el repositorio geoBoundaries para asegurar la estabilidad.
+const BASE_GEO_URL = "https://raw.githubusercontent.com/wmgeolab/geoBoundaries/main/releaseData/gbOpen/GNQ/";
+const ADM1_URL = BASE_GEO_URL + "ADM1/geoBoundaries-GNQ-ADM1.geojson";
+const ADM2_URL = BASE_GEO_URL + "ADM2/geoBoundaries-GNQ-ADM2.geojson";
+
+// --- TIPOS Y UTILS ---
+
+type Level = "provincias" | "distritos";
+
+type FeatureCollection = {
+  type: "FeatureCollection";
+  features: Array<any>;
+};
+
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s+province$/i, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-interface EquatorialGuineaMapD3Props {
-  onNavigateToProvince?: (provinceName: string) => void;
+function getShapeDisplayName(shapeName?: string): string {
+  if (!shapeName) return "";
+  const cleanName = shapeName.replace(/\s+Province$/i, "").trim();
+  return cleanName
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }
 
-const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({
-  onNavigateToProvince,
-}) => {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [selectedMetric, setSelectedMetric] = useState<string>("professionals");
-  const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
-  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
-  const [geoData, setGeoData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+/**
+ * Función simplificada para obtener GeoJSON directamente de una URL raw.
+ * @param url URL directa al archivo GeoJSON.
+ */
+const fetchGeoJSON = async (url: string, retries = 3): Promise<FeatureCollection | null> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status} al descargar GeoJSON`);
+      return (await res.json()) as FeatureCollection;
+    } catch (e: any) {
+      console.error(`Intento ${i + 1} fallido:`, e?.message || e);
+      if (i === retries - 1) throw new Error("Error cargando GeoJSON: Falló la descarga después de varios intentos.");
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000)); // Exponential backoff (1s, 2s, 4s)
+    }
+  }
+  return null;
+};
+
+
+// --- COMPONENTE PRINCIPAL ---
+
+const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: string) => void }> = ({ onNavigateToProvince }) => {
+  const [level, setLevel] = useState<Level>("provincias");
+  const [hoveredName, setHoveredName] = useState<string | null>(null);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const geoJsonRef = useRef<any>(null);
 
+  // Hooks data
   const { data: estadisticas } = useEstadisticasAvanzadas();
+  const { data: districtStats = [] } = useDistrictStats();
 
-  // Mock data for provinces
-  const provinceData: Record<string, ProvinceData> = useMemo(() => {
-    const mockData: Record<string, ProvinceData> = {
-      "Bioko Norte": {
-        id: "bioko-norte",
-        name: "Bioko Norte",
-        professionals: estadisticas?.porProvincia?.["Malabo"] || 245,
-        centers: 12,
-        doctors: 78,
-        nurses: 125,
-        pharmacists: 42,
-        publicSector: 180,
-        privateSector: 65,
-        approved: 220,
-        pending: 25,
-      },
-      "Bioko Sur": {
-        id: "bioko-sur",
-        name: "Bioko Sur",
-        professionals: 89,
-        centers: 6,
-        doctors: 28,
-        nurses: 45,
-        pharmacists: 16,
-        publicSector: 70,
-        privateSector: 19,
-        approved: 78,
-        pending: 11,
-      },
-      Annobón: {
-        id: "annobon",
-        name: "Annobón",
-        professionals: 15,
-        centers: 2,
-        doctors: 4,
-        nurses: 8,
-        pharmacists: 3,
-        publicSector: 12,
-        privateSector: 3,
-        approved: 14,
-        pending: 1,
-      },
-      Litoral: {
-        id: "litoral",
-        name: "Litoral",
-        professionals: estadisticas?.porProvincia?.["Bata"] || 198,
-        centers: 15,
-        doctors: 62,
-        nurses: 98,
-        pharmacists: 38,
-        publicSector: 150,
-        privateSector: 48,
-        approved: 185,
-        pending: 13,
-      },
-      "Centro Sur": {
-        id: "centro-sur",
-        name: "Centro Sur",
-        professionals: estadisticas?.porProvincia?.["Evinayong"] || 78,
-        centers: 8,
-        doctors: 25,
-        nurses: 40,
-        pharmacists: 13,
-        publicSector: 62,
-        privateSector: 16,
-        approved: 72,
-        pending: 6,
-      },
-      "Kié-Ntem": {
-        id: "kie-ntem",
-        name: "Kié-Ntem",
-        professionals: estadisticas?.porProvincia?.["Ebebiyín"] || 87,
-        centers: 10,
-        doctors: 28,
-        nurses: 45,
-        pharmacists: 14,
-        publicSector: 70,
-        privateSector: 17,
-        approved: 81,
-        pending: 6,
-      },
-      "Wele-Nzas": {
-        id: "wele-nzas",
-        name: "Wele-Nzas",
-        professionals: estadisticas?.porProvincia?.["Mongomo"] || 56,
-        centers: 7,
-        doctors: 18,
-        nurses: 30,
-        pharmacists: 8,
-        publicSector: 45,
-        privateSector: 11,
-        approved: 52,
-        pending: 4,
-      },
+  // 1. Fetching de los datos GeoJSON
+  useEffect(() => {
+    const url = level === "provincias" ? ADM1_URL : ADM2_URL;
+    let cancelled = false;
+    (async () => {
+      try {
+        setError(null);
+        setGeoData(null);
+        const json = await fetchGeoJSON(url);
+        if (!cancelled) setGeoData(json);
+      } catch (e: any) {
+        if (!cancelled) setError(e.message);
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
-    return mockData;
+  }, [level]);
+
+  // 2. Mapas de valores (para el coroplético)
+  const provinciaValues = useMemo(() => {
+    const map = new Map<string, number>();
+    const byProv = (estadisticas?.porProvincia || {}) as Record<string, number>;
+    for (const [prov, count] of Object.entries(byProv)) {
+      map.set(normalizeName(prov), count || 0);
+    }
+    return map;
   }, [estadisticas]);
 
-  // Load GeoJSON data
-  useEffect(() => {
-    const loadGeoData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+  const distritoValues = useMemo(() => {
+    const vals = new Map<string, number>();
+    for (const d of districtStats) {
+      if (!d || !d.distrito_sanitario) continue;
+      vals.set(normalizeName(getShapeDisplayName(String(d.distrito_sanitario))), d.total_profesionales || 0);
+    }
+    return vals;
+  }, [districtStats]);
 
-        const response = await fetch("/data/equatorial-guinea.geojson");
-        if (!response.ok) {
-          throw new Error(`Failed to load GeoJSON: ${response.status}`);
+  const distritoCenters = useMemo(() => {
+    const vals = new Map<string, number>();
+    for (const d of districtStats) {
+      if (!d || !d.distrito_sanitario) continue;
+      vals.set(normalizeName(getShapeDisplayName(String(d.distrito_sanitario))), d.total_centros || 0);
+    }
+    return vals;
+  }, [districtStats]);
+
+
+  // 3. Escala de Color
+  const { minValue, maxValue, colorScale } = useMemo(() => {
+    if (!geoData?.features) return { minValue: 0, maxValue: 0, colorScale: () => "#f3f4f6" };
+
+    const currentValues = level === "provincias" ? provinciaValues : distritoValues;
+    const values: number[] = geoData.features.map((f: any) => {
+      const raw = f.properties?.shapeName || "";
+      const key = normalizeName(getShapeDisplayName(raw));
+      return currentValues.get(key) ?? 0;
+    });
+
+    const min = values.length ? Math.min(...values) : 0;
+    const max = values.length ? Math.max(...values) : 0;
+    const safeMax = Math.max(max, 1);
+
+    // Reutilizamos la escala de D3
+    const scale = d3.scaleSequential().domain([min, safeMax]).interpolator(d3.interpolateYlGnBu);
+    return { minValue: min, maxValue: max, colorScale: scale };
+  }, [geoData, provinciaValues, distritoValues, level]);
+
+
+  // --- LÓGICA DE STYLING Y EVENTOS DE LEAFLET ---
+
+  // Función para obtener el estilo de cada polígono
+  const style = (feature: any) => {
+    const raw = feature.properties?.shapeName || "";
+    const key = normalizeName(getShapeDisplayName(raw));
+    const value = (level === "provincias" ? provinciaValues : distritoValues).get(key) ?? 0;
+
+    return {
+      fillColor: value > 0 ? colorScale(value) : "#f3f4f6", // Gris si no hay datos
+      weight: 1.5,
+      opacity: 1,
+      color: '#134e4a', // Borde
+      dashArray: '3',
+      fillOpacity: 0.7
+    };
+  };
+
+  // Función para manejar eventos (hover/click) en cada polígono
+  const onEachFeature = (feature: any, layer: any) => {
+    const name = getShapeDisplayName(feature.properties?.shapeName);
+
+    layer.on({
+      mouseover: (e: any) => {
+        setHoveredName(name);
+        e.target.setStyle({
+          weight: 3,
+          color: '#064e3b',
+          dashArray: '',
+          fillOpacity: 0.9
+        });
+        e.target.bringToFront();
+      },
+      mouseout: (e: any) => {
+        setHoveredName(null);
+        if (geoJsonRef.current) {
+          geoJsonRef.current.resetStyle(e.target);
         }
-
-        const data = await response.json();
-        setGeoData(data);
-      } catch (err: any) {
-        console.error("Error loading GeoJSON:", err);
-        setError(`Error cargando datos del mapa: ${err.message}`);
-      } finally {
-        setIsLoading(false);
+      },
+      click: () => {
+        setSelectedName(name);
+        onNavigateToProvince?.(name);
       }
-    };
+    });
 
-    loadGeoData();
-  }, []);
-
-  // Draw map with D3
-  useEffect(() => {
-    if (!geoData || !svgRef.current) return;
-
-    // Wrap D3 operations to catch ResizeObserver errors
-    try {
-      const svg = d3.select(svgRef.current);
-      svg.selectAll("*").remove(); // Clear previous content
-
-    const width = 800;
-    const height = 600;
-    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
-
-    // Set up projection
-    const projection = d3
-      .geoMercator()
-      .fitSize(
-        [
-          width - margin.left - margin.right,
-          height - margin.top - margin.bottom,
-        ],
-        geoData,
-      );
-
-    const pathGenerator = d3.geoPath().projection(projection);
-
-    // Create main group with viewBox for responsive scaling
-    const mapGroup = svg
-      .attr("viewBox", `0 0 ${width} ${height}`)
-      .attr("preserveAspectRatio", "xMidYMid meet")
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    // Get metric values for color scale
-    const metricValues = Object.values(provinceData).map((p) =>
-      getMetricValue(p, selectedMetric),
-    );
-    const maxValue = Math.max(...metricValues);
-    const minValue = Math.min(...metricValues);
-
-    // Color scale
-    const colorScale = d3
-      .scaleSequential()
-      .domain([minValue, maxValue])
-      .interpolator(d3.interpolateBlues);
-
-    // Draw provinces
-    const provinces = mapGroup
-      .selectAll(".province")
-      .data(geoData.features)
-      .enter()
-      .append("g")
-      .attr("class", "province");
-
-    provinces
-      .append("path")
-      .attr("d", pathGenerator)
-      .attr("fill", (d: any) => {
-        const provinceName = d.properties.name;
-        const province = provinceData[provinceName];
-        if (!province) return "#f3f4f6";
-
-        const value = getMetricValue(province, selectedMetric);
-        return colorScale(value);
-      })
-      .attr("stroke", "#374151")
-      .attr("stroke-width", 1)
-      .style("cursor", "pointer")
-      .on("mouseover", function (event: any, d: any) {
-        setHoveredProvince(d.properties.name);
-        d3.select(this).attr("stroke-width", 2).attr("stroke", "#1f2937");
-      })
-      .on("mouseout", function (event: any, d: any) {
-        setHoveredProvince(null);
-        d3.select(this).attr("stroke-width", 1).attr("stroke", "#374151");
-      })
-      .on("click", function (event: any, d: any) {
-        const provinceName = d.properties.name;
-        setSelectedProvince(provinceName);
-        onNavigateToProvince?.(provinceName);
-      });
-
-    // Add province labels
-    provinces
-      .append("text")
-      .attr("x", (d: any) => pathGenerator.centroid(d)[0])
-      .attr("y", (d: any) => pathGenerator.centroid(d)[1])
-      .attr("text-anchor", "middle")
-      .attr("dominant-baseline", "middle")
-      .style("font-size", "12px")
-      .style("font-weight", "bold")
-      .style("fill", "#1f2937")
-      .style("pointer-events", "none")
-      .text((d: any) => d.properties.name);
-
-    // Add legend
-    const legendWidth = 300;
-    const legendHeight = 20;
-    const legendGroup = svg
-      .append("g")
-      .attr(
-        "transform",
-        `translate(${width - legendWidth - 20}, ${height - 60})`,
-      );
-
-    // Legend gradient
-    const defs = svg.append("defs");
-    const gradient = defs
-      .append("linearGradient")
-      .attr("id", "legend-gradient")
-      .attr("x1", "0%")
-      .attr("x2", "100%")
-      .attr("y1", "0%")
-      .attr("y2", "0%");
-
-    gradient
-      .selectAll("stop")
-      .data(d3.range(0, 1.1, 0.1))
-      .enter()
-      .append("stop")
-      .attr("offset", (d) => `${d * 100}%`)
-      .attr("stop-color", (d) => d3.interpolateBlues(d));
-
-    legendGroup
-      .append("rect")
-      .attr("width", legendWidth)
-      .attr("height", legendHeight)
-      .style("fill", "url(#legend-gradient)")
-      .attr("stroke", "#374151")
-      .attr("stroke-width", 1);
-
-    // Legend labels
-    legendGroup
-      .append("text")
-      .attr("x", 0)
-      .attr("y", legendHeight + 15)
-      .style("font-size", "12px")
-      .style("fill", "#4b5563")
-      .text(minValue.toString());
-
-    legendGroup
-      .append("text")
-      .attr("x", legendWidth)
-      .attr("y", legendHeight + 15)
-      .attr("text-anchor", "end")
-      .style("font-size", "12px")
-      .style("fill", "#4b5563")
-      .text(maxValue.toString());
-
-    legendGroup
-      .append("text")
-      .attr("x", legendWidth / 2)
-      .attr("y", -5)
-      .attr("text-anchor", "middle")
-      .style("font-size", "12px")
-      .style("font-weight", "bold")
-      .style("fill", "#1f2937")
-      .text(getMetricLabel(selectedMetric));
-    } catch (error) {
-      // Suppress ResizeObserver-related errors from D3
-      if (
-        error instanceof Error &&
-        (
-          error.message.includes('ResizeObserver loop completed with undelivered notifications') ||
-          error.message.includes('ResizeObserver loop limit exceeded')
-        )
-      ) {
-        return;
-      }
-      console.error("Error rendering D3 map:", error);
-    }
-  }, [geoData, selectedMetric, provinceData]);
-
-  const getMetricValue = (province: ProvinceData, metric: string): number => {
-    switch (metric) {
-      case "professionals":
-        return province.professionals;
-      case "centers":
-        return province.centers;
-      case "doctors":
-        return province.doctors;
-      case "nurses":
-        return province.nurses;
-      case "pharmacists":
-        return province.pharmacists;
-      case "publicSector":
-        return province.publicSector;
-      case "privateSector":
-        return province.privateSector;
-      case "approved":
-        return province.approved;
-      case "pending":
-        return province.pending;
-      default:
-        return province.professionals;
-    }
+    // Opcional: Popup al hacer click
+    layer.bindPopup(name, { closeButton: false, className: 'leaflet-popup-content' });
   };
 
-  const getMetricLabel = (metric: string): string => {
-    const labels: Record<string, string> = {
-      professionals: "Total Profesionales",
-      centers: "Centros de Salud",
-      doctors: "Médicos",
-      nurses: "Enfermeros",
-      pharmacists: "Farmacéuticos",
-      publicSector: "Sector Público",
-      privateSector: "Sector Privado",
-      approved: "Aprobados",
-      pending: "Pendientes",
-    };
-    return labels[metric] || "Total Profesionales";
+  // Custom Hook para controlar la vista del mapa (ej. centrado/zoom)
+  const RecenterMap = () => {
+    const map = useMap();
+    useEffect(() => {
+      // Coordenadas de Guinea Ecuatorial: [1.5, 10]
+      map.setView([1.5, 10], map.getZoom() < 7 ? 7 : map.getZoom());
+    }, [map, level]); // Recenter si el nivel cambia
+    return null;
   };
 
-  const metricOptions = [
-    { value: "professionals", label: "Total Profesionales", icon: Users },
-    { value: "centers", label: "Centros de Salud", icon: Building },
-    { value: "doctors", label: "Médicos", icon: Stethoscope },
-    { value: "nurses", label: "Enfermeros", icon: Users },
-    { value: "pharmacists", label: "Farmacéuticos", icon: GraduationCap },
-    { value: "publicSector", label: "Sector Público", icon: Building },
-    { value: "privateSector", label: "Sector Privado", icon: Building },
-    { value: "approved", label: "Aprobados", icon: Users },
-    { value: "pending", label: "Pendientes", icon: Users },
-  ];
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600">Cargando mapa...</span>
-      </div>
-    );
-  }
+  // --- RENDERIZADO DEL MAPA ---
 
   if (error) {
     return (
       <Card className="border-red-200 bg-red-50">
-        <CardContent className="p-6 text-center">
-          <div className="text-red-600 mb-4">{error}</div>
-          <Button variant="outline" onClick={() => window.location.reload()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Recargar
-          </Button>
+        <CardContent className="p-6 text-center text-red-600">
+          {error}
         </CardContent>
       </Card>
     );
   }
 
+  const currentValue = (name: string): number => {
+    const key = normalizeName(name);
+    return level === "provincias" ? provinciaValues.get(key) ?? 0 : distritoValues.get(key) ?? 0;
+  };
+  const currentCenters = (name: string): number | null => {
+    if (level !== "distritos") return null;
+    const key = normalizeName(name);
+    return distritoCenters.get(key) ?? 0;
+  };
+
+  const mapCenter: [number, number] = [1.5, 10]; // Centro de Guinea Ecuatorial
+
   return (
     <div className="space-y-6">
-      {/* Controls */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-xl font-semibold flex items-center gap-2">
             <MapPin className="w-5 h-5 text-teal-600" />
-            Mapa de Guinea Ecuatorial (D3.js)
+            Mapa de Guinea Ecuatorial
           </h3>
-          <p className="text-gray-600">
-            Distribución geográfica interactiva por provincias
-          </p>
+          <p className="text-gray-600">Vista coroplética por provincias o distritos sanitarios</p>
         </div>
-        <div className="flex items-center space-x-4">
-          <Select value={selectedMetric} onValueChange={setSelectedMetric}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Seleccionar métrica" />
+        <div className="flex items-center gap-3">
+          <Select value={level} onValueChange={(v) => setLevel(v as Level)}>
+            <SelectTrigger className="w-56">
+              <SelectValue placeholder="Seleccionar nivel" />
             </SelectTrigger>
             <SelectContent>
-              {metricOptions.map((option) => {
-                const Icon = option.icon;
-                return (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4" />
-                      {option.label}
-                    </div>
-                  </SelectItem>
-                );
-              })}
+              <SelectItem value="provincias">
+                <div className="flex items-center gap-2">
+                  <MapIcon className="w-4 h-4" /> Provincias (ADM1)
+                </div>
+              </SelectItem>
+              <SelectItem value="distritos">
+                <div className="flex items-center gap-2">
+                  <MapIcon className="w-4 h-4" /> Distritos Sanitarios (ADM2)
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Map */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>
-              Mapa Coroplético - {getMetricLabel(selectedMetric)}
+              {level === "provincias" ? "Aprobados por Provincia" : "Aprobados por Distrito Sanitario"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="relative bg-gray-50 rounded-lg p-4">
-              <svg
-                ref={svgRef}
-                className="w-full"
-                style={{ maxHeight: "600px" }}
-              />
+            <div className="relative h-[550px] bg-gray-50 rounded-lg shadow-inner">
+              {geoData ? (
+                <MapContainer
+                  center={mapCenter}
+                  zoom={7}
+                  scrollWheelZoom={true}
+                  className="h-full w-full rounded-lg z-0"
+                >
+                  <RecenterMap />
+                  <TileLayer
+                    attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
 
-              {/* Hover tooltip */}
-              {hoveredProvince && (
-                <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-lg border z-10 min-w-64">
-                  <h4 className="font-semibold text-lg mb-2">
-                    {hoveredProvince}
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Profesionales:</span>
-                      <span className="font-medium">
-                        {provinceData[hoveredProvince]?.professionals}
-                      </span>
+                  <GeoJSON
+                    key={level}
+                    data={geoData}
+                    style={style}
+                    onEachFeature={onEachFeature}
+                    ref={geoJsonRef}
+                  />
+
+                  {/* Leyenda Simple */}
+                  <div className="absolute bottom-4 left-4 p-2 bg-white/90 rounded shadow-md z-[400] text-sm">
+                    <h4 className="font-bold mb-1 border-b pb-1">Leyenda</h4>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-2" style={{ backgroundColor: colorScale(maxValue * 0.75), border: '1px solid #aaa' }}></div>
+                      Alto ({maxValue})
                     </div>
-                    <div className="flex justify-between">
-                      <span>Centros:</span>
-                      <span className="font-medium">
-                        {provinceData[hoveredProvince]?.centers}
-                      </span>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-2" style={{ backgroundColor: colorScale(maxValue * 0.4), border: '1px solid #aaa' }}></div>
+                      Medio
                     </div>
-                    <div className="flex justify-between">
-                      <span>Médicos:</span>
-                      <span className="font-medium">
-                        {provinceData[hoveredProvince]?.doctors}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Enfermeros:</span>
-                      <span className="font-medium">
-                        {provinceData[hoveredProvince]?.nurses}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Aprobados:</span>
-                      <span className="font-medium text-green-600">
-                        {provinceData[hoveredProvince]?.approved}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Pendientes:</span>
-                      <span className="font-medium text-orange-600">
-                        {provinceData[hoveredProvince]?.pending}
-                      </span>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-2" style={{ backgroundColor: colorScale(minValue), border: '1px solid #aaa' }}></div>
+                      Bajo ({minValue})
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    className="w-full mt-3"
-                    onClick={() => onNavigateToProvince?.(hoveredProvince)}
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    Ver Detalles
+
+                </MapContainer>
+              ) : (
+                <div className="flex items-center justify-center gap-3 text-gray-600 h-full">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
+                  <span>Cargando mapa...</span>
+                </div>
+              )}
+
+
+              {hoveredName && (
+                <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-xl border z-10 min-w-64">
+                  <h4 className="font-semibold text-lg mb-2">{hoveredName}</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 flex items-center gap-1"><Users className="w-3 h-3" /> Prof. (aprobados):</span>
+                      <span className="font-bold text-teal-700">{currentValue(hoveredName)}</span>
+                    </div>
+                    {level === "distritos" ? (
+                      <div className="flex justify-between items-center border-t pt-1 mt-1">
+                        <span className="text-gray-600 flex items-center gap-1"><Building className="w-3 h-3" /> Centros:</span>
+                        <span className="font-medium">{currentCenters(hoveredName)}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                  <Button size="sm" className="w-full mt-3 bg-teal-600 hover:bg-teal-700" onClick={() => onNavigateToProvince?.(hoveredName)}>
+                    <Eye className="w-4 h-4 mr-1" /> Ver Detalles
                   </Button>
                 </div>
               )}
@@ -532,125 +364,67 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({
           </CardContent>
         </Card>
 
-        {/* Statistics Panel */}
+        {/* Panel Lateral (mismo que antes) */}
         <Card>
           <CardHeader>
-            <CardTitle>
-              {selectedProvince
-                ? `${selectedProvince}`
-                : "Estadísticas Generales"}
-            </CardTitle>
+            <CardTitle>{selectedName ? selectedName : "Estadísticas Generales"}</CardTitle>
           </CardHeader>
           <CardContent>
-            {selectedProvince ? (
+            {selectedName ? (
               <div className="space-y-4">
                 <div className="text-center p-4 bg-teal-50 rounded-lg">
-                  <div className="text-3xl font-bold text-teal-600">
-                    {getMetricValue(
-                      provinceData[selectedProvince],
-                      selectedMetric,
-                    )}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {getMetricLabel(selectedMetric)}
-                  </div>
+                  <div className="text-3xl font-bold text-teal-600">{currentValue(selectedName)}</div>
+                  <div className="text-sm text-gray-600">Profesionales (aprobados)</div>
                 </div>
-
-                <div className="space-y-3">
-                  {metricOptions.map((option) => {
-                    const Icon = option.icon;
-                    const value = getMetricValue(
-                      provinceData[selectedProvince],
-                      option.value,
-                    );
-                    return (
-                      <div
-                        key={option.value}
-                        className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-gray-600" />
-                          <span className="text-sm">{option.label}</span>
-                        </div>
-                        <Badge variant="outline">{value}</Badge>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <Button
-                  className="w-full"
-                  onClick={() => onNavigateToProvince?.(selectedProvince)}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Ver Profesionales de {selectedProvince}
+                {level === "distritos" ? (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                    <div className="flex items-center gap-2">
+                      <Building className="w-5 h-5 text-gray-600" />
+                      <span className="text-base font-medium">Centros</span>
+                    </div>
+                    <Badge variant="default" className="bg-teal-500 hover:bg-teal-500 text-white text-md p-2">{currentCenters(selectedName)}</Badge>
+                  </div>
+                ) : null}
+                <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => onNavigateToProvince?.(selectedName)}>
+                  <Eye className="w-4 h-4 mr-2" /> Ver detalles de {selectedName}
                 </Button>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="text-center">
-                  <p className="text-gray-600 mb-4">
-                    Haz clic en una provincia para ver detalles
-                  </p>
+                  <p className="text-gray-600 mb-4">Haz clic en una región para ver detalles</p>
                 </div>
-
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-sm">
-                    Top 3 Provincias ({getMetricLabel(selectedMetric)})
-                  </h4>
-                  {Object.values(provinceData)
-                    .sort(
-                      (a, b) =>
-                        getMetricValue(b, selectedMetric) -
-                        getMetricValue(a, selectedMetric),
-                    )
+                  <h4 className="font-semibold text-sm text-gray-700 border-b pb-1">Top 3 {level === "provincias" ? "Provincias" : "Distritos"}</h4>
+                  {Array.from((level === "provincias" ? provinciaValues : distritoValues).entries())
+                    .sort((a, b) => b[1] - a[1])
                     .slice(0, 3)
-                    .map((province, index) => (
-                      <div
-                        key={province.id}
-                        className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                      >
+                    .map(([name, value], index) => (
+                      <div key={name} className="flex items-center justify-between p-2 bg-white rounded-lg shadow-sm border">
                         <div className="flex items-center gap-2">
-                          <div
-                            className={`w-2 h-2 rounded-full ${
-                              index === 0
-                                ? "bg-yellow-500"
-                                : index === 1
-                                  ? "bg-gray-400"
-                                  : "bg-orange-600"
-                            }`}
-                          />
-                          <span className="text-sm font-medium">
-                            {province.name}
-                          </span>
+                          <div className={`w-3 h-3 rounded-full ${index === 0 ? "bg-yellow-500" : index === 1 ? "bg-gray-400" : "bg-orange-600"}`} />
+                          <span className="text-sm font-medium">{getShapeDisplayName(name)}</span>
                         </div>
-                        <Badge variant="outline">
-                          {getMetricValue(province, selectedMetric)}
-                        </Badge>
+                        <Badge variant="secondary" className="bg-teal-100 text-teal-700">{value}</Badge>
                       </div>
                     ))}
                 </div>
-
                 <div className="pt-4 border-t">
                   <div className="grid grid-cols-2 gap-2 text-xs text-center">
-                    <div className="p-2 bg-blue-50 rounded">
-                      <div className="font-bold text-blue-600">
-                        {Object.values(provinceData).reduce(
-                          (sum, p) => sum + p.professionals,
-                          0,
-                        )}
+                    <div className="p-3 bg-blue-50 rounded-lg shadow-inner">
+                      <div className="font-bold text-lg text-blue-600">
+                        {Array.from((level === "provincias" ? provinciaValues : distritoValues).values()).reduce((s, v) => s + v, 0)}
                       </div>
                       <div className="text-gray-600">Total Profesionales</div>
                     </div>
-                    <div className="p-2 bg-green-50 rounded">
-                      <div className="font-bold text-green-600">
-                        {Object.values(provinceData).reduce(
-                          (sum, p) => sum + p.centers,
-                          0,
-                        )}
+                    {level === "distritos" ? (
+                      <div className="p-3 bg-green-50 rounded-lg shadow-inner">
+                        <div className="font-bold text-lg text-green-600">
+                          {Array.from(distritoCenters.values()).reduce((s, v) => s + v, 0)}
+                        </div>
+                        <div className="text-gray-600">Total Centros</div>
                       </div>
-                      <div className="text-gray-600">Total Centros</div>
-                    </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -662,4 +436,4 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({
   );
 };
 
-export default EquatorialGuineaMapD3;
+export default EquatorialGuineaMapLeaflet;

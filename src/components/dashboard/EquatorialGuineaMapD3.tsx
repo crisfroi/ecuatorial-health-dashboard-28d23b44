@@ -135,8 +135,22 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
       const height = 600;
       const margin = { top: 20, right: 20, bottom: 20, left: 20 };
 
-      const projection = d3.geoMercator().fitSize([width - margin.left - margin.right, height - margin.top - margin.bottom], geoData as any);
-      const pathGenerator = d3.geoPath().projection(projection);
+      const innerW = width - margin.left - margin.right;
+      const innerH = height - margin.top - margin.bottom;
+
+      // Separate mainland and island (Annobón) by centroid latitude
+      const features = geoData.features;
+      const islands = features.filter((f: any) => d3.geoCentroid(f)[1] < 0);
+      const mainland = features.filter((f: any) => d3.geoCentroid(f)[1] >= 0);
+
+      // Reserve space for an inset if islands exist
+      const insetW = islands.length ? 160 : 0;
+      const insetH = islands.length ? 160 : 0;
+
+      const projection = d3
+        .geoMercator()
+        .fitSize([innerW - insetW - (islands.length ? 16 : 0), innerH], { type: "FeatureCollection", features: mainland } as any);
+      const pathMain = d3.geoPath().projection(projection);
 
       const mapGroup = svg
         .attr("viewBox", `0 0 ${width} ${height}`)
@@ -153,15 +167,16 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
         .append("rect")
         .attr("x", 0)
         .attr("y", 0)
-        .attr("width", width - margin.left - margin.right)
-        .attr("height", height - margin.top - margin.bottom)
+        .attr("width", innerW)
+        .attr("height", innerH)
         .attr("fill", "#dbeafe");
 
-      const regions = mapGroup.selectAll(".region").data(geoData.features).enter().append("g").attr("class", "region");
+      // Draw mainland
+      const mainRegions = mapGroup.selectAll(".region-main").data(mainland).enter().append("g").attr("class", "region-main");
 
-      regions
+      mainRegions
         .append("path")
-        .attr("d", pathGenerator as any)
+        .attr("d", pathMain as any)
         .attr("fill", (d: any) => {
           const raw = d.properties?.shapeName || "";
           const key = normalizeName(getShapeDisplayName(raw));
@@ -186,10 +201,10 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
           onNavigateToProvince?.(label);
         });
 
-      regions
+      mainRegions
         .append("text")
-        .attr("x", (d: any) => (pathGenerator.centroid(d) as [number, number])[0])
-        .attr("y", (d: any) => (pathGenerator.centroid(d) as [number, number])[1])
+        .attr("x", (d: any) => (pathMain.centroid(d) as [number, number])[0])
+        .attr("y", (d: any) => (pathMain.centroid(d) as [number, number])[1])
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "middle")
         .style("font-size", "11px")
@@ -197,6 +212,72 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
         .style("fill", "#111827")
         .style("pointer-events", "none")
         .text((d: any) => getShapeDisplayName(d.properties?.shapeName));
+
+      // Draw islands as an inset (e.g., Annobón)
+      if (islands.length) {
+        const insetX = innerW - insetW;
+        const insetY = innerH - insetH;
+        const insetGroup = mapGroup.append("g").attr("transform", `translate(${insetX - 8}, ${insetY - 8})`);
+
+        // Inset background
+        insetGroup
+          .append("rect")
+          .attr("x", 0)
+          .attr("y", 0)
+          .attr("width", insetW)
+          .attr("height", insetH)
+          .attr("rx", 8)
+          .attr("fill", "#ffffff")
+          .attr("stroke", "#94a3b8");
+
+        const projInset = d3.geoMercator().fitSize([insetW - 16, insetH - 24], { type: "FeatureCollection", features: islands } as any);
+        const pathInset = d3.geoPath().projection(projInset);
+
+        const islandRegions = insetGroup
+          .append("g")
+          .attr("transform", `translate(8, 8)`) // padding
+          .selectAll(".region-inset")
+          .data(islands)
+          .enter()
+          .append("g")
+          .attr("class", "region-inset");
+
+        islandRegions
+          .append("path")
+          .attr("d", pathInset as any)
+          .attr("fill", (d: any) => {
+            const raw = d.properties?.shapeName || "";
+            const key = normalizeName(getShapeDisplayName(raw));
+            const value = level === "provincias" ? provinciaValues.get(key) ?? 0 : distritoValues.get(key) ?? 0;
+            return value > 0 ? colorScale(value) : "#e5e7eb";
+          })
+          .attr("stroke", "#0f766e")
+          .attr("stroke-width", 1.2)
+          .style("cursor", "pointer")
+          .on("mouseover", function (_event: any, d: any) {
+            const label = getShapeDisplayName(d.properties?.shapeName);
+            setHoveredName(label);
+            d3.select(this).attr("stroke-width", 1.8).attr("stroke", "#1f2937");
+          })
+          .on("mouseout", function () {
+            setHoveredName(null);
+            d3.select(this).attr("stroke-width", 1.2).attr("stroke", "#0f766e");
+          })
+          .on("click", function (_event: any, d: any) {
+            const label = getShapeDisplayName(d.properties?.shapeName);
+            setSelectedName(label);
+            onNavigateToProvince?.(label);
+          });
+
+        insetGroup
+          .append("text")
+          .attr("x", insetW / 2)
+          .attr("y", insetH + 10)
+          .attr("text-anchor", "middle")
+          .style("font-size", "10px")
+          .style("fill", "#334155")
+          .text("Islas (inset)");
+      }
 
       // Legend
       const legendWidth = 300;

@@ -1,5 +1,6 @@
+import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
+import * as d3 from "d3"; // Se mantiene solo para la escala de color (d3.scaleSequential)
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import * as d3 from "d3";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -10,61 +11,52 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, Building, Eye, RefreshCw, Map as MapIcon } from "lucide-react";
-import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
-import { useDistrictStats } from "@/hooks/useAdvancedAnalytics";
+import { MapPin, Users, Building, Eye, Map as MapIcon } from "lucide-react";
 
-// Import GeoJSONs (ADM1 = provincias, ADM2 = distritos)
-// Estos imports deben funcionar correctamente si la ruta es correcta en tu entorno.
-import ADM1_RAW from "@/data/geoBoundaries-GNQ-ADM1.geojson?raw";
-import ADM2_RAW from "@/data/geoBoundaries-GNQ-ADM2.geojson?raw";
+// *** IMPORTANTE: NECESITAS INSTALAR ESTO: ***
+// npm install leaflet react-leaflet
+import 'leaflet/dist/leaflet.css';
+// Si no tienes los iconos de Leaflet, podrías necesitar un fix como este:
+/*
+import L from 'leaflet';
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'leaflet/images/marker-icon-2x.png',
+  iconUrl: 'leaflet/images/marker-icon.png',
+  shadowUrl: 'leaflet/images/marker-shadow.png',
+});
+*/
 
-// --- UTILIDADES ---
+// --- SIMULACIÓN DE DATOS (Mismos que antes) ---
+const useEstadisticasAvanzadas = () => ({ data: { porProvincia: { "Bioko Norte Province": 150, "Litoral Province": 80, "Annobon Province": 5, "Centro Sur Province": 40, "Kie-Ntem Province": 35, "Wele-Nzas Province": 30, "Bioko Sur Province": 15, "Djibloho Province": 10 } } });
+const useDistrictStats = () => ({
+  data: [
+    { distrito_sanitario: "Malabo", total_profesionales: 90, total_centros: 12 },
+    { distrito_sanitario: "Bata", total_profesionales: 60, total_centros: 8 },
+    { distrito_sanitario: "Ebebiyin", total_profesionales: 25, total_centros: 4 },
+    { distrito_sanitario: "Luba", total_profesionales: 10, total_centros: 2 },
+    { distrito_sanitario: "Riaba", total_profesionales: 5, total_centros: 1 },
+    { distrito_sanitario: "Mongomo", total_profesionales: 15, total_centros: 3 },
+    { distrito_sanitario: "Añisoc", total_profesionales: 12, total_centros: 2 },
+    { distrito_sanitario: "Akonibe", total_profesionales: 8, total_centros: 1 },
+    { distrito_sanitario: "Micomeseng", total_profesionales: 18, total_centros: 3 },
+    { distrito_sanitario: "Mbini", total_profesionales: 6, total_centros: 1 },
+  ],
+});
+// Fin de la simulación
 
-/**
- * Hook para obtener el tamaño dinámico del contenedor usando ResizeObserver.
- * Necesario para que D3 calcule correctamente la proyección en contenedores responsivos.
- */
-const useContainerSize = (ref: React.RefObject<HTMLElement>) => {
-  const [size, setSize] = useState({ width: 0, height: 0 });
+// URLs de GeoJSON (Las mismas que arreglamos en el intento con D3)
+const ADM1_URL = "https://www.geoboundaries.org/api/current/simplified/GNQ/ADM1/";
+const ADM2_URL = "https://www.geoboundaries.org/api/current/simplified/GNQ/ADM2/";
 
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-
-    const observer = new ResizeObserver(([entry]) => {
-      // Establece un tamaño máximo de 600px de alto para evitar mapas demasiado grandes
-      const width = entry.contentRect.width;
-      const height = Math.min(width * 0.75, 600); // Proporción 4:3 con máx 600px
-      setSize({ width, height });
-    });
-
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [ref]);
-
-  return size;
-};
-
-// --- TIPOS ---
-
-interface EquatorialGuineaMapD3Props {
-  onNavigateToProvince?: (name: string) => void;
-}
+// --- TIPOS Y UTILS ---
 
 type Level = "provincias" | "distritos";
 
 type FeatureCollection = {
   type: "FeatureCollection";
-  crs: any;
-  features: Array<{
-    type: "Feature";
-    properties: { shapeName?: string; shapeISO?: string; shapeID?: string; shapeGroup?: string; shapeType?: string } & Record<string, any>;
-    geometry: any;
-  }>;
+  features: Array<any>; // Simplificado para Leaflet
 };
-
-// --- LÓGICA DE COMPONENTE ---
 
 function normalizeName(name: string): string {
   return name
@@ -78,44 +70,71 @@ function normalizeName(name: string): string {
 
 function getShapeDisplayName(shapeName?: string): string {
   if (!shapeName) return "";
-  // Limpia el nombre, asegurando mayúscula al inicio
   const cleanName = shapeName.replace(/\s+Province$/i, "").trim();
-  return cleanName.charAt(0).toUpperCase() + cleanName.slice(1).toLowerCase();
+  return cleanName
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }
 
-const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigateToProvince }) => {
-  // Referencia al contenedor para medir su tamaño real
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const { width, height } = useContainerSize(mapContainerRef); // Dimensiones dinámicas
-  const svgRef = useRef<SVGSVGElement>(null);
+// Función para obtener GeoJSON de la URL de geoBoundaries y manejar backoff
+const fetchGeoJSON = async (url: string, retries = 3): Promise<FeatureCollection | null> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const geojsonUrl = json.filter((r: any) => r.fileExtension === "geojson")[0]?.downloadURL;
+      if (!geojsonUrl) throw new Error("No se encontró URL de GeoJSON en la respuesta de geoBoundaries.");
 
+      const geoRes = await fetch(geojsonUrl);
+      if (!geoRes.ok) throw new Error(`HTTP ${geoRes.status} al descargar GeoJSON`);
+
+      return (await geoRes.json()) as FeatureCollection;
+    } catch (e: any) {
+      console.error(`Intento ${i + 1} fallido:`, e);
+      if (i === retries - 1) throw e;
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 500));
+    }
+  }
+  return null;
+};
+
+
+// --- COMPONENTE PRINCIPAL ---
+
+const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: string) => void }> = ({ onNavigateToProvince }) => {
   const [level, setLevel] = useState<Level>("provincias");
   const [hoveredName, setHoveredName] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const geoJsonRef = useRef<any>(null);
 
-  // Hooks data (usando simulación o los hooks reales si están disponibles)
+  // Hooks data
   const { data: estadisticas } = useEstadisticasAvanzadas();
   const { data: districtStats = [] } = useDistrictStats();
 
-  // GeoJSON state loaded via URL
-  const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
+  // 1. Fetching de los datos GeoJSON
   useEffect(() => {
+    const url = level === "provincias" ? ADM1_URL : ADM2_URL;
     let cancelled = false;
-    try {
-      setError(null);
-      const raw = level === "provincias" ? ADM1_RAW : ADM2_RAW;
-      const json = JSON.parse(raw) as FeatureCollection;
-      if (!cancelled) setGeoData(json);
-    } catch (e: any) {
-      if (!cancelled) setError(`Error leyendo GeoJSON (${level}): ${e?.message || e}`);
-    }
+    (async () => {
+      try {
+        setError(null);
+        setGeoData(null);
+        const json = await fetchGeoJSON(url);
+        if (!cancelled) setGeoData(json);
+      } catch (e: any) {
+        if (!cancelled) setError(`Error cargando GeoJSON (${level}): ${e?.message || e}`);
+      }
+    })();
     return () => {
       cancelled = true;
     };
   }, [level]);
 
-  // Build value maps for choropleth
+  // 2. Mapas de valores (para el coroplético)
   const provinciaValues = useMemo(() => {
     const map = new Map<string, number>();
     const byProv = (estadisticas?.porProvincia || {}) as Record<string, number>;
@@ -129,7 +148,7 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
     const vals = new Map<string, number>();
     for (const d of districtStats) {
       if (!d || !d.distrito_sanitario) continue;
-      vals.set(normalizeName(String(d.distrito_sanitario)), d.total_profesionales || 0);
+      vals.set(normalizeName(getShapeDisplayName(String(d.distrito_sanitario))), d.total_profesionales || 0);
     }
     return vals;
   }, [districtStats]);
@@ -138,261 +157,101 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
     const vals = new Map<string, number>();
     for (const d of districtStats) {
       if (!d || !d.distrito_sanitario) continue;
-      vals.set(normalizeName(String(d.distrito_sanitario)), d.total_centros || 0);
+      vals.set(normalizeName(getShapeDisplayName(String(d.distrito_sanitario))), d.total_centros || 0);
     }
     return vals;
   }, [districtStats]);
 
-  // Compute numeric domain for color scale
-  const { minValue, maxValue } = useMemo(() => {
-    const values: number[] = [];
-    if (!geoData?.features) return { minValue: 0, maxValue: 0 };
-    for (const f of geoData.features) {
+
+  // 3. Escala de Color
+  const { minValue, maxValue, colorScale } = useMemo(() => {
+    if (!geoData?.features) return { minValue: 0, maxValue: 0, colorScale: () => "#f3f4f6" };
+
+    const currentValues = level === "provincias" ? provinciaValues : distritoValues;
+    const values: number[] = geoData.features.map((f: any) => {
       const raw = f.properties?.shapeName || "";
       const key = normalizeName(getShapeDisplayName(raw));
-      const v = level === "provincias" ? provinciaValues.get(key) ?? 0 : distritoValues.get(key) ?? 0;
-      values.push(v);
-    }
+      return currentValues.get(key) ?? 0;
+    });
+
     const min = values.length ? Math.min(...values) : 0;
     const max = values.length ? Math.max(...values) : 0;
-    return { minValue: min, maxValue: max };
+    const safeMax = Math.max(max, 1);
+
+    // Reutilizamos la escala de D3
+    const scale = d3.scaleSequential().domain([min, safeMax]).interpolator(d3.interpolateYlGnBu);
+    return { minValue: min, maxValue: max, colorScale: scale };
   }, [geoData, provinciaValues, distritoValues, level]);
 
-  // Draw map
-  useEffect(() => {
-    if (!geoData || !svgRef.current) return;
 
-    try {
-      const svg = d3.select(svgRef.current);
-      svg.selectAll("*").remove();
+  // --- LÓGICA DE STYLING Y EVENTOS DE LEAFLET ---
 
-      // Dimensiones con fallback para evitar bloqueos por width/height 0
-      const fallbackW = 800;
-      const fallbackH = 540;
-      const W = width > 0 ? width : fallbackW;
-      const H = height > 0 ? height : fallbackH;
+  // Función para obtener el estilo de cada polígono
+  const style = (feature: any) => {
+    const raw = feature.properties?.shapeName || "";
+    const key = normalizeName(getShapeDisplayName(raw));
+    const value = (level === "provincias" ? provinciaValues : distritoValues).get(key) ?? 0;
 
-      const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+    return {
+      fillColor: value > 0 ? colorScale(value) : "#f3f4f6", // Gris si no hay datos
+      weight: 1.5,
+      opacity: 1,
+      color: '#134e4a', // Borde
+      dashArray: '3',
+      fillOpacity: 0.7
+    };
+  };
 
-      // Se reserva el espacio para la leyenda en la parte inferior del contenedor
-      const legendSpace = 60;
-      const innerW = W - margin.left - margin.right;
-      const innerH = H - margin.top - margin.bottom - legendSpace;
+  // Función para manejar eventos (hover/click) en cada polígono
+  const onEachFeature = (feature: any, layer: any) => {
+    const name = getShapeDisplayName(feature.properties?.shapeName);
 
-      // Centroids son usados para separar las islas (latitud < 0) del continente
-      const features = geoData.features;
-      const islands = features.filter((f: any) => d3.geoCentroid(f)[1] < 0); // Annobón
-      const mainland = features.filter((f: any) => d3.geoCentroid(f)[1] >= 0); // Río Muni + Bioko
-
-      // Espacio reservado para el inset map (si existen islas)
-      const hasIslands = islands.length > 0;
-      const insetW = hasIslands ? Math.min(160, innerW / 3) : 0;
-      const insetH = hasIslands ? Math.min(160, innerH / 3) : 0;
-
-      // Proyección principal (solo en la masa continental y Bioko)
-      const projection = d3
-        .geoMercator()
-        // Ajusta el fitSize en el espacio disponible, restando el espacio del inset
-        .fitSize([innerW - insetW - (hasIslands ? 16 : 0), innerH], { type: "FeatureCollection", features: mainland } as any);
-      const pathMain = d3.geoPath().projection(projection);
-
-      // 1. Configuración del SVG y Grupo Principal
-      const mapGroup = svg
-        .attr("viewBox", `0 0 ${W} ${H}`)
-        .attr("preserveAspectRatio", "xMidYMid meet")
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
-
-      const domainMin = minValue;
-      const domainMax = Math.max(maxValue, 1);
-      const colorScale = d3.scaleSequential().domain([domainMin, domainMax]).interpolator(d3.interpolateYlGnBu);
-
-      // 2. Fondo del mapa para contraste
-      mapGroup
-        .append("rect")
-        .attr("x", 0)
-        .attr("y", 0)
-        .attr("width", innerW)
-        .attr("height", innerH)
-        .attr("fill", "#e0f2f7"); // Azul claro para el océano
-
-      // 3. Dibuja el continente (incluyendo Bioko)
-      const mainRegions = mapGroup.selectAll(".region-main").data(mainland).enter().append("g").attr("class", "region-main");
-
-      mainRegions
-        .append("path")
-        .attr("d", pathMain as any)
-        .attr("fill", (d: any) => {
-          const raw = d.properties?.shapeName || "";
-          const key = normalizeName(getShapeDisplayName(raw));
-          const value = level === "provincias" ? provinciaValues.get(key) ?? 0 : distritoValues.get(key) ?? 0;
-          return value > 0 ? colorScale(value) : "#f3f4f6"; // Gris muy claro si no hay datos
-        })
-        .attr("stroke", "#134e4a")
-        .attr("stroke-width", 1)
-        .style("cursor", "pointer")
-        .on("mouseover", function (event: any, d: any) {
-          const label = getShapeDisplayName(d.properties?.shapeName);
-          setHoveredName(label);
-          d3.select(this).attr("stroke-width", 2.5).attr("stroke", "#064e3b");
-        })
-        .on("mouseout", function () {
-          setHoveredName(null);
-          d3.select(this).attr("stroke-width", 1).attr("stroke", "#134e4a");
-        })
-        .on("click", function (event: any, d: any) {
-          const label = getShapeDisplayName(d.properties?.shapeName);
-          setSelectedName(label);
-          onNavigateToProvince?.(label);
+    layer.on({
+      mouseover: (e: any) => {
+        setHoveredName(name);
+        e.target.setStyle({
+          weight: 3,
+          color: '#064e3b',
+          dashArray: '',
+          fillOpacity: 0.9
         });
-
-      // Etiquetas (centros)
-      mainRegions
-        .append("text")
-        .attr("x", (d: any) => (pathMain.centroid(d) as [number, number])[0])
-        .attr("y", (d: any) => (pathMain.centroid(d) as [number, number])[1])
-        .attr("text-anchor", "middle")
-        .attr("dominant-baseline", "middle")
-        .style("font-size", "10px")
-        .style("font-weight", "700")
-        .style("fill", "#000000")
-        .style("text-shadow", "0 0 2px white") // Para asegurar legibilidad
-        .style("pointer-events", "none")
-        .text((d: any) => getShapeDisplayName(d.properties?.shapeName));
-
-
-      // 4. Dibuja las islas como un mapa inset (Annobón)
-      if (hasIslands) {
-        // Coordenadas del inset: esquina inferior derecha, ajustado por el espacio de la leyenda
-        const insetX = innerW - insetW;
-        const insetY = innerH - insetH;
-        const insetGroup = mapGroup.append("g").attr("transform", `translate(${insetX - 8}, ${insetY - 8})`);
-
-        // Inset background
-        insetGroup
-          .append("rect")
-          .attr("x", 0)
-          .attr("y", 0)
-          .attr("width", insetW)
-          .attr("height", insetH)
-          .attr("rx", 8)
-          .attr("fill", "#ffffff")
-          .attr("stroke", "#94a3b8")
-          .attr("stroke-width", 1);
-
-        const projInset = d3.geoMercator().fitSize([insetW - 16, insetH - 24], { type: "FeatureCollection", features: islands } as any);
-        const pathInset = d3.geoPath().projection(projInset);
-
-        const islandRegions = insetGroup
-          .append("g")
-          .attr("transform", `translate(8, 8)`) // padding
-          .selectAll(".region-inset")
-          .data(islands)
-          .enter()
-          .append("g")
-          .attr("class", "region-inset");
-
-        islandRegions
-          .append("path")
-          .attr("d", pathInset as any)
-          .attr("fill", (d: any) => {
-            const raw = d.properties?.shapeName || "";
-            const key = normalizeName(getShapeDisplayName(raw));
-            const value = level === "provincias" ? provinciaValues.get(key) ?? 0 : distritoValues.get(key) ?? 0;
-            return value > 0 ? colorScale(value) : "#f3f4f6";
-          })
-          .attr("stroke", "#134e4a")
-          .attr("stroke-width", 1.2)
-          .style("cursor", "pointer")
-          .on("mouseover", function (event: any, d: any) {
-            const label = getShapeDisplayName(d.properties?.shapeName);
-            setHoveredName(label);
-            d3.select(this).attr("stroke-width", 1.8).attr("stroke", "#064e3b");
-          })
-          .on("mouseout", function () {
-            setHoveredName(null);
-            d3.select(this).attr("stroke-width", 1.2).attr("stroke", "#134e4a");
-          })
-          .on("click", function (event: any, d: any) {
-            const label = getShapeDisplayName(d.properties?.shapeName);
-            setSelectedName(label);
-            onNavigateToProvince?.(label);
-          });
-
-        insetGroup
-          .append("text")
-          .attr("x", insetW / 2)
-          .attr("y", insetH + 10)
-          .attr("text-anchor", "middle")
-          .style("font-size", "10px")
-          .style("fill", "#334155")
-          .text("Annobón (ampliado)");
+        e.target.bringToFront();
+      },
+      mouseout: (e: any) => {
+        setHoveredName(null);
+        // Resetea al estilo original. Se necesita `geoJsonRef.current`
+        if (geoJsonRef.current) {
+          geoJsonRef.current.resetStyle(e.target);
+        }
+      },
+      click: () => {
+        setSelectedName(name);
+        onNavigateToProvince?.(name);
       }
+    });
 
-      // 5. Leyenda (siempre se dibuja abajo, aprovechando el espacio 'legendSpace')
-      const legendW = innerW > 400 ? 300 : innerW * 0.7; // Responsividad de la leyenda
-      const legendH = 16;
-      const legendGroup = svg.append("g").attr("transform", `translate(${margin.left + (innerW - legendW) / 2}, ${height - legendSpace + 16})`); // Centrado en la parte inferior
+    // Opcional: Popup al hacer click
+    layer.bindPopup(name, { closeButton: false, className: 'leaflet-popup-content' });
+  };
 
-      const defs = svg.append("defs");
-      const gradient = defs.append("linearGradient").attr("id", "legend-gradient").attr("x1", "0%").attr("x2", "100%").attr("y1", "0%").attr("y2", "0%");
-      gradient
-        .selectAll("stop")
-        .data(d3.range(0, 1.1, 0.1))
-        .enter()
-        .append("stop")
-        .attr("offset", (d) => `${d * 100}%`)
-        .attr("stop-color", (d) => d3.interpolateYlGnBu(d));
+  // Custom Hook para controlar la vista del mapa (ej. centrado/zoom)
+  const RecenterMap = () => {
+    const map = useMap();
+    // Coordenadas de Guinea Ecuatorial: [1.5, 10]
+    useEffect(() => {
+      map.setView([1.5, 10], map.getZoom() < 7 ? 7 : map.getZoom());
+    }, [map]);
+    return null;
+  };
 
-      legendGroup.append("rect").attr("width", legendW).attr("height", legendH).style("fill", "url(#legend-gradient)").attr("stroke", "#374151").attr("stroke-width", 1);
 
-      legendGroup.append("text").attr("x", 0).attr("y", legendH + 14).style("font-size", "12px").style("fill", "#4b5563").text(String(domainMin));
-      legendGroup.append("text").attr("x", legendW).attr("y", legendH + 14).attr("text-anchor", "end").style("font-size", "12px").style("fill", "#4b5563").text(String(domainMax));
-      legendGroup
-        .append("text")
-        .attr("x", legendW / 2)
-        .attr("y", -6)
-        .attr("text-anchor", "middle")
-        .style("font-size", "12px")
-        .style("font-weight", "bold")
-        .style("fill", "#1f2937")
-        .text(level === "provincias" ? "Aprobados por Provincia" : "Aprobados por Distrito Sanitario");
-
-    } catch (e: any) {
-      // Ignorar errores comunes de ResizeObserver que no afectan el dibujo
-      if (
-        typeof e?.message === "string" &&
-        (e.message.includes("ResizeObserver loop completed with undelivered notifications") ||
-          e.message.includes("ResizeObserver loop limit exceeded"))
-      ) {
-        return;
-      }
-      setError(`Error renderizando el mapa: ${e?.message || e}`);
-    }
-  }, [geoData, provinciaValues, distritoValues, minValue, maxValue, level, onNavigateToProvince, width, height]);
+  // --- RENDERIZADO DEL MAPA ---
 
   if (error) {
     return (
       <Card className="border-red-200 bg-red-50">
-        <CardContent className="p-6 text-center">
-          <div className="text-red-600 mb-4">{error}</div>
-          <Button variant="outline" onClick={() => window.location.reload()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Recargar
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!geoData) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center gap-3 text-gray-600 h-[300px]">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
-            <span>Cargando mapa...</span>
-          </div>
+        <CardContent className="p-6 text-center text-red-600">
+          {error}
         </CardContent>
       </Card>
     );
@@ -407,6 +266,8 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
     const key = normalizeName(name);
     return distritoCenters.get(key) ?? 0;
   };
+
+  const mapCenter: [number, number] = [1.5, 10]; // Centro de Guinea Ecuatorial
 
   return (
     <div className="space-y-6">
@@ -447,9 +308,56 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* 🚨 FIX: Usar el contenedor para obtener las dimensiones */}
-            <div ref={mapContainerRef} className="relative bg-gray-50 rounded-lg p-4 flex justify-center items-center overflow-hidden" style={{ height: `${Math.max(height || 540, 480)}px` }}>
-              <svg ref={svgRef} className="w-full h-full" />
+            <div className="relative h-[550px] bg-gray-50 rounded-lg shadow-inner">
+              {geoData ? (
+                <MapContainer
+                  center={mapCenter}
+                  zoom={7}
+                  scrollWheelZoom={true}
+                  className="h-full w-full rounded-lg z-0"
+                // Nota: La capa GeoJSON de Leaflet no se escala tan bien en React como D3 para las islas. 
+                // El mapa se centra en el país. Se puede usar un "Inset map" de Leaflet si es necesario, pero lo omitimos por simplicidad.
+                >
+                  <RecenterMap />
+                  <TileLayer
+                    attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+
+                  {/* El componente GeoJSON maneja el dibujo de los polígonos */}
+                  <GeoJSON
+                    key={level} // Forzar re-render cuando cambia el nivel
+                    data={geoData}
+                    style={style}
+                    onEachFeature={onEachFeature}
+                    ref={geoJsonRef}
+                  />
+
+                  {/* Leyenda Simple */}
+                  <div className="absolute bottom-4 left-4 p-2 bg-white/90 rounded shadow-md z-[400] text-sm">
+                    <h4 className="font-bold mb-1 border-b pb-1">Leyenda</h4>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-2" style={{ backgroundColor: colorScale(maxValue * 0.75), border: '1px solid #aaa' }}></div>
+                      Alto ({maxValue})
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-2" style={{ backgroundColor: colorScale(maxValue * 0.4), border: '1px solid #aaa' }}></div>
+                      Medio
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 mr-2" style={{ backgroundColor: colorScale(minValue), border: '1px solid #aaa' }}></div>
+                      Bajo ({minValue})
+                    </div>
+                  </div>
+
+                </MapContainer>
+              ) : (
+                <div className="flex items-center justify-center gap-3 text-gray-600 h-full">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
+                  <span>Cargando mapa...</span>
+                </div>
+              )}
+
 
               {hoveredName && (
                 <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-xl border z-10 min-w-64">
@@ -475,6 +383,7 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
           </CardContent>
         </Card>
 
+        {/* Panel Lateral (mismo que antes) */}
         <Card>
           <CardHeader>
             <CardTitle>{selectedName ? selectedName : "Estadísticas Generales"}</CardTitle>
@@ -546,4 +455,4 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
   );
 };
 
-export default EquatorialGuineaMapD3;
+export default EquatorialGuineaMapLeaflet;

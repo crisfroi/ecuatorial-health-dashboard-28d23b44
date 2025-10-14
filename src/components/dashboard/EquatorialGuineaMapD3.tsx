@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, Building, Eye, RefreshCw, Map } from "lucide-react";
+import { MapPin, Users, Building, Eye, RefreshCw, Map as MapIcon } from "lucide-react";
 import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
 import { useDistrictStats } from "@/hooks/useAdvancedAnalytics";
 // Import GeoJSONs (ADM1 = provincias, ADM2 = distritos)
@@ -271,12 +271,12 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
             <SelectContent>
               <SelectItem value="provincias">
                 <div className="flex items-center gap-2">
-                  <Map className="w-4 h-4" /> Provincias (ADM1)
+                  <MapIcon className="w-4 h-4" /> Provincias (ADM1)
                 </div>
               </SelectItem>
               <SelectItem value="distritos">
                 <div className="flex items-center gap-2">
-                  <Map className="w-4 h-4" /> Distritos Sanitarios (ADM2)
+                  <MapIcon className="w-4 h-4" /> Distritos Sanitarios (ADM2)
                 </div>
               </SelectItem>
             </SelectContent>

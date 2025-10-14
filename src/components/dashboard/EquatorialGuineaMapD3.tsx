@@ -1,6 +1,7 @@
 import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import * as d3 from "d3";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+// Importaciones de tus componentes de interfaz (Card, Select, Button, etc.)
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -12,9 +13,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Users, Building, Eye, Map as MapIcon } from "lucide-react";
-import 'leaflet/dist/leaflet.css';
+import "leaflet/dist/leaflet.css";
 
-// --- SIMULACIÓN DE DATOS ---
+// ----------------------------------------------------
+// PASO 2: IMPORTACIÓN ESTÁTICA DE ARCHIVOS GEOJSON
+// Debes asegurarte de que tu entorno (Vite/Next/Webpack) maneje la importación de .geojson.
+// Las rutas asumen que los archivos están en src/data/
+// ----------------------------------------------------
+import ADM1_GEOJSON from "@/data/geoBoundaries-GNQ-ADM1.geojson";
+import ADM2_GEOJSON from "@/data/geoBoundaries-GNQ-ADM2.geojson";
+
+// --- SIMULACIÓN DE DATOS (Se mantienen intactos) ---
 const useEstadisticasAvanzadas = () => ({ data: { porProvincia: { "Bioko Norte Province": 150, "Litoral Province": 80, "Annobon Province": 5, "Centro Sur Province": 40, "Kie-Ntem Province": 35, "Wele-Nzas Province": 30, "Bioko Sur Province": 15, "Djibloho Province": 10 } } });
 const useDistrictStats = () => ({
   data: [
@@ -32,16 +41,15 @@ const useDistrictStats = () => ({
 });
 // Fin de la simulación
 
-// --- URLs DIRECTAS A LOS ARCHIVOS GeoJSON RAW EN GITHUB ---
-// Usamos el repositorio geoBoundaries para asegurar la estabilidad.
-const BASE_GEO_URL = "https://raw.githubusercontent.com/wmgeolab/geoBoundaries/main/releaseData/gbOpen/GNQ/";
-const ADM1_URL = BASE_GEO_URL + "ADM1/geoBoundaries-GNQ-ADM1.geojson";
-const ADM2_URL = BASE_GEO_URL + "ADM2/geoBoundaries-GNQ-ADM2.geojson";
+// ----------------------------------------------------
+// Función fetchGeoJSON y las URLs ya NO son necesarias.
+// ----------------------------------------------------
 
-// --- TIPOS Y UTILS ---
+// --- TIPOS Y UTILS (Se mantienen intactos) ---
 
 type Level = "provincias" | "distritos";
 
+// El tipo FeatureCollection ya no requiere la importación de GeoJSON, pero lo mantenemos para claridad
 type FeatureCollection = {
   type: "FeatureCollection";
   features: Array<any>;
@@ -60,31 +68,12 @@ function normalizeName(name: string): string {
 function getShapeDisplayName(shapeName?: string): string {
   if (!shapeName) return "";
   const cleanName = shapeName.replace(/\s+Province$/i, "").trim();
+  // Esta lógica mantiene la capitalización correcta (ej: "Centro Sur" en lugar de "centro sur")
   return cleanName
     .split(/\s+/)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
 }
-
-/**
- * Función simplificada para obtener GeoJSON directamente de una URL raw.
- * @param url URL directa al archivo GeoJSON.
- */
-const fetchGeoJSON = async (url: string, retries = 3): Promise<FeatureCollection | null> => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status} al descargar GeoJSON`);
-      return (await res.json()) as FeatureCollection;
-    } catch (e: any) {
-      console.error(`Intento ${i + 1} fallido:`, e?.message || e);
-      if (i === retries - 1) throw new Error("Error cargando GeoJSON: Falló la descarga después de varios intentos.");
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000)); // Exponential backoff (1s, 2s, 4s)
-    }
-  }
-  return null;
-};
-
 
 // --- COMPONENTE PRINCIPAL ---
 
@@ -92,34 +81,25 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
   const [level, setLevel] = useState<Level>("provincias");
   const [hoveredName, setHoveredName] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
-  const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Eliminamos el estado `geoData` y el estado `error` para la carga inicial
   const geoJsonRef = useRef<any>(null);
 
   // Hooks data
   const { data: estadisticas } = useEstadisticasAvanzadas();
   const { data: districtStats = [] } = useDistrictStats();
 
-  // 1. Fetching de los datos GeoJSON
-  useEffect(() => {
-    const url = level === "provincias" ? ADM1_URL : ADM2_URL;
-    let cancelled = false;
-    (async () => {
-      try {
-        setError(null);
-        setGeoData(null);
-        const json = await fetchGeoJSON(url);
-        if (!cancelled) setGeoData(json);
-      } catch (e: any) {
-        if (!cancelled) setError(e.message);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  // ----------------------------------------------------
+  // PASO 3: Nueva lógica de Carga de Datos (Sincrona)
+  // El GeoJSON se selecciona directamente según el nivel.
+  // ----------------------------------------------------
+  const geoData = useMemo(() => {
+    return level === "provincias" ? (ADM1_GEOJSON as FeatureCollection) : (ADM2_GEOJSON as FeatureCollection);
   }, [level]);
 
-  // 2. Mapas de valores (para el coroplético)
+  // Si hubiera un error de carga del archivo (ej. el path de importación es incorrecto), 
+  // la aplicación fallaría antes de renderizar, lo cual es mejor que un error asíncrono.
+
+  // 2. Mapas de valores (para el coroplético) - Se mantienen intactos
   const provinciaValues = useMemo(() => {
     const map = new Map<string, number>();
     const byProv = (estadisticas?.porProvincia || {}) as Record<string, number>;
@@ -133,6 +113,8 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     const vals = new Map<string, number>();
     for (const d of districtStats) {
       if (!d || !d.distrito_sanitario) continue;
+      // Nota: getShapeDisplayName convierte nombres como 'Malabo' a 'Malabo'.
+      // normalizeName se usa para asegurar que la clave del mapa es la misma (ej. 'malabo').
       vals.set(normalizeName(getShapeDisplayName(String(d.distrito_sanitario))), d.total_profesionales || 0);
     }
     return vals;
@@ -148,12 +130,14 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
   }, [districtStats]);
 
 
-  // 3. Escala de Color
+  // 3. Escala de Color - Se mantiene intacto
   const { minValue, maxValue, colorScale } = useMemo(() => {
     if (!geoData?.features) return { minValue: 0, maxValue: 0, colorScale: () => "#f3f4f6" };
 
     const currentValues = level === "provincias" ? provinciaValues : distritoValues;
     const values: number[] = geoData.features.map((f: any) => {
+      // PASO 4: Verificación de Nombres
+      // Esta lógica de normalización es CRUCIAL y parece correcta para los datos.
       const raw = f.properties?.shapeName || "";
       const key = normalizeName(getShapeDisplayName(raw));
       return currentValues.get(key) ?? 0;
@@ -163,15 +147,13 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     const max = values.length ? Math.max(...values) : 0;
     const safeMax = Math.max(max, 1);
 
-    // Reutilizamos la escala de D3
     const scale = d3.scaleSequential().domain([min, safeMax]).interpolator(d3.interpolateYlGnBu);
     return { minValue: min, maxValue: max, colorScale: scale };
   }, [geoData, provinciaValues, distritoValues, level]);
 
 
-  // --- LÓGICA DE STYLING Y EVENTOS DE LEAFLET ---
+  // --- LÓGICA DE STYLING Y EVENTOS DE LEAFLET (Se mantienen intactos) ---
 
-  // Función para obtener el estilo de cada polígono
   const style = (feature: any) => {
     const raw = feature.properties?.shapeName || "";
     const key = normalizeName(getShapeDisplayName(raw));
@@ -187,7 +169,6 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     };
   };
 
-  // Función para manejar eventos (hover/click) en cada polígono
   const onEachFeature = (feature: any, layer: any) => {
     const name = getShapeDisplayName(feature.properties?.shapeName);
 
@@ -214,11 +195,10 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
       }
     });
 
-    // Opcional: Popup al hacer click
     layer.bindPopup(name, { closeButton: false, className: 'leaflet-popup-content' });
   };
 
-  // Custom Hook para controlar la vista del mapa (ej. centrado/zoom)
+  // Custom Hook para controlar la vista del mapa
   const RecenterMap = () => {
     const map = useMap();
     useEffect(() => {
@@ -231,15 +211,8 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
   // --- RENDERIZADO DEL MAPA ---
 
-  if (error) {
-    return (
-      <Card className="border-red-200 bg-red-50">
-        <CardContent className="p-6 text-center text-red-600">
-          {error}
-        </CardContent>
-      </Card>
-    );
-  }
+  // El manejo de errores por fallo de descarga ya no es necesario,
+  // pero el chequeo de datos nulos sí, aunque `geoData` nunca debería ser nulo si las imports funcionan.
 
   const currentValue = (name: string): number => {
     const key = normalizeName(name);
@@ -255,6 +228,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
   return (
     <div className="space-y-6">
+      {/*... Controles de Nivel (provincias/distritos) - Sin cambios ...*/}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-xl font-semibold flex items-center gap-2">
@@ -288,17 +262,19 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>
-              {level === "provincias" ? "Aprobados por Provincia" : "Aprobados por Distrito Sanitario"}
+              {level === "provincias" ? "Profesionales por Provincia" : "Profesionales por Distrito Sanitario"}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="relative h-[550px] bg-gray-50 rounded-lg shadow-inner">
+              {/* Ahora solo chequeamos que la data no sea nula, aunque con la importación estática esto es casi imposible si el setup es correcto */}
               {geoData ? (
                 <MapContainer
                   center={mapCenter}
                   zoom={7}
                   scrollWheelZoom={true}
                   className="h-full w-full rounded-lg z-0"
+                // IMPORTANTE: Asegúrate de añadir el atributo `preferCanvas={true}` si experimentas problemas de rendimiento con muchos polígonos.
                 >
                   <RecenterMap />
                   <TileLayer
@@ -307,6 +283,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                   />
 
                   <GeoJSON
+                    // La clave (key) es fundamental. Si cambia, react-leaflet renderiza de nuevo el GeoJSON.
                     key={level}
                     data={geoData}
                     style={style}
@@ -314,7 +291,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                     ref={geoJsonRef}
                   />
 
-                  {/* Leyenda Simple */}
+                  {/* Leyenda Simple (Se mantiene intacta) */}
                   <div className="absolute bottom-4 left-4 p-2 bg-white/90 rounded shadow-md z-[400] text-sm">
                     <h4 className="font-bold mb-1 border-b pb-1">Leyenda</h4>
                     <div className="flex items-center">
@@ -340,6 +317,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
               )}
 
 
+              {/* Popup de Hover (Se mantiene intacto) */}
               {hoveredName && (
                 <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-xl border z-10 min-w-64">
                   <h4 className="font-semibold text-lg mb-2">{hoveredName}</h4>
@@ -364,13 +342,14 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
           </CardContent>
         </Card>
 
-        {/* Panel Lateral (mismo que antes) */}
+        {/* Panel Lateral (Se mantiene intacto) */}
         <Card>
           <CardHeader>
             <CardTitle>{selectedName ? selectedName : "Estadísticas Generales"}</CardTitle>
           </CardHeader>
           <CardContent>
             {selectedName ? (
+              // ... detalles de región seleccionada ...
               <div className="space-y-4">
                 <div className="text-center p-4 bg-teal-50 rounded-lg">
                   <div className="text-3xl font-bold text-teal-600">{currentValue(selectedName)}</div>
@@ -390,6 +369,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 </Button>
               </div>
             ) : (
+              // ... estadísticas generales ...
               <div className="space-y-4">
                 <div className="text-center">
                   <p className="text-gray-600 mb-4">Haz clic en una región para ver detalles</p>

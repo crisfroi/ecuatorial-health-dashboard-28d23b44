@@ -148,6 +148,15 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
       const domainMax = Math.max(maxValue, 1);
       const colorScale = d3.scaleSequential().domain([domainMin, domainMax]).interpolator(d3.interpolateYlGnBu);
 
+      // Ocean/background for contrast
+      mapGroup
+        .append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", width - margin.left - margin.right)
+        .attr("height", height - margin.top - margin.bottom)
+        .attr("fill", "#dbeafe");
+
       const regions = mapGroup.selectAll(".region").data(geoData.features).enter().append("g").attr("class", "region");
 
       regions
@@ -157,10 +166,10 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
           const raw = d.properties?.shapeName || "";
           const key = normalizeName(getShapeDisplayName(raw));
           const value = level === "provincias" ? provinciaValues.get(key) ?? 0 : distritoValues.get(key) ?? 0;
-          return value > 0 ? colorScale(value) : "#f3f4f6";
+          return value > 0 ? colorScale(value) : "#e5e7eb";
         })
-        .attr("stroke", "#374151")
-        .attr("stroke-width", 1)
+        .attr("stroke", "#0f766e")
+        .attr("stroke-width", 1.5)
         .style("cursor", "pointer")
         .on("mouseover", function (_event: any, d: any) {
           const label = getShapeDisplayName(d.properties?.shapeName);
@@ -238,6 +247,19 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
             <RefreshCw className="w-4 h-4 mr-2" />
             Recargar
           </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!geoData) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center gap-3 text-gray-600">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
+            <span>Cargando mapa...</span>
+          </div>
         </CardContent>
       </Card>
     );

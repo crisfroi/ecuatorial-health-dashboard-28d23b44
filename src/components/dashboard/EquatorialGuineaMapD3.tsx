@@ -447,4 +447,4 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     );
 };
 
-export default EquatorialGuineaMapLeaflet;git
+export default EquatorialGuineaMapLeaflet;

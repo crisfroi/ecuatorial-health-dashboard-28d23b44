@@ -1,6 +1,7 @@
 import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import * as d3 from "d3";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+// Componentes de interfaz
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -14,29 +15,21 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Users, Building, Eye, Map as MapIcon } from "lucide-react";
 import 'leaflet/dist/leaflet.css';
 
-// --- SIMULACIÓN DE DATOS ---
-const useEstadisticasAvanzadas = () => ({ data: { porProvincia: { "Bioko Norte Province": 150, "Litoral Province": 80, "Annobon Province": 5, "Centro Sur Province": 40, "Kie-Ntem Province": 35, "Wele-Nzas Province": 30, "Bioko Sur Province": 15, "Djibloho Province": 10 } } });
-const useDistrictStats = () => ({
-  data: [
-    { distrito_sanitario: "Malabo", total_profesionales: 90, total_centros: 12 },
-    { distrito_sanitario: "Bata", total_profesionales: 60, total_centros: 8 },
-    { distrito_sanitario: "Ebebiyin", total_profesionales: 25, total_centros: 4 },
-    { distrito_sanitario: "Luba", total_profesionales: 10, total_centros: 2 },
-    { distrito_sanitario: "Riaba", total_profesionales: 5, total_centros: 1 },
-    { distrito_sanitario: "Mongomo", total_profesionales: 15, total_centros: 3 },
-    { distrito_sanitario: "Añisoc", total_profesionales: 12, total_centros: 2 },
-    { distrito_sanitario: "Akonibe", total_profesionales: 8, total_centros: 1 },
-    { distrito_sanitario: "Micomeseng", total_profesionales: 18, total_centros: 3 },
-    { distrito_sanitario: "Mbini", total_profesionales: 6, total_centros: 1 },
-  ],
-});
-// Fin de la simulación
+// ----------------------------------------------------
+// PASO 1: IMPORTAR UTILIDADES Y HOOK DE DATOS
+// ----------------------------------------------------
+import ADM1_GEOJSON from "@/data/geoBoundaries-GNQ-ADM1.json";
+import ADM2_GEOJSON from "@/data/geoBoundaries-GNQ-ADM2.json";
 
-// --- URLs DIRECTAS A LOS ARCHIVOS GeoJSON RAW EN GITHUB ---
-// Usamos el repositorio geoBoundaries para asegurar la estabilidad.
-const BASE_GEO_URL = "https://raw.githubusercontent.com/wmgeolab/geoBoundaries/main/releaseData/gbOpen/GNQ/";
-const ADM1_URL = BASE_GEO_URL + "ADM1/geoBoundaries-GNQ-ADM1.geojson";
-const ADM2_URL = BASE_GEO_URL + "ADM2/geoBoundaries-GNQ-ADM2.geojson";
+// Importamos la función de limpieza centralizada
+import { getCleanGeoName } from "@/utils/geoUtils"; 
+// Importamos el nuevo hook que usa Supabase y mapea las estadísticas
+import { useGeoDistrictStats } from "@/hooks/useGeoDistrictStats"; 
+
+// --- SIMULACIÓN DE DATOS (Se mantiene intacto por ahora, se usará en provinciaValues) ---
+const useEstadisticasAvanzadas = () => ({ data: { porProvincia: { "Bioko Norte Province": 150, "Litoral Province": 80, "Annobon Province": 5, "Centro Sur Province": 40, "Kie-Ntem Province": 35, "Wele-Nzas Province": 30, "Bioko Sur Province": 15, "Djibloho Province": 10 } } });
+// El hook useDistrictStats SIMULADO ya no se usa, es reemplazado por useGeoDistrictStats.
+// Fin de la simulación
 
 // --- TIPOS Y UTILS ---
 
@@ -47,44 +40,24 @@ type FeatureCollection = {
   features: Array<any>;
 };
 
+// 1. Centralizamos la lógica de normalización
 function normalizeName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/\s+province$/i, "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  // Ahora usamos la función centralizada para garantizar la consistencia en todas partes
+  return getCleanGeoName(name);
 }
 
 function getShapeDisplayName(shapeName?: string): string {
   if (!shapeName) return "";
-  const cleanName = shapeName.replace(/\s+Province$/i, "").trim();
+  
+  // Usamos la normalización para obtener el nombre limpio
+  const cleanName = getCleanGeoName(shapeName);
+  
+  // Re-capitalizar para presentación (ej: "luba" -> "Luba")
   return cleanName
     .split(/\s+/)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
 }
-
-/**
- * Función simplificada para obtener GeoJSON directamente de una URL raw.
- * @param url URL directa al archivo GeoJSON.
- */
-const fetchGeoJSON = async (url: string, retries = 3): Promise<FeatureCollection | null> => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status} al descargar GeoJSON`);
-      return (await res.json()) as FeatureCollection;
-    } catch (e: any) {
-      console.error(`Intento ${i + 1} fallido:`, e?.message || e);
-      if (i === retries - 1) throw new Error("Error cargando GeoJSON: Falló la descarga después de varios intentos.");
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000)); // Exponential backoff (1s, 2s, 4s)
-    }
-  }
-  return null;
-};
-
 
 // --- COMPONENTE PRINCIPAL ---
 
@@ -92,34 +65,49 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
   const [level, setLevel] = useState<Level>("provincias");
   const [hoveredName, setHoveredName] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
-  const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const geoJsonRef = useRef<any>(null);
 
   // Hooks data
   const { data: estadisticas } = useEstadisticasAvanzadas();
-  const { data: districtStats = [] } = useDistrictStats();
+  // 2. Usamos el nuevo hook REAL que limpia, mapea y fusiona los datos de la BD
+  const { data: districtStats = [], isLoading: districtsLoading } = useGeoDistrictStats();
 
-  // 1. Fetching de los datos GeoJSON
-  useEffect(() => {
-    const url = level === "provincias" ? ADM1_URL : ADM2_URL;
-    let cancelled = false;
-    (async () => {
-      try {
-        setError(null);
-        setGeoData(null);
-        const json = await fetchGeoJSON(url);
-        if (!cancelled) setGeoData(json);
-      } catch (e: any) {
-        if (!cancelled) setError(e.message);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [level]);
 
-  // 2. Mapas de valores (para el coroplético)
+  // 1. Carga SÍNCRONA y FILTRADO de los datos GeoJSON
+  const geoData = useMemo(() => {
+    // Si los datos de distritos están cargando y estamos en el nivel 'distritos', retornamos null para mostrar carga
+    if (level === "distritos" && districtsLoading) return null; 
+    
+    const rawData = level === "provincias" 
+      ? (ADM1_GEOJSON as FeatureCollection) 
+      : (ADM2_GEOJSON as FeatureCollection);
+    
+    // Aplicar filtro SOLO si estamos en el nivel de distritos y tenemos datos de la BD
+    if (level === "distritos" && districtStats.length > 0) {
+      // Crear un conjunto de claves normalizadas (cleanName) de la BD
+      const dbDistrictNames = new Set(districtStats.map(d => d.cleanName));
+
+      // 4. Filtrar las features del GeoJSON
+      const filteredFeatures = rawData.features.filter((feature: any) => {
+        const shapeName = feature.properties?.shapeName || "";
+        const geoKey = getCleanGeoName(shapeName); // Usamos la clave limpia para comparar
+        
+        // Retener solo si la clave del GeoJSON existe en nuestro Set de la BD
+        return dbDistrictNames.has(geoKey);
+      });
+
+      // Devolver la FeatureCollection filtrada
+      return {
+        ...rawData,
+        features: filteredFeatures
+      } as FeatureCollection;
+    }
+
+    return rawData;
+  }, [level, districtStats, districtsLoading]);
+
+
+  // 2. Mapas de valores (para el coroplético) - Lógica ADM1 se mantiene
   const provinciaValues = useMemo(() => {
     const map = new Map<string, number>();
     const byProv = (estadisticas?.porProvincia || {}) as Record<string, number>;
@@ -129,11 +117,13 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     return map;
   }, [estadisticas]);
 
+  // 3. Mapas de valores - Lógica ADM2 (Ahora usa la clave limpia del hook)
   const distritoValues = useMemo(() => {
     const vals = new Map<string, number>();
     for (const d of districtStats) {
-      if (!d || !d.distrito_sanitario) continue;
-      vals.set(normalizeName(getShapeDisplayName(String(d.distrito_sanitario))), d.total_profesionales || 0);
+      if (!d || !d.cleanName) continue;
+      // Usamos directamente la clave limpia del hook (d.cleanName)
+      vals.set(d.cleanName, d.total_profesionales || 0);
     }
     return vals;
   }, [districtStats]);
@@ -141,21 +131,23 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
   const distritoCenters = useMemo(() => {
     const vals = new Map<string, number>();
     for (const d of districtStats) {
-      if (!d || !d.distrito_sanitario) continue;
-      vals.set(normalizeName(getShapeDisplayName(String(d.distrito_sanitario))), d.total_centros || 0);
+      if (!d || !d.cleanName) continue;
+      // Usamos directamente la clave limpia del hook (d.cleanName)
+      vals.set(d.cleanName, d.total_centros || 0);
     }
     return vals;
   }, [districtStats]);
 
 
-  // 3. Escala de Color
+  // 4. Escala de Color - Sin cambios en la lógica
   const { minValue, maxValue, colorScale } = useMemo(() => {
     if (!geoData?.features) return { minValue: 0, maxValue: 0, colorScale: () => "#f3f4f6" };
 
     const currentValues = level === "provincias" ? provinciaValues : distritoValues;
     const values: number[] = geoData.features.map((f: any) => {
       const raw = f.properties?.shapeName || "";
-      const key = normalizeName(getShapeDisplayName(raw));
+      // Usamos normalizeName() que ahora llama a getCleanGeoName()
+      const key = normalizeName(raw); 
       return currentValues.get(key) ?? 0;
     });
 
@@ -163,31 +155,29 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     const max = values.length ? Math.max(...values) : 0;
     const safeMax = Math.max(max, 1);
 
-    // Reutilizamos la escala de D3
     const scale = d3.scaleSequential().domain([min, safeMax]).interpolator(d3.interpolateYlGnBu);
     return { minValue: min, maxValue: max, colorScale: scale };
   }, [geoData, provinciaValues, distritoValues, level]);
 
 
-  // --- LÓGICA DE STYLING Y EVENTOS DE LEAFLET ---
+  // --- LÓGICA DE STYLING Y EVENTOS DE LEAFLET (Sin cambios, pero usando las nuevas utils) ---
 
-  // Función para obtener el estilo de cada polígono
   const style = (feature: any) => {
     const raw = feature.properties?.shapeName || "";
-    const key = normalizeName(getShapeDisplayName(raw));
+    // Usamos normalizeName() que ahora llama a getCleanGeoName()
+    const key = normalizeName(raw);
     const value = (level === "provincias" ? provinciaValues : distritoValues).get(key) ?? 0;
 
     return {
-      fillColor: value > 0 ? colorScale(value) : "#f3f4f6", // Gris si no hay datos
+      fillColor: value > 0 ? colorScale(value) : "#f3f4f6", 
       weight: 1.5,
       opacity: 1,
-      color: '#134e4a', // Borde
+      color: '#134e4a',
       dashArray: '3',
       fillOpacity: 0.7
     };
   };
 
-  // Función para manejar eventos (hover/click) en cada polígono
   const onEachFeature = (feature: any, layer: any) => {
     const name = getShapeDisplayName(feature.properties?.shapeName);
 
@@ -214,33 +204,20 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
       }
     });
 
-    // Opcional: Popup al hacer click
     layer.bindPopup(name, { closeButton: false, className: 'leaflet-popup-content' });
   };
 
-  // Custom Hook para controlar la vista del mapa (ej. centrado/zoom)
   const RecenterMap = () => {
     const map = useMap();
     useEffect(() => {
-      // Coordenadas de Guinea Ecuatorial: [1.5, 10]
       map.setView([1.5, 10], map.getZoom() < 7 ? 7 : map.getZoom());
-    }, [map, level]); // Recenter si el nivel cambia
+    }, [map, level]);
     return null;
   };
 
 
   // --- RENDERIZADO DEL MAPA ---
-
-  if (error) {
-    return (
-      <Card className="border-red-200 bg-red-50">
-        <CardContent className="p-6 text-center text-red-600">
-          {error}
-        </CardContent>
-      </Card>
-    );
-  }
-
+  
   const currentValue = (name: string): number => {
     const key = normalizeName(name);
     return level === "provincias" ? provinciaValues.get(key) ?? 0 : distritoValues.get(key) ?? 0;
@@ -251,7 +228,11 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     return distritoCenters.get(key) ?? 0;
   };
 
-  const mapCenter: [number, number] = [1.5, 10]; // Centro de Guinea Ecuatorial
+  const mapCenter: [number, number] = [1.5, 10]; 
+
+  // Muestra el spinner de carga si estamos en distritos y los datos están cargando
+  const showLoading = level === "distritos" && districtsLoading;
+  const showMap = geoData && !showLoading;
 
   return (
     <div className="space-y-6">
@@ -288,12 +269,12 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>
-              {level === "provincias" ? "Aprobados por Provincia" : "Aprobados por Distrito Sanitario"}
+              {level === "provincias" ? "Profesionales por Provincia" : "Profesionales por Distrito Sanitario"}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="relative h-[550px] bg-gray-50 rounded-lg shadow-inner">
-              {geoData ? (
+              {showMap ? (
                 <MapContainer
                   center={mapCenter}
                   zoom={7}
@@ -314,7 +295,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                     ref={geoJsonRef}
                   />
 
-                  {/* Leyenda Simple */}
+                  {/* Leyenda Simple (Sin cambios) */}
                   <div className="absolute bottom-4 left-4 p-2 bg-white/90 rounded shadow-md z-[400] text-sm">
                     <h4 className="font-bold mb-1 border-b pb-1">Leyenda</h4>
                     <div className="flex items-center">
@@ -334,12 +315,18 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 </MapContainer>
               ) : (
                 <div className="flex items-center justify-center gap-3 text-gray-600 h-full">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
-                  <span>Cargando mapa...</span>
+                  {showLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
+                      <span>Cargando distritos sanitarios de la base de datos...</span>
+                    </>
+                  ) : (
+                    <span>Error al cargar datos geográficos.</span>
+                  )}
                 </div>
               )}
 
-
+              {/* Popup de Hover (Sin cambios en la lógica) */}
               {hoveredName && (
                 <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-xl border z-10 min-w-64">
                   <h4 className="font-semibold text-lg mb-2">{hoveredName}</h4>
@@ -364,13 +351,13 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
           </CardContent>
         </Card>
 
-        {/* Panel Lateral (mismo que antes) */}
+        {/* Panel Lateral (Sin cambios en la lógica) */}
         <Card>
           <CardHeader>
             <CardTitle>{selectedName ? selectedName : "Estadísticas Generales"}</CardTitle>
           </CardHeader>
           <CardContent>
-            {selectedName ? (
+             {selectedName ? (
               <div className="space-y-4">
                 <div className="text-center p-4 bg-teal-50 rounded-lg">
                   <div className="text-3xl font-bold text-teal-600">{currentValue(selectedName)}</div>
@@ -436,4 +423,4 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
   );
 };
 
-export default EquatorialGuineaMapLeaflet;
+export default EquatorialGuineaMapLeaflet;q

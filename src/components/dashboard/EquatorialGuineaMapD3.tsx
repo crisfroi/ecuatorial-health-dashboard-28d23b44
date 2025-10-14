@@ -28,8 +28,8 @@ const useDistrictStats = () => ({
 
 // Import GeoJSONs (ADM1 = provincias, ADM2 = distritos)
 // Estos imports deben funcionar correctamente si la ruta es correcta en tu entorno.
-import ADM1_URL from "@/data/geoBoundaries-GNQ-ADM1.geojson?url";
-import ADM2_URL from "@/data/geoBoundaries-GNQ-ADM2.geojson?url";
+import ADM1_RAW from "@/data/geoBoundaries-GNQ-ADM1.geojson?raw";
+import ADM2_RAW from "@/data/geoBoundaries-GNQ-ADM2.geojson?raw";
 
 // --- UTILIDADES ---
 
@@ -113,31 +113,15 @@ const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({ onNavigat
   // GeoJSON state loaded via URL
   const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
   useEffect(() => {
-    const url = level === "provincias" ? ADM1_URL : ADM2_URL;
     let cancelled = false;
-    (async () => {
-      try {
-        setError(null);
-        // Implementar reintento con backoff si es un entorno Canvas
-        const fetchData = async (retries = 3) => {
-          for (let i = 0; i < retries; i++) {
-            try {
-              const res = await fetch(url);
-              if (!res.ok) throw new Error(`HTTP ${res.status}`);
-              return (await res.json()) as FeatureCollection;
-            } catch (e) {
-              if (i === retries - 1) throw e;
-              await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 100)); // Exponential backoff
-            }
-          }
-        };
-
-        const json = await fetchData();
-        if (!cancelled) setGeoData(json);
-      } catch (e: any) {
-        if (!cancelled) setError(`Error cargando GeoJSON (${level}): ${e?.message || e}`);
-      }
-    })();
+    try {
+      setError(null);
+      const raw = level === "provincias" ? ADM1_RAW : ADM2_RAW;
+      const json = JSON.parse(raw) as FeatureCollection;
+      if (!cancelled) setGeoData(json);
+    } catch (e: any) {
+      if (!cancelled) setError(`Error leyendo GeoJSON (${level}): ${e?.message || e}`);
+    }
     return () => {
       cancelled = true;
     };

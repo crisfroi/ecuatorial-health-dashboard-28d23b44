@@ -1,5 +1,5 @@
 import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
-import * as d3 from "d3"; // Se mantiene solo para la escala de color (d3.scaleSequential)
+import * as d3 from "d3";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -12,22 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Users, Building, Eye, Map as MapIcon } from "lucide-react";
-
-// *** IMPORTANTE: NECESITAS INSTALAR ESTO: ***
-// npm install leaflet react-leaflet
 import 'leaflet/dist/leaflet.css';
-// Si no tienes los iconos de Leaflet, podrías necesitar un fix como este:
-/*
-import L from 'leaflet';
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'leaflet/images/marker-icon-2x.png',
-  iconUrl: 'leaflet/images/marker-icon.png',
-  shadowUrl: 'leaflet/images/marker-shadow.png',
-});
-*/
 
-// --- SIMULACIÓN DE DATOS (Mismos que antes) ---
+// --- SIMULACIÓN DE DATOS ---
 const useEstadisticasAvanzadas = () => ({ data: { porProvincia: { "Bioko Norte Province": 150, "Litoral Province": 80, "Annobon Province": 5, "Centro Sur Province": 40, "Kie-Ntem Province": 35, "Wele-Nzas Province": 30, "Bioko Sur Province": 15, "Djibloho Province": 10 } } });
 const useDistrictStats = () => ({
   data: [
@@ -45,9 +32,11 @@ const useDistrictStats = () => ({
 });
 // Fin de la simulación
 
-// URLs de GeoJSON (Las mismas que arreglamos en el intento con D3)
-const ADM1_URL = "https://www.geoboundaries.org/api/current/simplified/GNQ/ADM1/";
-const ADM2_URL = "https://www.geoboundaries.org/api/current/simplified/GNQ/ADM2/";
+// --- URLs DIRECTAS A LOS ARCHIVOS GeoJSON RAW EN GITHUB ---
+// Usamos el repositorio geoBoundaries para asegurar la estabilidad.
+const BASE_GEO_URL = "https://raw.githubusercontent.com/wmgeolab/geoBoundaries/main/releaseData/gbOpen/GNQ/";
+const ADM1_URL = BASE_GEO_URL + "ADM1/geoBoundaries-GNQ-ADM1.geojson";
+const ADM2_URL = BASE_GEO_URL + "ADM2/geoBoundaries-GNQ-ADM2.geojson";
 
 // --- TIPOS Y UTILS ---
 
@@ -55,7 +44,7 @@ type Level = "provincias" | "distritos";
 
 type FeatureCollection = {
   type: "FeatureCollection";
-  features: Array<any>; // Simplificado para Leaflet
+  features: Array<any>;
 };
 
 function normalizeName(name: string): string {
@@ -77,24 +66,20 @@ function getShapeDisplayName(shapeName?: string): string {
     .join(" ");
 }
 
-// Función para obtener GeoJSON de la URL de geoBoundaries y manejar backoff
+/**
+ * Función simplificada para obtener GeoJSON directamente de una URL raw.
+ * @param url URL directa al archivo GeoJSON.
+ */
 const fetchGeoJSON = async (url: string, retries = 3): Promise<FeatureCollection | null> => {
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const geojsonUrl = json.filter((r: any) => r.fileExtension === "geojson")[0]?.downloadURL;
-      if (!geojsonUrl) throw new Error("No se encontró URL de GeoJSON en la respuesta de geoBoundaries.");
-
-      const geoRes = await fetch(geojsonUrl);
-      if (!geoRes.ok) throw new Error(`HTTP ${geoRes.status} al descargar GeoJSON`);
-
-      return (await geoRes.json()) as FeatureCollection;
+      if (!res.ok) throw new Error(`HTTP ${res.status} al descargar GeoJSON`);
+      return (await res.json()) as FeatureCollection;
     } catch (e: any) {
-      console.error(`Intento ${i + 1} fallido:`, e);
-      if (i === retries - 1) throw e;
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 500));
+      console.error(`Intento ${i + 1} fallido:`, e?.message || e);
+      if (i === retries - 1) throw new Error("Error cargando GeoJSON: Falló la descarga después de varios intentos.");
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000)); // Exponential backoff (1s, 2s, 4s)
     }
   }
   return null;
@@ -126,7 +111,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         const json = await fetchGeoJSON(url);
         if (!cancelled) setGeoData(json);
       } catch (e: any) {
-        if (!cancelled) setError(`Error cargando GeoJSON (${level}): ${e?.message || e}`);
+        if (!cancelled) setError(e.message);
       }
     })();
     return () => {
@@ -219,7 +204,6 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
       },
       mouseout: (e: any) => {
         setHoveredName(null);
-        // Resetea al estilo original. Se necesita `geoJsonRef.current`
         if (geoJsonRef.current) {
           geoJsonRef.current.resetStyle(e.target);
         }
@@ -237,10 +221,10 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
   // Custom Hook para controlar la vista del mapa (ej. centrado/zoom)
   const RecenterMap = () => {
     const map = useMap();
-    // Coordenadas de Guinea Ecuatorial: [1.5, 10]
     useEffect(() => {
+      // Coordenadas de Guinea Ecuatorial: [1.5, 10]
       map.setView([1.5, 10], map.getZoom() < 7 ? 7 : map.getZoom());
-    }, [map]);
+    }, [map, level]); // Recenter si el nivel cambia
     return null;
   };
 
@@ -315,8 +299,6 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                   zoom={7}
                   scrollWheelZoom={true}
                   className="h-full w-full rounded-lg z-0"
-                // Nota: La capa GeoJSON de Leaflet no se escala tan bien en React como D3 para las islas. 
-                // El mapa se centra en el país. Se puede usar un "Inset map" de Leaflet si es necesario, pero lo omitimos por simplicidad.
                 >
                   <RecenterMap />
                   <TileLayer
@@ -324,9 +306,8 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
 
-                  {/* El componente GeoJSON maneja el dibujo de los polígonos */}
                   <GeoJSON
-                    key={level} // Forzar re-render cuando cambia el nivel
+                    key={level}
                     data={geoData}
                     style={style}
                     onEachFeature={onEachFeature}

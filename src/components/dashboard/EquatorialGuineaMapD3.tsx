@@ -1,4 +1,3 @@
-import * as d3 from "d3";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

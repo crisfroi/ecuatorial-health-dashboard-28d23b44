@@ -306,7 +306,10 @@ const ProvinceAnalytics: React.FC<ProvinceAnalyticsProps> = ({ selectedProvince,
                 <XAxis dataKey="categoria" fontSize={10} />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="cantidad" fill="#00C49F" className="cursor-pointer hover:opacity-80" />
+                <Bar dataKey="cantidad" fill="#00C49F" className="cursor-pointer hover:opacity-80" onClick={(e: any) => {
+                const categoria = e?.payload?.categoria || (e?.categoria as string);
+                onNavigateToTab && onNavigateToTab('health-centers', { provincia: selectedProvince, categoria });
+              }} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

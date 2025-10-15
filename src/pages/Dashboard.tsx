@@ -65,7 +65,9 @@ import HealthCenters from "@/components/dashboard/HealthCenters";
 import SolicitudesEstablecimientos from "@/components/dashboard/SolicitudesEstablecimientos";
 import AdminPanel from "@/components/dashboard/AdminPanel";
 import AdvancedAnalyticsDashboard from "@/components/dashboard/AdvancedAnalyticsDashboard";
+import EquatorialGuineaMapLeaflet from "@/components/dashboard/EquatorialGuineaMapD3";
 import { ParametrosProfesionalesPanel } from "@/components/dashboard/ParametrosProfesionalesPanel";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import ProfessionalSearch from "@/components/dashboard/ProfessionalSearch";
 import GlobalSearch from "@/components/dashboard/GlobalSearch";
 import ErrorBoundary from "@/components/ui/error-boundary";
@@ -700,6 +702,19 @@ const Dashboard = () => {
                 />
               </div>
             </div>
+
+            <Accordion type="single" defaultValue="geo-map" className="mt-4">
+              <AccordionItem value="geo-map" className="border rounded-lg bg-white shadow-sm">
+                <AccordionTrigger className="px-4">
+                  Resumen Geográfico (Mapa) — Haz clic o pasa el mouse para más detalles
+                </AccordionTrigger>
+                <AccordionContent className="p-4">
+                  <EquatorialGuineaMapLeaflet onNavigateToProvince={(name: string) => {
+                    handleNavigateFromAnalytics("analytics", { provincia: name });
+                  }} />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </TabsContent>
 
           <TabsContent value="professionals" className="space-y-6" data-tour="dashboard-professionals">

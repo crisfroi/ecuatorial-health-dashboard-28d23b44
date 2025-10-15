@@ -1078,6 +1078,121 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
           )}
         </TabsContent>
 
+        {/* Geography Tab */}
+        <TabsContent value="geographic" className="space-y-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-xl font-semibold">Análisis por Provincia</h3>
+              <p className="text-gray-600">Vista general y análisis detallado por provincia</p>
+            </div>
+            <Select
+              value={selectedProvince}
+              onValueChange={setSelectedProvince}
+            >
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Seleccionar provincia" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las provincias (Vista General)</SelectItem>
+                {(availableProvinces || PROVINCIAS_EG).map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {selectedProvince === "all" ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-purple-600" />
+                    Estadísticas por Provincia
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={provinceStats}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="provincia"
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        fontSize={10}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar
+                        dataKey="total_profesionales"
+                        fill="#8884d8"
+                        name="Profesionales"
+                        onClick={(data: any) => navigateToProvince(data.provincia)}
+                        className="cursor-pointer hover:opacity-80"
+                      />
+                      <Bar
+                        dataKey="total_centros"
+                        fill="#82ca9d"
+                        name="Centros"
+                        onClick={(data: any) => navigateToProvince(data.provincia)}
+                        className="cursor-pointer hover:opacity-80"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {provinceStats.slice(0, 9).map((prov, index) => (
+                  <Card
+                    key={prov.provincia}
+                    className="cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => setSelectedProvince(prov.provincia)}
+                  >
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center justify-between">
+                        {prov.provincia}
+                        <Eye className="w-4 h-4 text-gray-400" />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Profesionales:</span>
+                          <Badge variant="outline">{prov.total_profesionales}</Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Centros:</span>
+                          <Badge variant="outline">{prov.total_centros}</Badge>
+                        </div>
+                        <div className="mt-3">
+                          <span className="text-sm text-gray-600 block mb-1">Áreas principales:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {prov.areas_mas_comunes.map((area, i) => (
+                              <Badge key={i} variant="secondary" className="text-xs">{area}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mt-2 pt-2 border-t">
+                          <span className="text-xs text-blue-600">Haz clic para ver detalles →</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          ) : (
+            <ProvinceAnalytics
+              selectedProvince={selectedProvince}
+              onProvinceChange={setSelectedProvince}
+              availableProvinces={availableProvinces.length ? availableProvinces : PROVINCIAS_EG}
+              onNavigateToTab={onNavigateToTab}
+            />
+          )}
+        </TabsContent>
+
         {/* Demographics Tab */}
         <TabsContent value="demographics" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

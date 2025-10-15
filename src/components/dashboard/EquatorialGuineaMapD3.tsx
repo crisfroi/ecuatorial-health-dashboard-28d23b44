@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, Building, Eye, Map as MapIcon } from "lucide-react";
+import { MapPin, Users, Building, Eye, Map as MapIcon, Male, Female } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 
 // PASO 1: IMPORTAR UTILIDADES Y HOOK DE DATOS

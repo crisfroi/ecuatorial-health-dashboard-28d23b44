@@ -26,7 +26,7 @@ const BackgroundSlideshow = () => {
             .single();
 
         if (error) {
-            console.error("Error al cargar la configuración del carrusel:", error);
+            console.error("Error al cargar la configuración del carrusel:", error?.message ?? error, error);
             // Si hay un error, dejamos los valores por defecto
         } else if (data) {
             // 💡 APLICANDO LAS IMÁGENES y DURACIÓN DE LA BD

@@ -11,7 +11,10 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, Building, Eye, Map as MapIcon, Male, Female } from "lucide-react";
+import * as LucideIcons from "lucide-react";
+const MaleIcon = (LucideIcons as any).Male || (LucideIcons as any).GenderMale || (LucideIcons as any).Man || (LucideIcons as any).User || null;
+const FemaleIcon = (LucideIcons as any).Female || (LucideIcons as any).GenderFemale || (LucideIcons as any).Woman || (LucideIcons as any).User || null;
+const { MapPin, Users, Building, Eye, Map: MapIcon } = LucideIcons;
 import "leaflet/dist/leaflet.css";
 
 // PASO 1: IMPORTAR UTILIDADES Y HOOK DE DATOS
@@ -504,8 +507,8 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                                         <div className="flex justify-between items-center border-t pt-1 mt-1">
                                             <span className="text-gray-600 flex items-center gap-1">Género:</span>
                                             <div className="flex items-center gap-3">
-                                                <div className="flex items-center gap-1"><Male className="w-4 h-4 text-blue-600" /> <span className="font-medium">{genderAndPublic ? genderAndPublic.male : '—'}</span></div>
-                                                <div className="flex items-center gap-1"><Female className="w-4 h-4 text-pink-600" /> <span className="font-medium">{genderAndPublic ? genderAndPublic.female : '—'}</span></div>
+                                                <div className="flex items-center gap-1">{MaleIcon ? <MaleIcon className="w-4 h-4 text-blue-600" /> : null} <span className="font-medium">{genderAndPublic ? genderAndPublic.male : '—'}</span></div>
+                                                <div className="flex items-center gap-1">{FemaleIcon ? <FemaleIcon className="w-4 h-4 text-pink-600" /> : null} <span className="font-medium">{genderAndPublic ? genderAndPublic.female : '—'}</span></div>
                                             </div>
                                         </div>
 

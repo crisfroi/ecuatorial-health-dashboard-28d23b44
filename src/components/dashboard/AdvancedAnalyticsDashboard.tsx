@@ -48,6 +48,7 @@ import {
   useTopCenters,
   useAreaProfessionalStats,
   useDistrictStats,
+  useProvinceStats,
   useAgeRangeStats,
   useGraduationYearStats,
   useCountryStats,
@@ -61,11 +62,13 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
 import DistrictAnalytics from "./DistrictAnalytics";
+import ProvinceAnalytics from "./ProvinceAnalytics";
 import InteractiveCharts from "./InteractiveCharts";
 import AnalyticsSummary from "./AnalyticsSummary";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import FinancialAnalytics from "./FinancialAnalytics";
 import QuickDiagnostic from "./QuickDiagnostic";
+import { PROVINCIAS_EG } from "@/utils/geo";
 import ChartActions from "./ChartActions";
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
@@ -131,6 +134,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
 }) => {
   const [selectedView, setSelectedView] = useState("overview");
   const [selectedDistrict, setSelectedDistrict] = useState("all");
+  const [selectedProvince, setSelectedProvince] = useState("all");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedInstitution, setSelectedInstitution] = useState<string | null>(null);
   const queryClient = useQueryClient();

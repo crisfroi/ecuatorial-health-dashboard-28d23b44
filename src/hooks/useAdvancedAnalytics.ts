@@ -27,6 +27,13 @@ export interface DistrictStats {
   areas_mas_comunes: string[];
 }
 
+export interface ProvinceStats {
+  provincia: string;
+  total_profesionales: number;
+  total_centros: number;
+  areas_mas_comunes: string[];
+}
+
 export interface AgeRangeStats {
   rango_edad: string;
   cantidad: number;
@@ -184,7 +191,6 @@ export const useDistrictStats = (filters?: Partial<{ provincia: string; distrito
   return useQuery({
     queryKey: ["districtStats", filters || null],
     queryFn: async (): Promise<DistrictStats[]> => {
-      // Get professionals by district
       let profQuery = supabase
         .from("profesionales_sanitarios")
         .select("distrito_sanitario, area_profesional")
@@ -201,7 +207,6 @@ export const useDistrictStats = (filters?: Partial<{ provincia: string; distrito
 
       if (profError) throw profError;
 
-      // Get centers by district
       let centerQuery = supabase
         .from("centros_salud")
         .select("distrito_sanitario")
@@ -220,12 +225,10 @@ export const useDistrictStats = (filters?: Partial<{ provincia: string; distrito
           if (!acc[distrito]) {
             acc[distrito] = { profesionales: [], areas: new Set() };
           }
-
           acc[distrito].profesionales.push(prof);
           if (prof.area_profesional) {
             acc[distrito].areas.add(prof.area_profesional);
           }
-
           return acc;
         },
         {} as Record<string, { profesionales: any[]; areas: Set<string> }>,
@@ -245,6 +248,67 @@ export const useDistrictStats = (filters?: Partial<{ provincia: string; distrito
           distrito_sanitario,
           total_profesionales: data.profesionales.length,
           total_centros: centerCounts[distrito_sanitario] || 0,
+          areas_mas_comunes: Array.from(data.areas).slice(0, 3),
+        }))
+        .sort((a, b) => b.total_profesionales - a.total_profesionales);
+    },
+  });
+};
+
+// Hook for province statistics
+export const useProvinceStats = (filters?: Partial<{ provincia: string; genero: string; tipo_sector: string }>) => {
+  return useQuery({
+    queryKey: ["provinceStats", filters || null],
+    queryFn: async (): Promise<ProvinceStats[]> => {
+      let profQuery = supabase
+        .from("profesionales_sanitarios")
+        .select("provincia, area_profesional")
+        .eq("estado_solicitud", "Aprobado")
+        .not("provincia", "is", null);
+      if (filters?.provincia) profQuery = profQuery.eq('provincia', filters.provincia);
+      if (filters?.genero) profQuery = profQuery.eq('genero', filters.genero);
+      if (filters?.tipo_sector) profQuery = profQuery.eq('tipo_sector', filters.tipo_sector);
+      const { data: profData, error: profError } = await profQuery;
+      if (profError) throw profError;
+
+      let centerQuery = supabase
+        .from("centros_salud")
+        .select("provincia")
+        .not("provincia", "is", null);
+      if (filters?.provincia) centerQuery = centerQuery.eq('provincia', filters.provincia);
+      if (filters?.tipo_sector) centerQuery = centerQuery.eq('sector', filters.tipo_sector);
+      const { data: centerData, error: centerError } = await centerQuery;
+      if (centerError) throw centerError;
+
+      const provinceMap = profData.reduce(
+        (acc, prof) => {
+          const provincia = (prof as any).provincia as string;
+          if (!acc[provincia]) {
+            acc[provincia] = { profesionales: [], areas: new Set<string>() };
+          }
+          acc[provincia].profesionales.push(prof);
+          if ((prof as any).area_profesional) {
+            acc[provincia].areas.add((prof as any).area_profesional);
+          }
+          return acc;
+        },
+        {} as Record<string, { profesionales: any[]; areas: Set<string> }>,
+      );
+
+      const centerCounts = centerData.reduce(
+        (acc, center) => {
+          const provincia = (center as any).provincia as string;
+          acc[provincia] = (acc[provincia] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+
+      return Object.entries(provinceMap)
+        .map(([provincia, data]) => ({
+          provincia,
+          total_profesionales: data.profesionales.length,
+          total_centros: centerCounts[provincia] || 0,
           areas_mas_comunes: Array.from(data.areas).slice(0, 3),
         }))
         .sort((a, b) => b.total_profesionales - a.total_profesionales);

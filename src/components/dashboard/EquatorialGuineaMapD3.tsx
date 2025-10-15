@@ -298,6 +298,43 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     const activeName = getDisplayTitle(hoveredGeoKey, level);
     const selectedName = getDisplayTitle(selectedGeoKey, level);
 
+    // Fetch additional per-region stats when hovering (cached by react-query)
+    const hoveredFilters = useMemo(() => {
+        if (!activeName) return null;
+        if (level === 'provincias') return { provincia: activeName } as any;
+        return { distrito_sanitario: activeName } as any;
+    }, [activeName, level]);
+
+    const { data: titulacionHover = [] } = useTitulacionCategoryStats(hoveredFilters || undefined as any);
+    const { data: ageRangesHover = [] } = useWorkAgeStats(hoveredFilters || undefined as any);
+
+    const { data: genderAndPublic = null } = useQuery([
+        'geoGenderPublic', level, activeName
+    ], async () => {
+        if (!activeName) return null;
+        const field = level === 'provincias' ? 'provincia' : 'distrito_sanitario';
+        // Count masculina
+        const { count: maleCount } = await supabase
+            .from('profesionales_sanitarios')
+            .select('id', { head: true, count: 'exact' })
+            .eq('estado_solicitud', 'Aprobado')
+            .eq(field, activeName)
+            .eq('genero', 'Masculino');
+        const { count: femaleCount } = await supabase
+            .from('profesionales_sanitarios')
+            .select('id', { head: true, count: 'exact' })
+            .eq('estado_solicitud', 'Aprobado')
+            .eq(field, activeName)
+            .eq('genero', 'Femenino');
+        const { count: funcionariosCount } = await supabase
+            .from('profesionales_sanitarios')
+            .select('id', { head: true, count: 'exact' })
+            .eq('estado_solicitud', 'Aprobado')
+            .eq(field, activeName)
+            .eq('estatus_funcionario', 'funcionario');
+        return { male: maleCount || 0, female: femaleCount || 0, funcionarios: funcionariosCount || 0 };
+    }, { enabled: !!activeName });
+
     const showLoading = level === "distritos" && districtsLoading;
     const showMap = geoData && !showLoading;
 

@@ -62,6 +62,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
 import DistrictAnalytics from "./DistrictAnalytics";
+import ProvinceAnalytics from "./ProvinceAnalytics";
 import InteractiveCharts from "./InteractiveCharts";
 import AnalyticsSummary from "./AnalyticsSummary";
 import ErrorBoundary from "@/components/ui/error-boundary";

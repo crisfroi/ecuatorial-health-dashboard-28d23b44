@@ -126,6 +126,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [showStatsCards, setShowStatsCards] = useState(true);
   const [openTour, setOpenTour] = useState(false);
+  const [analyticsOpenDetail, setAnalyticsOpenDetail] = useState<{ kind: 'province' | 'district'; name: string } | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -709,8 +710,10 @@ const Dashboard = () => {
                   Resumen Geográfico (Mapa) — Haz clic o pasa el mouse para más detalles
                 </AccordionTrigger>
                 <AccordionContent className="p-4">
-                  <EquatorialGuineaMapLeaflet onNavigateToProvince={(name: string) => {
-                    handleNavigateFromAnalytics("analytics", { provincia: name });
+                  <EquatorialGuineaMapLeaflet onSelectRegion={(name: string, level: string) => {
+                    // Open analytics tab and request that AdvancedAnalyticsDashboard open the corresponding detail
+                    setActiveTab("analytics");
+                    setAnalyticsOpenDetail({ kind: level === 'provincias' ? 'province' : 'district', name });
                   }} />
                 </AccordionContent>
               </AccordionItem>
@@ -778,6 +781,8 @@ const Dashboard = () => {
             <AdvancedAnalyticsDashboard
               onNavigateToTab={handleNavigateFromAnalytics}
               filters={dashboardFilters}
+              externalOpenDetail={analyticsOpenDetail}
+              onExternalOpenDetailHandled={() => setAnalyticsOpenDetail(null)}
             />
           </TabsContent>
 

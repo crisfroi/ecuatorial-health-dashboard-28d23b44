@@ -714,6 +714,10 @@ const Dashboard = () => {
                     // Open analytics tab and request that AdvancedAnalyticsDashboard open the corresponding detail
                     setActiveTab("analytics");
                     setAnalyticsOpenDetail({ kind: level === 'provincias' ? 'province' : 'district', name });
+                  }} onNavigateToTab={(tab: string, filters?: any) => {
+                    // Forward navigations from the map to the dashboard handler
+                    handleNavigateFromAnalytics(tab, filters);
+                    setActiveTab('analytics');
                   }} />
                 </AccordionContent>
               </AccordionItem>

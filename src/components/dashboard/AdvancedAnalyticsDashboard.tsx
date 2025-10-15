@@ -186,6 +186,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     .sort();
   const { data: ageRangeStats = [], isLoading: loadingAges } =
     useAgeRangeStats(filters as any);
+  const { data: provinceStats = [], isLoading: loadingProvinces } = useProvinceStats(filters as any);
+  const availableProvinces = (provinceStats || []).map((p:any) => p.provincia).filter(Boolean).sort();
   const { data: workAgeStats = [] } = useWorkAgeStats(filters as any);
   const { data: serviceYearsStats = [] } = useServiceYearsStats(filters as any);
   const { data: retirementRemainingStats = [] } = useRetirementRemainingStats(filters as any);

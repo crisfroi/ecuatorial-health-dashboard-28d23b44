@@ -19,6 +19,9 @@ import ADM1_GEOJSON from "@/data/geoBoundaries-GNQ-ADM1.json";
 import ADM2_GEOJSON from "@/data/geoBoundaries-GNQ-ADM2.json";
 import { getCleanGeoName } from "@/utils/geoUtils";
 import { useGeoDistrictStats } from "@/hooks/useGeoDistrictStats";
+import { useProvinceStats, useDistrictStats, useTitulacionCategoryStats, useWorkAgeStats } from "@/hooks/useAdvancedAnalytics";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
 

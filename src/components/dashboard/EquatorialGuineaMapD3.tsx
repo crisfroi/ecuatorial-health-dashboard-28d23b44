@@ -315,32 +315,34 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         return (provinceStatsList || []).find((p: any) => normalizeName(p.provincia) === normalizeName(activeName)) || null;
     }, [provinceStatsList, activeName, level]);
 
-    const { data: genderAndPublic = null } = useQuery([
-        'geoGenderPublic', level, activeName
-    ], async () => {
-        if (!activeName) return null;
-        const field = level === 'provincias' ? 'provincia' : 'distrito_sanitario';
-        // Count masculina
-        const { count: maleCount } = await supabase
-            .from('profesionales_sanitarios')
-            .select('id', { head: true, count: 'exact' })
-            .eq('estado_solicitud', 'Aprobado')
-            .eq(field, activeName)
-            .eq('genero', 'Masculino');
-        const { count: femaleCount } = await supabase
-            .from('profesionales_sanitarios')
-            .select('id', { head: true, count: 'exact' })
-            .eq('estado_solicitud', 'Aprobado')
-            .eq(field, activeName)
-            .eq('genero', 'Femenino');
-        const { count: funcionariosCount } = await supabase
-            .from('profesionales_sanitarios')
-            .select('id', { head: true, count: 'exact' })
-            .eq('estado_solicitud', 'Aprobado')
-            .eq(field, activeName)
-            .eq('estatus_funcionario', 'funcionario');
-        return { male: maleCount || 0, female: femaleCount || 0, funcionarios: funcionariosCount || 0 };
-    }, { enabled: !!activeName });
+    const { data: genderAndPublic = null } = useQuery({
+        queryKey: ['geoGenderPublic', level, activeName],
+        queryFn: async () => {
+            if (!activeName) return null;
+            const field = level === 'provincias' ? 'provincia' : 'distrito_sanitario';
+            // Count masculina
+            const { count: maleCount } = await supabase
+                .from('profesionales_sanitarios')
+                .select('id', { head: true, count: 'exact' })
+                .eq('estado_solicitud', 'Aprobado')
+                .eq(field, activeName)
+                .eq('genero', 'Masculino');
+            const { count: femaleCount } = await supabase
+                .from('profesionales_sanitarios')
+                .select('id', { head: true, count: 'exact' })
+                .eq('estado_solicitud', 'Aprobado')
+                .eq(field, activeName)
+                .eq('genero', 'Femenino');
+            const { count: funcionariosCount } = await supabase
+                .from('profesionales_sanitarios')
+                .select('id', { head: true, count: 'exact' })
+                .eq('estado_solicitud', 'Aprobado')
+                .eq(field, activeName)
+                .eq('estatus_funcionario', 'funcionario');
+            return { male: maleCount || 0, female: femaleCount || 0, funcionarios: funcionariosCount || 0 };
+        },
+        enabled: !!activeName,
+    });
 
     const showLoading = level === "distritos" && districtsLoading;
     const showMap = geoData && !showLoading;

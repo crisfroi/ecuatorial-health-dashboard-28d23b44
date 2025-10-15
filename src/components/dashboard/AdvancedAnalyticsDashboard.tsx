@@ -495,7 +495,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
             className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
           >
             <MapPin className="w-4 h-4" />
-            Geografía
+            Provincia
           </TabsTrigger>
           <TabsTrigger
             value="funcionarios"

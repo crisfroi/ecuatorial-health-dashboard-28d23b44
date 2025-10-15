@@ -344,6 +344,44 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         enabled: !!activeName,
     });
 
+    // Selected region filters and data
+    const selectedFilters = useMemo(() => {
+        if (!selectedName) return null;
+        if (level === 'provincias') return { provincia: selectedName } as any;
+        return { distrito_sanitario: selectedName } as any;
+    }, [selectedName, level]);
+
+    const { data: titulacionSelected = [] } = useTitulacionCategoryStats(selectedFilters || undefined as any);
+    const { data: ageRangesSelected = [] } = useWorkAgeStats(selectedFilters || undefined as any);
+
+    const { data: genderAndPublicSelected = null } = useQuery({
+        queryKey: ['geoGenderPublic', level, selectedName, 'selected'],
+        queryFn: async () => {
+            if (!selectedName) return null;
+            const field = level === 'provincias' ? 'provincia' : 'distrito_sanitario';
+            const { count: maleCount } = await supabase
+                .from('profesionales_sanitarios')
+                .select('id', { head: true, count: 'exact' })
+                .eq('estado_solicitud', 'Aprobado')
+                .eq(field, selectedName)
+                .eq('genero', 'Masculino');
+            const { count: femaleCount } = await supabase
+                .from('profesionales_sanitarios')
+                .select('id', { head: true, count: 'exact' })
+                .eq('estado_solicitud', 'Aprobado')
+                .eq(field, selectedName)
+                .eq('genero', 'Femenino');
+            const { count: funcionariosCount } = await supabase
+                .from('profesionales_sanitarios')
+                .select('id', { head: true, count: 'exact' })
+                .eq('estado_solicitud', 'Aprobado')
+                .eq(field, selectedName)
+                .eq('funcion_publica', true);
+            return { male: maleCount || 0, female: femaleCount || 0, funcionarios: funcionariosCount || 0 };
+        },
+        enabled: !!selectedName,
+    });
+
     const showLoading = level === "distritos" && districtsLoading;
     const showMap = geoData && !showLoading;
 
@@ -465,7 +503,10 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
                                         <div className="flex justify-between items-center border-t pt-1 mt-1">
                                             <span className="text-gray-600 flex items-center gap-1">Género:</span>
-                                            <span className="font-medium">{genderAndPublic ? `${genderAndPublic.male} / ${genderAndPublic.female}` : '—'}</span>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-1"><Male className="w-4 h-4 text-blue-600" /> <span className="font-medium">{genderAndPublic ? genderAndPublic.male : '—'}</span></div>
+                                                <div className="flex items-center gap-1"><Female className="w-4 h-4 text-pink-600" /> <span className="font-medium">{genderAndPublic ? genderAndPublic.female : '—'}</span></div>
+                                            </div>
                                         </div>
 
                                         <div className="flex justify-between items-center border-t pt-1 mt-1">
@@ -499,20 +540,60 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                     <CardContent>
                         {selectedGeoKey ? (
                             <div className="space-y-4">
-                                <div className="text-center p-4 bg-teal-50 rounded-lg">
+                                <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('professionals', { provincia: selectedName, estado_solicitud: 'Aprobado' })} className="text-center p-4 bg-teal-50 rounded-lg cursor-pointer hover:shadow">
                                     <div className="text-3xl font-bold text-teal-600">{currentValue(selectedGeoKey)}</div>
                                     <div className="text-sm text-gray-600">Profesionales (aprobados)</div>
                                 </div>
                                 {level === "distritos" ? (
-                                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                                    <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('health-centers', { distrito_sanitario: selectedName })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
                                         <div className="flex items-center gap-2">
                                             <Building className="w-5 h-5 text-gray-600" />
                                             <span className="text-base font-medium">Centros</span>
                                         </div>
                                         <Badge variant="default" className="bg-teal-500 hover:bg-teal-500 text-white text-md p-2">{currentCenters(selectedGeoKey)}</Badge>
                                     </div>
-                                ) : null}
-                                <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => onNavigateToProvince?.(selectedName || '')}>
+                                ) : (
+                                    <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('health-centers', { provincia: selectedName })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
+                                        <div className="flex items-center gap-2">
+                                            <Building className="w-5 h-5 text-gray-600" />
+                                            <span className="text-base font-medium">Centros</span>
+                                        </div>
+                                        <Badge variant="default" className="bg-teal-500 hover:bg-teal-500 text-white text-md p-2">{hoveredProvinceStats?.total_centros ?? 0}</Badge>
+                                    </div>
+                                )}
+
+                                <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('professionals', { provincia: selectedName, area_profesional: hoveredProvinceStats?.areas_mas_comunes?.[0] })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
+                                    <div className="flex items-center gap-2">
+                                        <Users className="w-5 h-5 text-gray-600" />
+                                        <span className="text-base font-medium">Área predominante</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-bold">{hoveredProvinceStats?.areas_mas_comunes?.[0] || '—'}</div>
+                                        <div className="text-xs text-gray-500">Top area</div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', { provincia: selectedName, genero: 'Masculino' })}>
+                                        <div className="text-sm text-gray-600 flex items-center justify-center gap-2"><Male className="w-4 h-4" />Hombres</div>
+                                        <div className="font-bold">{genderAndPublicSelected?.male ?? '—'}</div>
+                                    </div>
+                                    <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', { provincia: selectedName, genero: 'Femenino' })}>
+                                        <div className="text-sm text-gray-600 flex items-center justify-center gap-2"><Female className="w-4 h-4" />Mujeres</div>
+                                        <div className="font-bold">{genderAndPublicSelected?.female ?? '—'}</div>
+                                    </div>
+                                </div>
+
+                                <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', { provincia: selectedName, funcion_publica: true })}>
+                                    <div className="text-sm text-gray-600">Funcionarios públicos</div>
+                                    <div className="font-bold">{genderAndPublicSelected?.funcionarios ?? '—'}</div>
+                                </div>
+
+                                <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => {
+                                    // Open analytics detail view via onSelectRegion if available, otherwise fall back
+                                    if (onSelectRegion) onSelectRegion(selectedName || '', level);
+                                    else onNavigateToProvince?.(selectedName || '');
+                                }}>
                                     <Eye className="w-4 h-4 mr-2" /> Ver detalles de {selectedName}
                                 </Button>
                                 <Button

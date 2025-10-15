@@ -434,26 +434,49 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                             )}
 
                             {activeName && hoveredGeoKey && (
-                                <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-xl border z-10 min-w-64">
+                                <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-xl border z-10 min-w-64 pointer-events-none">
                                     <h4 className="font-semibold text-lg mb-2">{activeName}</h4>
                                     <div className="space-y-1 text-sm">
                                         <div className="flex justify-between items-center">
                                             <span className="text-gray-600 flex items-center gap-1"><Users className="w-3 h-3" /> Prof. (aprobados):</span>
                                             <span className="font-bold text-teal-700">{currentValue(hoveredGeoKey)}</span>
                                         </div>
+
+                                        <div className="flex justify-between items-center border-t pt-1 mt-1">
+                                            <span className="text-gray-600 flex items-center gap-1"><MapPin className="w-3 h-3" /> Área predominante:</span>
+                                            <span className="font-medium">{level === 'provincias' ? ( ( (useProvinceStats as any) ? '' : '' )) : ''}</span>
+                                        </div>
+
                                         {level === "distritos" ? (
                                             <div className="flex justify-between items-center border-t pt-1 mt-1">
                                                 <span className="text-gray-600 flex items-center gap-1"><Building className="w-3 h-3" /> Centros:</span>
                                                 <span className="font-medium">{currentCenters(hoveredGeoKey)}</span>
                                             </div>
                                         ) : null}
+
+                                        <div className="flex justify-between items-center border-t pt-1 mt-1">
+                                            <span className="text-gray-600 flex items-center gap-1">Género:</span>
+                                            <span className="font-medium">{genderAndPublic ? `${genderAndPublic.male} / ${genderAndPublic.female}` : '—'}</span>
+                                        </div>
+
+                                        <div className="flex justify-between items-center border-t pt-1 mt-1">
+                                            <span className="text-gray-600 flex items-center gap-1">Funcionarios públicos:</span>
+                                            <span className="font-medium">{genderAndPublic ? genderAndPublic.funcionarios : '—'}</span>
+                                        </div>
+
+                                        <div className="flex justify-between items-center border-t pt-1 mt-1">
+                                            <span className="text-gray-600 flex items-center gap-1">Titulación predominante:</span>
+                                            <span className="font-medium">{titulacionHover && titulacionHover.length ? `${titulacionHover[0].categoria_titulacion} (${titulacionHover[0].total || 0})` : '—'}</span>
+                                        </div>
                                     </div>
-                                    <Button size="sm" className="w-full mt-3 bg-teal-600 hover:bg-teal-700" onClick={() => {
-                                        const navName = getDisplayTitle(hoveredGeoKey, level);
-                                        if (navName) onNavigateToProvince?.(navName);
-                                    }}>
-                                        <Eye className="w-4 h-4 mr-1" /> Ver Detalles
-                                    </Button>
+                                    <div className="mt-3">
+                                        <Button size="sm" className="w-full bg-teal-600 hover:bg-teal-700 pointer-events-auto" onClick={() => {
+                                            const navName = getDisplayTitle(hoveredGeoKey, level);
+                                            if (navName) onNavigateToProvince?.(navName);
+                                        }}>
+                                            <Eye className="w-4 h-4 mr-1" /> Ver Detalles
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
                         </div>

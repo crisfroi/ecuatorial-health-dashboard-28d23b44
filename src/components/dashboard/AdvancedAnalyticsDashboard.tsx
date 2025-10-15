@@ -133,6 +133,8 @@ interface AdvancedAnalyticsDashboardProps {
 const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
   onNavigateToTab,
   filters,
+  externalOpenDetail,
+  onExternalOpenDetailHandled,
 }) => {
   const [selectedView, setSelectedView] = useState("overview");
   const [selectedDistrict, setSelectedDistrict] = useState("all");

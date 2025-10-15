@@ -144,23 +144,15 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
   const [activeTabInternal, setActiveTabInternal] = useState<string>("summary");
   const queryClient = useQueryClient();
 
-  // Auto-refresh data every 30 seconds for real-time updates
+  // Auto-refresh data periodically (reduced frequency to reduce navigation lag)
   useEffect(() => {
     const interval = setInterval(() => {
+      // Refresh only the heaviest used datasets less often
       queryClient.invalidateQueries({ queryKey: ["topCenters"] });
-      queryClient.invalidateQueries({ queryKey: ["areaProfessionalStats"] });
       queryClient.invalidateQueries({ queryKey: ["districtStats"] });
-      queryClient.invalidateQueries({ queryKey: ["ageRangeStats"] });
-      queryClient.invalidateQueries({ queryKey: ["countryStats"] });
-      queryClient.invalidateQueries({ queryKey: ["institutionStats"] });
-      queryClient.invalidateQueries({ queryKey: ["allCountryStats"] });
-      queryClient.invalidateQueries({ queryKey: ["allInstitutionStats"] });
-      queryClient.invalidateQueries({ queryKey: ["centerCategoryStats"] });
-      queryClient.invalidateQueries({ queryKey: ["titulacionCategoryStats"] });
-      queryClient.invalidateQueries({ queryKey: ["workAgeStats"] });
-      queryClient.invalidateQueries({ queryKey: ["serviceYearsStats"] });
-      queryClient.invalidateQueries({ queryKey: ["retirementRemainingStats"] });
-    }, 30000); // Refresh every 30 seconds
+      queryClient.invalidateQueries({ queryKey: ["provinceStats"] });
+      queryClient.invalidateQueries({ queryKey: ["areaProfessionalStats"] });
+    }, 60000); // Refresh every 60 seconds
 
     return () => clearInterval(interval);
   }, [queryClient]);

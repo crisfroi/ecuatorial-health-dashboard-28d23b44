@@ -308,6 +308,13 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     const { data: titulacionHover = [] } = useTitulacionCategoryStats(hoveredFilters || undefined as any);
     const { data: ageRangesHover = [] } = useWorkAgeStats(hoveredFilters || undefined as any);
 
+    // Province-level aggregated stats lookup
+    const { data: provinceStatsList = [] } = useProvinceStats();
+    const hoveredProvinceStats = useMemo(() => {
+        if (level !== 'provincias' || !activeName) return null;
+        return (provinceStatsList || []).find((p: any) => normalizeName(p.provincia) === normalizeName(activeName)) || null;
+    }, [provinceStatsList, activeName, level]);
+
     const { data: genderAndPublic = null } = useQuery([
         'geoGenderPublic', level, activeName
     ], async () => {

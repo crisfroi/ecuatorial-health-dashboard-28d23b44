@@ -451,7 +451,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
                                         <div className="flex justify-between items-center border-t pt-1 mt-1">
                                             <span className="text-gray-600 flex items-center gap-1"><MapPin className="w-3 h-3" /> Área predominante:</span>
-                                            <span className="font-medium">{level === 'provincias' ? ( ( (useProvinceStats as any) ? '' : '' )) : ''}</span>
+                                            <span className="font-medium">{level === 'provincias' ? (hoveredProvinceStats?.areas_mas_comunes?.[0] || '—') : '—'}</span>
                                         </div>
 
                                         {level === "distritos" ? (

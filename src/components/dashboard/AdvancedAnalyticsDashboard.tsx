@@ -48,6 +48,7 @@ import {
   useTopCenters,
   useAreaProfessionalStats,
   useDistrictStats,
+  useProvinceStats,
   useAgeRangeStats,
   useGraduationYearStats,
   useCountryStats,

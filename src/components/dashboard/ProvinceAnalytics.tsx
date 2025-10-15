@@ -281,7 +281,12 @@ const ProvinceAnalytics: React.FC<ProvinceAnalyticsProps> = ({ selectedProvince,
               <PieChart>
                 <Pie data={stats.profesionales_por_area.slice(0, 6)} cx="50%" cy="50%" outerRadius={100} fill="#8884d8" dataKey="cantidad" label={(entry) => `${entry.area} (${entry.cantidad})`} className="cursor-pointer hover:opacity-80">
                   {stats.profesionales_por_area.slice(0, 6).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => onNavigateToTab && onNavigateToTab('professionals', { provincia: selectedProvince, area_profesional: entry.area, estado_solicitud: 'Aprobado' })}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />

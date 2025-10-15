@@ -65,7 +65,7 @@ const SlideshowSettings = () => {
             .single();
 
         if (error && error.code !== 'PGRST116') { 
-            console.error("Error al cargar la configuración:", error);
+            console.error("Error al cargar la configuración:", error?.message ?? error, error);
             // Fallback en caso de error de conexión/permiso (no 'no results')
             setSettings({ duration: 5000, images: [] }); 
         } else if (data) {

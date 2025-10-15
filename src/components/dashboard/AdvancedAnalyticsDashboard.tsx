@@ -126,6 +126,8 @@ interface AdvancedAnalyticsDashboardProps {
     institucion: string;
     funcion_publica: boolean;
   }>;
+  externalOpenDetail?: { kind: "province" | "district"; name: string } | null;
+  onExternalOpenDetailHandled?: () => void;
 }
 
 const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
@@ -137,6 +139,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
   const [selectedProvince, setSelectedProvince] = useState("all");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedInstitution, setSelectedInstitution] = useState<string | null>(null);
+  const [activeTabInternal, setActiveTabInternal] = useState<string>("summary");
   const queryClient = useQueryClient();
 
   // Auto-refresh data every 30 seconds for real-time updates
@@ -172,6 +175,20 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     navigateToRenewals,
     navigateToProvince,
   } = useDashboardNavigation(onNavigateToTab || (() => {}));
+
+  // Handle external triggers to open province/district details
+  useEffect(() => {
+    if (!externalOpenDetail) return;
+    if (externalOpenDetail.kind === "province") {
+      setActiveTabInternal("geographic");
+      setSelectedProvince(externalOpenDetail.name);
+    } else if (externalOpenDetail.kind === "district") {
+      setActiveTabInternal("districts");
+      setSelectedDistrict(externalOpenDetail.name);
+    }
+    // notify parent that we've handled the external request
+    onExternalOpenDetailHandled?.();
+  }, [externalOpenDetail, onExternalOpenDetailHandled]);
 
   // Fetch all analytics data
   const { data: topCenters = [], isLoading: loadingCenters } = useTopCenters(filters as any);
@@ -446,7 +463,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
       </div>
 
       {/* Main Analytics Tabs */}
-      <Tabs defaultValue="summary" className="space-y-6">
+      <Tabs value={activeTabInternal} onValueChange={setActiveTabInternal} className="space-y-6">
         <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger
             value="summary"

@@ -20,8 +20,7 @@ import ADM2_GEOJSON from "@/data/geoBoundaries-GNQ-ADM2.json";
 import { getCleanGeoName } from "@/utils/geoUtils";
 import { useGeoDistrictStats } from "@/hooks/useGeoDistrictStats";
 
-// Simulación de estadísticas por provincia
-const useEstadisticasAvanzadas = () => ({ data: { porProvincia: { "Bioko Norte Province": 150, "Litoral Province": 80, "Annobon Province": 5, "Centro Sur Province": 40, "Kie-Ntem Province": 35, "Wele-Nzas Province": 30, "Bioko Sur Province": 15, "Djibloho Province": 10 } } });
+import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
 
 // --- TIPOS Y UTILS ---
 
@@ -139,7 +138,7 @@ const MapController = ({ level, geoData, geoJsonRef }: { level: Level, geoData: 
     return null;
 };
 
-const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: string) => void }> = ({ onNavigateToProvince }) => {
+const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: string) => void; onSelectRegion?: (name: string, level: Level) => void }> = ({ onNavigateToProvince, onSelectRegion }) => {
     const [level, setLevel] = useState<Level>("provincias");
     const [hoveredGeoKey, setHoveredGeoKey] = useState<string | null>(null);
     const [selectedGeoKey, setSelectedGeoKey] = useState<string | null>(null);
@@ -271,7 +270,12 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 const newSelectedKey = geoKey === selectedGeoKey ? null : geoKey;
                 setSelectedGeoKey(newSelectedKey);
                 const navName = getDisplayTitle(newSelectedKey, level);
-                if (navName) onNavigateToProvince?.(navName);
+                if (navName) {
+                    // backward compatibility
+                    onNavigateToProvince?.(navName);
+                    // new callback with level information
+                    onSelectRegion?.(navName, level);
+                }
             }
         });
     }, [onNavigateToProvince, selectedGeoKey, level]);

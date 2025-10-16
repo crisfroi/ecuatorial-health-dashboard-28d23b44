@@ -741,7 +741,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                                     <div className="text-sm text-gray-600">Profesionales (aprobados)</div>
                                 </div>
                                 {level === "distritos" ? (
-                                    <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('health-centers', { distrito_sanitario: selectedName })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
+                                    <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('health-centers', { distrito_sanitario: selectedQueryName })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
                                         <div className="flex items-center gap-2">
                                             <Building className="w-5 h-5 text-gray-600" />
                                             <span className="text-base font-medium">Centros</span>

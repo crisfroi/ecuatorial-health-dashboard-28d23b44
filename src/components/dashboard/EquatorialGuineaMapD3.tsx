@@ -749,7 +749,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                                         <Badge variant="default" className="bg-teal-500 hover:bg-teal-500 text-white text-md p-2">{currentCenters(selectedGeoKey)}</Badge>
                                     </div>
                                 ) : (
-                                    <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('health-centers', { provincia: selectedName })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
+                                    <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('health-centers', { provincia: selectedQueryName })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
                                         <div className="flex items-center gap-2">
                                             <Building className="w-5 h-5 text-gray-600" />
                                             <span className="text-base font-medium">Centros</span>

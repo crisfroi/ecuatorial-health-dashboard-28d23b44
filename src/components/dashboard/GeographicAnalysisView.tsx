@@ -131,7 +131,7 @@ export const GeographicAnalysisView = ({
                 {/* 2.1. ESTADÍSTICAS DE GÉNERO */}
                 {stats.estadisticas_genero.length > 0 && (
                 <Card className="shadow-lg">
-                    <CardHeader><CardTitle className="text-xl font-bold flex items-center"><female className="mr-2 h-5 w-5"/> Distribución por Género (Top 5)</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="text-xl font-bold flex items-center">{FemaleIconG ? <FemaleIconG className="mr-2 h-5 w-5" /> : null} Distribución por Género (Top 5)</CardTitle></CardHeader>
                     <CardContent>
                     {/* Usamos 'genero' como la clave para el título */}
                     {renderListWithProgress(stats.estadisticas_genero, 'genero')} 

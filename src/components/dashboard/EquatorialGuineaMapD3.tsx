@@ -289,9 +289,27 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 const provRaw = c.provincia || '';
                 const distRaw = c.distrito_sanitario || '';
                 const provKey = normalizeName(provRaw);
-                // Resolve canonical for district: if district is an absorbed shape, use parent dbName
-                const distLookup = DB_LOOKUP_MAP.get(normalizeName(distRaw));
-                const canonicalDist = distLookup ? normalizeName(distLookup.dbName) : normalizeName(distRaw);
+
+                // Resolve canonical for district robustly:
+                // 1) Try DB_LOOKUP_MAP by normalized raw value
+                // 2) Try getCanonicalDBName (applies GEO_CANONICAL_MAP rules)
+                // 3) Fallback to normalized raw
+                const rawKey = normalizeName(distRaw);
+                let canonicalDist = rawKey;
+                const distLookup = DB_LOOKUP_MAP.get(rawKey);
+                if (distLookup && distLookup.dbName) {
+                    canonicalDist = normalizeName(distLookup.dbName);
+                } else {
+                    try {
+                        // getCanonicalDBName returns canonical DB key (uses GEO_CANONICAL_MAP)
+                        const { getCanonicalDBName } = await import("@/utils/geoUtils");
+                        const cdb = getCanonicalDBName(distRaw || '');
+                        if (cdb) canonicalDist = normalizeName(cdb);
+                    } catch (err) {
+                        // ignore dynamic import issues
+                    }
+                }
+
                 provinceCounts.set(provKey, (provinceCounts.get(provKey) || 0) + 1);
                 districtCounts.set(canonicalDist, (districtCounts.get(canonicalDist) || 0) + 1);
             });

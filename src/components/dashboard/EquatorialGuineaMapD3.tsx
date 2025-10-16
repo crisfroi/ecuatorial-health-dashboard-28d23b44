@@ -703,7 +703,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="relative h-[550px] bg-gray-50 rounded-lg shadow-inner">
+                        <div className="relative h-[720px] bg-gray-50 rounded-lg shadow-inner">
                             {showLoading ? (
                                 <div className="flex items-center justify-center gap-3 text-gray-600 h-full">
                                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>

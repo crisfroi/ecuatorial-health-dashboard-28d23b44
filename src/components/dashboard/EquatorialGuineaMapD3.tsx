@@ -285,6 +285,16 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
             const centros = await buscarCentros({});
             const provinceCounts = new Map<string, number>();
             const districtCounts = new Map<string, number>();
+
+            // Prepare canonical resolver once (avoid await inside loop)
+            let getCanonicalDBName: ((n: string) => string) | null = null;
+            try {
+                const mod = await import("@/utils/geoUtils");
+                if (mod && typeof mod.getCanonicalDBName === 'function') getCanonicalDBName = mod.getCanonicalDBName as any;
+            } catch (err) {
+                // ignore
+            }
+
             (centros || []).forEach((c: any) => {
                 const provRaw = c.provincia || '';
                 const distRaw = c.distrito_sanitario || '';
@@ -299,14 +309,12 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 const distLookup = DB_LOOKUP_MAP.get(rawKey);
                 if (distLookup && distLookup.dbName) {
                     canonicalDist = normalizeName(distLookup.dbName);
-                } else {
+                } else if (getCanonicalDBName) {
                     try {
-                        // getCanonicalDBName returns canonical DB key (uses GEO_CANONICAL_MAP)
-                        const { getCanonicalDBName } = await import("@/utils/geoUtils");
                         const cdb = getCanonicalDBName(distRaw || '');
                         if (cdb) canonicalDist = normalizeName(cdb);
                     } catch (err) {
-                        // ignore dynamic import issues
+                        // ignore
                     }
                 }
 

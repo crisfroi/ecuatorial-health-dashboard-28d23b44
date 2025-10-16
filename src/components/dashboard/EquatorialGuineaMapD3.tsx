@@ -379,14 +379,16 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         const geoKey = normalizeName(raw);
         layer.on({
             mouseover: (e: any) => {
-                // Debug: log hovered key and lookup
+                // Resolve to canonical parent if this shape is absorbed
                 try {
                     const lookup = DB_LOOKUP_MAP.get(geoKey);
-                    console.debug('[Map Hover] geoKey=', geoKey, 'lookup=', lookup, 'isAbsorbed=', ABSORBED_SHAPES_SET.has(geoKey));
+                    const isAbsorbed = ABSORBED_SHAPES_SET.has(geoKey);
+                    const targetKey = lookup && isAbsorbed ? normalizeName(lookup.dbName) : geoKey;
+                    setHoveredGeoKey(targetKey);
+                    console.debug('[Map Hover] raw=', geoKey, 'resolved=', targetKey, 'lookup=', lookup, 'isAbsorbed=', isAbsorbed);
                 } catch (err) {
-                    // ignore
+                    setHoveredGeoKey(geoKey);
                 }
-                setHoveredGeoKey(geoKey);
                 e.target.setStyle({
                     weight: 3,
                     color: '#064e3b',

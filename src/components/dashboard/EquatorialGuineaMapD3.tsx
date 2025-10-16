@@ -83,23 +83,29 @@ const GEO_DB_LOOKUP_RAW: Array<{ shapeName: string; dbName: string }> = [
 ];
 
 const DB_LOOKUP_MAP = new Map<string, { dbName: string, shapeNameRaw: string }>();
+// Populate lookup with both shapeName and dbName normalized keys to ensure
+// we can find the mapping whether we receive a GeoJSON shape key or a DB name.
 GEO_DB_LOOKUP_RAW.forEach(item => {
-    DB_LOOKUP_MAP.set(normalizeName(item.shapeName), {
+    const shapeKey = normalizeName(item.shapeName);
+    const dbKey = normalizeName(item.dbName);
+    const entry = {
         dbName: item.dbName,
-        shapeNameRaw: item.shapeName
-    });
+        shapeNameRaw: item.shapeName,
+    };
+    DB_LOOKUP_MAP.set(shapeKey, entry);
+    // also map the canonical db key to the same entry so lookups by db name succeed
+    if (!DB_LOOKUP_MAP.has(dbKey)) DB_LOOKUP_MAP.set(dbKey, entry);
 });
 
-const ABSORBED_SHAPES_SET = new Set([
-    normalizeName("CORISCO"),
-    normalizeName("MACHINDA"),
-    normalizeName("BICURGA"),
-    normalizeName("BITICA"),
-    normalizeName("MONGOMOYEN"),
-    normalizeName("NKUE"),
-    normalizeName("NSOC NSOMO"),
-    normalizeName("NKIMI"),
-]);
+// Build absorbed set programmatically: any entry whose normalized shapeName differs
+// from the normalized dbName is considered an absorbed shape (it should show the
+// parent's data instead of its own).
+const ABSORBED_SHAPES_SET = new Set<string>();
+GEO_DB_LOOKUP_RAW.forEach(item => {
+    const shapeKey = normalizeName(item.shapeName);
+    const dbKey = normalizeName(item.dbName);
+    if (shapeKey && dbKey && shapeKey !== dbKey) ABSORBED_SHAPES_SET.add(shapeKey);
+});
 
 const getDisplayTitle = (geoKey: string | null, currentLevel: Level): string | null => {
     if (!geoKey) return null;

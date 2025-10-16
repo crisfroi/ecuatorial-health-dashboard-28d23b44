@@ -403,6 +403,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
             },
             mouseout: (e: any) => {
                 setHoveredGeoKey(null);
+                setHoveredRawGeoKey(null);
                 if (geoJsonRef.current) {
                     geoJsonRef.current.resetStyle(e.target);
                 }

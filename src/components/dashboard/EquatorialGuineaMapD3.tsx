@@ -686,7 +686,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                                         </div>
 
                                         <div className="flex justify-between items-center border-t pt-1 mt-1">
-                                            <span className="text-gray-600 flex items-center gap-1"><MapPin className="w-3 h-3" /> ��rea predominante:</span>
+                                            <span className="text-gray-600 flex items-center gap-1"><MapPin className="w-3 h-3" /> Área predominante:</span>
                                             <span className="font-medium">{level === 'provincias' ? (hoveredProvinceStats?.areas_mas_comunes?.[0] || '—') : '—'}</span>
                                         </div>
 
@@ -780,7 +780,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                                     </div>
                                 </div>
 
-                                <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', { provincia: selectedName, funcion_publica: true })}>
+                                <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, funcion_publica: true } : { distrito_sanitario: selectedQueryName, funcion_publica: true })}>
                                     <div className="text-sm text-gray-600">Funcionarios públicos</div>
                                     <div className="font-bold">{genderAndPublicSelected?.funcionarios ?? '—'}</div>
                                 </div>

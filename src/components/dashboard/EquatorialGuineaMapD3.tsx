@@ -498,7 +498,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
             return computeCountsFromRows(rows2 || []);
         },
-        enabled: !!activeName,
+        enabled: !!activeQueryName,
     });
 
     // Selected region filters and data

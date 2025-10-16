@@ -404,14 +404,27 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 }
             },
             click: () => {
-                const newSelectedKey = geoKey === selectedGeoKey ? null : geoKey;
-                setSelectedGeoKey(newSelectedKey);
-                const navName = getDisplayTitle(newSelectedKey, level);
-                if (navName) {
-                    // backward compatibility
-                    onNavigateToProvince?.(navName);
-                    // new callback with level information
-                    onSelectRegion?.(navName, level);
+                try {
+                    const lookup = DB_LOOKUP_MAP.get(geoKey);
+                    const isAbsorbed = ABSORBED_SHAPES_SET.has(geoKey);
+                    const canonicalKey = lookup && isAbsorbed ? normalizeName(lookup.dbName) : geoKey;
+                    const newSelectedKey = canonicalKey === selectedGeoKey ? null : canonicalKey;
+                    setSelectedGeoKey(newSelectedKey);
+                    const navName = getDisplayTitle(newSelectedKey, level);
+                    if (navName) {
+                        // backward compatibility
+                        onNavigateToProvince?.(navName);
+                        // new callback with level information
+                        onSelectRegion?.(navName, level);
+                    }
+                } catch (err) {
+                    const newSelectedKey = geoKey === selectedGeoKey ? null : geoKey;
+                    setSelectedGeoKey(newSelectedKey);
+                    const navName = getDisplayTitle(newSelectedKey, level);
+                    if (navName) {
+                        onNavigateToProvince?.(navName);
+                        onSelectRegion?.(navName, level);
+                    }
                 }
             }
         });

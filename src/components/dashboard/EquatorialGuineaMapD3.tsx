@@ -380,6 +380,22 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 if (stripped && !arr.includes(stripped)) arr.push(stripped);
                 const cleaned = getCleanGeoName(n || '');
                 if (cleaned && !arr.includes(cleaned)) arr.push(cleaned);
+
+                // Include canonical DB mapping if available (handles absorbed shapes)
+                try {
+                    const lookup = DB_LOOKUP_MAP.get(normalizeName(n));
+                    if (lookup && lookup.dbName) {
+                        const db = lookup.dbName;
+                        if (!arr.includes(db)) arr.push(db);
+                        const dbStripped = db.replace(/^Distrito Sanitario de\s*/i, "").trim();
+                        if (dbStripped && !arr.includes(dbStripped)) arr.push(dbStripped);
+                        const dbClean = getCleanGeoName(db || '');
+                        if (dbClean && !arr.includes(dbClean)) arr.push(dbClean);
+                    }
+                } catch (err) {
+                    // silent
+                }
+
                 return arr;
             };
 
@@ -447,6 +463,22 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 if (stripped && !arr.includes(stripped)) arr.push(stripped);
                 const cleaned = getCleanGeoName(n || '');
                 if (cleaned && !arr.includes(cleaned)) arr.push(cleaned);
+
+                // Include canonical DB mapping if available (handles absorbed shapes)
+                try {
+                    const lookup = DB_LOOKUP_MAP.get(normalizeName(n));
+                    if (lookup && lookup.dbName) {
+                        const db = lookup.dbName;
+                        if (!arr.includes(db)) arr.push(db);
+                        const dbStripped = db.replace(/^Distrito Sanitario de\s*/i, "").trim();
+                        if (dbStripped && !arr.includes(dbStripped)) arr.push(dbStripped);
+                        const dbClean = getCleanGeoName(db || '');
+                        if (dbClean && !arr.includes(dbClean)) arr.push(dbClean);
+                    }
+                } catch (err) {
+                    // silent
+                }
+
                 return arr;
             };
 

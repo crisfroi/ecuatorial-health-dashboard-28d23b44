@@ -810,7 +810,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="w-full bg-white rounded-lg shadow-md p-4">
                     <CardHeader>
                         <CardTitle>{selectedName ? selectedName : "Estadísticas Generales"}</CardTitle>
                     </CardHeader>

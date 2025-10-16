@@ -223,6 +223,25 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         return vals;
     }, [districtStats]);
 
+    // Preload centers per region to ensure accurate center counts
+    const { data: centersByRegion = { provinceCounts: new Map<string, number>(), districtCounts: new Map<string, number>() } } = useQuery({
+        queryKey: ['centersByRegion'],
+        queryFn: async () => {
+            const { data: centers } = await supabase.from('centros_salud').select('id, provincia, distrito_sanitario');
+            const provinceCounts = new Map<string, number>();
+            const districtCounts = new Map<string, number>();
+            (centers || []).forEach((c: any) => {
+                const provKey = normalizeName(c.provincia || '');
+                const distKey = normalizeName(c.distrito_sanitario || '');
+                provinceCounts.set(provKey, (provinceCounts.get(provKey) || 0) + 1);
+                districtCounts.set(distKey, (districtCounts.get(distKey) || 0) + 1);
+            });
+            return { provinceCounts, districtCounts };
+        },
+        staleTime: 5 * 60_000,
+        refetchOnWindowFocus: false,
+    });
+
     const { minValue, maxValue, colorScale } = useMemo(() => {
         if (!geoData?.features) return { minValue: 0, maxValue: 0, colorScale: () => "#f3f4f6" };
         const values: number[] = geoData.features.map((f: any) => {
@@ -236,6 +255,16 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         const scale = d3.scaleSequential().domain([min, safeMax]).interpolator(d3.interpolateYlGnBu);
         return { minValue: min, maxValue: max, colorScale: scale };
     }, [geoData, level, getCanonicalValue]);
+
+    // Deterministic categorical color for each region (consistent across renders)
+    const regionColor = useCallback((key: string) => {
+        const palette = ["#e11d48", "#fb923c", "#f59e0b", "#10b981", "#06b6d4", "#3b82f6", "#7c3aed", "#ef4444", "#f97316", "#a3e635"];
+        let h = 0;
+        for (let i = 0; i < key.length; i++) {
+            h = (h * 31 + key.charCodeAt(i)) >>> 0;
+        }
+        return palette[h % palette.length];
+    }, []);
 
     const style = useCallback((feature: any) => {
         const raw = feature.properties?.shapeName || "";

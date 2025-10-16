@@ -405,24 +405,35 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         queryFn: async () => {
             if (!selectedName) return null;
             const field = level === 'provincias' ? 'provincia' : 'distrito_sanitario';
-            const { count: maleCount } = await supabase
-                .from('profesionales_sanitarios')
-                .select('id', { head: true, count: 'exact' })
-                .eq('estado_solicitud', 'Aprobado')
-                .eq(field, selectedName)
-                .eq('genero', 'Masculino');
-            const { count: femaleCount } = await supabase
-                .from('profesionales_sanitarios')
-                .select('id', { head: true, count: 'exact' })
-                .eq('estado_solicitud', 'Aprobado')
-                .eq(field, selectedName)
-                .eq('genero', 'Femenino');
-            const { count: funcionariosCount } = await supabase
-                .from('profesionales_sanitarios')
-                .select('id', { head: true, count: 'exact' })
-                .eq('estado_solicitud', 'Aprobado')
-                .eq(field, selectedName)
-                .eq('funcion_publica', true);
+
+            const buildCandidates = (n: string) => {
+                const arr: string[] = [];
+                if (!n) return arr;
+                arr.push(n);
+                const stripped = n.replace(/^Distrito Sanitario de\s*/i, "").replace(/Province$/i, "").trim();
+                if (stripped && !arr.includes(stripped)) arr.push(stripped);
+                const cleaned = getCleanGeoName(n || '');
+                if (cleaned && !arr.includes(cleaned)) arr.push(cleaned);
+                return arr;
+            };
+
+            const tryCount = async (extraCond: (q: any) => any) => {
+                const candidates = buildCandidates(selectedName);
+                for (const c of candidates) {
+                    const q = extraCond(supabase.from('profesionales_sanitarios').select('id', { head: true, count: 'exact' }).eq('estado_solicitud', 'Aprobado'));
+                    const { count } = await q.eq(field, c);
+                    if (count && count > 0) return count;
+                }
+                const cleaned = getCleanGeoName(selectedName);
+                const q2 = extraCond(supabase.from('profesionales_sanitarios').select('id', { head: true, count: 'exact' }).eq('estado_solicitud', 'Aprobado'));
+                const { count: c2 } = await q2.ilike(field, `%${cleaned}%`);
+                return c2 || 0;
+            };
+
+            const maleCount = await tryCount((q) => q.eq('genero', 'Masculino'));
+            const femaleCount = await tryCount((q) => q.eq('genero', 'Femenino'));
+            const funcionariosCount = await tryCount((q) => q.eq('funcion_publica', true));
+
             return { male: maleCount || 0, female: femaleCount || 0, funcionarios: funcionariosCount || 0 };
         },
         enabled: !!selectedName,

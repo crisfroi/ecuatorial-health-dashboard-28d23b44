@@ -512,9 +512,9 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     const { data: ageRangesSelected = [] } = useWorkAgeStats(selectedFilters || undefined as any);
 
     const { data: genderAndPublicSelected = null } = useQuery({
-        queryKey: ['geoGenderPublic', level, selectedName, 'selected'],
+        queryKey: ['geoGenderPublic', level, selectedQueryName, 'selected'],
         queryFn: async () => {
-            if (!selectedName) return null;
+            if (!selectedQueryName) return null;
             const field = level === 'provincias' ? 'provincia' : 'distrito_sanitario';
 
             const buildCandidates = (n: string) => {
@@ -711,7 +711,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
                                         <div className="flex justify-between items-center border-t pt-1 mt-1">
                                             <span className="text-gray-600 flex items-center gap-1">Funcionarios públicos:</span>
-                                            <span className="font-medium">{genderAndPublic ? genderAndPublic.funcionarios : '���'}</span>
+                                            <span className="font-medium">{genderAndPublic ? genderAndPublic.funcionarios : '—'}</span>
                                         </div>
 
                                         <div className="flex justify-between items-center border-t pt-1 mt-1">

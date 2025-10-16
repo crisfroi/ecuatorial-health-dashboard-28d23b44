@@ -686,7 +686,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                                         </div>
 
                                         <div className="flex justify-between items-center border-t pt-1 mt-1">
-                                            <span className="text-gray-600 flex items-center gap-1"><MapPin className="w-3 h-3" /> Área predominante:</span>
+                                            <span className="text-gray-600 flex items-center gap-1"><MapPin className="w-3 h-3" /> ��rea predominante:</span>
                                             <span className="font-medium">{level === 'provincias' ? (hoveredProvinceStats?.areas_mas_comunes?.[0] || '—') : '—'}</span>
                                         </div>
 
@@ -774,7 +774,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                                         <div className="text-sm text-gray-600 flex items-center justify-center gap-2">{MaleIcon ? <MaleIcon className="w-4 h-4" /> : null}<span> Hombres</span></div>
                                         <div className="font-bold">{genderAndPublicSelected?.male ?? '—'}</div>
                                     </div>
-                                    <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', { provincia: selectedName, genero: 'Femenino' })}>
+                                    <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, genero: 'Femenino' } : { distrito_sanitario: selectedQueryName, genero: 'Femenino' })}>
                                         <div className="text-sm text-gray-600 flex items-center justify-center gap-2">{FemaleIcon ? <FemaleIcon className="w-4 h-4" /> : null}<span> Mujeres</span></div>
                                         <div className="font-bold">{genderAndPublicSelected?.female ?? '—'}</div>
                                     </div>

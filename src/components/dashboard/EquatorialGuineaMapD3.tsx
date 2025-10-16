@@ -466,6 +466,14 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     const activeName = getDisplayTitle(hoveredGeoKey, level);
     const selectedName = getDisplayTitle(selectedGeoKey, level);
 
+    const popupTitleDisplay = useMemo(() => {
+        if (!activeName) return null;
+        if (hoveredRawGeoKey && normalizeName(hoveredRawGeoKey) !== (hoveredGeoKey || '') ) {
+            return `${activeName} (${getShapeDisplayName(hoveredRawGeoKey)})`;
+        }
+        return activeName;
+    }, [activeName, hoveredRawGeoKey, hoveredGeoKey]);
+
     // Use canonical DB name for queries when the shape is absorbed by a parent
     const activeQueryName = useMemo(() => {
         if (!hoveredGeoKey) return null;

@@ -276,35 +276,27 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     }, [districtStats]);
 
     // Preload centers per region to ensure accurate center counts
+    const { buscarCentros } = useCentrosSalud();
+
     const { data: centersByRegion = { provinceCounts: new Map<string, number>(), districtCounts: new Map<string, number>() } } = useQuery({
         queryKey: ['centersByRegion'],
         queryFn: async () => {
-            const { data: centers } = await supabase.from('centros_salud').select('id, provincia, distrito_sanitario');
+            // Use buscarCentros hook logic so we compute center-professional counts exactly like HealthCenters
+            const centros = await buscarCentros({});
             const provinceCounts = new Map<string, number>();
             const districtCounts = new Map<string, number>();
-            (centers || []).forEach((c: any) => {
-                const provKey = normalizeName(c.provincia || '');
-                const distKey = normalizeName(c.distrito_sanitario || '');
+            (centros || []).forEach((c: any) => {
+                const provRaw = c.provincia || '';
+                const distRaw = c.distrito_sanitario || '';
+                const provKey = normalizeName(provRaw);
+                // Resolve canonical for district: if district is an absorbed shape, use parent dbName
+                const distLookup = DB_LOOKUP_MAP.get(normalizeName(distRaw));
+                const canonicalDist = distLookup ? normalizeName(distLookup.dbName) : normalizeName(distRaw);
                 provinceCounts.set(provKey, (provinceCounts.get(provKey) || 0) + 1);
-                districtCounts.set(distKey, (districtCounts.get(distKey) || 0) + 1);
+                districtCounts.set(canonicalDist, (districtCounts.get(canonicalDist) || 0) + 1);
             });
 
-            // Aggregate counts into canonical DB keys so map lookups are consistent
-            const aggregatedProvinceCounts = new Map<string, number>();
-            provinceCounts.forEach((count, key) => {
-                const lookup = DB_LOOKUP_MAP.get(key);
-                const canonical = lookup ? normalizeName(lookup.dbName) : key;
-                aggregatedProvinceCounts.set(canonical, (aggregatedProvinceCounts.get(canonical) || 0) + count);
-            });
-
-            const aggregatedDistrictCounts = new Map<string, number>();
-            districtCounts.forEach((count, key) => {
-                const lookup = DB_LOOKUP_MAP.get(key);
-                const canonical = lookup ? normalizeName(lookup.dbName) : key;
-                aggregatedDistrictCounts.set(canonical, (aggregatedDistrictCounts.get(canonical) || 0) + count);
-            });
-
-            return { provinceCounts: aggregatedProvinceCounts, districtCounts: aggregatedDistrictCounts };
+            return { provinceCounts, districtCounts };
         },
         staleTime: 5 * 60_000,
         refetchOnWindowFocus: false,

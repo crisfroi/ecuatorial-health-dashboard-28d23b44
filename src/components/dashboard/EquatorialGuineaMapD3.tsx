@@ -272,7 +272,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         const value = getCanonicalValue(key, level);
         const isSelected = key === selectedGeoKey;
         return {
-            fillColor: value > 0 ? colorScale(value) : "#f3f4f6",
+            fillColor: value > 0 ? colorScale(value) : regionColor(key),
             weight: isSelected ? 4 : 1.5,
             opacity: 1,
             color: isSelected ? '#a80000' : '#134e4a',

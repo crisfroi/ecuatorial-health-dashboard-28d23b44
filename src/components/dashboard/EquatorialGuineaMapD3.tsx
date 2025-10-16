@@ -201,18 +201,67 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         return vals;
     }, [districtStats]);
 
+    // Build a canonical grouping map so that all shape variants that belong to
+    // the same DB canonical name are summed together when showing values on the map.
+    const canonicalGroups = useMemo(() => {
+        const map = new Map<string, Set<string>>();
+        // Ensure canonical includes itself
+        DB_LOOKUP_MAP.forEach(({ dbName }, shapeKey) => {
+            const canonical = normalizeName(dbName || '');
+            if (!map.has(canonical)) map.set(canonical, new Set([canonical]));
+            map.get(canonical)!.add(shapeKey);
+        });
+        // Also include any provinces/districts present in the source geo that may not be in DB_LOOKUP_MAP
+        try {
+            const allShapeKeys = new Set<string>();
+            const addShape = (s: any) => {
+                const raw = s?.properties?.shapeName || '';
+                const key = normalizeName(raw);
+                if (key) allShapeKeys.add(key);
+            };
+            if (ADM1_GEOJSON && (ADM1_GEOJSON as any).features) (ADM1_GEOJSON as any).features.forEach(addShape);
+            if (ADM2_GEOJSON && (ADM2_GEOJSON as any).features) (ADM2_GEOJSON as any).features.forEach(addShape);
+            allShapeKeys.forEach(k => {
+                if (!Array.from(map.values()).some(set => set.has(k))) {
+                    // If this shape isn't part of any canonical group, make it its own canonical
+                    if (!map.has(k)) map.set(k, new Set([k]));
+                }
+            });
+        } catch (err) {
+            // ignore
+        }
+        // Convert Set to array for easier iteration
+        const result = new Map<string, string[]>();
+        map.forEach((set, k) => result.set(k, Array.from(set)));
+        return result;
+    }, []);
+
     const getCanonicalValue = useCallback((geoKey: string, level: Level): number => {
         const currentValues = level === "provincias" ? provinciaValues : distritoValues;
-        if (currentValues.has(geoKey)) {
-            return currentValues.get(geoKey) ?? 0;
+        // If we have a grouping for this geoKey (either as canonical or as member), sum all values
+        const key = geoKey;
+        // Find canonical group that contains this key
+        for (const [canonical, members] of canonicalGroups.entries()) {
+            if (members.includes(key) || canonical === key) {
+                // sum values for all members
+                let sum = 0;
+                for (const m of members) {
+                    sum += currentValues.get(m) ?? 0;
+                }
+                // also include canonical's own value if present
+                sum += currentValues.get(canonical) ?? 0;
+                return sum;
+            }
         }
-        const lookup = DB_LOOKUP_MAP.get(geoKey);
+        // fallback: direct lookup
+        if (currentValues.has(key)) return currentValues.get(key) ?? 0;
+        const lookup = DB_LOOKUP_MAP.get(key);
         if (lookup) {
             const canonicalDbKey = normalizeName(lookup.dbName);
             return currentValues.get(canonicalDbKey) ?? 0;
         }
         return 0;
-    }, [provinciaValues, distritoValues]);
+    }, [provinciaValues, distritoValues, canonicalGroups]);
 
     const distritoCenters = useMemo(() => {
         const vals = new Map<string, number>();

@@ -501,12 +501,12 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         enabled: !!activeQueryName,
     });
 
-    // Selected region filters and data
+    // Selected region filters and data — use canonical selectedQueryName for queries
     const selectedFilters = useMemo(() => {
-        if (!selectedName) return null;
-        if (level === 'provincias') return { provincia: selectedName } as any;
-        return { distrito_sanitario: selectedName } as any;
-    }, [selectedName, level]);
+        if (!selectedQueryName) return null;
+        if (level === 'provincias') return { provincia: selectedQueryName } as any;
+        return { distrito_sanitario: selectedQueryName } as any;
+    }, [selectedQueryName, level]);
 
     const { data: titulacionSelected = [] } = useTitulacionCategoryStats(selectedFilters || undefined as any);
     const { data: ageRangesSelected = [] } = useWorkAgeStats(selectedFilters || undefined as any);
@@ -711,7 +711,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
                                         <div className="flex justify-between items-center border-t pt-1 mt-1">
                                             <span className="text-gray-600 flex items-center gap-1">Funcionarios públicos:</span>
-                                            <span className="font-medium">{genderAndPublic ? genderAndPublic.funcionarios : '—'}</span>
+                                            <span className="font-medium">{genderAndPublic ? genderAndPublic.funcionarios : '���'}</span>
                                         </div>
 
                                         <div className="flex justify-between items-center border-t pt-1 mt-1">

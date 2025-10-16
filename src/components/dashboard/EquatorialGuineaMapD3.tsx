@@ -288,22 +288,22 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 districtCounts.set(distKey, (districtCounts.get(distKey) || 0) + 1);
             });
 
-            // Aggregate counts for absorbed shapes into their canonical DB names so
-            // the map (which may render an absorbed shape) can find the correct totals.
-            DB_LOOKUP_MAP.forEach(({ dbName }, shapeKey) => {
-                const canonical = normalizeName(dbName || '');
-                // If an absorbed shape contributed counts, add them to the canonical dbName key
-                const shapeProvCount = provinceCounts.get(shapeKey) || 0;
-                if (shapeProvCount > 0) {
-                    provinceCounts.set(canonical, (provinceCounts.get(canonical) || 0) + shapeProvCount);
-                }
-                const shapeDistCount = districtCounts.get(shapeKey) || 0;
-                if (shapeDistCount > 0) {
-                    districtCounts.set(canonical, (districtCounts.get(canonical) || 0) + shapeDistCount);
-                }
+            // Aggregate counts into canonical DB keys so map lookups are consistent
+            const aggregatedProvinceCounts = new Map<string, number>();
+            provinceCounts.forEach((count, key) => {
+                const lookup = DB_LOOKUP_MAP.get(key);
+                const canonical = lookup ? normalizeName(lookup.dbName) : key;
+                aggregatedProvinceCounts.set(canonical, (aggregatedProvinceCounts.get(canonical) || 0) + count);
             });
 
-            return { provinceCounts, districtCounts };
+            const aggregatedDistrictCounts = new Map<string, number>();
+            districtCounts.forEach((count, key) => {
+                const lookup = DB_LOOKUP_MAP.get(key);
+                const canonical = lookup ? normalizeName(lookup.dbName) : key;
+                aggregatedDistrictCounts.set(canonical, (aggregatedDistrictCounts.get(canonical) || 0) + count);
+            });
+
+            return { provinceCounts: aggregatedProvinceCounts, districtCounts: aggregatedDistrictCounts };
         },
         staleTime: 5 * 60_000,
         refetchOnWindowFocus: false,

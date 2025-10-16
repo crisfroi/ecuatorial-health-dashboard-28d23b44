@@ -238,19 +238,15 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
     const getCanonicalValue = useCallback((geoKey: string, level: Level): number => {
         const currentValues = level === "provincias" ? provinciaValues : distritoValues;
-        // If we have a grouping for this geoKey (either as canonical or as member), sum all values
         const key = geoKey;
-        // Find canonical group that contains this key
+        // If key is part of a canonical group, use the canonical parent's value (do not sum)
         for (const [canonical, members] of canonicalGroups.entries()) {
-            if (members.includes(key) || canonical === key) {
-                // sum values for all members
-                let sum = 0;
-                for (const m of members) {
-                    sum += currentValues.get(m) ?? 0;
-                }
-                // also include canonical's own value if present
-                sum += currentValues.get(canonical) ?? 0;
-                return sum;
+            if (canonical === key) {
+                return currentValues.get(canonical) ?? 0;
+            }
+            if (members.includes(key)) {
+                // this is an absorbed shape -> return the canonical parent's value
+                return currentValues.get(canonical) ?? 0;
             }
         }
         // fallback: direct lookup

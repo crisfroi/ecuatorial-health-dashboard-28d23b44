@@ -387,9 +387,11 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                     const isAbsorbed = ABSORBED_SHAPES_SET.has(geoKey);
                     const targetKey = lookup && isAbsorbed ? normalizeName(lookup.dbName) : geoKey;
                     setHoveredGeoKey(targetKey);
+                    setHoveredRawGeoKey(geoKey);
                     console.debug('[Map Hover] raw=', geoKey, 'resolved=', targetKey, 'lookup=', lookup, 'isAbsorbed=', isAbsorbed);
                 } catch (err) {
                     setHoveredGeoKey(geoKey);
+                    setHoveredRawGeoKey(geoKey);
                 }
                 e.target.setStyle({
                     weight: 3,

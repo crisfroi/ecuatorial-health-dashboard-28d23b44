@@ -367,25 +367,42 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 return arr;
             };
 
-            const tryCount = async (extraCond: (q: any) => any) => {
-                const candidates = buildCandidates(activeName);
-                for (const c of candidates) {
-                    const q = extraCond(supabase.from('profesionales_sanitarios').select('id', { head: true, count: 'exact' }).eq('estado_solicitud', 'Aprobado'));
-                    const { count } = await q.eq(field, c);
-                    if (count && count > 0) return count;
+            const computeCountsFromRows = (rows: any[] | null) => {
+                if (!rows || rows.length === 0) return { male: 0, female: 0, funcionarios: 0 };
+                let male = 0;
+                let female = 0;
+                let funcionarios = 0;
+                for (const r of rows) {
+                    const g = (r.genero || '').toString().toLowerCase();
+                    if (g === 'masculino' || g === 'm' || g === 'male') male++;
+                    if (g === 'femenino' || g === 'f' || g === 'female') female++;
+                    if (r.funcion_publica === true || r.funcion_publica === 't' || r.funcion_publica === 1) funcionarios++;
                 }
-                // fallback to ilike with cleaned key
-                const cleaned = getCleanGeoName(activeName);
-                const q2 = extraCond(supabase.from('profesionales_sanitarios').select('id', { head: true, count: 'exact' }).eq('estado_solicitud', 'Aprobado'));
-                const { count: c2 } = await q2.ilike(field, `%${cleaned}%`);
-                return c2 || 0;
+                return { male, female, funcionarios };
             };
 
-            const maleCount = await tryCount((q) => q.eq('genero', 'Masculino'));
-            const femaleCount = await tryCount((q) => q.eq('genero', 'Femenino'));
-            const funcionariosCount = await tryCount((q) => q.eq('funcion_publica', true));
+            const candidates = buildCandidates(activeName);
+            // Try exact equals for candidates first
+            for (const c of candidates) {
+                const { data: rows, error } = await supabase
+                    .from('profesionales_sanitarios')
+                    .select('genero, funcion_publica')
+                    .eq('estado_solicitud', 'Aprobado')
+                    .eq(field, c);
+                if (!error && rows && rows.length > 0) {
+                    return computeCountsFromRows(rows);
+                }
+            }
 
-            return { male: maleCount || 0, female: femaleCount || 0, funcionarios: funcionariosCount || 0 };
+            // Fallback: ilike on cleaned name
+            const cleaned = getCleanGeoName(activeName);
+            const { data: rows2 } = await supabase
+                .from('profesionales_sanitarios')
+                .select('genero, funcion_publica')
+                .eq('estado_solicitud', 'Aprobado')
+                .ilike(field, `%${cleaned}%`);
+
+            return computeCountsFromRows(rows2 || []);
         },
         enabled: !!activeName,
     });
@@ -417,24 +434,40 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 return arr;
             };
 
-            const tryCount = async (extraCond: (q: any) => any) => {
-                const candidates = buildCandidates(selectedName);
-                for (const c of candidates) {
-                    const q = extraCond(supabase.from('profesionales_sanitarios').select('id', { head: true, count: 'exact' }).eq('estado_solicitud', 'Aprobado'));
-                    const { count } = await q.eq(field, c);
-                    if (count && count > 0) return count;
+            const computeCountsFromRows = (rows: any[] | null) => {
+                if (!rows || rows.length === 0) return { male: 0, female: 0, funcionarios: 0 };
+                let male = 0;
+                let female = 0;
+                let funcionarios = 0;
+                for (const r of rows) {
+                    const g = (r.genero || '').toString().toLowerCase();
+                    if (g === 'masculino' || g === 'm' || g === 'male') male++;
+                    if (g === 'femenino' || g === 'f' || g === 'female') female++;
+                    if (r.funcion_publica === true || r.funcion_publica === 't' || r.funcion_publica === 1) funcionarios++;
                 }
-                const cleaned = getCleanGeoName(selectedName);
-                const q2 = extraCond(supabase.from('profesionales_sanitarios').select('id', { head: true, count: 'exact' }).eq('estado_solicitud', 'Aprobado'));
-                const { count: c2 } = await q2.ilike(field, `%${cleaned}%`);
-                return c2 || 0;
+                return { male, female, funcionarios };
             };
 
-            const maleCount = await tryCount((q) => q.eq('genero', 'Masculino'));
-            const femaleCount = await tryCount((q) => q.eq('genero', 'Femenino'));
-            const funcionariosCount = await tryCount((q) => q.eq('funcion_publica', true));
+            const candidates = buildCandidates(selectedName);
+            for (const c of candidates) {
+                const { data: rows, error } = await supabase
+                    .from('profesionales_sanitarios')
+                    .select('genero, funcion_publica')
+                    .eq('estado_solicitud', 'Aprobado')
+                    .eq(field, c);
+                if (!error && rows && rows.length > 0) {
+                    return computeCountsFromRows(rows);
+                }
+            }
 
-            return { male: maleCount || 0, female: femaleCount || 0, funcionarios: funcionariosCount || 0 };
+            const cleaned = getCleanGeoName(selectedName);
+            const { data: rows2 } = await supabase
+                .from('profesionales_sanitarios')
+                .select('genero, funcion_publica')
+                .eq('estado_solicitud', 'Aprobado')
+                .ilike(field, `%${cleaned}%`);
+
+            return computeCountsFromRows(rows2 || []);
         },
         enabled: !!selectedName,
     });

@@ -695,8 +695,8 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2">
+            <div className="grid grid-cols-1 gap-6">
+                <Card className="w-full">
                     <CardHeader>
                         <CardTitle>
                             {level === "provincias" ? "Profesionales por Provincia" : "Profesionales por Distrito Sanitario"}

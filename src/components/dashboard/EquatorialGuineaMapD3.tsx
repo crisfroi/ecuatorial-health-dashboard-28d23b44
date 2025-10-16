@@ -758,7 +758,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                                     </div>
                                 )}
 
-                                <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('professionals', { provincia: selectedName, area_profesional: hoveredProvinceStats?.areas_mas_comunes?.[0] })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
+                                <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, area_profesional: hoveredProvinceStats?.areas_mas_comunes?.[0] } : { distrito_sanitario: selectedQueryName, area_profesional: hoveredProvinceStats?.areas_mas_comunes?.[0] })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
                                     <div className="flex items-center gap-2">
                                         <Users className="w-5 h-5 text-gray-600" />
                                         <span className="text-base font-medium">Área predominante</span>

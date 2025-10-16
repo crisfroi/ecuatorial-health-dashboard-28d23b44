@@ -154,6 +154,8 @@ const MapController = ({ level, geoData, geoJsonRef }: { level: Level, geoData: 
 const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: string) => void; onSelectRegion?: (name: string, level: Level) => void; onNavigateToTab?: (tab: string, filters?: any) => void; }> = ({ onNavigateToProvince, onSelectRegion, onNavigateToTab }) => {
     const [level, setLevel] = useState<Level>("provincias");
     const [hoveredGeoKey, setHoveredGeoKey] = useState<string | null>(null);
+    // raw polygon key (shapeName) for identification in popup
+    const [hoveredRawGeoKey, setHoveredRawGeoKey] = useState<string | null>(null);
     const [selectedGeoKey, setSelectedGeoKey] = useState<string | null>(null);
     const geoJsonRef = useRef<any>(null);
 

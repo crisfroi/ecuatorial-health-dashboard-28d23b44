@@ -579,7 +579,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
             return computeCountsFromRows(rows2 || []);
         },
-        enabled: !!selectedName,
+        enabled: !!selectedQueryName,
     });
 
     const showLoading = level === "distritos" && districtsLoading;

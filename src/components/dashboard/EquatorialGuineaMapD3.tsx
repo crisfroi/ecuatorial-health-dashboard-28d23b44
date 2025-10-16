@@ -788,8 +788,8 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
                                 <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => {
                                     // Open analytics detail view via onSelectRegion if available, otherwise fall back
-                                    if (onSelectRegion) onSelectRegion(selectedName || '', level);
-                                    else onNavigateToProvince?.(selectedName || '');
+                                    if (onSelectRegion) onSelectRegion(selectedQueryName || '', level);
+                                    else onNavigateToProvince?.(selectedQueryName || '');
                                 }}>
                                     <Eye className="w-4 h-4 mr-2" /> Ver detalles de {selectedName}
                                 </Button>

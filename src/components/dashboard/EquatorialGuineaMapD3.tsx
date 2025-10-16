@@ -736,7 +736,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                     <CardContent>
                         {selectedGeoKey ? (
                             <div className="space-y-4">
-                                <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('professionals', { provincia: selectedName, estado_solicitud: 'Aprobado' })} className="text-center p-4 bg-teal-50 rounded-lg cursor-pointer hover:shadow">
+                                <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, estado_solicitud: 'Aprobado' } : { distrito_sanitario: selectedQueryName, estado_solicitud: 'Aprobado' })} className="text-center p-4 bg-teal-50 rounded-lg cursor-pointer hover:shadow">
                                     <div className="text-3xl font-bold text-teal-600">{currentValue(selectedGeoKey)}</div>
                                     <div className="text-sm text-gray-600">Profesionales (aprobados)</div>
                                 </div>

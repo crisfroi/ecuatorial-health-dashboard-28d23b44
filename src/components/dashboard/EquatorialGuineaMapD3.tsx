@@ -718,7 +718,8 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                                     <div className="mt-3">
                                         <Button size="sm" className="w-full bg-teal-600 hover:bg-teal-700 pointer-events-auto" onClick={() => {
                                             const navName = getDisplayTitle(hoveredGeoKey, level);
-                                            if (navName) onNavigateToProvince?.(navName);
+                                            if (activeQueryName) onNavigateToProvince?.(activeQueryName);
+                                            else if (navName) onNavigateToProvince?.(navName);
                                         }}>
                                             <Eye className="w-4 h-4 mr-1" /> Ver Detalles
                                         </Button>

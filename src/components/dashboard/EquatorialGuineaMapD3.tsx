@@ -632,11 +632,11 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', { provincia: selectedName, genero: 'Masculino' })}>
-                                        <div className="text-sm text-gray-600 flex items-center justify-center gap-2"><Male className="w-4 h-4" />Hombres</div>
+                                        <div className="text-sm text-gray-600 flex items-center justify-center gap-2">{MaleIcon ? <MaleIcon className="w-4 h-4" /> : null}<span> Hombres</span></div>
                                         <div className="font-bold">{genderAndPublicSelected?.male ?? '—'}</div>
                                     </div>
                                     <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', { provincia: selectedName, genero: 'Femenino' })}>
-                                        <div className="text-sm text-gray-600 flex items-center justify-center gap-2"><Female className="w-4 h-4" />Mujeres</div>
+                                        <div className="text-sm text-gray-600 flex items-center justify-center gap-2">{FemaleIcon ? <FemaleIcon className="w-4 h-4" /> : null}<span> Mujeres</span></div>
                                         <div className="font-bold">{genderAndPublicSelected?.female ?? '—'}</div>
                                     </div>
                                 </div>

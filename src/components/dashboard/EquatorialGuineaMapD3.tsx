@@ -558,7 +558,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 return { male, female, funcionarios };
             };
 
-            const candidates = buildCandidates(selectedName);
+            const candidates = buildCandidates(selectedQueryName);
             for (const c of candidates) {
                 const { data: rows, error } = await supabase
                     .from('profesionales_sanitarios')
@@ -570,7 +570,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 }
             }
 
-            const cleaned = getCleanGeoName(selectedName);
+            const cleaned = getCleanGeoName(selectedQueryName);
             const { data: rows2 } = await supabase
                 .from('profesionales_sanitarios')
                 .select('genero, funcion_publica')

@@ -11,7 +11,10 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, Building, Eye, Map as MapIcon } from "lucide-react";
+import * as LucideIcons from "lucide-react";
+const MaleIcon = (LucideIcons as any).Male || (LucideIcons as any).GenderMale || (LucideIcons as any).Man || (LucideIcons as any).User || null;
+const FemaleIcon = (LucideIcons as any).Female || (LucideIcons as any).GenderFemale || (LucideIcons as any).Woman || (LucideIcons as any).User || null;
+const { MapPin, Users, Building, Eye, Map: MapIcon } = LucideIcons;
 import "leaflet/dist/leaflet.css";
 
 // PASO 1: IMPORTAR UTILIDADES Y HOOK DE DATOS
@@ -19,9 +22,12 @@ import ADM1_GEOJSON from "@/data/geoBoundaries-GNQ-ADM1.json";
 import ADM2_GEOJSON from "@/data/geoBoundaries-GNQ-ADM2.json";
 import { getCleanGeoName } from "@/utils/geoUtils";
 import { useGeoDistrictStats } from "@/hooks/useGeoDistrictStats";
+import { useProvinceStats, useDistrictStats, useTitulacionCategoryStats, useWorkAgeStats } from "@/hooks/useAdvancedAnalytics";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-// Simulación de estadísticas por provincia
-const useEstadisticasAvanzadas = () => ({ data: { porProvincia: { "Bioko Norte Province": 150, "Litoral Province": 80, "Annobon Province": 5, "Centro Sur Province": 40, "Kie-Ntem Province": 35, "Wele-Nzas Province": 30, "Bioko Sur Province": 15, "Djibloho Province": 10 } } });
+import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
+import { useCentrosSalud } from "@/hooks/useCentrosSalud";
 
 // --- TIPOS Y UTILS ---
 
@@ -78,23 +84,29 @@ const GEO_DB_LOOKUP_RAW: Array<{ shapeName: string; dbName: string }> = [
 ];
 
 const DB_LOOKUP_MAP = new Map<string, { dbName: string, shapeNameRaw: string }>();
+// Populate lookup with both shapeName and dbName normalized keys to ensure
+// we can find the mapping whether we receive a GeoJSON shape key or a DB name.
 GEO_DB_LOOKUP_RAW.forEach(item => {
-    DB_LOOKUP_MAP.set(normalizeName(item.shapeName), {
+    const shapeKey = normalizeName(item.shapeName);
+    const dbKey = normalizeName(item.dbName);
+    const entry = {
         dbName: item.dbName,
-        shapeNameRaw: item.shapeName
-    });
+        shapeNameRaw: item.shapeName,
+    };
+    DB_LOOKUP_MAP.set(shapeKey, entry);
+    // also map the canonical db key to the same entry so lookups by db name succeed
+    if (!DB_LOOKUP_MAP.has(dbKey)) DB_LOOKUP_MAP.set(dbKey, entry);
 });
 
-const ABSORBED_SHAPES_SET = new Set([
-    normalizeName("CORISCO"),
-    normalizeName("MACHINDA"),
-    normalizeName("BICURGA"),
-    normalizeName("BITICA"),
-    normalizeName("MONGOMOYEN"),
-    normalizeName("NKUE"),
-    normalizeName("NSOC NSOMO"),
-    normalizeName("NKIMI"),
-]);
+// Build absorbed set programmatically: any entry whose normalized shapeName differs
+// from the normalized dbName is considered an absorbed shape (it should show the
+// parent's data instead of its own).
+const ABSORBED_SHAPES_SET = new Set<string>();
+GEO_DB_LOOKUP_RAW.forEach(item => {
+    const shapeKey = normalizeName(item.shapeName);
+    const dbKey = normalizeName(item.dbName);
+    if (shapeKey && dbKey && shapeKey !== dbKey) ABSORBED_SHAPES_SET.add(shapeKey);
+});
 
 const getDisplayTitle = (geoKey: string | null, currentLevel: Level): string | null => {
     if (!geoKey) return null;
@@ -139,9 +151,11 @@ const MapController = ({ level, geoData, geoJsonRef }: { level: Level, geoData: 
     return null;
 };
 
-const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: string) => void }> = ({ onNavigateToProvince }) => {
+const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: string) => void; onSelectRegion?: (name: string, level: Level) => void; onNavigateToTab?: (tab: string, filters?: any) => void; }> = ({ onNavigateToProvince, onSelectRegion, onNavigateToTab }) => {
     const [level, setLevel] = useState<Level>("provincias");
     const [hoveredGeoKey, setHoveredGeoKey] = useState<string | null>(null);
+    // raw polygon key (shapeName) for identification in popup
+    const [hoveredRawGeoKey, setHoveredRawGeoKey] = useState<string | null>(null);
     const [selectedGeoKey, setSelectedGeoKey] = useState<string | null>(null);
     const geoJsonRef = useRef<any>(null);
 
@@ -196,18 +210,63 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         return vals;
     }, [districtStats]);
 
+    // Build a canonical grouping map so that all shape variants that belong to
+    // the same DB canonical name are summed together when showing values on the map.
+    const canonicalGroups = useMemo(() => {
+        const map = new Map<string, Set<string>>();
+        // Ensure canonical includes itself
+        DB_LOOKUP_MAP.forEach(({ dbName }, shapeKey) => {
+            const canonical = normalizeName(dbName || '');
+            if (!map.has(canonical)) map.set(canonical, new Set([canonical]));
+            map.get(canonical)!.add(shapeKey);
+        });
+        // Also include any provinces/districts present in the source geo that may not be in DB_LOOKUP_MAP
+        try {
+            const allShapeKeys = new Set<string>();
+            const addShape = (s: any) => {
+                const raw = s?.properties?.shapeName || '';
+                const key = normalizeName(raw);
+                if (key) allShapeKeys.add(key);
+            };
+            if (ADM1_GEOJSON && (ADM1_GEOJSON as any).features) (ADM1_GEOJSON as any).features.forEach(addShape);
+            if (ADM2_GEOJSON && (ADM2_GEOJSON as any).features) (ADM2_GEOJSON as any).features.forEach(addShape);
+            allShapeKeys.forEach(k => {
+                if (!Array.from(map.values()).some(set => set.has(k))) {
+                    // If this shape isn't part of any canonical group, make it its own canonical
+                    if (!map.has(k)) map.set(k, new Set([k]));
+                }
+            });
+        } catch (err) {
+            // ignore
+        }
+        // Convert Set to array for easier iteration
+        const result = new Map<string, string[]>();
+        map.forEach((set, k) => result.set(k, Array.from(set)));
+        return result;
+    }, []);
+
     const getCanonicalValue = useCallback((geoKey: string, level: Level): number => {
         const currentValues = level === "provincias" ? provinciaValues : distritoValues;
-        if (currentValues.has(geoKey)) {
-            return currentValues.get(geoKey) ?? 0;
+        const key = geoKey;
+        // If key is part of a canonical group, use the canonical parent's value (do not sum)
+        for (const [canonical, members] of canonicalGroups.entries()) {
+            if (canonical === key) {
+                return currentValues.get(canonical) ?? 0;
+            }
+            if (members.includes(key)) {
+                // this is an absorbed shape -> return the canonical parent's value
+                return currentValues.get(canonical) ?? 0;
+            }
         }
-        const lookup = DB_LOOKUP_MAP.get(geoKey);
+        // fallback: direct lookup
+        if (currentValues.has(key)) return currentValues.get(key) ?? 0;
+        const lookup = DB_LOOKUP_MAP.get(key);
         if (lookup) {
             const canonicalDbKey = normalizeName(lookup.dbName);
             return currentValues.get(canonicalDbKey) ?? 0;
         }
         return 0;
-    }, [provinciaValues, distritoValues]);
+    }, [provinciaValues, distritoValues, canonicalGroups]);
 
     const distritoCenters = useMemo(() => {
         const vals = new Map<string, number>();
@@ -217,6 +276,66 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         }
         return vals;
     }, [districtStats]);
+
+    // Preload centers per region to ensure accurate center counts
+    const { buscarCentros } = useCentrosSalud();
+
+    const { data: centersByRegion = { provinceCounts: new Map<string, number>(), districtCounts: new Map<string, number>() } } = useQuery({
+        queryKey: ['centersByRegion'],
+        queryFn: async () => {
+            // Use buscarCentros hook logic so we compute center-professional counts exactly like HealthCenters
+            const centros = await buscarCentros({});
+            const provinceCounts = new Map<string, number>();
+            const districtCounts = new Map<string, number>();
+
+            // Prepare canonical resolver once (avoid await inside loop)
+            let getCanonicalDBName: ((n: string) => string) | null = null;
+            try {
+                const mod = await import("@/utils/geoUtils");
+                if (mod && typeof mod.getCanonicalDBName === 'function') getCanonicalDBName = mod.getCanonicalDBName as any;
+            } catch (err) {
+                // ignore
+            }
+
+            (centros || []).forEach((c: any) => {
+                const provRaw = c.provincia || '';
+                const distRaw = c.distrito_sanitario || '';
+                const provKey = normalizeName(provRaw);
+
+                // Resolve canonical for district robustly:
+                // 1) Try DB_LOOKUP_MAP by normalized raw value
+                // 2) Try getCanonicalDBName (applies GEO_CANONICAL_MAP rules)
+                // 3) Fallback to normalized raw
+                const rawKey = normalizeName(distRaw);
+                let canonicalDist = rawKey;
+                const distLookup = DB_LOOKUP_MAP.get(rawKey);
+                if (distLookup && distLookup.dbName) {
+                    canonicalDist = normalizeName(distLookup.dbName);
+                } else if (getCanonicalDBName) {
+                    try {
+                        const cdb = getCanonicalDBName(distRaw || '');
+                        if (cdb) canonicalDist = normalizeName(cdb);
+                    } catch (err) {
+                        // ignore
+                    }
+                }
+
+                // Debugging: log mapping decisions for problematic districts
+                try {
+                    if (['corisco','bicurga','nkue','bitica','ayene'].includes(rawKey)) {
+                        console.debug('[CentersByRegion] raw=', distRaw, 'rawKey=', rawKey, 'distLookup=', distLookup, 'canonicalDist=', canonicalDist);
+                    }
+                } catch (err) {}
+
+                provinceCounts.set(provKey, (provinceCounts.get(provKey) || 0) + 1);
+                districtCounts.set(canonicalDist, (districtCounts.get(canonicalDist) || 0) + 1);
+            });
+
+            return { provinceCounts, districtCounts };
+        },
+        staleTime: 5 * 60_000,
+        refetchOnWindowFocus: false,
+    });
 
     const { minValue, maxValue, colorScale } = useMemo(() => {
         if (!geoData?.features) return { minValue: 0, maxValue: 0, colorScale: () => "#f3f4f6" };
@@ -232,27 +351,61 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         return { minValue: min, maxValue: max, colorScale: scale };
     }, [geoData, level, getCanonicalValue]);
 
+    // Build deterministic, well-contrasted canonical color map so that all members
+    // of a canonical group share the same color and different canonicals are well-separated.
+    const canonicalColorMap = useMemo(() => {
+        const keys = Array.from(canonicalGroups.keys()).sort();
+        const map = new Map<string, string>();
+        if (keys.length === 0) return map;
+        keys.forEach((canonical, idx) => {
+            const hue = Math.round((idx * 360) / keys.length);
+            const color = `hsl(${hue} 72% 45%)`;
+            map.set(canonical, color);
+        });
+        return map;
+    }, [canonicalGroups]);
+
+    const regionColor = useCallback((key: string) => {
+        const lookup = DB_LOOKUP_MAP.get(key);
+        const canonical = lookup ? normalizeName(lookup.dbName) : key;
+        return canonicalColorMap.get(canonical) || '#e5e7eb';
+    }, [canonicalColorMap]);
+
     const style = useCallback((feature: any) => {
         const raw = feature.properties?.shapeName || "";
         const key = normalizeName(raw);
         const value = getCanonicalValue(key, level);
         const isSelected = key === selectedGeoKey;
+        const lookup = DB_LOOKUP_MAP.get(key);
+        const canonical = lookup ? normalizeName(lookup.dbName) : key;
+        const fill = canonicalColorMap.get(canonical) || (value > 0 ? colorScale(value) : '#f3f4f6');
         return {
-            fillColor: value > 0 ? colorScale(value) : "#f3f4f6",
+            fillColor: fill,
             weight: isSelected ? 4 : 1.5,
             opacity: 1,
             color: isSelected ? '#a80000' : '#134e4a',
             dashArray: isSelected ? '' : '3',
-            fillOpacity: isSelected ? 0.9 : 0.7
+            fillOpacity: isSelected ? 0.9 : 0.85
         };
-    }, [level, colorScale, selectedGeoKey, getCanonicalValue]);
+    }, [level, colorScale, selectedGeoKey, getCanonicalValue, canonicalColorMap]);
 
     const onEachFeature = useCallback((feature: any, layer: any) => {
         const raw = feature.properties?.shapeName || "";
         const geoKey = normalizeName(raw);
         layer.on({
             mouseover: (e: any) => {
-                setHoveredGeoKey(geoKey);
+                // Resolve to canonical parent if this shape is absorbed
+                try {
+                    const lookup = DB_LOOKUP_MAP.get(geoKey);
+                    const isAbsorbed = ABSORBED_SHAPES_SET.has(geoKey);
+                    const targetKey = lookup && isAbsorbed ? normalizeName(lookup.dbName) : geoKey;
+                    setHoveredGeoKey(targetKey);
+                    setHoveredRawGeoKey(geoKey);
+                    console.debug('[Map Hover] raw=', geoKey, 'resolved=', targetKey, 'lookup=', lookup, 'isAbsorbed=', isAbsorbed);
+                } catch (err) {
+                    setHoveredGeoKey(geoKey);
+                    setHoveredRawGeoKey(geoKey);
+                }
                 e.target.setStyle({
                     weight: 3,
                     color: '#064e3b',
@@ -263,15 +416,34 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
             },
             mouseout: (e: any) => {
                 setHoveredGeoKey(null);
+                setHoveredRawGeoKey(null);
                 if (geoJsonRef.current) {
                     geoJsonRef.current.resetStyle(e.target);
                 }
             },
             click: () => {
-                const newSelectedKey = geoKey === selectedGeoKey ? null : geoKey;
-                setSelectedGeoKey(newSelectedKey);
-                const navName = getDisplayTitle(newSelectedKey, level);
-                if (navName) onNavigateToProvince?.(navName);
+                try {
+                    const lookup = DB_LOOKUP_MAP.get(geoKey);
+                    const isAbsorbed = ABSORBED_SHAPES_SET.has(geoKey);
+                    const canonicalKey = lookup && isAbsorbed ? normalizeName(lookup.dbName) : geoKey;
+                    const newSelectedKey = canonicalKey === selectedGeoKey ? null : canonicalKey;
+                    setSelectedGeoKey(newSelectedKey);
+                    const navName = getDisplayTitle(newSelectedKey, level);
+                    if (navName) {
+                        // backward compatibility
+                        onNavigateToProvince?.(navName);
+                        // new callback with level information
+                        onSelectRegion?.(navName, level);
+                    }
+                } catch (err) {
+                    const newSelectedKey = geoKey === selectedGeoKey ? null : geoKey;
+                    setSelectedGeoKey(newSelectedKey);
+                    const navName = getDisplayTitle(newSelectedKey, level);
+                    if (navName) {
+                        onNavigateToProvince?.(navName);
+                        onSelectRegion?.(navName, level);
+                    }
+                }
             }
         });
     }, [onNavigateToProvince, selectedGeoKey, level]);
@@ -280,16 +452,211 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
     const currentCenters = (key: string): number | null => {
         if (level !== "distritos") return null;
+        // Prefer centersByRegion.districtCounts if available
+        const districtCountFromCentersByRegion = centersByRegion?.districtCounts?.get(key);
+        if (typeof districtCountFromCentersByRegion === 'number') return districtCountFromCentersByRegion;
         const lookup = DB_LOOKUP_MAP.get(key);
         if (lookup) {
             const canonicalDbKey = normalizeName(lookup.dbName);
-            return distritoCenters.get(canonicalDbKey) ?? 0;
+            return distritoCenters.get(canonicalDbKey) ?? centersByRegion?.districtCounts?.get(canonicalDbKey) ?? 0;
         }
-        return distritoCenters.get(key) ?? 0;
+        return distritoCenters.get(key) ?? centersByRegion?.districtCounts?.get(key) ?? 0;
     };
 
     const activeName = getDisplayTitle(hoveredGeoKey, level);
     const selectedName = getDisplayTitle(selectedGeoKey, level);
+
+    const popupTitleDisplay = useMemo(() => {
+        if (!activeName) return null;
+        if (hoveredRawGeoKey && normalizeName(hoveredRawGeoKey) !== (hoveredGeoKey || '') ) {
+            return `${activeName} (${getShapeDisplayName(hoveredRawGeoKey)})`;
+        }
+        return activeName;
+    }, [activeName, hoveredRawGeoKey, hoveredGeoKey]);
+
+    // Use canonical DB name for queries when the shape is absorbed by a parent
+    const activeQueryName = useMemo(() => {
+        if (!hoveredGeoKey) return null;
+        const lookup = DB_LOOKUP_MAP.get(hoveredGeoKey);
+        return lookup ? lookup.dbName : activeName;
+    }, [hoveredGeoKey, activeName]);
+
+    const selectedQueryName = useMemo(() => {
+        if (!selectedGeoKey) return null;
+        const lookup = DB_LOOKUP_MAP.get(selectedGeoKey);
+        return lookup ? lookup.dbName : selectedName;
+    }, [selectedGeoKey, selectedName]);
+
+    // Fetch additional per-region stats when hovering (cached by react-query)
+    const hoveredFilters = useMemo(() => {
+        if (!activeQueryName) return null;
+        if (level === 'provincias') return { provincia: activeQueryName } as any;
+        return { distrito_sanitario: activeQueryName } as any;
+    }, [activeQueryName, level]);
+
+    const { data: titulacionHover = [] } = useTitulacionCategoryStats(hoveredFilters || undefined as any);
+    const { data: ageRangesHover = [] } = useWorkAgeStats(hoveredFilters || undefined as any);
+
+    // Province-level aggregated stats lookup
+    const { data: provinceStatsList = [] } = useProvinceStats();
+    const hoveredProvinceStats = useMemo(() => {
+        if (level !== 'provincias' || !activeQueryName) return null;
+        return (provinceStatsList || []).find((p: any) => normalizeName(p.provincia) === normalizeName(activeQueryName)) || null;
+    }, [provinceStatsList, activeQueryName, level]);
+
+    const { data: genderAndPublic = null } = useQuery({
+        queryKey: ['geoGenderPublic', level, activeQueryName],
+        queryFn: async () => {
+            if (!activeQueryName) return null;
+            const field = level === 'provincias' ? 'provincia' : 'distrito_sanitario';
+
+            const buildCandidates = (n: string) => {
+                const arr: string[] = [];
+                if (!n) return arr;
+                arr.push(n);
+                const stripped = n.replace(/^Distrito Sanitario de\s*/i, "").replace(/Province$/i, "").trim();
+                if (stripped && !arr.includes(stripped)) arr.push(stripped);
+                const cleaned = getCleanGeoName(n || '');
+                if (cleaned && !arr.includes(cleaned)) arr.push(cleaned);
+
+                // Include canonical DB mapping if available (handles absorbed shapes)
+                try {
+                    const lookup = DB_LOOKUP_MAP.get(normalizeName(n));
+                    if (lookup && lookup.dbName) {
+                        const db = lookup.dbName;
+                        if (!arr.includes(db)) arr.push(db);
+                        const dbStripped = db.replace(/^Distrito Sanitario de\s*/i, "").trim();
+                        if (dbStripped && !arr.includes(dbStripped)) arr.push(dbStripped);
+                        const dbClean = getCleanGeoName(db || '');
+                        if (dbClean && !arr.includes(dbClean)) arr.push(dbClean);
+                    }
+                } catch (err) {
+                    // silent
+                }
+
+                return arr;
+            };
+
+            const computeCountsFromRows = (rows: any[] | null) => {
+                if (!rows || rows.length === 0) return { male: 0, female: 0, funcionarios: 0 };
+                let male = 0;
+                let female = 0;
+                let funcionarios = 0;
+                for (const r of rows) {
+                    const g = (r.genero || '').toString().toLowerCase();
+                    if (g === 'masculino' || g === 'm' || g === 'male') male++;
+                    if (g === 'femenino' || g === 'f' || g === 'female') female++;
+                    if (r.funcion_publica === true || r.funcion_publica === 't' || r.funcion_publica === 1) funcionarios++;
+                }
+                return { male, female, funcionarios };
+            };
+
+            const candidates = buildCandidates(activeQueryName);
+            // Try exact equals for candidates first
+            for (const c of candidates) {
+                const { data: rows, error } = await supabase
+                    .from('profesionales_sanitarios')
+                    .select('genero, funcion_publica')
+                    .eq('estado_solicitud', 'Aprobado')
+                    .eq(field, c);
+                if (!error && rows && rows.length > 0) {
+                    return computeCountsFromRows(rows);
+                }
+            }
+
+            // Fallback: ilike on cleaned name
+            const cleaned = getCleanGeoName(activeQueryName);
+            const { data: rows2 } = await supabase
+                .from('profesionales_sanitarios')
+                .select('genero, funcion_publica')
+                .eq('estado_solicitud', 'Aprobado')
+                .ilike(field, `%${cleaned}%`);
+
+            return computeCountsFromRows(rows2 || []);
+        },
+        enabled: !!activeQueryName,
+    });
+
+    // Selected region filters and data — use canonical selectedQueryName for queries
+    const selectedFilters = useMemo(() => {
+        if (!selectedQueryName) return null;
+        if (level === 'provincias') return { provincia: selectedQueryName } as any;
+        return { distrito_sanitario: selectedQueryName } as any;
+    }, [selectedQueryName, level]);
+
+    const { data: titulacionSelected = [] } = useTitulacionCategoryStats(selectedFilters || undefined as any);
+    const { data: ageRangesSelected = [] } = useWorkAgeStats(selectedFilters || undefined as any);
+
+    const { data: genderAndPublicSelected = null } = useQuery({
+        queryKey: ['geoGenderPublic', level, selectedQueryName, 'selected'],
+        queryFn: async () => {
+            if (!selectedQueryName) return null;
+            const field = level === 'provincias' ? 'provincia' : 'distrito_sanitario';
+
+            const buildCandidates = (n: string) => {
+                const arr: string[] = [];
+                if (!n) return arr;
+                arr.push(n);
+                const stripped = n.replace(/^Distrito Sanitario de\s*/i, "").replace(/Province$/i, "").trim();
+                if (stripped && !arr.includes(stripped)) arr.push(stripped);
+                const cleaned = getCleanGeoName(n || '');
+                if (cleaned && !arr.includes(cleaned)) arr.push(cleaned);
+
+                // Include canonical DB mapping if available (handles absorbed shapes)
+                try {
+                    const lookup = DB_LOOKUP_MAP.get(normalizeName(n));
+                    if (lookup && lookup.dbName) {
+                        const db = lookup.dbName;
+                        if (!arr.includes(db)) arr.push(db);
+                        const dbStripped = db.replace(/^Distrito Sanitario de\s*/i, "").trim();
+                        if (dbStripped && !arr.includes(dbStripped)) arr.push(dbStripped);
+                        const dbClean = getCleanGeoName(db || '');
+                        if (dbClean && !arr.includes(dbClean)) arr.push(dbClean);
+                    }
+                } catch (err) {
+                    // silent
+                }
+
+                return arr;
+            };
+
+            const computeCountsFromRows = (rows: any[] | null) => {
+                if (!rows || rows.length === 0) return { male: 0, female: 0, funcionarios: 0 };
+                let male = 0;
+                let female = 0;
+                let funcionarios = 0;
+                for (const r of rows) {
+                    const g = (r.genero || '').toString().toLowerCase();
+                    if (g === 'masculino' || g === 'm' || g === 'male') male++;
+                    if (g === 'femenino' || g === 'f' || g === 'female') female++;
+                    if (r.funcion_publica === true || r.funcion_publica === 't' || r.funcion_publica === 1) funcionarios++;
+                }
+                return { male, female, funcionarios };
+            };
+
+            const candidates = buildCandidates(selectedQueryName);
+            for (const c of candidates) {
+                const { data: rows, error } = await supabase
+                    .from('profesionales_sanitarios')
+                    .select('genero, funcion_publica')
+                    .eq('estado_solicitud', 'Aprobado')
+                    .eq(field, c);
+                if (!error && rows && rows.length > 0) {
+                    return computeCountsFromRows(rows);
+                }
+            }
+
+            const cleaned = getCleanGeoName(selectedQueryName);
+            const { data: rows2 } = await supabase
+                .from('profesionales_sanitarios')
+                .select('genero, funcion_publica')
+                .eq('estado_solicitud', 'Aprobado')
+                .ilike(field, `%${cleaned}%`);
+
+            return computeCountsFromRows(rows2 || []);
+        },
+        enabled: !!selectedQueryName,
+    });
 
     const showLoading = level === "distritos" && districtsLoading;
     const showMap = geoData && !showLoading;
@@ -328,15 +695,15 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2">
+            <div className="grid grid-cols-1 gap-6">
+                <Card className="w-full">
                     <CardHeader>
                         <CardTitle>
                             {level === "provincias" ? "Profesionales por Provincia" : "Profesionales por Distrito Sanitario"}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="relative h-[550px] bg-gray-50 rounded-lg shadow-inner">
+                        <div className="relative h-[720px] bg-gray-50 rounded-lg shadow-inner">
                             {showLoading ? (
                                 <div className="flex items-center justify-center gap-3 text-gray-600 h-full">
                                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
@@ -390,53 +757,120 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                             )}
 
                             {activeName && hoveredGeoKey && (
-                                <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-xl border z-10 min-w-64">
-                                    <h4 className="font-semibold text-lg mb-2">{activeName}</h4>
+                                <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-xl border z-10 min-w-64 pointer-events-none">
+                                    <h4 className="font-semibold text-lg mb-2">{popupTitleDisplay}</h4>
                                     <div className="space-y-1 text-sm">
                                         <div className="flex justify-between items-center">
                                             <span className="text-gray-600 flex items-center gap-1"><Users className="w-3 h-3" /> Prof. (aprobados):</span>
                                             <span className="font-bold text-teal-700">{currentValue(hoveredGeoKey)}</span>
                                         </div>
+
+                                        <div className="flex justify-between items-center border-t pt-1 mt-1">
+                                            <span className="text-gray-600 flex items-center gap-1"><MapPin className="w-3 h-3" /> Área predominante:</span>
+                                            <span className="font-medium">{level === 'provincias' ? (hoveredProvinceStats?.areas_mas_comunes?.[0] || '—') : '—'}</span>
+                                        </div>
+
                                         {level === "distritos" ? (
                                             <div className="flex justify-between items-center border-t pt-1 mt-1">
                                                 <span className="text-gray-600 flex items-center gap-1"><Building className="w-3 h-3" /> Centros:</span>
                                                 <span className="font-medium">{currentCenters(hoveredGeoKey)}</span>
                                             </div>
                                         ) : null}
+
+                                        <div className="flex justify-between items-center border-t pt-1 mt-1">
+                                            <span className="text-gray-600 flex items-center gap-1">Género:</span>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-1">{MaleIcon ? <MaleIcon className="w-4 h-4 text-blue-600" /> : null} <span className="font-medium">{genderAndPublic ? genderAndPublic.male : '—'}</span></div>
+                                                <div className="flex items-center gap-1">{FemaleIcon ? <FemaleIcon className="w-4 h-4 text-pink-600" /> : null} <span className="font-medium">{genderAndPublic ? genderAndPublic.female : '—'}</span></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center border-t pt-1 mt-1">
+                                            <span className="text-gray-600 flex items-center gap-1">Funcionarios públicos:</span>
+                                            <span className="font-medium">{genderAndPublic ? genderAndPublic.funcionarios : '—'}</span>
+                                        </div>
+
+                                        <div className="flex justify-between items-center border-t pt-1 mt-1">
+                                            <span className="text-gray-600 flex items-center gap-1">Titulación predominante:</span>
+                                            <span className="font-medium">{titulacionHover && titulacionHover.length ? `${titulacionHover[0].categoria_titulacion} (${titulacionHover[0].total || 0})` : '—'}</span>
+                                        </div>
                                     </div>
-                                    <Button size="sm" className="w-full mt-3 bg-teal-600 hover:bg-teal-700" onClick={() => {
-                                        const navName = getDisplayTitle(hoveredGeoKey, level);
-                                        if (navName) onNavigateToProvince?.(navName);
-                                    }}>
-                                        <Eye className="w-4 h-4 mr-1" /> Ver Detalles
-                                    </Button>
+                                    <div className="mt-3">
+                                        <Button size="sm" className="w-full bg-teal-600 hover:bg-teal-700 pointer-events-auto" onClick={() => {
+                                            const navName = getDisplayTitle(hoveredGeoKey, level);
+                                            if (activeQueryName) onNavigateToProvince?.(activeQueryName);
+                                            else if (navName) onNavigateToProvince?.(navName);
+                                        }}>
+                                            <Eye className="w-4 h-4 mr-1" /> Ver Detalles
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="w-full bg-white rounded-lg shadow-md p-4">
                     <CardHeader>
                         <CardTitle>{selectedName ? selectedName : "Estadísticas Generales"}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {selectedGeoKey ? (
                             <div className="space-y-4">
-                                <div className="text-center p-4 bg-teal-50 rounded-lg">
+                                <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, estado_solicitud: 'Aprobado' } : { distrito_sanitario: selectedQueryName, estado_solicitud: 'Aprobado' })} className="text-center p-4 bg-teal-50 rounded-lg cursor-pointer hover:shadow">
                                     <div className="text-3xl font-bold text-teal-600">{currentValue(selectedGeoKey)}</div>
                                     <div className="text-sm text-gray-600">Profesionales (aprobados)</div>
                                 </div>
                                 {level === "distritos" ? (
-                                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                                    <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('health-centers', { distrito_sanitario: selectedQueryName })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
                                         <div className="flex items-center gap-2">
                                             <Building className="w-5 h-5 text-gray-600" />
                                             <span className="text-base font-medium">Centros</span>
                                         </div>
                                         <Badge variant="default" className="bg-teal-500 hover:bg-teal-500 text-white text-md p-2">{currentCenters(selectedGeoKey)}</Badge>
                                     </div>
-                                ) : null}
-                                <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => onNavigateToProvince?.(selectedName || '')}>
+                                ) : (
+                                    <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('health-centers', { provincia: selectedQueryName })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
+                                        <div className="flex items-center gap-2">
+                                            <Building className="w-5 h-5 text-gray-600" />
+                                            <span className="text-base font-medium">Centros</span>
+                                        </div>
+                                        <Badge variant="default" className="bg-teal-500 hover:bg-teal-500 text-white text-md p-2">{centersByRegion?.provinceCounts?.get(normalizeName(selectedQueryName || '')) ?? hoveredProvinceStats?.total_centros ?? 0}</Badge>
+                                    </div>
+                                )}
+
+                                <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, area_profesional: hoveredProvinceStats?.areas_mas_comunes?.[0] } : { distrito_sanitario: selectedQueryName, area_profesional: hoveredProvinceStats?.areas_mas_comunes?.[0] })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
+                                    <div className="flex items-center gap-2">
+                                        <Users className="w-5 h-5 text-gray-600" />
+                                        <span className="text-base font-medium">Área predominante</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-bold">{hoveredProvinceStats?.areas_mas_comunes?.[0] || '—'}</div>
+                                        <div className="text-xs text-gray-500">Top area</div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, genero: 'Masculino' } : { distrito_sanitario: selectedQueryName, genero: 'Masculino' })}>
+                                        <div className="text-sm text-gray-600 flex items-center justify-center gap-2">{MaleIcon ? <MaleIcon className="w-4 h-4" /> : null}<span> Hombres</span></div>
+                                        <div className="font-bold">{genderAndPublicSelected?.male ?? '—'}</div>
+                                    </div>
+                                    <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, genero: 'Femenino' } : { distrito_sanitario: selectedQueryName, genero: 'Femenino' })}>
+                                        <div className="text-sm text-gray-600 flex items-center justify-center gap-2">{FemaleIcon ? <FemaleIcon className="w-4 h-4" /> : null}<span> Mujeres</span></div>
+                                        <div className="font-bold">{genderAndPublicSelected?.female ?? '—'}</div>
+                                    </div>
+                                </div>
+
+                                <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, funcion_publica: true } : { distrito_sanitario: selectedQueryName, funcion_publica: true })}>
+                                    <div className="text-sm text-gray-600">Funcionarios públicos</div>
+                                    <div className="font-bold">{genderAndPublicSelected?.funcionarios ?? '—'}</div>
+                                </div>
+
+                                <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => {
+                                    // Open analytics detail view via onSelectRegion if available, otherwise fall back
+                                    if (onSelectRegion) onSelectRegion(selectedQueryName || '', level);
+                                    else onNavigateToProvince?.(selectedQueryName || '');
+                                }}>
                                     <Eye className="w-4 h-4 mr-2" /> Ver detalles de {selectedName}
                                 </Button>
                                 <Button

@@ -281,7 +281,12 @@ const ProvinceAnalytics: React.FC<ProvinceAnalyticsProps> = ({ selectedProvince,
               <PieChart>
                 <Pie data={stats.profesionales_por_area.slice(0, 6)} cx="50%" cy="50%" outerRadius={100} fill="#8884d8" dataKey="cantidad" label={(entry) => `${entry.area} (${entry.cantidad})`} className="cursor-pointer hover:opacity-80">
                   {stats.profesionales_por_area.slice(0, 6).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => onNavigateToTab && onNavigateToTab('professionals', { provincia: selectedProvince, area_profesional: entry.area, estado_solicitud: 'Aprobado' })}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -301,7 +306,10 @@ const ProvinceAnalytics: React.FC<ProvinceAnalyticsProps> = ({ selectedProvince,
                 <XAxis dataKey="categoria" fontSize={10} />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="cantidad" fill="#00C49F" className="cursor-pointer hover:opacity-80" />
+                <Bar dataKey="cantidad" fill="#00C49F" className="cursor-pointer hover:opacity-80" onClick={(e: any) => {
+                const categoria = e?.payload?.categoria || (e?.categoria as string);
+                onNavigateToTab && onNavigateToTab('health-centers', { provincia: selectedProvince, categoria });
+              }} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

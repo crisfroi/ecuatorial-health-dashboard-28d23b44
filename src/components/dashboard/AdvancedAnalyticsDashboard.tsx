@@ -126,36 +126,33 @@ interface AdvancedAnalyticsDashboardProps {
     institucion: string;
     funcion_publica: boolean;
   }>;
+  externalOpenDetail?: { kind: "province" | "district"; name: string } | null;
+  onExternalOpenDetailHandled?: () => void;
 }
 
 const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
   onNavigateToTab,
   filters,
+  externalOpenDetail,
+  onExternalOpenDetailHandled,
 }) => {
   const [selectedView, setSelectedView] = useState("overview");
   const [selectedDistrict, setSelectedDistrict] = useState("all");
   const [selectedProvince, setSelectedProvince] = useState("all");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedInstitution, setSelectedInstitution] = useState<string | null>(null);
+  const [activeTabInternal, setActiveTabInternal] = useState<string>("summary");
   const queryClient = useQueryClient();
 
-  // Auto-refresh data every 30 seconds for real-time updates
+  // Auto-refresh data periodically (reduced frequency to reduce navigation lag)
   useEffect(() => {
     const interval = setInterval(() => {
+      // Refresh only the heaviest used datasets less often
       queryClient.invalidateQueries({ queryKey: ["topCenters"] });
-      queryClient.invalidateQueries({ queryKey: ["areaProfessionalStats"] });
       queryClient.invalidateQueries({ queryKey: ["districtStats"] });
-      queryClient.invalidateQueries({ queryKey: ["ageRangeStats"] });
-      queryClient.invalidateQueries({ queryKey: ["countryStats"] });
-      queryClient.invalidateQueries({ queryKey: ["institutionStats"] });
-      queryClient.invalidateQueries({ queryKey: ["allCountryStats"] });
-      queryClient.invalidateQueries({ queryKey: ["allInstitutionStats"] });
-      queryClient.invalidateQueries({ queryKey: ["centerCategoryStats"] });
-      queryClient.invalidateQueries({ queryKey: ["titulacionCategoryStats"] });
-      queryClient.invalidateQueries({ queryKey: ["workAgeStats"] });
-      queryClient.invalidateQueries({ queryKey: ["serviceYearsStats"] });
-      queryClient.invalidateQueries({ queryKey: ["retirementRemainingStats"] });
-    }, 30000); // Refresh every 30 seconds
+      queryClient.invalidateQueries({ queryKey: ["provinceStats"] });
+      queryClient.invalidateQueries({ queryKey: ["areaProfessionalStats"] });
+    }, 60000); // Refresh every 60 seconds
 
     return () => clearInterval(interval);
   }, [queryClient]);
@@ -172,6 +169,20 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     navigateToRenewals,
     navigateToProvince,
   } = useDashboardNavigation(onNavigateToTab || (() => {}));
+
+  // Handle external triggers to open province/district details
+  useEffect(() => {
+    if (!externalOpenDetail) return;
+    if (externalOpenDetail.kind === "province") {
+      setActiveTabInternal("geographic");
+      setSelectedProvince(externalOpenDetail.name);
+    } else if (externalOpenDetail.kind === "district") {
+      setActiveTabInternal("districts");
+      setSelectedDistrict(externalOpenDetail.name);
+    }
+    // notify parent that we've handled the external request
+    onExternalOpenDetailHandled?.();
+  }, [externalOpenDetail, onExternalOpenDetailHandled]);
 
   // Fetch all analytics data
   const { data: topCenters = [], isLoading: loadingCenters } = useTopCenters(filters as any);
@@ -446,7 +457,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
       </div>
 
       {/* Main Analytics Tabs */}
-      <Tabs defaultValue="summary" className="space-y-6">
+      <Tabs value={activeTabInternal} onValueChange={setActiveTabInternal} className="space-y-6">
         <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger
             value="summary"
@@ -495,7 +506,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
             className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
           >
             <MapPin className="w-4 h-4" />
-            Provincia
+            Provincias
           </TabsTrigger>
           <TabsTrigger
             value="funcionarios"

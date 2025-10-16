@@ -45,6 +45,7 @@ import CenterAttendancePanel from "@/components/dashboard/CenterAttendancePanel"
 import type { Profesional } from "@/hooks/useProfesionales";
 import * as XLSX from 'xlsx';
 import { supabase } from "@/integrations/supabase/client";
+import { getCleanGeoName } from "@/utils/geoUtils";
 interface HealthCentersProps { dashboardFilters?: { distrito_sanitario?: string } }
 const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -171,13 +172,13 @@ const HealthCenters: React.FC<HealthCentersProps> = ({ dashboardFilters }) => {
       if ((c.sector || '').trim() !== dashboardFilters.tipo_sector) return false;
     }
     if (dashboardFilters?.provincia && dashboardFilters.provincia !== 'todos') {
-      if ((c.provincia || '').trim() !== dashboardFilters.provincia) return false;
+      if (getCleanGeoName(c.provincia || '') !== getCleanGeoName(dashboardFilters.provincia)) return false;
     }
     if (dashboardFilters?.distrito && dashboardFilters.distrito !== 'todos') {
-      if ((c.distrito || '').trim() !== dashboardFilters.distrito) return false;
+      if (getCleanGeoName(c.distrito || '') !== getCleanGeoName(dashboardFilters.distrito)) return false;
     }
     if (dashboardFilters?.distrito_sanitario && dashboardFilters.distrito_sanitario !== 'todos') {
-      if ((c.distrito_sanitario || '').trim() !== dashboardFilters.distrito_sanitario) return false;
+      if (getCleanGeoName(c.distrito_sanitario || '') !== getCleanGeoName(dashboardFilters.distrito_sanitario)) return false;
     }
     if ((dashboardFilters as any)?.categoria_centro) {
       const cat = String((dashboardFilters as any).categoria_centro).toUpperCase();

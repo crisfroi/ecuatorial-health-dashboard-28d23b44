@@ -5,10 +5,9 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 // ¡Añadimos los íconos necesarios!
-import { 
-    Users, Building2, MapPin, Landmark, Baby,
-    female, GraduationCap, Briefcase // <-- NUEVOS ÍCONOS AÑADIDOS
-} from "lucide-react";
+import * as LucideIcons from "lucide-react";
+const { Users, Building2, MapPin, Landmark, Baby, GraduationCap, Briefcase } = LucideIcons;
+const FemaleIconG = (LucideIcons as any).Female || (LucideIcons as any).GenderFemale || (LucideIcons as any).Woman || null;
 
 // Importa el hook de Analíticas Geográficas (el que ya creaste)
 import { useGeographicAnalytics } from "@/hooks/useGeographicAnalytics"; 
@@ -132,7 +131,7 @@ export const GeographicAnalysisView = ({
                 {/* 2.1. ESTADÍSTICAS DE GÉNERO */}
                 {stats.estadisticas_genero.length > 0 && (
                 <Card className="shadow-lg">
-                    <CardHeader><CardTitle className="text-xl font-bold flex items-center"><female className="mr-2 h-5 w-5"/> Distribución por Género (Top 5)</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="text-xl font-bold flex items-center">{FemaleIconG ? <FemaleIconG className="mr-2 h-5 w-5" /> : null} Distribución por Género (Top 5)</CardTitle></CardHeader>
                     <CardContent>
                     {/* Usamos 'genero' como la clave para el título */}
                     {renderListWithProgress(stats.estadisticas_genero, 'genero')} 

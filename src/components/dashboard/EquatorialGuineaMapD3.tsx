@@ -318,6 +318,13 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                     }
                 }
 
+                // Debugging: log mapping decisions for problematic districts
+                try {
+                    if (['corisco','bicurga','nkue','bitica','ayene'].includes(rawKey)) {
+                        console.debug('[CentersByRegion] raw=', distRaw, 'rawKey=', rawKey, 'distLookup=', distLookup, 'canonicalDist=', canonicalDist);
+                    }
+                } catch (err) {}
+
                 provinceCounts.set(provKey, (provinceCounts.get(provKey) || 0) + 1);
                 districtCounts.set(canonicalDist, (districtCounts.get(canonicalDist) || 0) + 1);
             });

@@ -27,6 +27,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
+import { useCentrosSalud } from "@/hooks/useCentrosSalud";
 
 // --- TIPOS Y UTILS ---
 

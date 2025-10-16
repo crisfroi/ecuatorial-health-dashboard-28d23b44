@@ -319,12 +319,15 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
     const currentCenters = (key: string): number | null => {
         if (level !== "distritos") return null;
+        // Prefer centersByRegion.districtCounts if available
+        const districtCountFromCentersByRegion = centersByRegion?.districtCounts?.get(key);
+        if (typeof districtCountFromCentersByRegion === 'number') return districtCountFromCentersByRegion;
         const lookup = DB_LOOKUP_MAP.get(key);
         if (lookup) {
             const canonicalDbKey = normalizeName(lookup.dbName);
-            return distritoCenters.get(canonicalDbKey) ?? 0;
+            return distritoCenters.get(canonicalDbKey) ?? centersByRegion?.districtCounts?.get(canonicalDbKey) ?? 0;
         }
-        return distritoCenters.get(key) ?? 0;
+        return distritoCenters.get(key) ?? centersByRegion?.districtCounts?.get(key) ?? 0;
     };
 
     const activeName = getDisplayTitle(hoveredGeoKey, level);

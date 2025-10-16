@@ -475,7 +475,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                 return { male, female, funcionarios };
             };
 
-            const candidates = buildCandidates(activeName);
+            const candidates = buildCandidates(activeQueryName);
             // Try exact equals for candidates first
             for (const c of candidates) {
                 const { data: rows, error } = await supabase
@@ -489,7 +489,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
             }
 
             // Fallback: ilike on cleaned name
-            const cleaned = getCleanGeoName(activeName);
+            const cleaned = getCleanGeoName(activeQueryName);
             const { data: rows2 } = await supabase
                 .from('profesionales_sanitarios')
                 .select('genero, funcion_publica')
@@ -776,7 +776,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', { provincia: selectedName, genero: 'Masculino' })}>
                                         <div className="text-sm text-gray-600 flex items-center justify-center gap-2">{MaleIcon ? <MaleIcon className="w-4 h-4" /> : null}<span> Hombres</span></div>
-                                        <div className="font-bold">{genderAndPublicSelected?.male ?? '��'}</div>
+                                        <div className="font-bold">{genderAndPublicSelected?.male ?? '—'}</div>
                                     </div>
                                     <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', { provincia: selectedName, genero: 'Femenino' })}>
                                         <div className="text-sm text-gray-600 flex items-center justify-center gap-2">{FemaleIcon ? <FemaleIcon className="w-4 h-4" /> : null}<span> Mujeres</span></div>

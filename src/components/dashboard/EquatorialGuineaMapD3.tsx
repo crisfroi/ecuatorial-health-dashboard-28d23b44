@@ -351,30 +351,43 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
         return { minValue: min, maxValue: max, colorScale: scale };
     }, [geoData, level, getCanonicalValue]);
 
-    // Deterministic categorical color for each region (consistent across renders)
+    // Build deterministic, well-contrasted canonical color map so that all members
+    // of a canonical group share the same color and different canonicals are well-separated.
+    const canonicalColorMap = useMemo(() => {
+        const keys = Array.from(canonicalGroups.keys()).sort();
+        const map = new Map<string, string>();
+        if (keys.length === 0) return map;
+        keys.forEach((canonical, idx) => {
+            const hue = Math.round((idx * 360) / keys.length);
+            const color = `hsl(${hue} 72% 45%)`;
+            map.set(canonical, color);
+        });
+        return map;
+    }, [canonicalGroups]);
+
     const regionColor = useCallback((key: string) => {
-        const palette = ["#e11d48", "#fb923c", "#f59e0b", "#10b981", "#06b6d4", "#3b82f6", "#7c3aed", "#ef4444", "#f97316", "#a3e635"];
-        let h = 0;
-        for (let i = 0; i < key.length; i++) {
-            h = (h * 31 + key.charCodeAt(i)) >>> 0;
-        }
-        return palette[h % palette.length];
-    }, []);
+        const lookup = DB_LOOKUP_MAP.get(key);
+        const canonical = lookup ? normalizeName(lookup.dbName) : key;
+        return canonicalColorMap.get(canonical) || '#e5e7eb';
+    }, [canonicalColorMap]);
 
     const style = useCallback((feature: any) => {
         const raw = feature.properties?.shapeName || "";
         const key = normalizeName(raw);
         const value = getCanonicalValue(key, level);
         const isSelected = key === selectedGeoKey;
+        const lookup = DB_LOOKUP_MAP.get(key);
+        const canonical = lookup ? normalizeName(lookup.dbName) : key;
+        const fill = canonicalColorMap.get(canonical) || (value > 0 ? colorScale(value) : '#f3f4f6');
         return {
-            fillColor: value > 0 ? colorScale(value) : regionColor(key),
+            fillColor: fill,
             weight: isSelected ? 4 : 1.5,
             opacity: 1,
             color: isSelected ? '#a80000' : '#134e4a',
             dashArray: isSelected ? '' : '3',
-            fillOpacity: isSelected ? 0.9 : 0.7
+            fillOpacity: isSelected ? 0.9 : 0.85
         };
-    }, [level, colorScale, selectedGeoKey, getCanonicalValue]);
+    }, [level, colorScale, selectedGeoKey, getCanonicalValue, canonicalColorMap]);
 
     const onEachFeature = useCallback((feature: any, layer: any) => {
         const raw = feature.properties?.shapeName || "";

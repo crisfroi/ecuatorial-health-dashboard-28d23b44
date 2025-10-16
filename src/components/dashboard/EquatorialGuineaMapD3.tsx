@@ -758,7 +758,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
 
                             {activeName && hoveredGeoKey && (
                                 <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-xl border z-10 min-w-64 pointer-events-none">
-                                    <h4 className="font-semibold text-lg mb-2">{activeName}</h4>
+                                    <h4 className="font-semibold text-lg mb-2">{popupTitleDisplay}</h4>
                                     <div className="space-y-1 text-sm">
                                         <div className="flex justify-between items-center">
                                             <span className="text-gray-600 flex items-center gap-1"><Users className="w-3 h-3" /> Prof. (aprobados):</span>

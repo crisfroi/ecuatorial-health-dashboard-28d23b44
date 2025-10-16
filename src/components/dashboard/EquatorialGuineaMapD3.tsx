@@ -593,7 +593,7 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                                             <Building className="w-5 h-5 text-gray-600" />
                                             <span className="text-base font-medium">Centros</span>
                                         </div>
-                                        <Badge variant="default" className="bg-teal-500 hover:bg-teal-500 text-white text-md p-2">{hoveredProvinceStats?.total_centros ?? 0}</Badge>
+                                        <Badge variant="default" className="bg-teal-500 hover:bg-teal-500 text-white text-md p-2">{centersByRegion?.provinceCounts?.get(normalizeName(selectedName || '')) ?? hoveredProvinceStats?.total_centros ?? 0}</Badge>
                                     </div>
                                 )}
 

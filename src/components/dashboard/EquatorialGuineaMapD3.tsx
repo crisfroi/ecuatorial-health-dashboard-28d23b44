@@ -398,12 +398,25 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     const activeName = getDisplayTitle(hoveredGeoKey, level);
     const selectedName = getDisplayTitle(selectedGeoKey, level);
 
+    // Use canonical DB name for queries when the shape is absorbed by a parent
+    const activeQueryName = useMemo(() => {
+        if (!hoveredGeoKey) return null;
+        const lookup = DB_LOOKUP_MAP.get(hoveredGeoKey);
+        return lookup ? lookup.dbName : activeName;
+    }, [hoveredGeoKey, activeName]);
+
+    const selectedQueryName = useMemo(() => {
+        if (!selectedGeoKey) return null;
+        const lookup = DB_LOOKUP_MAP.get(selectedGeoKey);
+        return lookup ? lookup.dbName : selectedName;
+    }, [selectedGeoKey, selectedName]);
+
     // Fetch additional per-region stats when hovering (cached by react-query)
     const hoveredFilters = useMemo(() => {
-        if (!activeName) return null;
-        if (level === 'provincias') return { provincia: activeName } as any;
-        return { distrito_sanitario: activeName } as any;
-    }, [activeName, level]);
+        if (!activeQueryName) return null;
+        if (level === 'provincias') return { provincia: activeQueryName } as any;
+        return { distrito_sanitario: activeQueryName } as any;
+    }, [activeQueryName, level]);
 
     const { data: titulacionHover = [] } = useTitulacionCategoryStats(hoveredFilters || undefined as any);
     const { data: ageRangesHover = [] } = useWorkAgeStats(hoveredFilters || undefined as any);
@@ -411,12 +424,12 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
     // Province-level aggregated stats lookup
     const { data: provinceStatsList = [] } = useProvinceStats();
     const hoveredProvinceStats = useMemo(() => {
-        if (level !== 'provincias' || !activeName) return null;
-        return (provinceStatsList || []).find((p: any) => normalizeName(p.provincia) === normalizeName(activeName)) || null;
-    }, [provinceStatsList, activeName, level]);
+        if (level !== 'provincias' || !activeQueryName) return null;
+        return (provinceStatsList || []).find((p: any) => normalizeName(p.provincia) === normalizeName(activeQueryName)) || null;
+    }, [provinceStatsList, activeQueryName, level]);
 
     const { data: genderAndPublic = null } = useQuery({
-        queryKey: ['geoGenderPublic', level, activeName],
+        queryKey: ['geoGenderPublic', level, activeQueryName],
         queryFn: async () => {
             if (!activeName) return null;
             const field = level === 'provincias' ? 'provincia' : 'distrito_sanitario';

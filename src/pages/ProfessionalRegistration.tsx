@@ -519,6 +519,7 @@ const ProfessionalRegistration = () => {
         institucion_1: U(data.institucion_1),
         periodo_formacion: U(data.periodo_formacion),
         pais_formacion_1: U(data.pais_formacion_1),
+        pais_formacion_id_1: data.pais_formacion_id_1,
         situacion_laboral: U(data.situacion_laboral),
         nombre_centro: data.nombre_centro ? U(data.nombre_centro) : null,
         centro_salud_id: data.centro_salud_id || null, // ID del centro
@@ -535,7 +536,7 @@ const ProfessionalRegistration = () => {
         // URLs de documentos adicionales subidos al bucket
         documentos_adicionales: documentosUrls,
         foto_carnet: fotoUrl,
-        institucion_formacion_id_1: institucionFormacionId,
+        institucion_formacion_id_1: data.institucion_formacion_id_1 || null,
         estado_solicitud: "Recibido" as const,
         fecha_solicitud: new Date().toISOString().split("T")[0],
       };

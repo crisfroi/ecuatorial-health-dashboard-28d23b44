@@ -97,6 +97,7 @@ type Profesional = Tables<"profesionales_sanitarios">;
 // Definición de tipos para los filtros
 interface Filtros {
   area_profesional?: string;
+  area_profesional_id?: string[];
   estado_solicitud?: string;
   provincia?: string;
   genero?: string;

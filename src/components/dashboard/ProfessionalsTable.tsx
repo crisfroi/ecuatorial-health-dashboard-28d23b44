@@ -30,7 +30,8 @@ import * as XLSX from 'xlsx';
 
 // INTERFAZ ACTUALIZADA PARA ACEPTAR ARRAYS
 interface DashboardFilters {
-  area_profesional?: string[]; // <-- MultiSelect (Array)
+  area_profesional?: string[]; // <-- MultiSelect (Array, por nombre)
+  area_profesional_id?: string[]; // <-- MultiSelect (Array, por FK)
   estado_solicitud?: string[]; // <-- MultiSelect (Array)
   provincia?: string[]; // <-- MultiSelect (Array)
   genero?: string[]; // <-- MultiSelect (Array)
@@ -174,7 +175,16 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
       // Nota: El || [] de la llamada a la API es solo para seguridad, 
       // pero aquí debe ser undefined si está vacío para evitar errores de consulta.
       genero: isArrayActive(dashboardFilters?.genero) ? dashboardFilters?.genero : undefined,
-      area_profesional: isArrayActive(dashboardFilters?.area_profesional) ? dashboardFilters?.area_profesional : undefined,
+      // Preferir filtro por FK si está presente
+      area_profesional_id: isArrayActive(dashboardFilters?.area_profesional_id as string[] | undefined)
+        ? (dashboardFilters?.area_profesional_id as string[])
+        : undefined,
+      // Compatibilidad por nombre si no hay IDs
+      area_profesional:
+        !isArrayActive(dashboardFilters?.area_profesional_id as string[] | undefined) &&
+        isArrayActive(dashboardFilters?.area_profesional)
+          ? dashboardFilters?.area_profesional
+          : undefined,
       provincia: isArrayActive(dashboardFilters?.provincia) ? dashboardFilters?.provincia : undefined,
       tipo_sector: isArrayActive(dashboardFilters?.tipo_sector) ? dashboardFilters?.tipo_sector : undefined,
       distrito: isArrayActive(dashboardFilters?.distrito) ? dashboardFilters?.distrito : undefined,
@@ -331,6 +341,7 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     isEstadoActive(dashboardFilters?.estado_solicitud) ||
     isArrayActive(dashboardFilters?.provincia) ||
     isArrayActive(dashboardFilters?.genero) ||
+    isArrayActive(dashboardFilters?.area_profesional_id as string[] | undefined) ||
     isArrayActive(dashboardFilters?.tipo_sector) ||
     isArrayActive(dashboardFilters?.distrito) ||
     isArrayActive(dashboardFilters?.distrito_sanitario) ||
@@ -436,6 +447,14 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
 
               {/* BADGES PARA MULTI-SELECT (ARRAYS) - (CORRECCIÓN || [] para arr.map) */}
               {ArrayBadges({ title: "Área", arr: dashboardFilters?.area_profesional || [] })}
+              {isArrayActive(dashboardFilters?.area_profesional_id as string[] | undefined) && (
+                <Badge
+                  variant="secondary"
+                  className="bg-guinea-light-teal text-guinea-dark-teal"
+                >
+                  Áreas seleccionadas: {(dashboardFilters?.area_profesional_id as string[]).length}
+                </Badge>
+              )}
               {ArrayBadges({ title: "Provincia", arr: dashboardFilters?.provincia || [] })}
               {ArrayBadges({ title: "Género", arr: dashboardFilters?.genero || [] })}
               {ArrayBadges({ title: "Tipo Sector", arr: dashboardFilters?.tipo_sector || [] })}

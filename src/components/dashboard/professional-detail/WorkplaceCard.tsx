@@ -84,6 +84,34 @@ const WorkplaceCard = ({ professional }: WorkplaceCardProps) => {
           <MapPin className="w-4 h-4 text-gray-500" />
           <span>{distritoTexto}, {provinciaTexto}</span>
         </div>
+        {professional.situacion_laboral && (
+          <div>
+            <span className="text-sm font-medium text-gray-600">Situación laboral:</span>
+            <Badge variant="outline" className="ml-2">{professional.situacion_laboral}</Badge>
+          </div>
+        )}
+        {professional.situacion_laboral === 'En paro' && (
+          <div className="space-y-1">
+            {typeof professional.meses_en_paro === 'number' && (
+              <div>
+                <span className="text-sm font-medium text-gray-600">Meses en paro:</span>
+                <span className="ml-2">{professional.meses_en_paro}</span>
+              </div>
+            )}
+            {professional.ultimo_trabajo && (
+              <div>
+                <span className="text-sm font-medium text-gray-600">Último trabajo:</span>
+                <span className="ml-2">{professional.ultimo_trabajo}</span>
+              </div>
+            )}
+            {professional.recien_graduado !== null && professional.recien_graduado !== undefined && (
+              <div>
+                <span className="text-sm font-medium text-gray-600">Recién graduado/a:</span>
+                <Badge variant="secondary" className="ml-2">{professional.recien_graduado ? 'Sí' : 'No'}</Badge>
+              </div>
+            )}
+          </div>
+        )}
         {categoriaCentro && (
           <div>
             <span className="text-sm font-medium text-gray-600">Categoría del centro:</span>

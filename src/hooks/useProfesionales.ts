@@ -170,6 +170,7 @@ export function useProfesionales(filtros: Filtros = {}) {
 
       // Estado solicitud, provincia, género, sector, distrito(s)
       applyInOrEq('estado_solicitud', filtros.estado_solicitud);
+      applyInOrEq('situacion_laboral', (filtros as any).situacion_laboral);
       applyInOrEq('provincia', filtros.provincia);
       applyInOrEq('genero', filtros.genero);
       applyInOrEq('tipo_sector', filtros.tipo_sector);

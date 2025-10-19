@@ -44,6 +44,7 @@ interface Filtros {
   años_servicio_max?: number;
   años_restantes_jubilacion_min?: number;
   años_restantes_jubilacion_max?: number;
+  situacion_laboral?: string[];
 }
 
 interface DashboardFiltersProps {
@@ -157,6 +158,7 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
   const [areas, setAreas] = useState<{ id: string; nombre: string }[]>([]);
   const [estados, setEstados] = useState<string[]>([]);
   const [provincias, setProvincias] = useState<string[]>([]);
+  const [situaciones, setSituaciones] = useState<string[]>([]);
   const [distritosSanitarios, setDistritosSanitarios] = useState<string[]>([]);
   const [generos, setGeneros] = useState<string[]>([]);
   const [sectores, setSectores] = useState<string[]>([]);
@@ -201,7 +203,7 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
   useEffect(() => {
     const fetchDistinct = async () => {
       const cols = [
-        'area_profesional', 'estado_solicitud', 'provincia', 'distrito_sanitario',
+        'area_profesional', 'estado_solicitud', 'situacion_laboral', 'provincia', 'distrito_sanitario',
         'genero', 'tipo_sector', 'distrito', 'año_graduacion'
       ] as const;
 
@@ -222,6 +224,7 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
       results.forEach(({ col, values }) => {
         if (col === 'estado_solicitud') setEstados(values);
         if (col === 'provincia') setProvincias(Array.from(new Set([...(PROVINCIAS_EG as string[]), ...values])).sort()); // Asegura el orden y la fusión
+        if (col === 'situacion_laboral') setSituaciones(values);
         if (col === 'distrito_sanitario') setDistritosSanitarios(values);
         if (col === 'genero') setGeneros(values);
         if (col === 'tipo_sector') setSectores(values);
@@ -355,6 +358,17 @@ const DashboardFilters = ({ filters, onFiltersChange, onClearFilters }: Dashboar
               options={estados.map(v => ({ value: v, label: v }))}
               value={filters.estado_solicitud || []}
               onValueChange={(value: string[]) => handleMultiSelectChange('estado_solicitud', value)}
+            />
+          </div>
+
+          {/* ------------------ SITUACIÓN LABORAL (MULTI-SELECT) ------------------ */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Situación laboral</label>
+            <DropdownMultiSelect
+              placeholder="Todas"
+              options={situaciones.map(v => ({ value: v, label: v }))}
+              value={filters.situacion_laboral || []}
+              onValueChange={(value: string[]) => handleMultiSelectChange('situacion_laboral' as any, value)}
             />
           </div>
 

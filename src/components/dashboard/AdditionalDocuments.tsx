@@ -13,6 +13,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { enqueueStorageUpload, isTauri } from "@/lib/localDb";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -124,50 +126,82 @@ const AdditionalDocuments = ({
         throw new Error("No hay sesión activa. Inicie sesión para subir documentos.");
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-documentos-adicionales`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
+      let doneViaEdge = false;
+      if (accessToken) {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-documentos-adicionales`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: formData,
           },
-          body: formData,
-        },
-      );
+        );
 
-      clearInterval(progressInterval);
-      setUploadProgress(100);
+        clearInterval(progressInterval);
+        setUploadProgress(100);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            doneViaEdge = true;
+            toast({ title: "Documentos subidos", description: `Se subieron ${result.uploaded_documents?.length || 0} documentos` });
+            clearSelectedFiles();
+            if (onDocumentsUpdate && result.updated_record?.documentos_adicionales) {
+              onDocumentsUpdate(result.updated_record.documentos_adicionales);
+            }
+            if (result.updated_record?.documentos_adicionales) {
+              window.location.reload();
+            }
+          }
+        }
       }
 
-      const result = await response.json();
-
-      if (result.success) {
-        toast({
-          title: "Documentos subidos exitosamente",
-          description: `Se subieron ${result.uploaded_urls?.length || 0} documentos correctamente`,
-        });
-
-        // Limpiar archivos seleccionados
-        clearSelectedFiles();
-
-        // Notificar al componente padre
-        if (
-          onDocumentsUpdate &&
-          result.updated_record?.documentos_adicionales
-        ) {
-          onDocumentsUpdate(result.updated_record.documentos_adicionales);
+      // Fallback offline: encolar a storage_outbox y actualizar DB cuando se suban
+      if (!doneViaEdge) {
+        const online = typeof navigator === 'undefined' ? true : navigator.onLine;
+        if (!online && isTauri()) {
+          for (const file of selectedFiles) {
+            const arr = await file.arrayBuffer();
+            const base64 = btoa(String.fromCharCode(...new Uint8Array(arr)));
+            const target = `documentos-adicionales/${professionalId}/${Date.now()}_${file.name}`;
+            await enqueueStorageUpload({
+              id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              bucket: 'documentos-profesionales',
+              target_path: target,
+              mime_type: file.type,
+              data_base64: base64,
+              created_at: new Date().toISOString(),
+            });
+          }
+          toast({ title: 'Subida encolada', description: 'Se subirán al reconectar.' });
+          clearSelectedFiles();
+        } else {
+          // Fallback online directo a Storage
+          const uploaded: string[] = [];
+          for (const file of selectedFiles) {
+            const target = `documentos-adicionales/${professionalId}/${Date.now()}_${file.name}`;
+            const { data: up, error: upErr } = await supabase.storage
+              .from('documentos-profesionales')
+              .upload(target, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+            if (upErr) throw upErr;
+            const { data: pub } = supabase.storage.from('documentos-profesionales').getPublicUrl(up.path);
+            uploaded.push(pub.publicUrl);
+          }
+          if (uploaded.length > 0) {
+            const { data: current } = await supabase
+              .from('profesionales_sanitarios')
+              .select('documentos_adicionales')
+              .eq('id', professionalId)
+              .single();
+            const combined = [...(current?.documentos_adicionales || []), ...uploaded];
+            await supabase.from('profesionales_sanitarios').update({ documentos_adicionales: combined }).eq('id', professionalId);
+            onDocumentsUpdate?.(combined);
+            clearSelectedFiles();
+            toast({ title: 'Documentos subidos', description: `${uploaded.length} archivos subidos directamente.` });
+          }
         }
-
-        // Refrescar la lista de documentos
-        if (result.updated_record?.documentos_adicionales) {
-          // El componente padre debería manejar esto, pero podemos forzar un re-render
-          window.location.reload();
-        }
-      } else {
-        throw new Error(result.error || "Error desconocido");
       }
     } catch (error) {
       console.error("Error uploading documents:", error);

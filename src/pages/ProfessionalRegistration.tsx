@@ -320,6 +320,9 @@ const ProfessionalRegistration = () => {
       numero_funcionario: "",
       fecha_nombramiento: "",
       fecha_inicio_trabajo: "",
+      meses_en_paro: undefined as any,
+      ultimo_trabajo: "",
+      recien_graduado: false,
       categoria_institucion_1: "",
       institucion_formacion_id_1: "",
       // CRÍTICO: Sobrescribe los valores por defecto con los datos guardados
@@ -521,6 +524,9 @@ const ProfessionalRegistration = () => {
         pais_formacion_1: U(data.pais_formacion_1),
         pais_formacion_id_1: data.pais_formacion_id_1,
         situacion_laboral: U(data.situacion_laboral),
+        meses_en_paro: data.situacion_laboral === 'En paro' ? Number(data.meses_en_paro ?? 0) : null,
+        ultimo_trabajo: data.situacion_laboral === 'En paro' ? (data.ultimo_trabajo || null) : null,
+        recien_graduado: data.situacion_laboral === 'En paro' ? !!data.recien_graduado : false,
         nombre_centro: data.nombre_centro ? U(data.nombre_centro) : null,
         centro_salud_id: data.centro_salud_id || null, // ID del centro
         categoria_centro: data.categoria_centro ? U(data.categoria_centro) : null,
@@ -581,12 +587,20 @@ const ProfessionalRegistration = () => {
         }
       }
 
-      // ⭐ PASO CLAVE 1: Descargar la imagen de la URL y convertirla a Base64 para el PDF
+      // ⭐ PASO CLAVE 1: Obtener el código de barras en Base64 (con generador local como fallback)
       let codigoBarrasBase64: string | null = null;
       if (urlCodigoBarrasExp) {
         codigoBarrasBase64 = await urlToBase64(urlCodigoBarrasExp);
-        if (!codigoBarrasBase64) {
-          console.warn("No se pudo obtener la Base64 para el código de barras.");
+      }
+      if (!codigoBarrasBase64 && result.codigo_expediente) {
+        try {
+          const mod: any = await import('jsbarcode');
+          const JsBarcode = mod?.default ?? mod;
+          const canvas = document.createElement('canvas');
+          JsBarcode(canvas, String(result.codigo_expediente), { format: 'CODE128', displayValue: false, height: 40, width: 1.5 });
+          codigoBarrasBase64 = canvas.toDataURL('image/png');
+        } catch (e) {
+          console.warn('No se pudo generar código de barras localmente (jsbarcode no disponible):', e);
         }
       }
 
@@ -601,7 +615,7 @@ const ProfessionalRegistration = () => {
         // 1. INTENTO DE SUBIDA VÍA EDGE FUNCTION (Preferido si se requiere lógica de servidor)
         // ------------------------------------------
         try {
-          console.log("Intentando subir documentos vía Edge Function (Modo Público)...");
+          console.log("Intentando subir documentos vía Edge Function (con Authorization)...");
 
           const formDataDocs = new FormData();
           formDataDocs.append("professional_id", professionalId);
@@ -609,11 +623,15 @@ const ProfessionalRegistration = () => {
             formDataDocs.append("documentos_adicionales[]", file);
           });
 
+          // Obtener token actual
+          const { data: sessionData } = await supabase.auth.getSession();
+          const accessToken = sessionData.session?.access_token;
+
           const resp = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-documentos-adicionales`,
             {
               method: "POST",
-              // ¡IMPORTANTE! Eliminamos el encabezado de Authorization
+              headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
               body: formDataDocs,
             },
           );

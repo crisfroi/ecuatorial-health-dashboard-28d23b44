@@ -40,6 +40,7 @@ export default function BiometricSyncPanel({
   const [loadingRecords, setLoadingRecords] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  const { toast } = useToast();
   const { syncStatus, syncRecords, getDevices, getRecords, getSyncHistory, getDeviceStatus } =
     useBiometricSync({
       deviceUrl,

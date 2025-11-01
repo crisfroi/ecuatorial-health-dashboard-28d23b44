@@ -85,6 +85,7 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
   const getVisibleTabs = () => {
     const allTabs = [
       { id: 'registro', label: 'Registro', icon: Calendar, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
+      { id: 'calendario', label: 'Calendario', icon: Calendar, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES', 'PERSONALIDAD_MINISTERIAL'] },
       { id: 'turnos', label: 'Turnos', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
       { id: 'cuadrantesbio', label: 'Cuadrantes', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
       { id: 'cuadrantes', label: 'Cuadrantes Guardias', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES'] },

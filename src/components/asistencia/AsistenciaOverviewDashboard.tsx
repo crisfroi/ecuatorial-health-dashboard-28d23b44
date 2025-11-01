@@ -163,7 +163,7 @@ export function AsistenciaOverviewDashboard() {
         const { data: profesionales, error: profError } = await supabase
           .from('profesionales_sanitarios')
           .select('id, nombre_completo, centro_salud_id')
-          .eq('estado', 'activo');
+          .eq('situacion_laboral', 'Activo');
 
         if (profError) throw profError;
 

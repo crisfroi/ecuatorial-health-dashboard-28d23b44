@@ -879,13 +879,13 @@ namespace Qiandao.Service
              imagepath = @imagepath,
             signatures = @signatures
             WHERE id = @id";
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
             {
-               new SqlParameter("@enroll_id", enrollinfo.Enroll_id),
-               new SqlParameter("@backupnum",enrollinfo.Backupnum),
-               new SqlParameter("@imagepath",enrollinfo.ImagePath==null?"":enrollinfo.ImagePath),
-              new SqlParameter("@signatures",enrollinfo.Signatures==null?"":enrollinfo.Signatures),
-              new SqlParameter("@id", enrollinfo.Id)
+               new NpgsqlParameter("@enroll_id", enrollinfo.Enroll_id),
+               new NpgsqlParameter("@backupnum", enrollinfo.Backupnum),
+               new NpgsqlParameter("@imagepath", enrollinfo.ImagePath ?? (object)DBNull.Value),
+              new NpgsqlParameter("@signatures", enrollinfo.Signatures ?? (object)DBNull.Value),
+              new NpgsqlParameter("@id", enrollinfo.Id)
             };
 
                 // 执行更新操作

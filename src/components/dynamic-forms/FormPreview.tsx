@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,8 +32,8 @@ export const FormPreview: React.FC<FormPreviewProps> = ({
   onSubmit,
   readOnly = false 
 }) => {
-  const [formData, setFormData] = React.useState<Record<string, any>>({});
-  const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const updateFieldValue = (fieldId: string, value: any) => {
     setFormData(prev => ({ ...prev, [fieldId]: value }));

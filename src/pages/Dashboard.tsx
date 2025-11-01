@@ -785,6 +785,10 @@ const Dashboard = () => {
             <AsistenciaDashboard />
           </TabsContent>
 
+          <TabsContent value="biometric-devices" className="space-y-6" data-tour="dashboard-biometric-devices">
+            <BiometricSyncPanel />
+          </TabsContent>
+
           <TabsContent value="analytics" className="space-y-6" data-tour="dashboard-analytics">
             <AdvancedAnalyticsDashboard
               onNavigateToTab={handleNavigateFromAnalytics}

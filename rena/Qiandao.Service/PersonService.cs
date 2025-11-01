@@ -225,8 +225,8 @@ namespace Qiandao.Service
         {
             lock (_lockObject)  // 确保同一时间只有一个线程访问
             {
-                _db.Database.ExecuteSqlRaw("DELETE FROM Person WHERE id = @id", new SqlParameter("@id", id));
-                _db.Database.ExecuteSqlRaw("DELETE FROM Enrollinfo WHERE enroll_id = @id", new SqlParameter("@id", id));
+                _db.Database.ExecuteSqlRaw("DELETE FROM person WHERE id = @id", new NpgsqlParameter("@id", id));
+                _db.Database.ExecuteSqlRaw("DELETE FROM enrollinfo WHERE enroll_id = @id", new NpgsqlParameter("@id", id));
             }
         }
        

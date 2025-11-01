@@ -711,14 +711,46 @@ const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: strin
                                     <span>Cargando distritos sanitarios de la base de datos...</span>
                                 </div>
                             ) : showMap ? (
-                                <div className="flex flex-col items-center justify-center gap-3 text-gray-600 h-full bg-gray-50 rounded-lg border border-gray-200">
-                                    <MapIcon className="w-12 h-12 text-gray-400" />
-                                    <div className="text-center">
-                                        <h3 className="font-semibold text-gray-700 mb-1">Visualización de Mapa</h3>
-                                        <p className="text-sm text-gray-500">La biblioteca de mapas interactivos no está disponible</p>
-                                        <p className="text-xs text-gray-400 mt-2">Se requiere instalar react-leaflet para esta característica</p>
+                                <MapContainer
+                                    center={[1.5, 10]}
+                                    zoom={7}
+                                    scrollWheelZoom={true}
+                                    className="h-full w-full rounded-lg z-0"
+                                >
+                                    <MapController
+                                        level={level}
+                                        geoData={geoData}
+                                        geoJsonRef={geoJsonRef}
+                                    />
+                                    <TileLayer
+                                        attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    />
+
+                                    <GeoJSON
+                                        key={level}
+                                        data={geoData}
+                                        style={style}
+                                        onEachFeature={onEachFeature}
+                                        ref={geoJsonRef}
+                                    />
+
+                                    <div className="absolute bottom-4 left-4 p-2 bg-white/90 rounded shadow-md z-[400] text-sm">
+                                        <h4 className="font-bold mb-1 border-b pb-1">Leyenda</h4>
+                                        <div className="flex items-center">
+                                            <div className="w-4 h-4 mr-2" style={{ backgroundColor: colorScale(maxValue * 0.75), border: '1px solid #aaa' }}></div>
+                                            Alto ({maxValue})
+                                        </div>
+                                        <div className="flex items-center">
+                                            <div className="w-4 h-4 mr-2" style={{ backgroundColor: colorScale(maxValue * 0.4), border: '1px solid #aaa' }}></div>
+                                            Medio
+                                        </div>
+                                        <div className="flex items-center">
+                                            <div className="w-4 h-4 mr-2" style={{ backgroundColor: colorScale(minValue), border: '1px solid #aaa' }}></div>
+                                            Bajo ({minValue})
+                                        </div>
                                     </div>
-                                </div>
+                                </MapContainer>
                             ) : (
                                 <div className="flex items-center justify-center gap-3 text-gray-600 h-full">
                                     <span>No hay datos geográficos disponibles para esta selección o GeoJSON no cargado.</span>

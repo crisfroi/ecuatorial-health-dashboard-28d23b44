@@ -161,18 +161,18 @@ namespace Qiandao.Service
               gmt_crate = @gmtCrate,
               gmt_modified = @gmtModified
             WHERE id = @id";
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
             {
-               new SqlParameter("@serial", machineCommand.Serial),
-               new SqlParameter("@name",machineCommand.Name),
-               new SqlParameter("@content",machineCommand.Content),
-               new SqlParameter("@status",machineCommand.Status),
-               new SqlParameter("@sendStatus", machineCommand.Send_status),
-              new SqlParameter("@errCount", machineCommand.Err_count),
-              new SqlParameter("@runTime", machineCommand.Run_time),
-              new SqlParameter("@gmtCrate",machineCommand.Gmt_crate),
-              new SqlParameter("@gmtModified",machineCommand.Gmt_modified),
-              new SqlParameter("@id", machineCommand.Id)
+               new NpgsqlParameter("@serial", machineCommand.Serial ?? (object)DBNull.Value),
+               new NpgsqlParameter("@name", machineCommand.Name ?? (object)DBNull.Value),
+               new NpgsqlParameter("@content", machineCommand.Content ?? (object)DBNull.Value),
+               new NpgsqlParameter("@status", machineCommand.Status),
+               new NpgsqlParameter("@sendStatus", machineCommand.Send_status),
+              new NpgsqlParameter("@errCount", machineCommand.Err_count),
+              new NpgsqlParameter("@runTime", machineCommand.Run_time),
+              new NpgsqlParameter("@gmtCrate", machineCommand.Gmt_crate),
+              new NpgsqlParameter("@gmtModified", machineCommand.Gmt_modified),
+              new NpgsqlParameter("@id", machineCommand.Id)
             };
 
                 // 执行更新操作

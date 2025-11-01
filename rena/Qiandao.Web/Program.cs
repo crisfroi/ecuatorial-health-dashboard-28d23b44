@@ -1,4 +1,3 @@
-﻿
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Qiandao.Service;
@@ -9,6 +8,8 @@ using System;
 using Serilog;
 using Serilog.Events;
 using Microsoft.AspNetCore.Hosting;
+using Npgsql;
+
 public class Program
 {
     public static async Task Main(string[] args)
@@ -30,7 +31,7 @@ public class Program
             // Configure services
             builder.Services.AddControllersWithViews();
             builder.Services.AddDbContext<Db>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             // Register your services

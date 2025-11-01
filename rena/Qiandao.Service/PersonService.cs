@@ -1,8 +1,8 @@
-﻿using Qiandao.Model.Entity;
+using Qiandao.Model.Entity;
 using Qiandao.Model.Response;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using Microsoft.EntityFrameworkCore;
 namespace Qiandao.Service
 {
@@ -78,16 +78,15 @@ namespace Qiandao.Service
                 // 构建动态 SQL 查询
                 var sqlQuery = $@"
     WITH CTE AS (
-        SELECT *,  ROW_NUMBER() OVER (ORDER BY Id asc) AS RowNum
-        FROM Person)
     SELECT *
-    FROM CTE
-    WHERE RowNum BETWEEN (@SkipCount+1)  AND (@SkipCount + @Limit)";
+    FROM person
+    ORDER BY id ASC
+    LIMIT @Limit OFFSET @SkipCount";
                 // 创建参数列表
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
     {
-        new SqlParameter("@SkipCount", skipCount),
-        new SqlParameter("@Limit", limit)
+        new NpgsqlParameter("@SkipCount", skipCount),
+        new NpgsqlParameter("@Limit", limit)
     };
 
                 // 执行查询
@@ -154,10 +153,10 @@ namespace Qiandao.Service
             using (var semaphore = new SemaphoreSlim(1, 1))
             {
                 await semaphore.WaitAsync();  // 异步等待
-                var sqlQuery = $@"SELECT * FROM Person WHERE id = @id";
-                var parameters = new SqlParameter[]
+                var sqlQuery = $@"SELECT * FROM person WHERE id = @id";
+                var parameters = new NpgsqlParameter[]
                 {
-                new SqlParameter("@id", id)
+                new NpgsqlParameter("@id", id)
                 };
 
                 try
@@ -368,11 +367,11 @@ namespace Qiandao.Service
               name = @name,
               roll_id = @roll_id
             WHERE id = @id";
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
             {
-               new SqlParameter("@roll_id", person.Roll_id),
-               new SqlParameter("@name",person.Name),
-              new SqlParameter("@id", person.Id)
+               new NpgsqlParameter("@roll_id", person.Roll_id),
+               new NpgsqlParameter("@name", person.Name ?? (object)DBNull.Value),
+              new NpgsqlParameter("@id", person.Id)
             };
                 // 执行更新操作
                 int i = _db.Database.ExecuteSqlRaw(sql, parameters.ToArray());

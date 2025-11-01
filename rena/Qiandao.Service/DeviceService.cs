@@ -1,8 +1,8 @@
-﻿using Qiandao.Model.Entity;
+using Qiandao.Model.Entity;
 using Qiandao.Model.Request;
 using Qiandao.Model.Response;
 using AutoMapper;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
@@ -60,15 +60,12 @@ namespace Qiandao.Service
                 var skipCount = (page-1) * limit;
                 var query = _db.Database.SqlQueryRaw<Device>(
                     @"
-        WITH CTE AS (
-            SELECT *,
-                   ROW_NUMBER() OVER (ORDER BY Id DESC) AS RowNum
-            FROM Device)
         SELECT *
-        FROM CTE
-        WHERE RowNum BETWEEN @SkipCount + 1 AND @SkipCount + @Limit",
-                    new SqlParameter("@SkipCount", skipCount),
-                    new SqlParameter("@Limit", limit));
+        FROM device
+        ORDER BY id DESC
+        LIMIT @Limit OFFSET @SkipCount",
+                    new NpgsqlParameter("@SkipCount", skipCount),
+                    new NpgsqlParameter("@Limit", limit));
                 if (query == null)
                 {
                     return new ResponseModel();
@@ -100,7 +97,7 @@ namespace Qiandao.Service
             using (var semaphore = new SemaphoreSlim(1, 1))
             {
                 await semaphore.WaitAsync();  // 异步等待
-                var query = _db.Database.SqlQueryRaw<Device>(@"SELECT * FROM device where serial_num=@deviceSn", new SqlParameter("@deviceSn", deviceSn));
+                var query = _db.Database.SqlQueryRaw<Device>(@"SELECT * FROM device WHERE serial_num=@deviceSn", new NpgsqlParameter("@deviceSn", deviceSn));
                 // 执行查询并返回结果
                 if (query == null)
                 {
@@ -272,9 +269,9 @@ namespace Qiandao.Service
             {
                 var query = _db.Database.SqlQueryRaw<Device>(
             @"
-            SELECT  *
+            SELECT *
             FROM device
-            WHERE serial_num =@serial_num", new SqlParameter("@serial_num", serial_num));
+            WHERE serial_num = @serial_num", new NpgsqlParameter("@serial_num", serial_num));
 
                 // 执行查询并返回结果
                 var queryResult = query.ToList();
@@ -291,10 +288,10 @@ namespace Qiandao.Service
             lock (_lockObject)  // 确保同一时间只有一个线程访问
             {
                 string sql = "UPDATE device SET status = @status WHERE id = @id";
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
             {
-                new SqlParameter("@status", status),
-                new SqlParameter("@id", id)
+                new NpgsqlParameter("@status", status),
+                new NpgsqlParameter("@id", id)
             };
 
                 // 执行更新操作
@@ -310,10 +307,10 @@ namespace Qiandao.Service
             lock (_lockObject)  // 确保同一时间只有一个线程访问
             {
                 string sql = "INSERT INTO device (serial_num, status) VALUES (@serial_num, @status)";
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
             {
-                new SqlParameter("@serial_num", serial_num),
-                new SqlParameter("@status", status)
+                new NpgsqlParameter("@serial_num", serial_num ?? (object)DBNull.Value),
+                new NpgsqlParameter("@status", status)
             };
 
                 // 执行更新操作

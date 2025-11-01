@@ -66,38 +66,45 @@ async function syncRecords(
       return { synced: 0, error: "No records returned from SDK" };
     }
 
+    // Get dispositivo ID from device serial
+    const { data: dispositivo } = await supabase
+      .from("dispositivos")
+      .select("id")
+      .eq("nombre", deviceSn || "default")
+      .single();
+
+    const dispositivoId = dispositivo?.id;
+
     // Transform and insert into attendance_logs
     const records: BiometricRecord[] = sdkResponse.data;
     const logs = records
       .filter((r) => r.device_serial_num === deviceSn || !deviceSn)
       .map((r) => ({
-        id_dispositivo: deviceSn,
-        en_no: r.enroll_id,
+        id_dispositivo: dispositivoId || deviceSn,
+        id_profesional: null, // Will be linked via empleado_dispositivo_map later
+        en_no: `${r.enroll_id}`,
+        inout: r.int_out === 1 ? "IN" : r.int_out === 0 ? "OUT" : null,
+        mode: `${r.mode || 0}`,
         fecha_hora: r.records_time,
-        modo: r.mode || 0,
-        int_out: r.int_out || 0,
-        evento: r.event || 0,
-        temperatura: r.temperature || null,
-        imagen_url: r.image || null,
-        source: "biometric_sdk",
-        sync_timestamp: new Date().toISOString(),
+        raw_line: JSON.stringify(r),
+        source_file: "biometric_sdk",
+        tm_no: deviceSn,
+        created_at: new Date().toISOString(),
       }));
 
     if (logs.length === 0) {
       return { synced: 0 };
     }
 
-    // Insert with upsert (avoid duplicates by combining unique constraint)
-    const { data, error } = await supabase.from("attendance_logs").upsert(
-      logs.map((log) => ({
-        ...log,
-        id: `${log.id_dispositivo}-${log.en_no}-${new Date(log.fecha_hora).getTime()}`,
-      })),
-      { onConflict: "id" }
-    );
+    // Insert records (allow duplicates to be handled by existence check)
+    // Use INSERT without conflict strategy to avoid overwriting manual imports
+    const { data, error } = await supabase
+      .from("attendance_logs")
+      .insert(logs, { ignoreDuplicates: true });
 
-    if (error) {
-      console.error("Upsert error:", error);
+    if (error && error.code !== "23505") {
+      // 23505 is duplicate key error - that's OK
+      console.error("Insert error:", error);
       return { synced: logs.length, error: error.message };
     }
 

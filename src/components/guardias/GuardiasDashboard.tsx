@@ -292,6 +292,15 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
             />
           </TabsContent>
 
+          <TabsContent value="calendario">
+            <GuardiasCalendarView
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+              selectedCenter={selectedCenter}
+              userRole={userRole}
+            />
+          </TabsContent>
+
           <TabsContent value="asistencia">
             <AsistenciaBiometrica selectedCenter={selectedCenter} />
           </TabsContent>

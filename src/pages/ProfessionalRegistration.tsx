@@ -36,6 +36,7 @@ import { DocumentsStep } from "@/components/registration/DocumentsStep";
 import ConfirmationStep from "@/components/registration/ConfirmationStep";
 import { RegistrationProgress } from "@/components/registration/RegistrationProgress";
 import PDFSummary from "@/components/registration/PDFSummary";
+import JsBarcode from 'jsbarcode';
 import PoliticasModal from "@/components/registration/PoliticasModal";
 import ProcedureModal from "@/components/registration/ProcedureModal";
 
@@ -594,13 +595,11 @@ const ProfessionalRegistration = () => {
       }
       if (!codigoBarrasBase64 && result.codigo_expediente) {
         try {
-          const mod: any = await import('jsbarcode');
-          const JsBarcode = mod?.default ?? mod;
           const canvas = document.createElement('canvas');
           JsBarcode(canvas, String(result.codigo_expediente), { format: 'CODE128', displayValue: false, height: 40, width: 1.5 });
           codigoBarrasBase64 = canvas.toDataURL('image/png');
         } catch (e) {
-          console.warn('No se pudo generar código de barras localmente (jsbarcode no disponible):', e);
+          console.warn('No se pudo generar código de barras localmente:', e);
         }
       }
 

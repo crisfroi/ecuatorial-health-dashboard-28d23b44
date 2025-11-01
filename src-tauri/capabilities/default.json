@@ -6,6 +6,10 @@
     "main"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    "core:fs:default",
+    "core:os:default",
+    "plugin:sql:default",
+    "plugin:autostart:default"
   ]
 }

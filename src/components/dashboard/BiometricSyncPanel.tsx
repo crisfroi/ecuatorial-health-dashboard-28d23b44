@@ -77,6 +77,20 @@ export default function BiometricSyncPanel({
     try {
       const recs = await getRecords();
       setRecords(recs);
+      if (recs.length === 0) {
+        toast({
+          title: 'No hay registros',
+          description: 'No se encontraron registros en el SDK configurado',
+          variant: 'default',
+        });
+      }
+    } catch (err: any) {
+      const errorMsg = err.message || 'Error al cargar registros';
+      toast({
+        title: 'Error al cargar registros',
+        description: errorMsg,
+        variant: 'destructive',
+      });
     } finally {
       setLoadingRecords(false);
     }

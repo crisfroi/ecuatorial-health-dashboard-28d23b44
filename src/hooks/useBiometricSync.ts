@@ -90,6 +90,12 @@ export function useBiometricSync(config: SyncConfig) {
 
   // Get device status from SDK
   const getDeviceStatus = useCallback(async () => {
+    if (!config.deviceUrl || config.deviceUrl.trim().length === 0) {
+      const errorMsg = 'Device URL not configured. Please enter a valid SDK URL.';
+      console.error('Error getting device status:', errorMsg);
+      return null;
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('sync-biometric-device', {
         body: {

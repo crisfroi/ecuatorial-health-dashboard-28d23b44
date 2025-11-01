@@ -52,6 +52,20 @@ export default function BiometricSyncPanel({
     try {
       const devs = await getDevices();
       setDevices(devs);
+      if (devs.length === 0) {
+        toast({
+          title: 'No hay dispositivos',
+          description: 'No se encontraron dispositivos en el SDK configurado',
+          variant: 'default',
+        });
+      }
+    } catch (err: any) {
+      const errorMsg = err.message || 'Error al cargar dispositivos';
+      toast({
+        title: 'Error al cargar dispositivos',
+        description: errorMsg,
+        variant: 'destructive',
+      });
     } finally {
       setLoadingDevices(false);
     }

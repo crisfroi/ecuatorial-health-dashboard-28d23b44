@@ -502,10 +502,23 @@ export function AsistenciaOverviewDashboard() {
 
       {/* Charts and Details */}
       <Tabs defaultValue="distribucion" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="distribucion">Distribuci��n</TabsTrigger>
-          <TabsTrigger value="centros">Por Centro</TabsTrigger>
-          <TabsTrigger value="alertas">Alertas</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-4">
+          <TabsTrigger value="distribucion" className="flex items-center gap-2">
+            <PieChart className="w-4 h-4 hidden sm:inline" />
+            <span>Distribución</span>
+          </TabsTrigger>
+          <TabsTrigger value="centros" className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 hidden sm:inline" />
+            <span>Centros</span>
+          </TabsTrigger>
+          <TabsTrigger value="alertas" className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 hidden sm:inline" />
+            <span>Alertas</span>
+          </TabsTrigger>
+          <TabsTrigger value="analisis" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 hidden sm:inline" />
+            <span>Análisis</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="distribucion" className="space-y-4">

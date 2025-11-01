@@ -242,7 +242,7 @@ export function AsistenciaOverviewDashboard() {
               .from('profesionales_sanitarios')
               .select('id')
               .eq('centro_salud_id', centro.id)
-              .eq('estado', 'activo');
+              .eq('situacion_laboral', 'Activo');
 
             // Filter logs by centro (since the Supabase filter on nested relationships doesn't work reliably)
             const centroLogsFiltered = centreLogs?.filter((l) => l.dispositivos?.centro_salud_id === centro.id) || [];

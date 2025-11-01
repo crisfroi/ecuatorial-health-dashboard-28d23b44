@@ -1,9 +1,9 @@
-﻿using Qiandao.Model.Entity;
+using Qiandao.Model.Entity;
 using Qiandao.Model.Response;
 using System.Text;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using Newtonsoft.Json;
 
 namespace Qiandao.Service
@@ -617,7 +617,7 @@ namespace Qiandao.Service
         }
         public ResponseModel getUSerLock(int enrollId, string deviceSn)
         {
-            lock (_lockObject)  // 确保同一时间只有一个线程访问
+            lock (_lockObject)  // 确保同一时间��有一个线程访问
             {
                 string message = "{\"cmd\":\"getuserlock\",\"enrollid\":" + enrollId + "}";
                 DateTime dt = DateTime.Now;

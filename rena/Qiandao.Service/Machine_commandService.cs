@@ -1,8 +1,8 @@
-﻿using Qiandao.Model.Entity;
+using Qiandao.Model.Entity;
 using Qiandao.Model.Request;
 using Qiandao.Model.Response;
 using AutoMapper;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -215,7 +215,7 @@ namespace Qiandao.Service
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "select Machine_command is exception");
-                    return new List<Machine_command>();  // 返回空列表作为默认值
+                    return new List<Machine_command>();  // 返回空列表作���默认值
                 }
             }
         }

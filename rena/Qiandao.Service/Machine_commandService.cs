@@ -196,10 +196,10 @@ namespace Qiandao.Service
                   AND serial = @serial
                   AND err_count != 3";
 
-                var parameters = new SqlParameter[]
+                var parameters = new NpgsqlParameter[]
                 {
-                    new SqlParameter("@sendStatus", sendStatus),
-                    new SqlParameter("@serial", serial)
+                    new NpgsqlParameter("@sendStatus", sendStatus),
+                    new NpgsqlParameter("@serial", serial ?? (object)DBNull.Value)
                 };
                 try
                 {

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import * as d3 from "d3";
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";

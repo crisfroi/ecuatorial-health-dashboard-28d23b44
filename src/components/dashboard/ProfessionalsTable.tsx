@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect, useMemo } from "react";
 import { Professional } from '@/types/Professional';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

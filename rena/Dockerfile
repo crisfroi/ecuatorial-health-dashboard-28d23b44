@@ -18,11 +18,14 @@ RUN dotnet build "Qiandao.Web.csproj" -c Release -o /app/build
 
 # Publish
 FROM build AS publish
-RUN dotnet publish "Qiandao.Web.csproj" -c Release -o /app/publish
+RUN dotnet publish "Qiandao.Web.csproj" -c Release -o /app/publish /p:PublishReadyToRun=true
 
 # Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
+
+# Create logs directory
+RUN mkdir -p /app/Logs /app/wwwroot/images/tmp
 
 # Copy published app
 COPY --from=publish /app/publish .
@@ -32,7 +35,12 @@ EXPOSE 8080
 
 # Set environment variables for ASP.NET Core
 ENV ASPNETCORE_URLS=http://+:8080 \
-    ASPNETCORE_ENVIRONMENT=Production
+    ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_USE_POLLING_FILE_WATCHER=true
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Start application
 ENTRYPOINT ["dotnet", "Qiandao.Web.dll"]

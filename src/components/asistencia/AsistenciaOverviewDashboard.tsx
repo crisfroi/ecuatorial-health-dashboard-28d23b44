@@ -40,6 +40,13 @@ import {
   Zap,
   Download,
   RefreshCw,
+  TrendingDown,
+  Wifi,
+  WifiOff,
+  BarChart3,
+  Target,
+  Shield,
+  Info,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -394,61 +401,101 @@ export function AsistenciaOverviewDashboard() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+      {/* KPI Cards Grid - Enhanced */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+        {/* Total Profesionales */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-gray-600 flex items-center gap-2">
               <Users className="w-4 h-4 text-blue-600" />
-              Total Profesionales
+              Total
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{kpiData.totalProfesionales}</div>
-            <p className="text-xs text-gray-600 mt-1">Profesionales activos</p>
+            <div className="text-2xl font-bold">{kpiData.totalProfesionales}</div>
+            <p className="text-xs text-gray-500 mt-1">Activos</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+        {/* Presentes */}
+        <Card className="lg:col-span-1 border-l-4 border-l-green-500 bg-green-50/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-gray-600 flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-green-600" />
               Presentes
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">{kpiData.presentes}</div>
-            <p className="text-xs text-gray-600 mt-1">
-              {kpiData.tasaAsistencia.toFixed(1)}% de asistencia
+            <div className="text-2xl font-bold text-green-600">{kpiData.presentes}</div>
+            <p className="text-xs text-green-700 mt-1 font-medium">
+              {kpiData.tasaAsistencia.toFixed(1)}%
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-yellow-500">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+        {/* Retardos */}
+        <Card className="lg:col-span-1 border-l-4 border-l-yellow-500 bg-yellow-50/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-gray-600 flex items-center gap-2">
               <Clock className="w-4 h-4 text-yellow-600" />
               Retardos
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-yellow-600">{kpiData.retardos}</div>
-            <p className="text-xs text-gray-600 mt-1">
-              {kpiData.tasaPuntualidad.toFixed(1)}% puntualidad
+            <div className="text-2xl font-bold text-yellow-600">{kpiData.retardos}</div>
+            <p className="text-xs text-yellow-700 mt-1 font-medium">
+              {((kpiData.retardos / kpiData.totalProfesionales) * 100).toFixed(1)}%
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-red-500">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+        {/* Ausentes */}
+        <Card className="lg:col-span-1 border-l-4 border-l-red-500 bg-red-50/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-gray-600 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-red-600" />
               Ausentes
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-600">{kpiData.ausentes}</div>
-            <p className="text-xs text-gray-600 mt-1">Sin registrar entrada</p>
+            <div className="text-2xl font-bold text-red-600">{kpiData.ausentes}</div>
+            <p className="text-xs text-red-700 mt-1 font-medium">
+              {((kpiData.ausentes / kpiData.totalProfesionales) * 100).toFixed(1)}%
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Tasa Puntualidad */}
+        <Card className="lg:col-span-1 border-l-4 border-l-blue-500 bg-blue-50/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-gray-600 flex items-center gap-2">
+              <Target className="w-4 h-4 text-blue-600" />
+              Puntualidad
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {kpiData.tasaPuntualidad.toFixed(0)}%
+            </div>
+            <p className="text-xs text-blue-700 mt-1 font-medium">
+              {(kpiData.presentes - kpiData.retardos)} a tiempo
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Estado Dispositivos */}
+        <Card className="lg:col-span-1 border-l-4 border-l-purple-500 bg-purple-50/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-gray-600 flex items-center gap-2">
+              <Wifi className="w-4 h-4 text-purple-600" />
+              Dispositivos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{centros.length}</div>
+            <p className="text-xs text-purple-700 mt-1 font-medium">
+              Activos
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -456,7 +503,7 @@ export function AsistenciaOverviewDashboard() {
       {/* Charts and Details */}
       <Tabs defaultValue="distribucion" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="distribucion">Distribución</TabsTrigger>
+          <TabsTrigger value="distribucion">Distribuci��n</TabsTrigger>
           <TabsTrigger value="centros">Por Centro</TabsTrigger>
           <TabsTrigger value="alertas">Alertas</TabsTrigger>
         </TabsList>

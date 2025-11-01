@@ -16,6 +16,7 @@ import {
   Database,
 } from 'lucide-react';
 import { useBiometricSync } from '@/hooks/useBiometricSync';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 

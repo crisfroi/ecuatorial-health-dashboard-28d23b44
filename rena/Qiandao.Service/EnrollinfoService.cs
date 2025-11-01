@@ -836,12 +836,12 @@ namespace Qiandao.Service
                 string sql = "INSERT INTO enrollinfo (enroll_id, backupnum, imagepath, signatures) VALUES (@enroll_id, @backupnum, @imagepath, @signatures)";
 
                 // 创建参数集合
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
     {
-        new SqlParameter("@enroll_id", enrollinfo.Enroll_id), // 使用默认值 0L 处理 null
-        new SqlParameter("@backupnum", enrollinfo.Backupnum), // 使用默认值 0 处理 null
-        new SqlParameter("@imagepath", enrollinfo.ImagePath==null?"":enrollinfo.ImagePath), // 使用 null 处理 null 字符串
-        new SqlParameter("@signatures", enrollinfo.Signatures==null?"":enrollinfo.Signatures) // 使用 null 处理 null 字符串
+        new NpgsqlParameter("@enroll_id", enrollinfo.Enroll_id),
+        new NpgsqlParameter("@backupnum", enrollinfo.Backupnum),
+        new NpgsqlParameter("@imagepath", enrollinfo.ImagePath ?? (object)DBNull.Value),
+        new NpgsqlParameter("@signatures", enrollinfo.Signatures ?? (object)DBNull.Value)
     };
 
                 try

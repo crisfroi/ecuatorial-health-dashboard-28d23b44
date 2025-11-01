@@ -43,9 +43,13 @@ async function getDb(): Promise<any> {
     if (!isTauri()) {
       throw new Error('Local DB not available outside Tauri runtime');
     }
-    const mod: any = await import('@tauri-apps/plugin-sql');
-    const Database = (mod?.default ?? mod);
-    dbPromise = Database.load(LOCAL_DB_URL);
+    try {
+      const mod: any = await (eval('import') as any)('@tauri-apps/plugin-sql');
+      const Database = (mod?.default ?? mod);
+      dbPromise = Database.load(LOCAL_DB_URL);
+    } catch (e) {
+      throw new Error(`Failed to load Tauri SQL plugin: ${e}`);
+    }
   }
   return dbPromise;
 }
@@ -266,4 +270,3 @@ export async function markStorageRetry(id: string, message?: string): Promise<vo
   const db = await getDb();
   await db.execute(`UPDATE storage_outbox SET status = 'pending', error_message = ? WHERE id = ?`, [message ?? null, id]);
 }
-

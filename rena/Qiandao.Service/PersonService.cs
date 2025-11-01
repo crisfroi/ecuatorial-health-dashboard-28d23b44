@@ -367,11 +367,11 @@ namespace Qiandao.Service
               name = @name,
               roll_id = @roll_id
             WHERE id = @id";
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
             {
-               new SqlParameter("@roll_id", person.Roll_id),
-               new SqlParameter("@name",person.Name),
-              new SqlParameter("@id", person.Id)
+               new NpgsqlParameter("@roll_id", person.Roll_id),
+               new NpgsqlParameter("@name", person.Name ?? (object)DBNull.Value),
+              new NpgsqlParameter("@id", person.Id)
             };
                 // 执行更新操作
                 int i = _db.Database.ExecuteSqlRaw(sql, parameters.ToArray());

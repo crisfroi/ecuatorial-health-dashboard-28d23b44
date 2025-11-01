@@ -110,7 +110,7 @@ namespace Qiandao.Service
                 @"SELECT id, enroll_id, backupnum, imagepath, signatures 
                 FROM enrollinfo 
                 WHERE enroll_id = @enrollId",
-                new SqlParameter("@enrollId", enrollId)
+                new NpgsqlParameter("@enrollId", enrollId)
             );
 
             if (query == null)
@@ -266,7 +266,7 @@ namespace Qiandao.Service
         }
         public ResponseModel setUsernameToDevice(string deviceSn, List<Person> persons)
         {
-            lock (_lockObject)  // 确保同一时间只有一个线程访问
+            lock (_lockObject)  // 确保同一时间只有一个线��访问
             {
                 DateTime dt = DateTime.Now;
                 StringBuilder sb = new StringBuilder();
@@ -617,7 +617,7 @@ namespace Qiandao.Service
         }
         public ResponseModel getUSerLock(int enrollId, string deviceSn)
         {
-            lock (_lockObject)  // 确保同一时间��有一个线程访问
+            lock (_lockObject)  // 确保同一时间只有一个线程访问
             {
                 string message = "{\"cmd\":\"getuserlock\",\"enrollid\":" + enrollId + "}";
                 DateTime dt = DateTime.Now;
@@ -800,8 +800,8 @@ namespace Qiandao.Service
             SELECT id, enroll_id, backupnum, imagepath, signatures
             FROM enrollinfo
             WHERE enroll_id = @enroll_id AND backupnum = @backupnum",
-                        new SqlParameter("@enroll_id", enroll_id),
-                        new SqlParameter("@backupnum", backupnum));
+                        new NpgsqlParameter("@enroll_id", enroll_id),
+                        new NpgsqlParameter("@backupnum", backupnum));
 
                     var resultList = query.ToList();
 

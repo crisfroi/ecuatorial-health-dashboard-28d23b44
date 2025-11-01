@@ -89,6 +89,7 @@ import { FormBuilder } from "@/components/dynamic-forms/FormBuilder";
 import { ExpedienteNuevoForm } from "@/components/disciplinary/ExpedienteNuevoForm";
 import { ExpedienteManager } from "@/components/disciplinary/ExpedienteManager";
 import { DisciplinaryDashboard } from "@/components/dashboard/disciplinary/DisciplinaryDashboard";
+import BiometricSyncPanel from "@/components/dashboard/BiometricSyncPanel";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -903,7 +904,7 @@ const Dashboard = () => {
           className="fixed bottom-6 right-6 z-50 rounded-full bg-guinea-teal text-white shadow-lg hover:opacity-90 transition-opacity p-4"
           title="Capturar pantalla"
         >
-          📷
+          ���
         </button>
       </div>
 

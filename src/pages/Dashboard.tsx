@@ -35,6 +35,7 @@ import {
   ArrowRight,
   Sliders,
   ClipboardList,
+  Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -89,6 +90,7 @@ import { FormBuilder } from "@/components/dynamic-forms/FormBuilder";
 import { ExpedienteNuevoForm } from "@/components/disciplinary/ExpedienteNuevoForm";
 import { ExpedienteManager } from "@/components/disciplinary/ExpedienteManager";
 import { DisciplinaryDashboard } from "@/components/dashboard/disciplinary/DisciplinaryDashboard";
+import BiometricSyncPanel from "@/components/dashboard/BiometricSyncPanel";
 
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -492,6 +494,7 @@ const Dashboard = () => {
     ...(userRole && canAccessTab("renewals") ? [{ id: "renewals", label: "Renovaciones", icon: Calendar }] : []),
     ...(userRole && canAccessTab("guardias") ? [{ id: "guardias", label: "Guardias", icon: Clock }] : []),
     ...(userRole && canAccessTab("asistencia") ? [{ id: "asistencia", label: "Asistencia", icon: Clock }] : []),
+    ...(userRole && canAccessTab("biometric-devices") ? [{ id: "biometric-devices", label: "Dispositivos Biométricos", icon: Zap }] : []),
     ...(userRole && canAccessTab("analytics") ? [{ id: "analytics", label: "Analíticas", icon: TrendingUp }] : []),
     ...(userRole && canAccessTab("parametros") ? [{ id: "parametros", label: "Parámetros", icon: Sliders }] : []),
     ...(userRole && canAccessTab("iachat") ? [{ id: "iachat", label: "IA Chat", icon: MessageSquare }] : []),
@@ -782,6 +785,10 @@ const Dashboard = () => {
             <AsistenciaDashboard />
           </TabsContent>
 
+          <TabsContent value="biometric-devices" className="space-y-6" data-tour="dashboard-biometric-devices">
+            <BiometricSyncPanel />
+          </TabsContent>
+
           <TabsContent value="analytics" className="space-y-6" data-tour="dashboard-analytics">
             <AdvancedAnalyticsDashboard
               onNavigateToTab={handleNavigateFromAnalytics}
@@ -903,7 +910,7 @@ const Dashboard = () => {
           className="fixed bottom-6 right-6 z-50 rounded-full bg-guinea-teal text-white shadow-lg hover:opacity-90 transition-opacity p-4"
           title="Capturar pantalla"
         >
-          📷
+          ���
         </button>
       </div>
 

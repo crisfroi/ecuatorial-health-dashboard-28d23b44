@@ -9,8 +9,6 @@ using System;
 using Serilog;
 using Serilog.Events;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-
 public class Program
 {
     public static async Task Main(string[] args)
@@ -32,27 +30,24 @@ public class Program
             // Configure services
             builder.Services.AddControllersWithViews();
             builder.Services.AddDbContext<Db>(options =>
-                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             // Register your services
             builder.Services.AddScoped<Access_dayService>();
             builder.Services.AddScoped<Access_weekService>();
-            builder.Services.AddScoped<DeviceService>(); // Restaurado
+            builder.Services.AddScoped<DeviceService>();
             builder.Services.AddScoped<EnrollinfoService>();
             builder.Services.AddScoped<PersonService>();
             builder.Services.AddScoped<RecordService>();
             builder.Services.AddHostedService<SendOrderJob>();
             builder.Services.AddScoped<Machine_commandService>();
-            builder.Services.AddSingleton<DeviceManager>(); // Agregado
 
-            // WebSocket services (anteriormente de WebSocketSharp)
-            // builder.Services.AddSingleton<WebSocketServer>();
-            // builder.Services.AddSingleton<WebSocketHandler>();
-            // builder.Services.AddSingleton<ServerManager>();
+            // WebSocket services
+            builder.Services.AddSingleton<WebSocketServer>();
+            builder.Services.AddSingleton<WebSocketHandler>();
+            builder.Services.AddSingleton<ServerManager>();
 
-            // Agrega el nuevo WebSocketHandler como un servicio de ámbito si usa DI de ASP.NET Core
-            builder.Services.AddScoped<WebSocketHandler>();
             // Use Serilog as the logging provider
             builder.Host.UseSerilog();
 
@@ -66,7 +61,7 @@ public class Program
                 app.UseHsts();
             }
 
-            // app.UseHttpsRedirection(); // Deshabilitado para Render
+            app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseRouting();
             app.UseAuthorization();
@@ -77,31 +72,9 @@ public class Program
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
 
-            // Habilita el middleware de WebSockets de ASP.NET Core
-            app.UseWebSockets();
-
-            // Mapea la ruta para tu WebSocketHandler a /ws
-            app.Map("/ws", builder => // Cambiado a /ws
-            {
-                builder.Run(async context =>
-                {
-                    if (context.WebSockets.IsWebSocketRequest)
-                    {
-                        using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-                        var webSocketHandler = context.RequestServices.GetRequiredService<WebSocketHandler>();
-                        await webSocketHandler.HandleWebSocketAsync(context, webSocket);
-                    }
-                    else
-                    {
-                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                        await Task.CompletedTask;
-                    }
-                });
-            });
-            
-            // Start WebSocket server (anteriormente de WebSocketSharp)
-            // var webSocketServer = app.Services.GetRequiredService<ServerManager>();
-            // webSocketServer.Start();
+            // Start WebSocket server
+            var webSocketServer = app.Services.GetRequiredService<ServerManager>();
+            webSocketServer.Start();
 
             // Run the app
             app.Run();

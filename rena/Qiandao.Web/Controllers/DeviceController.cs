@@ -21,8 +21,7 @@ namespace Qiandao.Web.Controllers
         private readonly Access_dayService? access_dayService;
         private readonly Access_weekService? accessWeekService;
         private readonly RecordService recordService;
-        private readonly DeviceManager _deviceManager; // Agregado
-        public DeviceController(ILogger<DeviceController> logger, DeviceService deviceServer, PersonService personService, EnrollinfoService enrollinfoService, Access_dayService? access_dayService, Access_weekService? accessWeekService, RecordService recordService, DeviceManager deviceManager) // Agregado deviceManager
+        public DeviceController(ILogger<DeviceController> logger, DeviceService deviceServer, PersonService personService, EnrollinfoService enrollinfoService, Access_dayService? access_dayService, Access_weekService? accessWeekService, RecordService recordService)
         {
             _logger = logger;
             this.deviceServer = deviceServer;
@@ -31,7 +30,6 @@ namespace Qiandao.Web.Controllers
             this.access_dayService = access_dayService;
             this.accessWeekService = accessWeekService;
             this.recordService = recordService;
-            _deviceManager = deviceManager; // Asignado
         }
         private IActionResult View()
         {
@@ -471,9 +469,9 @@ namespace Qiandao.Web.Controllers
             }
             DateTime dt = DateTime.Now;
             string message = "{\"cmd\":\"settime\",\"cloudtime\":\"" + dt + "\"}";
-            if (await _deviceManager.GetDeviceSocketBySn(deviceSn) != null) // Usar _deviceManager
+            if (DeviceManager.GetDeviceSocketBySn(deviceSn) != null)
             {
-             await   _deviceManager.SendMessageToDeviceStatusAsync(deviceSn, message); // Usar _deviceManager
+             await   DeviceManager.SendMessageToDeviceStatusAsync(deviceSn, message);
                 return Ok(new { code = 0, msg = "successs" });
             }
             else { return Ok(new { code = 1, msg = "error" }); }

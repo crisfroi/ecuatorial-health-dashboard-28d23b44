@@ -24,7 +24,8 @@ export default defineConfig(({ mode }) => ({
       'zod',
       '@hookform/resolvers',
       '@hookform/resolvers/zod',
+      'leaflet',
+      'react-leaflet',
     ],
-    exclude: ['react-leaflet', 'leaflet'],
   },
 }));

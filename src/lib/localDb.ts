@@ -44,7 +44,8 @@ async function getDb(): Promise<any> {
       throw new Error('Local DB not available outside Tauri runtime');
     }
     try {
-      const mod: any = await (eval('import') as any)('@tauri-apps/plugin-sql');
+      const importSql = new Function("return import('@tauri-apps/plugin-sql')");
+      const mod: any = await importSql();
       const Database = (mod?.default ?? mod);
       dbPromise = Database.load(LOCAL_DB_URL);
     } catch (e) {

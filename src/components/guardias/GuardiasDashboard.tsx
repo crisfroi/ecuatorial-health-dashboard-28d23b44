@@ -36,6 +36,7 @@ import { AsistenciaBiometrica } from './tabs/AsistenciaBiometrica';
 import { GuardiasCalendarView } from './GuardiasCalendarView';
 import { NetworkStatusSimple } from '@/components/ui/network-status-simple';
 import { GuardiasStatusIndicators } from './GuardiasStatusIndicators';
+import { GuardiasSummaryCard } from './GuardiasSummaryCard';
 import { GuardiasNotificationSystem } from './GuardiasNotificationSystem';
 import { GuardiasHelpSystem } from './GuardiasHelpSystem';
 import { GuardiasOnboardingTour } from './GuardiasOnboardingTour';
@@ -246,8 +247,8 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
         </CardHeader>
       </Card>
 
-      {/* Indicadores de estado */}
-      <GuardiasStatusIndicators
+      {/* Resumen Consolidado - Dashboard Principal de Guardias */}
+      <GuardiasSummaryCard
         stats={{
           totalGuardias: guardias.length,
           guardiasAprobadas: guardias.filter(g => g.observaciones?.includes('aprobad')).length,

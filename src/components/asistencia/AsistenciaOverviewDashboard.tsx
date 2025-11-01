@@ -233,9 +233,8 @@ export function AsistenciaOverviewDashboard() {
                 id_profesional,
                 inout,
                 fecha_hora,
-                dispositivos!inner(centro_salud_id)
+                dispositivos!inner(id, centro_salud_id)
               `)
-              .eq('dispositivos.centro_salud_id', centro.id)
               .gte('fecha_hora', fromISO)
               .lte('fecha_hora', toISO);
 

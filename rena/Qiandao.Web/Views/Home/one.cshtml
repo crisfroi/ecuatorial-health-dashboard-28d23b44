@@ -1,0 +1,283 @@
+﻿@{ ViewData["Title"] = "LogRecords"; }
+<!--
+本「综合演示」包含：自定义头部工具栏、获取表格数据、表格重载、自定义模板、单双行显示、单元格编辑、自定义底部分页栏、表格相关事件与操作、与其他组件的结合等相对常用的功能，以便快速掌握 table 组件的使用。
+-->
+<div style="padding: 16px;margin: 0 auto;width: 1024px">
+    <table class="layui-hide" id="test" lay-filter="test"></table>
+
+</div>
+<script type="text/html" id="toolbarDemo">
+    <form class="layui-form layui-row layui-col-space16">
+        <div class="layui-col-md4">
+
+            <div class="layui-input-wrap" style="display: flex;align-items: center">
+                <input name="deviceSn"  id="deviceSn" lay-affix="clear" class="layui-input" placeholder="deviceNO" />
+                <button class="layui-btn" lay-submit lay-filter="demo-table-search">Search</button>
+            </div>
+        </div>
+        <div class="layui-col-md4">
+
+            <div class="layui-input-wrap" style="display: flex;align-items: center">
+                <button class="layui-btn btn-primary layui-bg-blue" type="button" lay-event="CollectLog_emp_modal_btn">CollectLog</button>
+                <button class="layui-btn btn-primary layui-bg-red" type="button" lay-event="CollectNewLog_emp_modal_btn">CollectNewLog</button>
+                <button class="layui-btn layui-btn-primary layui-border" type="button" lay-event="Return_main">Return</button>
+            </div>
+        </div>
+    </form>
+</script>
+<script type="text/html" id="imgtmp">
+    <style>
+        .unshow {
+            display: none;
+        }
+    </style>
+    <img id="pre_img" class="{{d.image==null?'unshow':''}}" lay-event="pre_img" style="height: 40px;width: 40px" src="{{'/images/tmp/'+d.image}}">
+</script>
+<script type="text/html" id="timeTpl">
+    {{  d.records_time.replace('T', ' ').replace(/\.\d+/, '') }}
+</script>
+<script type="text/html" id="roletmp">
+    <div>General Staff</div>
+</script>
+<script src="/js/layui.js"></script>
+<script>
+    layui.use(['table', 'dropdown'], function(){
+        var table = layui.table;
+        var form = layui.form;
+        var laydate = layui.laydate;
+        var dropdown = layui.dropdown;
+        function getUrlParameter(name) {
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+            var results = regex.exec(window.location.href);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+
+        // Get and display the value of the 'id' parameter
+        var deviceSn = getUrlParameter('deviceSn');
+
+        // 创建渲染实例
+        table.render({
+            elem: '#test',
+            url: '/api/records', // 此处为静态模拟数据，实际使用时需换成真实接口
+            toolbar: '#toolbarDemo',
+            defaultToolbar: [],
+            // height: 'full-35', // 最大高度减去其他容器已占有的高度差
+            css: [ // 重设当前表格样式
+                '.layui-table-tool-temp{padding-right: 145px;}'
+            ].join(''),
+            cellMinWidth: 80,
+            lineStyle: 'height: 60px;',
+
+            // totalRow: true, // 开启合计行
+            page: {
+                layout: ['prev', 'page', 'next',  'count'], // 自定义分页布局
+                limits: [15, 30, 50, 100], // 自定义每页显示条数的选项
+                limit: 15, // 每页默认显示条数
+                prev: 'Previous',
+                next: 'Next',
+                count: 'Total: {{count}}',
+                curr: 1 // 重新从第 1 页开始
+            },
+            cols: [[
+                {type: 'checkbox', fixed: 'left'},
+                {field:'enroll_id', fixed: 'left',  title: 'EnrollId',width:100},
+                { field: 'records_time', title: 'RecordsTime', templet: '#timeTpl' },
+                {field:'mode', title: 'Mode',width:40},
+                {field:'event', title: 'Event',width:40},
+                {field:'device_serial_num', title: 'Device',width:200},
+                { field: 'temperature', title: 'Temperature', width: 200 }, 
+                {
+                    field: 'image',
+                    title: 'Photo',
+                    templet:"#imgtmp",width:100
+                },
+            ]],
+            done: function(){
+                layui.$('#deviceSn').val(deviceSn)
+
+            },
+            error: function(res, msg){
+                console.log(res, msg)
+            }
+        });
+        layui.$('#CollectLog_emp_modal_btn').click(function () {
+            var deviceSn = layui.$('#deviceSn').val()
+            layer.confirm('do you want to collect punch record？', {
+                title: 'Confirmation',  // 设置弹出框标题
+                btn: ['Yes', 'No'],  // 设置按钮的文本
+            }, function () {
+                layui.$.ajax({
+                    url: '/api/collectLog?deviceSn=' + deviceSn,
+                    type: "GET",
+                    success: function (result) {
+                        layer.msg(result.msg);
+                        //回到当前页
+                        // 执行搜索重载
+                        table.reload('test', {
+                            page: {
+                                layout: ['prev', 'page', 'next', 'count'], // 自定义分页布局
+                                limits: [15, 30, 50, 100], // 自定义每页显示条数的选项
+                                limit: 15, // 每页默认显示条数
+                                prev: 'Previous',
+                                next: 'Next',
+                                count: 'Total: {{count}}',
+                                curr: 1 // 重新从第 1 页开始
+                            },
+                        });
+
+                    }
+                });
+            });
+        })
+ 
+        layui.$('#CollectNewLog_emp_modal_btn').click(function () {
+            var deviceSn =layui.$('#deviceSn').val()
+            layer.confirm('do you want to collect punch record？',{
+                title: 'Confirmation',  // 设置弹出框标题
+                btn: ['Yes', 'No'],  // 设置按钮的文本
+            }, function(){
+                layui.$.ajax({
+                    url: '/api/getNewLog?deviceSn=' + deviceSn,
+                    type:"GET",
+                    success:function(result){
+                        layer.msg(result.msg);
+                        //回到当前页
+                        // 执行搜索重载
+                        table.reload('test', {
+                            page: {
+                                layout: ['prev', 'page', 'next',  'count'], // 自定义分页布局
+                                limits: [15, 30, 50, 100], // 自定义每页显示条数的选项
+                                limit: 15, // 每页默认显示条数
+                                prev: 'Previous',
+                                next: 'Next',
+                                count: 'Total: {{count}}',
+                                curr: 1 // 重新从第 1 页开始
+                            },
+                        });
+
+                    }
+                });
+            });
+        })
+        // 触发单元格工具事件
+        table.on('tool(test)', function(obj) { // 双击 toolDouble
+            var data = obj.data; // 获得当前行数据
+            if (obj.event == 'pre_img') {
+                var path = '/images/tmp/' + data.image
+                layer.photos({
+                    photos: {
+                        "title": "Photos Demo",
+                        "start": 0,
+                        "data": [
+                            {
+                                "src": path,
+                            }]
+                    }
+                })
+
+            }
+        }),
+        // 搜索提交
+        form.on('submit(demo-table-search)', function(data){
+            var field = data.field; // 获得表单字段
+            var name =layui.$('#name').val()
+
+            // 执行搜索重载
+            table.reload('test', {
+                page: {
+                    layout: ['prev', 'page', 'next',  'count'], // 自定义分页布局
+                    limits: [15, 30, 50, 100], // 自定义每页显示条数的选项
+                    limit: 15, // 每页默认显示条数
+                    prev: 'Previous',
+                    next: 'Next',
+                    count: 'Total: {{count}}',
+                    curr: 1 // 重新从第 1 页开始
+                },
+                where: field // 搜索的字段
+            });
+            layui.$('#name').val(name)
+            // layer.msg('搜索成功<br>此处为静态模拟数据，实际使用时换成真实接口即可');
+            return false; // 阻止默认 form 跳转
+        });
+        // 工具栏事件
+        table.on('toolbar(test)', function(obj) {
+            var deviceSn = layui.$('#deviceid').val()
+            var id = obj.config.id;
+            var checkStatus = table.checkStatus(id);
+            var othis = lay(this);
+            console.log(obj.event)
+            switch (obj.event) {
+                case 'CollectLog_emp_modal_btn': {
+                    var deviceSn =layui.$('#deviceSn').val()
+                    layer.confirm('do you want to collect punch record？',{
+                        title: 'Confirmation',  // 设置弹出框标题
+                        btn: ['Yes', 'No'],  // 设置按钮的文本
+                    }, function(){
+                        layui.$.ajax({
+                            url: '/api/collectLog?deviceSn=' + deviceSn,
+                            type:"GET",
+                            success:function(result){
+                                layer.msg(result.msg);
+                                //回到当前页
+                                // 执行搜索重载
+                                table.reload('test', {
+                                    page: {
+                                        layout: ['prev', 'page', 'next',  'count'], // 自定义分页布局
+                                        limits: [15, 30, 50, 100], // 自定义每页显示条数的选项
+                                        limit: 15, // 每页默认显示条数
+                                        prev: 'Previous',
+                                        next: 'Next',
+                                        count: 'Total: {{count}}',
+                                        curr: 1 // 重新从第 1 页开始
+                                    },
+                                });
+
+                            }
+                        });
+                    });
+                    }
+                    break;
+                case 'CollectNewLog_emp_modal_btn': {
+                    var deviceSn =layui.$('#deviceSn').val()
+                    layer.confirm('do you want to collect punch record？',{
+                        title: 'Confirmation',  // 设置弹出框标题
+                        btn: ['Yes', 'No'],  // 设置按钮的文本
+                    }, function(){
+                        layui.$.ajax({
+                            url:'/api/getNewLog?deviceSn='+deviceSn,
+                            type:"GET",
+                            success:function(result){
+                                layer.msg(result.msg);
+                                //回到当前页
+                                // 执行搜索重载
+                                table.reload('test', {
+                                    page: {
+                                        layout: ['prev', 'page', 'next',  'count'], // 自定义分页布局
+                                        limits: [15, 30, 50, 100], // 自定义每页显示条数的选项
+                                        limit: 15, // 每页默认显示条数
+                                        prev: 'Previous',
+                                        next: 'Next',
+                                        count: 'Total: {{count}}',
+                                        curr: 1 // 重新从第 1 页开始
+                                    },
+                                });
+
+                            }
+                        });
+                    });
+                }
+                    break;
+                case 'Return_main': {
+                    const currentHostname = new URL(window.location.href).origin;
+                    window.location.href=currentHostname+"/home"
+                }
+
+                    break;
+            }
+
+        })
+    });
+</script>

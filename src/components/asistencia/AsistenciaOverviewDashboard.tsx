@@ -44,6 +44,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useReportesAsistencia } from '@/hooks/useReportesAsistencia';
+import { getErrorMessage, logError } from '@/utils/errorHandler';
 
 interface KPIData {
   totalProfesionales: number;
@@ -282,10 +283,11 @@ export function AsistenciaOverviewDashboard() {
           );
         }
       } catch (error) {
-        console.error('Error fetching KPI data:', error);
+        logError('Error fetching KPI data', error);
+        const errorMessage = getErrorMessage(error);
         toast({
           title: 'Error',
-          description: 'No se pudo cargar los datos de asistencia',
+          description: errorMessage || 'No se pudo cargar los datos de asistencia',
           variant: 'destructive',
         });
       } finally {

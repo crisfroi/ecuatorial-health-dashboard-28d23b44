@@ -135,3 +135,57 @@ Crear: supabase/functions/detect-guardia-conflicts/index.ts
 Integración biométrica ↔ Guardias
 Alertas en tiempo real con Supabase Realtime
 Reportes gráficos mejorados (Recharts)
+
+
+
+
+
+ Implementación completada. Sistema biométrico en tiempo real listo para usar.
+
+📦 Lo que se creó:
+1. Edge Function (supabase/functions/sync-biometric-device/index.ts)
+Proxy que conecta con el SDK Qiandao
+Soporta: sync, get-devices, get-records, get-status
+Inserta registros en attendance_logs automáticamente
+Registra historial de sincronización
+2. Hook React (src/hooks/useBiometricSync.ts)
+syncRecords() - Sincroniza manual o periódica
+getDeviceStatus() - Verifica conexión
+getDevices() - Lista dispositivos
+getRecords() - Obtiene registros
+getSyncHistory() - Historial de syncs
+3. Componente UI (src/components/dashboard/BiometricSyncPanel.tsx)
+Panel para configurar URL del SDK
+Botones de sincronización manual
+Tabs: Dispositivos | Registros | Historial
+Soporte offline y manejo de errores
+4. Integración Dashboard
+Nuevo tab: "Dispositivos Biométricos" (icono ⚡)
+Accesible desde el menú principal
+RLS policies para seguridad
+5. Base de Datos (migración SQL)
+Tabla biometric_sync_logs para rastrear eventos
+Índices para optimización
+Extensión a attendance_logs con campos biométricos
+6. Documentación Render (BIOMETRIC_DEVICE_SETUP.md)
+Guía paso a paso para desplegar en Render
+Configuración variables de entorno
+Solución de problemas
+Monitoreo y próximos pasos
+🚀 Siguientes pasos para ti:
+Desplegar SDK en Render:
+
+Sigue la documentación BIOMETRIC_DEVICE_SETUP.md
+Toma ~10 minutos
+Aplicar migración BD:
+
+supabase migration up
+Configurar en el Dashboard:
+
+Abre tab "Dispositivos Biométricos"
+Ingresa URL del SDK (ej: https://qiandao-sdk.onrender.com)
+Haz clic en "Sincronizar Ahora"
+(Opcional) Sincronización automática cada 30 minutos:
+
+Edita Dashboard.tsx línea donde usas BiometricSyncPanel
+Agrega: autoSyncInterval={30 * 60 * 1000}

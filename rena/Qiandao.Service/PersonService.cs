@@ -1,8 +1,8 @@
-﻿using Qiandao.Model.Entity;
+using Qiandao.Model.Entity;
 using Qiandao.Model.Response;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using Microsoft.EntityFrameworkCore;
 namespace Qiandao.Service
 {

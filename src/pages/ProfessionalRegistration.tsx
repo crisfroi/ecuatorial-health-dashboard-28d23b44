@@ -36,7 +36,6 @@ import { DocumentsStep } from "@/components/registration/DocumentsStep";
 import ConfirmationStep from "@/components/registration/ConfirmationStep";
 import { RegistrationProgress } from "@/components/registration/RegistrationProgress";
 import PDFSummary from "@/components/registration/PDFSummary";
-import JsBarcode from 'jsbarcode';
 import PoliticasModal from "@/components/registration/PoliticasModal";
 import ProcedureModal from "@/components/registration/ProcedureModal";
 

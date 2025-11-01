@@ -111,14 +111,14 @@ namespace Qiandao.Service
                     return new ResponseModel { Code = 0, Result = "ID isn't null" };
                 }
 
-                string sql = "UPDATE machine_command SET status = @status,serial=@Serial, send_status = @sendStatus, run_time = @runTime WHERE id = @id";
-                var parameters = new SqlParameter[]
+                string sql = "UPDATE machine_command SET status = @status, serial = @Serial, send_status = @sendStatus, run_time = @runTime WHERE id = @id";
+                var parameters = new NpgsqlParameter[]
                 {
-        new SqlParameter("@status", status),
-        new SqlParameter("@sendStatus", sendStatus),
-        new SqlParameter("@runTime", runTime),
-        new SqlParameter("@id", machine_command.Id),
-        new SqlParameter("@Serial", machine_command.Serial),
+        new NpgsqlParameter("@status", status),
+        new NpgsqlParameter("@sendStatus", sendStatus),
+        new NpgsqlParameter("@runTime", runTime),
+        new NpgsqlParameter("@id", machine_command.Id),
+        new NpgsqlParameter("@Serial", machine_command.Serial ?? (object)DBNull.Value),
 
                 };
 

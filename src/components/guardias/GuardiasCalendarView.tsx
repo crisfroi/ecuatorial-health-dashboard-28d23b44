@@ -245,47 +245,63 @@ export const GuardiasCalendarView: React.FC<{
         </div>
       </div>
 
-      {/* KPI Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+      {/* KPI Stats - Enhanced */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <Card className="border-l-4 border-l-blue-500 bg-blue-50/30">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Guardias Programadas</p>
-                <p className="text-2xl font-bold">{totalGuardias}</p>
+                <p className="text-xs font-medium text-gray-600">Guardias</p>
+                <p className="text-2xl font-bold text-blue-600">{totalGuardias}</p>
               </div>
-              <CalendarIcon className="w-8 h-8 text-blue-600" />
+              <CalendarIcon className="w-8 h-8 text-blue-600 opacity-30" />
             </div>
+            <p className="text-xs text-gray-500 mt-2">Programadas</p>
           </CardContent>
         </Card>
 
-        <Card className={diasConConflictos > 0 ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-green-500'}>
+        <Card className={`border-l-4 ${diasConConflictos > 0 ? 'border-l-red-500 bg-red-50/30' : 'border-l-green-500 bg-green-50/30'}`}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Días con Conflictos</p>
+                <p className="text-xs font-medium text-gray-600">Conflictos</p>
                 <p className={`text-2xl font-bold ${diasConConflictos > 0 ? 'text-red-600' : 'text-green-600'}`}>
                   {diasConConflictos}
                 </p>
               </div>
               {diasConConflictos > 0 ? (
-                <AlertTriangle className="w-8 h-8 text-red-600" />
+                <AlertTriangle className="w-8 h-8 text-red-600 opacity-30" />
               ) : (
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-8 h-8 text-green-600 opacity-30" />
               )}
             </div>
+            <p className="text-xs text-gray-500 mt-2">Detectados</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-l-purple-500 bg-purple-50/30">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Cobertura Promedio</p>
-                <p className="text-2xl font-bold">{tasaCoberturaPromedio.toFixed(1)}%</p>
+                <p className="text-xs font-medium text-gray-600">Cobertura</p>
+                <p className="text-2xl font-bold text-purple-600">{tasaCoberturaPromedio.toFixed(0)}%</p>
               </div>
-              <Users className="w-8 h-8 text-purple-600" />
+              <Users className="w-8 h-8 text-purple-600 opacity-30" />
             </div>
+            <p className="text-xs text-gray-500 mt-2">Promedio</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-orange-500 bg-orange-50/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-600">Conflictos</p>
+                <p className="text-2xl font-bold text-orange-600">{conflictosGlobales.length}</p>
+              </div>
+              <AlertCircle className="w-8 h-8 text-orange-600 opacity-30" />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Globales</p>
           </CardContent>
         </Card>
       </div>

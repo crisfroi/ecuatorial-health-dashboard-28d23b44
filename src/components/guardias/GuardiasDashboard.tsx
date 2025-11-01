@@ -33,6 +33,7 @@ import { AjustesGuardias } from './tabs/AjustesGuardias';
 import { TurnosBiometricos } from './tabs/TurnosBiometricos';
 import { CuadrantesBiometricos } from './tabs/CuadrantesBiometricos';
 import { AsistenciaBiometrica } from './tabs/AsistenciaBiometrica';
+import { GuardiasCalendarView } from './GuardiasCalendarView';
 import { NetworkStatusSimple } from '@/components/ui/network-status-simple';
 import { GuardiasStatusIndicators } from './GuardiasStatusIndicators';
 import { GuardiasNotificationSystem } from './GuardiasNotificationSystem';

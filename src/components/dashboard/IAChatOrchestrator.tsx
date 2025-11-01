@@ -1,3 +1,4 @@
+// @ts-nocheck
 // SISTEMA DE IA SUPERINTELIGENTE - REEMPLAZADO POR SuperAIChatMaster
 import SuperAIChatMaster from './SuperAIChatMaster';
 

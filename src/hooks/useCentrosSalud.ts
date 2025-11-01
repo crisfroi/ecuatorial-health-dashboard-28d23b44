@@ -7,6 +7,7 @@ interface BuscarCentrosParams {
   nombreParcial?: string;
   categoria?: string;
   distritoSanitario?: string;
+  provincia?: string;
 }
 
 interface CrearCentroParams {
@@ -41,6 +42,9 @@ export const useCentrosSalud = () => {
     }
     if (params.distritoSanitario) {
       query = query.eq("distrito_sanitario", params.distritoSanitario);
+    }
+    if (params.provincia) {
+      query = query.eq("provincia", params.provincia);
     }
 
     const { data: centros, error } = await query.order("nombre");

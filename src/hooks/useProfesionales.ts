@@ -20,6 +20,8 @@ export type Profesional =
     fecha_nacimiento?: string | null;
     funcion_publica?: boolean | null;
     fecha_generacion_resolucion?: string | null;
+    // Nuevo: referencia FK al área profesional
+    area_profesional_id?: string | null;
   };
 
 export type ProfesionalInsert =
@@ -46,6 +48,8 @@ export type Professional = Profesional;
 interface Filtros {
   // Acepta string o string[] para soportar selección múltiple
   area_profesional?: string | string[];
+  // Nuevo: filtrar por FK
+  area_profesional_id?: string | string[];
   estado_solicitud?: string | string[];
   provincia?: string | string[];
   genero?: string | string[];
@@ -145,8 +149,18 @@ export function useProfesionales(filtros: Filtros = {}) {
         }
       };
 
-      // Área profesional: soporta múltiple selección (OR) y búsqueda parcial para una sola cadena
-      if (filtros.area_profesional) {
+      // Área profesional por FK (preferente)
+      if (filtros.area_profesional_id) {
+        if (isNonEmptyArray(filtros.area_profesional_id)) {
+          query = query.in('area_profesional_id', filtros.area_profesional_id as string[]);
+        } else if (
+          typeof filtros.area_profesional_id === 'string' &&
+          (filtros.area_profesional_id as string) !== 'todos'
+        ) {
+          query = query.eq('area_profesional_id', filtros.area_profesional_id as string);
+        }
+      } else if (filtros.area_profesional) {
+        // Compat: por nombre de área (texto)
         if (isNonEmptyArray(filtros.area_profesional)) {
           query = query.in('area_profesional', filtros.area_profesional as string[]);
         } else if (typeof filtros.area_profesional === 'string' && filtros.area_profesional !== 'todos') {
@@ -156,6 +170,7 @@ export function useProfesionales(filtros: Filtros = {}) {
 
       // Estado solicitud, provincia, género, sector, distrito(s)
       applyInOrEq('estado_solicitud', filtros.estado_solicitud);
+      applyInOrEq('situacion_laboral', (filtros as any).situacion_laboral);
       applyInOrEq('provincia', filtros.provincia);
       applyInOrEq('genero', filtros.genero);
       applyInOrEq('tipo_sector', filtros.tipo_sector);

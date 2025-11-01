@@ -36,6 +36,7 @@ import { DocumentsStep } from "@/components/registration/DocumentsStep";
 import ConfirmationStep from "@/components/registration/ConfirmationStep";
 import { RegistrationProgress } from "@/components/registration/RegistrationProgress";
 import PDFSummary from "@/components/registration/PDFSummary";
+import JsBarcode from 'jsbarcode';
 import PoliticasModal from "@/components/registration/PoliticasModal";
 import ProcedureModal from "@/components/registration/ProcedureModal";
 
@@ -108,6 +109,12 @@ const formSchema = z
     nacionalidad: z.string().min(1, "Seleccione su nacionalidad"),
     numero_dip: z.string().optional(),
     numero_pasaporte: z.string().optional(),
+    numero_tarjeta_rfid: z
+      .string()
+      .optional()
+      .refine((value) => !value || /^\d{1,10}$/.test(value), {
+        message: "Ingrese hasta 10 dígitos",
+      }),
     telefono: z.string().min(9, "El teléfono debe tener al menos 9 dígitos"),
     domicilio: z.string().min(2, "El domicilio es requerido"),
     provincia: z.string().min(1, "La provincia es requerida"),
@@ -241,6 +248,7 @@ const stepFields: { [key: number]: (keyof FormData)[] } = {
     "nacionalidad",
     "numero_dip",
     "numero_pasaporte",
+    "numero_tarjeta_rfid",
     "telefono",
   ],
   2: ["domicilio", "provincia", "distrito"],
@@ -308,10 +316,14 @@ const ProfessionalRegistration = () => {
       situacion_laboral: "Activo",
       nacionalidad: "Ecuatoguineana",
       telefono: "+240",
+      numero_tarjeta_rfid: "",
       funcionario_estatus: undefined,
       numero_funcionario: "",
       fecha_nombramiento: "",
       fecha_inicio_trabajo: "",
+      meses_en_paro: undefined as any,
+      ultimo_trabajo: "",
+      recien_graduado: false,
       categoria_institucion_1: "",
       institucion_formacion_id_1: "",
       // CRÍTICO: Sobrescribe los valores por defecto con los datos guardados
@@ -499,6 +511,7 @@ const ProfessionalRegistration = () => {
         nacionalidad: U(data.nacionalidad),
         numero_dip: data.numero_dip || null,
         numero_pasaporte: data.numero_pasaporte || null,
+        numero_tarjeta_rfid: data.numero_tarjeta_rfid ? data.numero_tarjeta_rfid : null,
         telefono: normalizeTelefono(data.telefono),
         domicilio: U(data.domicilio),
         provincia: U(data.provincia),
@@ -510,7 +523,11 @@ const ProfessionalRegistration = () => {
         institucion_1: U(data.institucion_1),
         periodo_formacion: U(data.periodo_formacion),
         pais_formacion_1: U(data.pais_formacion_1),
+        pais_formacion_id_1: data.pais_formacion_id_1,
         situacion_laboral: U(data.situacion_laboral),
+        meses_en_paro: data.situacion_laboral === 'En paro' ? Number(data.meses_en_paro ?? 0) : null,
+        ultimo_trabajo: data.situacion_laboral === 'En paro' ? (data.ultimo_trabajo || null) : null,
+        recien_graduado: data.situacion_laboral === 'En paro' ? !!data.recien_graduado : false,
         nombre_centro: data.nombre_centro ? U(data.nombre_centro) : null,
         centro_salud_id: data.centro_salud_id || null, // ID del centro
         categoria_centro: data.categoria_centro ? U(data.categoria_centro) : null,
@@ -526,7 +543,7 @@ const ProfessionalRegistration = () => {
         // URLs de documentos adicionales subidos al bucket
         documentos_adicionales: documentosUrls,
         foto_carnet: fotoUrl,
-        institucion_formacion_id_1: institucionFormacionId,
+        institucion_formacion_id_1: data.institucion_formacion_id_1 || null,
         estado_solicitud: "Recibido" as const,
         fecha_solicitud: new Date().toISOString().split("T")[0],
       };
@@ -571,12 +588,18 @@ const ProfessionalRegistration = () => {
         }
       }
 
-      // ⭐ PASO CLAVE 1: Descargar la imagen de la URL y convertirla a Base64 para el PDF
+      // ⭐ PASO CLAVE 1: Obtener el código de barras en Base64 (con generador local como fallback)
       let codigoBarrasBase64: string | null = null;
       if (urlCodigoBarrasExp) {
         codigoBarrasBase64 = await urlToBase64(urlCodigoBarrasExp);
-        if (!codigoBarrasBase64) {
-          console.warn("No se pudo obtener la Base64 para el código de barras.");
+      }
+      if (!codigoBarrasBase64 && result.codigo_expediente) {
+        try {
+          const canvas = document.createElement('canvas');
+          JsBarcode(canvas, String(result.codigo_expediente), { format: 'CODE128', displayValue: false, height: 40, width: 1.5 });
+          codigoBarrasBase64 = canvas.toDataURL('image/png');
+        } catch (e) {
+          console.warn('No se pudo generar código de barras localmente:', e);
         }
       }
 
@@ -591,7 +614,7 @@ const ProfessionalRegistration = () => {
         // 1. INTENTO DE SUBIDA VÍA EDGE FUNCTION (Preferido si se requiere lógica de servidor)
         // ------------------------------------------
         try {
-          console.log("Intentando subir documentos vía Edge Function (Modo Público)...");
+          console.log("Intentando subir documentos vía Edge Function (con Authorization)...");
 
           const formDataDocs = new FormData();
           formDataDocs.append("professional_id", professionalId);
@@ -599,11 +622,15 @@ const ProfessionalRegistration = () => {
             formDataDocs.append("documentos_adicionales[]", file);
           });
 
+          // Obtener token actual
+          const { data: sessionData } = await supabase.auth.getSession();
+          const accessToken = sessionData.session?.access_token;
+
           const resp = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-documentos-adicionales`,
             {
               method: "POST",
-              // ¡IMPORTANTE! Eliminamos el encabezado de Authorization
+              headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
               body: formDataDocs,
             },
           );

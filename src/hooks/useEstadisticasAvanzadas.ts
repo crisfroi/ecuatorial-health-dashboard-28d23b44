@@ -220,9 +220,10 @@ export function useEstadisticasAvanzadas(filters?: Partial<{
               await new Promise((resolve) => setTimeout(resolve, delayMs));
             }
           } catch (queryException: any) {
+            const exceptionMsg = queryException?.message || JSON.stringify(queryException) || 'Unknown exception';
             console.error(
               `Main query attempt ${attempt} threw exception:`,
-              queryException,
+              exceptionMsg,
             );
             error = queryException;
 

@@ -65,7 +65,9 @@ import HealthCenters from "@/components/dashboard/HealthCenters";
 import SolicitudesEstablecimientos from "@/components/dashboard/SolicitudesEstablecimientos";
 import AdminPanel from "@/components/dashboard/AdminPanel";
 import AdvancedAnalyticsDashboard from "@/components/dashboard/AdvancedAnalyticsDashboard";
+import EquatorialGuineaMapLeaflet from "@/components/dashboard/EquatorialGuineaMapD3";
 import { ParametrosProfesionalesPanel } from "@/components/dashboard/ParametrosProfesionalesPanel";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import ProfessionalSearch from "@/components/dashboard/ProfessionalSearch";
 import GlobalSearch from "@/components/dashboard/GlobalSearch";
 import ErrorBoundary from "@/components/ui/error-boundary";
@@ -95,6 +97,7 @@ type Profesional = Tables<"profesionales_sanitarios">;
 // Definición de tipos para los filtros
 interface Filtros {
   area_profesional?: string;
+  area_profesional_id?: string[];
   estado_solicitud?: string;
   provincia?: string;
   genero?: string;
@@ -124,11 +127,12 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [showStatsCards, setShowStatsCards] = useState(true);
   const [openTour, setOpenTour] = useState(false);
+  const [analyticsOpenDetail, setAnalyticsOpenDetail] = useState<{ kind: 'province' | 'district'; name: string } | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   // Usar sistema de autenticación real
-  const { user, userRole, isLoading, canAccessTab, hasPermission } = useAuth();
+  const { user, userRole, isLoading, canAccessTab, hasPermission, logout } = useAuth();
   const { currentRole, isAdmin, isRevisor, isMinisterial, isObserver, isCenterDirector } = useRole();
 
   const userName = user?.full_name || user?.email?.split('@')[0] || "Usuario";
@@ -700,6 +704,25 @@ const Dashboard = () => {
                 />
               </div>
             </div>
+
+            <Accordion type="single" defaultValue="geo-map" className="mt-4">
+              <AccordionItem value="geo-map" className="border rounded-lg bg-white shadow-sm">
+                <AccordionTrigger className="px-4">
+                  Resumen Geográfico (Mapa) — Haz clic o pasa el mouse para más detalles
+                </AccordionTrigger>
+                <AccordionContent className="p-4">
+                  <EquatorialGuineaMapLeaflet onSelectRegion={(name: string, level: string) => {
+                    // Open analytics tab and request that AdvancedAnalyticsDashboard open the corresponding detail
+                    setActiveTab("analytics");
+                    setAnalyticsOpenDetail({ kind: level === 'provincias' ? 'province' : 'district', name });
+                  }} onNavigateToTab={(tab: string, filters?: any) => {
+                    // Forward navigations from the map to the dashboard handler
+                    handleNavigateFromAnalytics(tab, filters);
+                    setActiveTab('analytics');
+                  }} />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </TabsContent>
 
           <TabsContent value="professionals" className="space-y-6" data-tour="dashboard-professionals">
@@ -763,6 +786,8 @@ const Dashboard = () => {
             <AdvancedAnalyticsDashboard
               onNavigateToTab={handleNavigateFromAnalytics}
               filters={dashboardFilters}
+              externalOpenDetail={analyticsOpenDetail}
+              onExternalOpenDetailHandled={() => setAnalyticsOpenDetail(null)}
             />
           </TabsContent>
 

@@ -355,8 +355,26 @@ export function logError(context: string, error: any): void {
   const message = getErrorMessage(error);
   console.error(`${context}:`, message);
 
-  // Log adicional del objeto completo para debugging
+  // Log adicional del objeto completo para debugging con mejor formato
   if (typeof error === "object" && error !== null) {
-    console.error(`${context} (full object):`, error);
+    try {
+      // Intentar stringify con propiedades relevantes
+      const errorInfo = {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        status: error.status,
+        statusCode: error.statusCode,
+      };
+      console.error(`${context} (full object):`, JSON.stringify(errorInfo, null, 2));
+    } catch (e) {
+      // Si no se puede stringify, loguear las propiedades clave
+      console.error(`${context} (error properties):`, {
+        type: error.constructor?.name,
+        message: error.message,
+        keys: Object.keys(error).slice(0, 5),
+      });
+    }
   }
 }

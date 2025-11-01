@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,7 +64,7 @@ const SlideshowSettings = () => {
             .single();
 
         if (error && error.code !== 'PGRST116') { 
-            console.error("Error al cargar la configuración:", error);
+            console.error("Error al cargar la configuración:", error?.message ?? error, error);
             // Fallback en caso de error de conexión/permiso (no 'no results')
             setSettings({ duration: 5000, images: [] }); 
         } else if (data) {

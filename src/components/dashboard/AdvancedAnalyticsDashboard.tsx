@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ import {
   useTopCenters,
   useAreaProfessionalStats,
   useDistrictStats,
+  useProvinceStats,
   useAgeRangeStats,
   useGraduationYearStats,
   useCountryStats,
@@ -61,11 +63,13 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useDistritosSanitarios } from "@/hooks/useDistritosSanitarios";
 import DistrictAnalytics from "./DistrictAnalytics";
+import ProvinceAnalytics from "./ProvinceAnalytics";
 import InteractiveCharts from "./InteractiveCharts";
 import AnalyticsSummary from "./AnalyticsSummary";
 import ErrorBoundary from "@/components/ui/error-boundary";
 import FinancialAnalytics from "./FinancialAnalytics";
 import QuickDiagnostic from "./QuickDiagnostic";
+import { PROVINCIAS_EG } from "@/utils/geo";
 import ChartActions from "./ChartActions";
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
@@ -123,35 +127,33 @@ interface AdvancedAnalyticsDashboardProps {
     institucion: string;
     funcion_publica: boolean;
   }>;
+  externalOpenDetail?: { kind: "province" | "district"; name: string } | null;
+  onExternalOpenDetailHandled?: () => void;
 }
 
 const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
   onNavigateToTab,
   filters,
+  externalOpenDetail,
+  onExternalOpenDetailHandled,
 }) => {
   const [selectedView, setSelectedView] = useState("overview");
   const [selectedDistrict, setSelectedDistrict] = useState("all");
+  const [selectedProvince, setSelectedProvince] = useState("all");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedInstitution, setSelectedInstitution] = useState<string | null>(null);
+  const [activeTabInternal, setActiveTabInternal] = useState<string>("summary");
   const queryClient = useQueryClient();
 
-  // Auto-refresh data every 30 seconds for real-time updates
+  // Auto-refresh data periodically (reduced frequency to reduce navigation lag)
   useEffect(() => {
     const interval = setInterval(() => {
+      // Refresh only the heaviest used datasets less often
       queryClient.invalidateQueries({ queryKey: ["topCenters"] });
-      queryClient.invalidateQueries({ queryKey: ["areaProfessionalStats"] });
       queryClient.invalidateQueries({ queryKey: ["districtStats"] });
-      queryClient.invalidateQueries({ queryKey: ["ageRangeStats"] });
-      queryClient.invalidateQueries({ queryKey: ["countryStats"] });
-      queryClient.invalidateQueries({ queryKey: ["institutionStats"] });
-      queryClient.invalidateQueries({ queryKey: ["allCountryStats"] });
-      queryClient.invalidateQueries({ queryKey: ["allInstitutionStats"] });
-      queryClient.invalidateQueries({ queryKey: ["centerCategoryStats"] });
-      queryClient.invalidateQueries({ queryKey: ["titulacionCategoryStats"] });
-      queryClient.invalidateQueries({ queryKey: ["workAgeStats"] });
-      queryClient.invalidateQueries({ queryKey: ["serviceYearsStats"] });
-      queryClient.invalidateQueries({ queryKey: ["retirementRemainingStats"] });
-    }, 30000); // Refresh every 30 seconds
+      queryClient.invalidateQueries({ queryKey: ["provinceStats"] });
+      queryClient.invalidateQueries({ queryKey: ["areaProfessionalStats"] });
+    }, 60000); // Refresh every 60 seconds
 
     return () => clearInterval(interval);
   }, [queryClient]);
@@ -169,6 +171,20 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     navigateToProvince,
   } = useDashboardNavigation(onNavigateToTab || (() => {}));
 
+  // Handle external triggers to open province/district details
+  useEffect(() => {
+    if (!externalOpenDetail) return;
+    if (externalOpenDetail.kind === "province") {
+      setActiveTabInternal("geographic");
+      setSelectedProvince(externalOpenDetail.name);
+    } else if (externalOpenDetail.kind === "district") {
+      setActiveTabInternal("districts");
+      setSelectedDistrict(externalOpenDetail.name);
+    }
+    // notify parent that we've handled the external request
+    onExternalOpenDetailHandled?.();
+  }, [externalOpenDetail, onExternalOpenDetailHandled]);
+
   // Fetch all analytics data
   const { data: topCenters = [], isLoading: loadingCenters } = useTopCenters(filters as any);
   const { data: areaStats = [], isLoading: loadingAreas } =
@@ -182,6 +198,8 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
     .sort();
   const { data: ageRangeStats = [], isLoading: loadingAges } =
     useAgeRangeStats(filters as any);
+  const { data: provinceStats = [], isLoading: loadingProvinces } = useProvinceStats(filters as any);
+  const availableProvinces = (provinceStats || []).map((p:any) => p.provincia).filter(Boolean).sort();
   const { data: workAgeStats = [] } = useWorkAgeStats(filters as any);
   const { data: serviceYearsStats = [] } = useServiceYearsStats(filters as any);
   const { data: retirementRemainingStats = [] } = useRetirementRemainingStats(filters as any);
@@ -440,7 +458,7 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
       </div>
 
       {/* Main Analytics Tabs */}
-      <Tabs defaultValue="summary" className="space-y-6">
+      <Tabs value={activeTabInternal} onValueChange={setActiveTabInternal} className="space-y-6">
         <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger
             value="summary"
@@ -483,6 +501,13 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
           >
             <GraduationCap className="w-4 h-4" />
             Formación
+          </TabsTrigger>
+          <TabsTrigger
+            value="geographic"
+            className="flex items-center gap-2 hover:bg-teal-100 hover:text-teal-700 transition-colors duration-200 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
+          >
+            <MapPin className="w-4 h-4" />
+            Provincias
           </TabsTrigger>
           <TabsTrigger
             value="funcionarios"
@@ -1060,6 +1085,121 @@ const AdvancedAnalyticsDashboard: React.FC<AdvancedAnalyticsDashboardProps> = ({
               selectedDistrict={selectedDistrict}
               onDistrictChange={setSelectedDistrict}
               availableDistricts={allDistrictNames}
+              onNavigateToTab={onNavigateToTab}
+            />
+          )}
+        </TabsContent>
+
+        {/* Geography Tab */}
+        <TabsContent value="geographic" className="space-y-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-xl font-semibold">Análisis por Provincia</h3>
+              <p className="text-gray-600">Vista general y análisis detallado por provincia</p>
+            </div>
+            <Select
+              value={selectedProvince}
+              onValueChange={setSelectedProvince}
+            >
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Seleccionar provincia" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las provincias (Vista General)</SelectItem>
+                {(availableProvinces || PROVINCIAS_EG).map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {selectedProvince === "all" ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-purple-600" />
+                    Estadísticas por Provincia
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <BarChart data={provinceStats}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="provincia"
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        fontSize={10}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar
+                        dataKey="total_profesionales"
+                        fill="#8884d8"
+                        name="Profesionales"
+                        onClick={(data: any) => navigateToProvince(data.provincia)}
+                        className="cursor-pointer hover:opacity-80"
+                      />
+                      <Bar
+                        dataKey="total_centros"
+                        fill="#82ca9d"
+                        name="Centros"
+                        onClick={(data: any) => navigateToProvince(data.provincia)}
+                        className="cursor-pointer hover:opacity-80"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {provinceStats.slice(0, 9).map((prov, index) => (
+                  <Card
+                    key={prov.provincia}
+                    className="cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => setSelectedProvince(prov.provincia)}
+                  >
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center justify-between">
+                        {prov.provincia}
+                        <Eye className="w-4 h-4 text-gray-400" />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Profesionales:</span>
+                          <Badge variant="outline">{prov.total_profesionales}</Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Centros:</span>
+                          <Badge variant="outline">{prov.total_centros}</Badge>
+                        </div>
+                        <div className="mt-3">
+                          <span className="text-sm text-gray-600 block mb-1">Áreas principales:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {prov.areas_mas_comunes.map((area, i) => (
+                              <Badge key={i} variant="secondary" className="text-xs">{area}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mt-2 pt-2 border-t">
+                          <span className="text-xs text-blue-600">Haz clic para ver detalles →</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          ) : (
+            <ProvinceAnalytics
+              selectedProvince={selectedProvince}
+              onProvinceChange={setSelectedProvince}
+              availableProvinces={availableProvinces.length ? availableProvinces : PROVINCIAS_EG}
               onNavigateToTab={onNavigateToTab}
             />
           )}

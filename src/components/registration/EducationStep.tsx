@@ -3,6 +3,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/comp
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UseFormReturn } from 'react-hook-form';
+import { useAreasProfesionales } from '@/hooks/useAreasProfesionales';
 import { usePaises } from '@/hooks/usePaises';
 import { useInstitucionesFormacion, addInstitucionFormacion } from '@/hooks/useInstitucionesFormacion';
 import { Button } from '@/components/ui/button';
@@ -11,20 +12,7 @@ interface EducationStepProps {
   form: UseFormReturn<any>;
 }
 
-const areas_profesionales = [
-  "Medicina General",
-  "Enfermería",
-  "Farmacia",
-  "Odontología",
-  "Fisioterapia",
-  "Psicología",
-  "Nutrición",
-  "Radiología",
-  "Laboratorio",
-  "Biología",
-  "Oftamológia",
-  "Cuidados Intensivos"
-];
+// Eliminado listado estático: ahora se obtiene desde la tabla areas_profesionales
 
 const categorias_titulacion = [
   "LICENCIATURA",
@@ -36,6 +24,7 @@ const categorias_titulacion = [
 ];
 
 export const EducationStep = ({ form }: EducationStepProps) => {
+  const { data: areas = [] } = useAreasProfesionales();
   const { data: paises = [], isLoading: isLoadingPaises } = usePaises();
   const watchedCategoria = form.watch('categoria_titulacion');
   const watchedPais = form.watch('pais_formacion_1');
@@ -75,24 +64,34 @@ export const EducationStep = ({ form }: EducationStepProps) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Selector de área profesional (por FK). Se guarda id y nombre */}
       <FormField
         control={form.control}
         name="area_profesional"
-        render={({ field }) => (
+        render={() => (
           <FormItem>
             <FormLabel>Área Profesional *</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <Select
+              value={form.watch('area_profesional_id') || ''}
+              onValueChange={(id) => {
+                const selected = areas.find((a) => a.id === id);
+                form.setValue('area_profesional_id', id);
+                form.setValue('area_profesional', selected?.nombre || '');
+              }}
+            >
               <FormControl>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione el área" />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {areas_profesionales.map((area) => (
-                  <SelectItem key={area} value={area}>
-                    {area}
-                  </SelectItem>
-                ))}
+                {areas.length > 0
+                  ? areas.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.nombre}
+                      </SelectItem>
+                    ))
+                  : null}
               </SelectContent>
             </Select>
             <FormMessage />

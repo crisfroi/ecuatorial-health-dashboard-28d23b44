@@ -1,665 +1,936 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+// @ts-nocheck
+import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import * as d3 from "d3";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  MapPin,
-  Users,
-  Building,
-  Stethoscope,
-  GraduationCap,
-  Eye,
-  RefreshCw,
-} from "lucide-react";
+import * as LucideIcons from "lucide-react";
+const MaleIcon = (LucideIcons as any).Male || (LucideIcons as any).GenderMale || (LucideIcons as any).Man || (LucideIcons as any).User || null;
+const FemaleIcon = (LucideIcons as any).Female || (LucideIcons as any).GenderFemale || (LucideIcons as any).Woman || (LucideIcons as any).User || null;
+const { MapPin, Users, Building, Eye, Map: MapIcon } = LucideIcons;
+import "leaflet/dist/leaflet.css";
+
+// PASO 1: IMPORTAR UTILIDADES Y HOOK DE DATOS
+import ADM1_GEOJSON from "@/data/geoBoundaries-GNQ-ADM1.json";
+import ADM2_GEOJSON from "@/data/geoBoundaries-GNQ-ADM2.json";
+import { getCleanGeoName } from "@/utils/geoUtils";
+import { useGeoDistrictStats } from "@/hooks/useGeoDistrictStats";
+import { useProvinceStats, useDistrictStats, useTitulacionCategoryStats, useWorkAgeStats } from "@/hooks/useAdvancedAnalytics";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
 import { useEstadisticasAvanzadas } from "@/hooks/useEstadisticasAvanzadas";
+import { useCentrosSalud } from "@/hooks/useCentrosSalud";
 
-interface ProvinceData {
-  id: string;
-  name: string;
-  professionals: number;
-  centers: number;
-  doctors: number;
-  nurses: number;
-  pharmacists: number;
-  publicSector: number;
-  privateSector: number;
-  approved: number;
-  pending: number;
-}
+// --- TIPOS Y UTILS ---
 
-interface EquatorialGuineaMapD3Props {
-  onNavigateToProvince?: (provinceName: string) => void;
-}
+type Level = "provincias" | "distritos";
 
-const EquatorialGuineaMapD3: React.FC<EquatorialGuineaMapD3Props> = ({
-  onNavigateToProvince,
-}) => {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [selectedMetric, setSelectedMetric] = useState<string>("professionals");
-  const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
-  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
-  const [geoData, setGeoData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const { data: estadisticas } = useEstadisticasAvanzadas();
-
-  // Mock data for provinces
-  const provinceData: Record<string, ProvinceData> = useMemo(() => {
-    const mockData: Record<string, ProvinceData> = {
-      "Bioko Norte": {
-        id: "bioko-norte",
-        name: "Bioko Norte",
-        professionals: estadisticas?.porProvincia?.["Malabo"] || 245,
-        centers: 12,
-        doctors: 78,
-        nurses: 125,
-        pharmacists: 42,
-        publicSector: 180,
-        privateSector: 65,
-        approved: 220,
-        pending: 25,
-      },
-      "Bioko Sur": {
-        id: "bioko-sur",
-        name: "Bioko Sur",
-        professionals: 89,
-        centers: 6,
-        doctors: 28,
-        nurses: 45,
-        pharmacists: 16,
-        publicSector: 70,
-        privateSector: 19,
-        approved: 78,
-        pending: 11,
-      },
-      Annobón: {
-        id: "annobon",
-        name: "Annobón",
-        professionals: 15,
-        centers: 2,
-        doctors: 4,
-        nurses: 8,
-        pharmacists: 3,
-        publicSector: 12,
-        privateSector: 3,
-        approved: 14,
-        pending: 1,
-      },
-      Litoral: {
-        id: "litoral",
-        name: "Litoral",
-        professionals: estadisticas?.porProvincia?.["Bata"] || 198,
-        centers: 15,
-        doctors: 62,
-        nurses: 98,
-        pharmacists: 38,
-        publicSector: 150,
-        privateSector: 48,
-        approved: 185,
-        pending: 13,
-      },
-      "Centro Sur": {
-        id: "centro-sur",
-        name: "Centro Sur",
-        professionals: estadisticas?.porProvincia?.["Evinayong"] || 78,
-        centers: 8,
-        doctors: 25,
-        nurses: 40,
-        pharmacists: 13,
-        publicSector: 62,
-        privateSector: 16,
-        approved: 72,
-        pending: 6,
-      },
-      "Kié-Ntem": {
-        id: "kie-ntem",
-        name: "Kié-Ntem",
-        professionals: estadisticas?.porProvincia?.["Ebebiyín"] || 87,
-        centers: 10,
-        doctors: 28,
-        nurses: 45,
-        pharmacists: 14,
-        publicSector: 70,
-        privateSector: 17,
-        approved: 81,
-        pending: 6,
-      },
-      "Wele-Nzas": {
-        id: "wele-nzas",
-        name: "Wele-Nzas",
-        professionals: estadisticas?.porProvincia?.["Mongomo"] || 56,
-        centers: 7,
-        doctors: 18,
-        nurses: 30,
-        pharmacists: 8,
-        publicSector: 45,
-        privateSector: 11,
-        approved: 52,
-        pending: 4,
-      },
-    };
-    return mockData;
-  }, [estadisticas]);
-
-  // Load GeoJSON data
-  useEffect(() => {
-    const loadGeoData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const response = await fetch("/data/equatorial-guinea.geojson");
-        if (!response.ok) {
-          throw new Error(`Failed to load GeoJSON: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setGeoData(data);
-      } catch (err: any) {
-        console.error("Error loading GeoJSON:", err);
-        setError(`Error cargando datos del mapa: ${err.message}`);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadGeoData();
-  }, []);
-
-  // Draw map with D3
-  useEffect(() => {
-    if (!geoData || !svgRef.current) return;
-
-    // Wrap D3 operations to catch ResizeObserver errors
-    try {
-      const svg = d3.select(svgRef.current);
-      svg.selectAll("*").remove(); // Clear previous content
-
-    const width = 800;
-    const height = 600;
-    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
-
-    // Set up projection
-    const projection = d3
-      .geoMercator()
-      .fitSize(
-        [
-          width - margin.left - margin.right,
-          height - margin.top - margin.bottom,
-        ],
-        geoData,
-      );
-
-    const pathGenerator = d3.geoPath().projection(projection);
-
-    // Create main group with viewBox for responsive scaling
-    const mapGroup = svg
-      .attr("viewBox", `0 0 ${width} ${height}`)
-      .attr("preserveAspectRatio", "xMidYMid meet")
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    // Get metric values for color scale
-    const metricValues = Object.values(provinceData).map((p) =>
-      getMetricValue(p, selectedMetric),
-    );
-    const maxValue = Math.max(...metricValues);
-    const minValue = Math.min(...metricValues);
-
-    // Color scale
-    const colorScale = d3
-      .scaleSequential()
-      .domain([minValue, maxValue])
-      .interpolator(d3.interpolateBlues);
-
-    // Draw provinces
-    const provinces = mapGroup
-      .selectAll(".province")
-      .data(geoData.features)
-      .enter()
-      .append("g")
-      .attr("class", "province");
-
-    provinces
-      .append("path")
-      .attr("d", pathGenerator)
-      .attr("fill", (d: any) => {
-        const provinceName = d.properties.name;
-        const province = provinceData[provinceName];
-        if (!province) return "#f3f4f6";
-
-        const value = getMetricValue(province, selectedMetric);
-        return colorScale(value);
-      })
-      .attr("stroke", "#374151")
-      .attr("stroke-width", 1)
-      .style("cursor", "pointer")
-      .on("mouseover", function (event: any, d: any) {
-        setHoveredProvince(d.properties.name);
-        d3.select(this).attr("stroke-width", 2).attr("stroke", "#1f2937");
-      })
-      .on("mouseout", function (event: any, d: any) {
-        setHoveredProvince(null);
-        d3.select(this).attr("stroke-width", 1).attr("stroke", "#374151");
-      })
-      .on("click", function (event: any, d: any) {
-        const provinceName = d.properties.name;
-        setSelectedProvince(provinceName);
-        onNavigateToProvince?.(provinceName);
-      });
-
-    // Add province labels
-    provinces
-      .append("text")
-      .attr("x", (d: any) => pathGenerator.centroid(d)[0])
-      .attr("y", (d: any) => pathGenerator.centroid(d)[1])
-      .attr("text-anchor", "middle")
-      .attr("dominant-baseline", "middle")
-      .style("font-size", "12px")
-      .style("font-weight", "bold")
-      .style("fill", "#1f2937")
-      .style("pointer-events", "none")
-      .text((d: any) => d.properties.name);
-
-    // Add legend
-    const legendWidth = 300;
-    const legendHeight = 20;
-    const legendGroup = svg
-      .append("g")
-      .attr(
-        "transform",
-        `translate(${width - legendWidth - 20}, ${height - 60})`,
-      );
-
-    // Legend gradient
-    const defs = svg.append("defs");
-    const gradient = defs
-      .append("linearGradient")
-      .attr("id", "legend-gradient")
-      .attr("x1", "0%")
-      .attr("x2", "100%")
-      .attr("y1", "0%")
-      .attr("y2", "0%");
-
-    gradient
-      .selectAll("stop")
-      .data(d3.range(0, 1.1, 0.1))
-      .enter()
-      .append("stop")
-      .attr("offset", (d) => `${d * 100}%`)
-      .attr("stop-color", (d) => d3.interpolateBlues(d));
-
-    legendGroup
-      .append("rect")
-      .attr("width", legendWidth)
-      .attr("height", legendHeight)
-      .style("fill", "url(#legend-gradient)")
-      .attr("stroke", "#374151")
-      .attr("stroke-width", 1);
-
-    // Legend labels
-    legendGroup
-      .append("text")
-      .attr("x", 0)
-      .attr("y", legendHeight + 15)
-      .style("font-size", "12px")
-      .style("fill", "#4b5563")
-      .text(minValue.toString());
-
-    legendGroup
-      .append("text")
-      .attr("x", legendWidth)
-      .attr("y", legendHeight + 15)
-      .attr("text-anchor", "end")
-      .style("font-size", "12px")
-      .style("fill", "#4b5563")
-      .text(maxValue.toString());
-
-    legendGroup
-      .append("text")
-      .attr("x", legendWidth / 2)
-      .attr("y", -5)
-      .attr("text-anchor", "middle")
-      .style("font-size", "12px")
-      .style("font-weight", "bold")
-      .style("fill", "#1f2937")
-      .text(getMetricLabel(selectedMetric));
-    } catch (error) {
-      // Suppress ResizeObserver-related errors from D3
-      if (
-        error instanceof Error &&
-        (
-          error.message.includes('ResizeObserver loop completed with undelivered notifications') ||
-          error.message.includes('ResizeObserver loop limit exceeded')
-        )
-      ) {
-        return;
-      }
-      console.error("Error rendering D3 map:", error);
-    }
-  }, [geoData, selectedMetric, provinceData]);
-
-  const getMetricValue = (province: ProvinceData, metric: string): number => {
-    switch (metric) {
-      case "professionals":
-        return province.professionals;
-      case "centers":
-        return province.centers;
-      case "doctors":
-        return province.doctors;
-      case "nurses":
-        return province.nurses;
-      case "pharmacists":
-        return province.pharmacists;
-      case "publicSector":
-        return province.publicSector;
-      case "privateSector":
-        return province.privateSector;
-      case "approved":
-        return province.approved;
-      case "pending":
-        return province.pending;
-      default:
-        return province.professionals;
-    }
-  };
-
-  const getMetricLabel = (metric: string): string => {
-    const labels: Record<string, string> = {
-      professionals: "Total Profesionales",
-      centers: "Centros de Salud",
-      doctors: "Médicos",
-      nurses: "Enfermeros",
-      pharmacists: "Farmacéuticos",
-      publicSector: "Sector Público",
-      privateSector: "Sector Privado",
-      approved: "Aprobados",
-      pending: "Pendientes",
-    };
-    return labels[metric] || "Total Profesionales";
-  };
-
-  const metricOptions = [
-    { value: "professionals", label: "Total Profesionales", icon: Users },
-    { value: "centers", label: "Centros de Salud", icon: Building },
-    { value: "doctors", label: "Médicos", icon: Stethoscope },
-    { value: "nurses", label: "Enfermeros", icon: Users },
-    { value: "pharmacists", label: "Farmacéuticos", icon: GraduationCap },
-    { value: "publicSector", label: "Sector Público", icon: Building },
-    { value: "privateSector", label: "Sector Privado", icon: Building },
-    { value: "approved", label: "Aprobados", icon: Users },
-    { value: "pending", label: "Pendientes", icon: Users },
-  ];
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600">Cargando mapa...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card className="border-red-200 bg-red-50">
-        <CardContent className="p-6 text-center">
-          <div className="text-red-600 mb-4">{error}</div>
-          <Button variant="outline" onClick={() => window.location.reload()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Recargar
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Controls */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-xl font-semibold flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-teal-600" />
-            Mapa de Guinea Ecuatorial (D3.js)
-          </h3>
-          <p className="text-gray-600">
-            Distribución geográfica interactiva por provincias
-          </p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <Select value={selectedMetric} onValueChange={setSelectedMetric}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Seleccionar métrica" />
-            </SelectTrigger>
-            <SelectContent>
-              {metricOptions.map((option) => {
-                const Icon = option.icon;
-                return (
-                  <SelectItem key={option.value} value={option.value}>
-                    <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4" />
-                      {option.label}
-                    </div>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Map */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>
-              Mapa Coroplético - {getMetricLabel(selectedMetric)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="relative bg-gray-50 rounded-lg p-4">
-              <svg
-                ref={svgRef}
-                className="w-full"
-                style={{ maxHeight: "600px" }}
-              />
-
-              {/* Hover tooltip */}
-              {hoveredProvince && (
-                <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-lg border z-10 min-w-64">
-                  <h4 className="font-semibold text-lg mb-2">
-                    {hoveredProvince}
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Profesionales:</span>
-                      <span className="font-medium">
-                        {provinceData[hoveredProvince]?.professionals}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Centros:</span>
-                      <span className="font-medium">
-                        {provinceData[hoveredProvince]?.centers}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Médicos:</span>
-                      <span className="font-medium">
-                        {provinceData[hoveredProvince]?.doctors}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Enfermeros:</span>
-                      <span className="font-medium">
-                        {provinceData[hoveredProvince]?.nurses}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Aprobados:</span>
-                      <span className="font-medium text-green-600">
-                        {provinceData[hoveredProvince]?.approved}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Pendientes:</span>
-                      <span className="font-medium text-orange-600">
-                        {provinceData[hoveredProvince]?.pending}
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="w-full mt-3"
-                    onClick={() => onNavigateToProvince?.(hoveredProvince)}
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    Ver Detalles
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Statistics Panel */}
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {selectedProvince
-                ? `${selectedProvince}`
-                : "Estadísticas Generales"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {selectedProvince ? (
-              <div className="space-y-4">
-                <div className="text-center p-4 bg-teal-50 rounded-lg">
-                  <div className="text-3xl font-bold text-teal-600">
-                    {getMetricValue(
-                      provinceData[selectedProvince],
-                      selectedMetric,
-                    )}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {getMetricLabel(selectedMetric)}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {metricOptions.map((option) => {
-                    const Icon = option.icon;
-                    const value = getMetricValue(
-                      provinceData[selectedProvince],
-                      option.value,
-                    );
-                    return (
-                      <div
-                        key={option.value}
-                        className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-gray-600" />
-                          <span className="text-sm">{option.label}</span>
-                        </div>
-                        <Badge variant="outline">{value}</Badge>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <Button
-                  className="w-full"
-                  onClick={() => onNavigateToProvince?.(selectedProvince)}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Ver Profesionales de {selectedProvince}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="text-center">
-                  <p className="text-gray-600 mb-4">
-                    Haz clic en una provincia para ver detalles
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm">
-                    Top 3 Provincias ({getMetricLabel(selectedMetric)})
-                  </h4>
-                  {Object.values(provinceData)
-                    .sort(
-                      (a, b) =>
-                        getMetricValue(b, selectedMetric) -
-                        getMetricValue(a, selectedMetric),
-                    )
-                    .slice(0, 3)
-                    .map((province, index) => (
-                      <div
-                        key={province.id}
-                        className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-2 h-2 rounded-full ${
-                              index === 0
-                                ? "bg-yellow-500"
-                                : index === 1
-                                  ? "bg-gray-400"
-                                  : "bg-orange-600"
-                            }`}
-                          />
-                          <span className="text-sm font-medium">
-                            {province.name}
-                          </span>
-                        </div>
-                        <Badge variant="outline">
-                          {getMetricValue(province, selectedMetric)}
-                        </Badge>
-                      </div>
-                    ))}
-                </div>
-
-                <div className="pt-4 border-t">
-                  <div className="grid grid-cols-2 gap-2 text-xs text-center">
-                    <div className="p-2 bg-blue-50 rounded">
-                      <div className="font-bold text-blue-600">
-                        {Object.values(provinceData).reduce(
-                          (sum, p) => sum + p.professionals,
-                          0,
-                        )}
-                      </div>
-                      <div className="text-gray-600">Total Profesionales</div>
-                    </div>
-                    <div className="p-2 bg-green-50 rounded">
-                      <div className="font-bold text-green-600">
-                        {Object.values(provinceData).reduce(
-                          (sum, p) => sum + p.centers,
-                          0,
-                        )}
-                      </div>
-                      <div className="text-gray-600">Total Centros</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+type FeatureCollection = {
+    type: "FeatureCollection";
+    features: Array<any>;
 };
 
-export default EquatorialGuineaMapD3;
+function normalizeName(name: string): string {
+    return getCleanGeoName(name || "");
+}
+
+function getShapeDisplayName(shapeName?: string): string {
+    if (!shapeName) return "";
+    const cleanName = getCleanGeoName(shapeName);
+    return cleanName
+        .split(/\s+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(" ");
+}
+
+// ESTRUCTURA DE DATOS DEL CSV Y LÓGICA DE ABSORCIÓN
+const GEO_DB_LOOKUP_RAW: Array<{ shapeName: string; dbName: string }> = [
+    { shapeName: "AYENE", dbName: "Distrito Sanitario de Anisok" },
+    { shapeName: "NKUE", dbName: "Distrito Sanitario de Micomiseng" },
+    { shapeName: "NSOC NSOMO", dbName: "Distrito Sanitario de Nsok Nsomo" },
+    { shapeName: "AÑISOC", dbName: "Distrito Sanitario de Anisok" },
+    { shapeName: "ACONIBE", dbName: "Distrito Sanitario de Akonibe" },
+    { shapeName: "BICURGA", dbName: "Distrito Sanitario de Evinayong" },
+    { shapeName: "EVINAYONG", dbName: "Distrito Sanitario de Evinayong" },
+    { shapeName: "MONGOMOYEN", dbName: "Distrito Sanitario de Mongomo" },
+    { shapeName: "CORISCO", dbName: "Distrito Sanitario de Cogo" },
+    { shapeName: "BATA", dbName: "Distrito Sanitario de Bata" },
+    { shapeName: "MACHINDA", dbName: "Distrito Sanitario de Bata" },
+    { shapeName: "NIEFANG", dbName: "Distrito Sanitario de Niefang" },
+    { shapeName: "NKIMI", dbName: "Distrito Sanitario de Niefang" },
+    { shapeName: "MICOMISENG", dbName: "Distrito Sanitario de Micomiseng" },
+    { shapeName: "EBEBIYIN", dbName: "Distrito Sanitario de Ebebiyin" },
+    { shapeName: "MONGOMO", dbName: "Distrito Sanitario de Mongomo" },
+    { shapeName: "NSORK", dbName: "Distrito Sanitario de Nsork" },
+    { shapeName: "ACURENAM", dbName: "Distrito Sanitario de Akurenam" },
+    { shapeName: "MBINI", dbName: "Distrito Sanitario de Mbini" },
+    { shapeName: "BITICA", dbName: "Distrito Sanitario de Mbini" },
+    { shapeName: "COGO", dbName: "Distrito Sanitario de Cogo" },
+    { shapeName: "ELOBEY GRANDE", dbName: "Distrito Sanitario de Cogo" },
+    { shapeName: "ELOBEY CHICO", dbName: "Distrito Sanitario de Cogo" },
+    { shapeName: "ANNOBON", dbName: "Distrito Sanitario de Annobón" },
+    { shapeName: "MALABO", dbName: "Distrito Sanitario de Malabo" },
+    { shapeName: "BANEY", dbName: "Distrito Sanitario de Baney" },
+    { shapeName: "LUBA", dbName: "Distrito Sanitario de Luba" },
+    { shapeName: "RIABA", dbName: "Distrito Sanitario de Riaba" },
+];
+
+const DB_LOOKUP_MAP = new Map<string, { dbName: string, shapeNameRaw: string }>();
+// Populate lookup with both shapeName and dbName normalized keys to ensure
+// we can find the mapping whether we receive a GeoJSON shape key or a DB name.
+GEO_DB_LOOKUP_RAW.forEach(item => {
+    const shapeKey = normalizeName(item.shapeName);
+    const dbKey = normalizeName(item.dbName);
+    const entry = {
+        dbName: item.dbName,
+        shapeNameRaw: item.shapeName,
+    };
+    DB_LOOKUP_MAP.set(shapeKey, entry);
+    // also map the canonical db key to the same entry so lookups by db name succeed
+    if (!DB_LOOKUP_MAP.has(dbKey)) DB_LOOKUP_MAP.set(dbKey, entry);
+});
+
+// Build absorbed set programmatically: any entry whose normalized shapeName differs
+// from the normalized dbName is considered an absorbed shape (it should show the
+// parent's data instead of its own).
+const ABSORBED_SHAPES_SET = new Set<string>();
+GEO_DB_LOOKUP_RAW.forEach(item => {
+    const shapeKey = normalizeName(item.shapeName);
+    const dbKey = normalizeName(item.dbName);
+    if (shapeKey && dbKey && shapeKey !== dbKey) ABSORBED_SHAPES_SET.add(shapeKey);
+});
+
+const getDisplayTitle = (geoKey: string | null, currentLevel: Level): string | null => {
+    if (!geoKey) return null;
+    if (currentLevel === "provincias") {
+        return getShapeDisplayName(geoKey);
+    }
+    const lookup = DB_LOOKUP_MAP.get(geoKey);
+    if (!lookup) {
+        return getShapeDisplayName(geoKey);
+    }
+    const isAbsorbed = ABSORBED_SHAPES_SET.has(geoKey);
+    if (isAbsorbed) {
+        return `${lookup.dbName} (${lookup.shapeNameRaw})`;
+    }
+    return lookup.dbName;
+};
+
+const MapController = ({ level, geoData, geoJsonRef }: { level: Level, geoData: FeatureCollection | null, geoJsonRef: React.MutableRefObject<any> }) => {
+    const map = useMap();
+    const lastLevelRef = useRef(level);
+
+    useEffect(() => {
+        if (!geoData?.features || !geoJsonRef.current) {
+            map.setView([1.5, 10], 7);
+            return;
+        }
+        if (lastLevelRef.current !== level) {
+            try {
+                const bounds = geoJsonRef.current.getBounds();
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds, { padding: [20, 20] });
+                } else {
+                    map.setView([1.5, 10], 7);
+                }
+            } catch (error) {
+                map.setView([1.5, 10], 7);
+            }
+        }
+        lastLevelRef.current = level;
+    }, [level, geoData, map, geoJsonRef]);
+
+    return null;
+};
+
+const EquatorialGuineaMapLeaflet: React.FC<{ onNavigateToProvince?: (name: string) => void; onSelectRegion?: (name: string, level: Level) => void; onNavigateToTab?: (tab: string, filters?: any) => void; }> = ({ onNavigateToProvince, onSelectRegion, onNavigateToTab }) => {
+    const [level, setLevel] = useState<Level>("provincias");
+    const [hoveredGeoKey, setHoveredGeoKey] = useState<string | null>(null);
+    // raw polygon key (shapeName) for identification in popup
+    const [hoveredRawGeoKey, setHoveredRawGeoKey] = useState<string | null>(null);
+    const [selectedGeoKey, setSelectedGeoKey] = useState<string | null>(null);
+    const geoJsonRef = useRef<any>(null);
+
+    const { data: estadisticas } = useEstadisticasAvanzadas();
+    const { data: districtStats = [], isLoading: districtsLoading } = useGeoDistrictStats();
+
+    const geoData = useMemo(() => {
+        if (level === "distritos" && districtsLoading) return null;
+        const rawData = level === "provincias"
+            ? (ADM1_GEOJSON as FeatureCollection)
+            : (ADM2_GEOJSON as FeatureCollection);
+        if (level === "distritos" && districtStats.length > 0) {
+            const dbDistrictNames = new Set(districtStats.map(d => d.cleanName));
+            const filteredFeatures = rawData.features.filter((feature: any) => {
+                const shapeName = feature.properties?.shapeName || "";
+                const geoKey = normalizeName(shapeName);
+                if (dbDistrictNames.has(geoKey)) {
+                    return true;
+                }
+                const lookup = DB_LOOKUP_MAP.get(geoKey);
+                if (lookup) {
+                    const canonicalDbKey = normalizeName(lookup.dbName);
+                    if (dbDistrictNames.has(canonicalDbKey)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            return {
+                ...rawData,
+                features: filteredFeatures
+            } as FeatureCollection;
+        }
+        return rawData;
+    }, [level, districtStats, districtsLoading]);
+
+    const provinciaValues = useMemo(() => {
+        const map = new Map<string, number>();
+        const byProv = (estadisticas?.porProvincia || {}) as Record<string, number>;
+        for (const [prov, count] of Object.entries(byProv)) {
+            map.set(normalizeName(prov), count || 0);
+        }
+        return map;
+    }, [estadisticas]);
+
+    const distritoValues = useMemo(() => {
+        const vals = new Map<string, number>();
+        for (const d of districtStats) {
+            if (!d || !d.cleanName) continue;
+            vals.set(d.cleanName, d.total_profesionales || 0);
+        }
+        return vals;
+    }, [districtStats]);
+
+    // Build a canonical grouping map so that all shape variants that belong to
+    // the same DB canonical name are summed together when showing values on the map.
+    const canonicalGroups = useMemo(() => {
+        const map = new Map<string, Set<string>>();
+        // Ensure canonical includes itself
+        DB_LOOKUP_MAP.forEach(({ dbName }, shapeKey) => {
+            const canonical = normalizeName(dbName || '');
+            if (!map.has(canonical)) map.set(canonical, new Set([canonical]));
+            map.get(canonical)!.add(shapeKey);
+        });
+        // Also include any provinces/districts present in the source geo that may not be in DB_LOOKUP_MAP
+        try {
+            const allShapeKeys = new Set<string>();
+            const addShape = (s: any) => {
+                const raw = s?.properties?.shapeName || '';
+                const key = normalizeName(raw);
+                if (key) allShapeKeys.add(key);
+            };
+            if (ADM1_GEOJSON && (ADM1_GEOJSON as any).features) (ADM1_GEOJSON as any).features.forEach(addShape);
+            if (ADM2_GEOJSON && (ADM2_GEOJSON as any).features) (ADM2_GEOJSON as any).features.forEach(addShape);
+            allShapeKeys.forEach(k => {
+                if (!Array.from(map.values()).some(set => set.has(k))) {
+                    // If this shape isn't part of any canonical group, make it its own canonical
+                    if (!map.has(k)) map.set(k, new Set([k]));
+                }
+            });
+        } catch (err) {
+            // ignore
+        }
+        // Convert Set to array for easier iteration
+        const result = new Map<string, string[]>();
+        map.forEach((set, k) => result.set(k, Array.from(set)));
+        return result;
+    }, []);
+
+    const getCanonicalValue = useCallback((geoKey: string, level: Level): number => {
+        const currentValues = level === "provincias" ? provinciaValues : distritoValues;
+        const key = geoKey;
+        // If key is part of a canonical group, use the canonical parent's value (do not sum)
+        for (const [canonical, members] of canonicalGroups.entries()) {
+            if (canonical === key) {
+                return currentValues.get(canonical) ?? 0;
+            }
+            if (members.includes(key)) {
+                // this is an absorbed shape -> return the canonical parent's value
+                return currentValues.get(canonical) ?? 0;
+            }
+        }
+        // fallback: direct lookup
+        if (currentValues.has(key)) return currentValues.get(key) ?? 0;
+        const lookup = DB_LOOKUP_MAP.get(key);
+        if (lookup) {
+            const canonicalDbKey = normalizeName(lookup.dbName);
+            return currentValues.get(canonicalDbKey) ?? 0;
+        }
+        return 0;
+    }, [provinciaValues, distritoValues, canonicalGroups]);
+
+    const distritoCenters = useMemo(() => {
+        const vals = new Map<string, number>();
+        for (const d of districtStats) {
+            if (!d || !d.cleanName) continue;
+            vals.set(d.cleanName, d.total_centros || 0);
+        }
+        return vals;
+    }, [districtStats]);
+
+    // Preload centers per region to ensure accurate center counts
+    const { buscarCentros } = useCentrosSalud();
+
+    const { data: centersByRegion = { provinceCounts: new Map<string, number>(), districtCounts: new Map<string, number>() } } = useQuery({
+        queryKey: ['centersByRegion'],
+        queryFn: async () => {
+            // Use buscarCentros hook logic so we compute center-professional counts exactly like HealthCenters
+            const centros = await buscarCentros({});
+            const provinceCounts = new Map<string, number>();
+            const districtCounts = new Map<string, number>();
+
+            // Prepare canonical resolver once (avoid await inside loop)
+            let getCanonicalDBName: ((n: string) => string) | null = null;
+            try {
+                const mod = await import("@/utils/geoUtils");
+                if (mod && typeof mod.getCanonicalDBName === 'function') getCanonicalDBName = mod.getCanonicalDBName as any;
+            } catch (err) {
+                // ignore
+            }
+
+            (centros || []).forEach((c: any) => {
+                const provRaw = c.provincia || '';
+                const distRaw = c.distrito_sanitario || '';
+                const provKey = normalizeName(provRaw);
+
+                // Resolve canonical for district robustly:
+                // 1) Try DB_LOOKUP_MAP by normalized raw value
+                // 2) Try getCanonicalDBName (applies GEO_CANONICAL_MAP rules)
+                // 3) Fallback to normalized raw
+                const rawKey = normalizeName(distRaw);
+                let canonicalDist = rawKey;
+                const distLookup = DB_LOOKUP_MAP.get(rawKey);
+                if (distLookup && distLookup.dbName) {
+                    canonicalDist = normalizeName(distLookup.dbName);
+                } else if (getCanonicalDBName) {
+                    try {
+                        const cdb = getCanonicalDBName(distRaw || '');
+                        if (cdb) canonicalDist = normalizeName(cdb);
+                    } catch (err) {
+                        // ignore
+                    }
+                }
+
+                // Debugging: log mapping decisions for problematic districts
+                try {
+                    if (['corisco','bicurga','nkue','bitica','ayene'].includes(rawKey)) {
+                        console.debug('[CentersByRegion] raw=', distRaw, 'rawKey=', rawKey, 'distLookup=', distLookup, 'canonicalDist=', canonicalDist);
+                    }
+                } catch (err) {}
+
+                provinceCounts.set(provKey, (provinceCounts.get(provKey) || 0) + 1);
+                districtCounts.set(canonicalDist, (districtCounts.get(canonicalDist) || 0) + 1);
+            });
+
+            return { provinceCounts, districtCounts };
+        },
+        staleTime: 5 * 60_000,
+        refetchOnWindowFocus: false,
+    });
+
+    const { minValue, maxValue, colorScale } = useMemo(() => {
+        if (!geoData?.features) return { minValue: 0, maxValue: 0, colorScale: () => "#f3f4f6" };
+        const values: number[] = geoData.features.map((f: any) => {
+            const raw = f.properties?.shapeName || "";
+            const key = normalizeName(raw);
+            return getCanonicalValue(key, level);
+        });
+        const min = values.length ? Math.min(...values) : 0;
+        const max = values.length ? Math.max(...values) : 0;
+        const safeMax = Math.max(max, 1);
+        const scale = d3.scaleSequential().domain([min, safeMax]).interpolator(d3.interpolateYlGnBu);
+        return { minValue: min, maxValue: max, colorScale: scale };
+    }, [geoData, level, getCanonicalValue]);
+
+    // Build deterministic, well-contrasted canonical color map so that all members
+    // of a canonical group share the same color and different canonicals are well-separated.
+    const canonicalColorMap = useMemo(() => {
+        const keys = Array.from(canonicalGroups.keys()).sort();
+        const map = new Map<string, string>();
+        if (keys.length === 0) return map;
+        keys.forEach((canonical, idx) => {
+            const hue = Math.round((idx * 360) / keys.length);
+            const color = `hsl(${hue} 72% 45%)`;
+            map.set(canonical, color);
+        });
+        return map;
+    }, [canonicalGroups]);
+
+    const regionColor = useCallback((key: string) => {
+        const lookup = DB_LOOKUP_MAP.get(key);
+        const canonical = lookup ? normalizeName(lookup.dbName) : key;
+        return canonicalColorMap.get(canonical) || '#e5e7eb';
+    }, [canonicalColorMap]);
+
+    const style = useCallback((feature: any) => {
+        const raw = feature.properties?.shapeName || "";
+        const key = normalizeName(raw);
+        const value = getCanonicalValue(key, level);
+        const isSelected = key === selectedGeoKey;
+        const lookup = DB_LOOKUP_MAP.get(key);
+        const canonical = lookup ? normalizeName(lookup.dbName) : key;
+        const fill = canonicalColorMap.get(canonical) || (value > 0 ? colorScale(value) : '#f3f4f6');
+        return {
+            fillColor: fill,
+            weight: isSelected ? 4 : 1.5,
+            opacity: 1,
+            color: isSelected ? '#a80000' : '#134e4a',
+            dashArray: isSelected ? '' : '3',
+            fillOpacity: isSelected ? 0.9 : 0.85
+        };
+    }, [level, colorScale, selectedGeoKey, getCanonicalValue, canonicalColorMap]);
+
+    const onEachFeature = useCallback((feature: any, layer: any) => {
+        const raw = feature.properties?.shapeName || "";
+        const geoKey = normalizeName(raw);
+        layer.on({
+            mouseover: (e: any) => {
+                // Resolve to canonical parent if this shape is absorbed
+                try {
+                    const lookup = DB_LOOKUP_MAP.get(geoKey);
+                    const isAbsorbed = ABSORBED_SHAPES_SET.has(geoKey);
+                    const targetKey = lookup && isAbsorbed ? normalizeName(lookup.dbName) : geoKey;
+                    setHoveredGeoKey(targetKey);
+                    setHoveredRawGeoKey(geoKey);
+                    console.debug('[Map Hover] raw=', geoKey, 'resolved=', targetKey, 'lookup=', lookup, 'isAbsorbed=', isAbsorbed);
+                } catch (err) {
+                    setHoveredGeoKey(geoKey);
+                    setHoveredRawGeoKey(geoKey);
+                }
+                e.target.setStyle({
+                    weight: 3,
+                    color: '#064e3b',
+                    dashArray: '',
+                    fillOpacity: 0.9
+                });
+                e.target.bringToFront();
+            },
+            mouseout: (e: any) => {
+                setHoveredGeoKey(null);
+                setHoveredRawGeoKey(null);
+                if (geoJsonRef.current) {
+                    geoJsonRef.current.resetStyle(e.target);
+                }
+            },
+            click: () => {
+                try {
+                    const lookup = DB_LOOKUP_MAP.get(geoKey);
+                    const isAbsorbed = ABSORBED_SHAPES_SET.has(geoKey);
+                    const canonicalKey = lookup && isAbsorbed ? normalizeName(lookup.dbName) : geoKey;
+                    const newSelectedKey = canonicalKey === selectedGeoKey ? null : canonicalKey;
+                    setSelectedGeoKey(newSelectedKey);
+                    const navName = getDisplayTitle(newSelectedKey, level);
+                    if (navName) {
+                        // backward compatibility
+                        onNavigateToProvince?.(navName);
+                        // new callback with level information
+                        onSelectRegion?.(navName, level);
+                    }
+                } catch (err) {
+                    const newSelectedKey = geoKey === selectedGeoKey ? null : geoKey;
+                    setSelectedGeoKey(newSelectedKey);
+                    const navName = getDisplayTitle(newSelectedKey, level);
+                    if (navName) {
+                        onNavigateToProvince?.(navName);
+                        onSelectRegion?.(navName, level);
+                    }
+                }
+            }
+        });
+    }, [onNavigateToProvince, selectedGeoKey, level]);
+
+    const currentValue = (key: string): number => getCanonicalValue(key, level);
+
+    const currentCenters = (key: string): number | null => {
+        if (level !== "distritos") return null;
+        // Prefer centersByRegion.districtCounts if available
+        const districtCountFromCentersByRegion = centersByRegion?.districtCounts?.get(key);
+        if (typeof districtCountFromCentersByRegion === 'number') return districtCountFromCentersByRegion;
+        const lookup = DB_LOOKUP_MAP.get(key);
+        if (lookup) {
+            const canonicalDbKey = normalizeName(lookup.dbName);
+            return distritoCenters.get(canonicalDbKey) ?? centersByRegion?.districtCounts?.get(canonicalDbKey) ?? 0;
+        }
+        return distritoCenters.get(key) ?? centersByRegion?.districtCounts?.get(key) ?? 0;
+    };
+
+    const activeName = getDisplayTitle(hoveredGeoKey, level);
+    const selectedName = getDisplayTitle(selectedGeoKey, level);
+
+    const popupTitleDisplay = useMemo(() => {
+        if (!activeName) return null;
+        if (hoveredRawGeoKey && normalizeName(hoveredRawGeoKey) !== (hoveredGeoKey || '') ) {
+            return `${activeName} (${getShapeDisplayName(hoveredRawGeoKey)})`;
+        }
+        return activeName;
+    }, [activeName, hoveredRawGeoKey, hoveredGeoKey]);
+
+    // Use canonical DB name for queries when the shape is absorbed by a parent
+    const activeQueryName = useMemo(() => {
+        if (!hoveredGeoKey) return null;
+        const lookup = DB_LOOKUP_MAP.get(hoveredGeoKey);
+        return lookup ? lookup.dbName : activeName;
+    }, [hoveredGeoKey, activeName]);
+
+    const selectedQueryName = useMemo(() => {
+        if (!selectedGeoKey) return null;
+        const lookup = DB_LOOKUP_MAP.get(selectedGeoKey);
+        return lookup ? lookup.dbName : selectedName;
+    }, [selectedGeoKey, selectedName]);
+
+    // Fetch additional per-region stats when hovering (cached by react-query)
+    const hoveredFilters = useMemo(() => {
+        if (!activeQueryName) return null;
+        if (level === 'provincias') return { provincia: activeQueryName } as any;
+        return { distrito_sanitario: activeQueryName } as any;
+    }, [activeQueryName, level]);
+
+    const { data: titulacionHover = [] } = useTitulacionCategoryStats(hoveredFilters || undefined as any);
+    const { data: ageRangesHover = [] } = useWorkAgeStats(hoveredFilters || undefined as any);
+
+    // Province-level aggregated stats lookup
+    const { data: provinceStatsList = [] } = useProvinceStats();
+    const hoveredProvinceStats = useMemo(() => {
+        if (level !== 'provincias' || !activeQueryName) return null;
+        return (provinceStatsList || []).find((p: any) => normalizeName(p.provincia) === normalizeName(activeQueryName)) || null;
+    }, [provinceStatsList, activeQueryName, level]);
+
+    const { data: genderAndPublic = null } = useQuery({
+        queryKey: ['geoGenderPublic', level, activeQueryName],
+        queryFn: async () => {
+            if (!activeQueryName) return null;
+            const field = level === 'provincias' ? 'provincia' : 'distrito_sanitario';
+
+            const buildCandidates = (n: string) => {
+                const arr: string[] = [];
+                if (!n) return arr;
+                arr.push(n);
+                const stripped = n.replace(/^Distrito Sanitario de\s*/i, "").replace(/Province$/i, "").trim();
+                if (stripped && !arr.includes(stripped)) arr.push(stripped);
+                const cleaned = getCleanGeoName(n || '');
+                if (cleaned && !arr.includes(cleaned)) arr.push(cleaned);
+
+                // Include canonical DB mapping if available (handles absorbed shapes)
+                try {
+                    const lookup = DB_LOOKUP_MAP.get(normalizeName(n));
+                    if (lookup && lookup.dbName) {
+                        const db = lookup.dbName;
+                        if (!arr.includes(db)) arr.push(db);
+                        const dbStripped = db.replace(/^Distrito Sanitario de\s*/i, "").trim();
+                        if (dbStripped && !arr.includes(dbStripped)) arr.push(dbStripped);
+                        const dbClean = getCleanGeoName(db || '');
+                        if (dbClean && !arr.includes(dbClean)) arr.push(dbClean);
+                    }
+                } catch (err) {
+                    // silent
+                }
+
+                return arr;
+            };
+
+            const computeCountsFromRows = (rows: any[] | null) => {
+                if (!rows || rows.length === 0) return { male: 0, female: 0, funcionarios: 0 };
+                let male = 0;
+                let female = 0;
+                let funcionarios = 0;
+                for (const r of rows) {
+                    const g = (r.genero || '').toString().toLowerCase();
+                    if (g === 'masculino' || g === 'm' || g === 'male') male++;
+                    if (g === 'femenino' || g === 'f' || g === 'female') female++;
+                    if (r.funcion_publica === true || r.funcion_publica === 't' || r.funcion_publica === 1) funcionarios++;
+                }
+                return { male, female, funcionarios };
+            };
+
+            const candidates = buildCandidates(activeQueryName);
+            // Try exact equals for candidates first
+            for (const c of candidates) {
+                const { data: rows, error } = await supabase
+                    .from('profesionales_sanitarios')
+                    .select('genero, funcion_publica')
+                    .eq('estado_solicitud', 'Aprobado')
+                    .eq(field, c);
+                if (!error && rows && rows.length > 0) {
+                    return computeCountsFromRows(rows);
+                }
+            }
+
+            // Fallback: ilike on cleaned name
+            const cleaned = getCleanGeoName(activeQueryName);
+            const { data: rows2 } = await supabase
+                .from('profesionales_sanitarios')
+                .select('genero, funcion_publica')
+                .eq('estado_solicitud', 'Aprobado')
+                .ilike(field, `%${cleaned}%`);
+
+            return computeCountsFromRows(rows2 || []);
+        },
+        enabled: !!activeQueryName,
+    });
+
+    // Selected region filters and data — use canonical selectedQueryName for queries
+    const selectedFilters = useMemo(() => {
+        if (!selectedQueryName) return null;
+        if (level === 'provincias') return { provincia: selectedQueryName } as any;
+        return { distrito_sanitario: selectedQueryName } as any;
+    }, [selectedQueryName, level]);
+
+    const { data: titulacionSelected = [] } = useTitulacionCategoryStats(selectedFilters || undefined as any);
+    const { data: ageRangesSelected = [] } = useWorkAgeStats(selectedFilters || undefined as any);
+
+    const { data: genderAndPublicSelected = null } = useQuery({
+        queryKey: ['geoGenderPublic', level, selectedQueryName, 'selected'],
+        queryFn: async () => {
+            if (!selectedQueryName) return null;
+            const field = level === 'provincias' ? 'provincia' : 'distrito_sanitario';
+
+            const buildCandidates = (n: string) => {
+                const arr: string[] = [];
+                if (!n) return arr;
+                arr.push(n);
+                const stripped = n.replace(/^Distrito Sanitario de\s*/i, "").replace(/Province$/i, "").trim();
+                if (stripped && !arr.includes(stripped)) arr.push(stripped);
+                const cleaned = getCleanGeoName(n || '');
+                if (cleaned && !arr.includes(cleaned)) arr.push(cleaned);
+
+                // Include canonical DB mapping if available (handles absorbed shapes)
+                try {
+                    const lookup = DB_LOOKUP_MAP.get(normalizeName(n));
+                    if (lookup && lookup.dbName) {
+                        const db = lookup.dbName;
+                        if (!arr.includes(db)) arr.push(db);
+                        const dbStripped = db.replace(/^Distrito Sanitario de\s*/i, "").trim();
+                        if (dbStripped && !arr.includes(dbStripped)) arr.push(dbStripped);
+                        const dbClean = getCleanGeoName(db || '');
+                        if (dbClean && !arr.includes(dbClean)) arr.push(dbClean);
+                    }
+                } catch (err) {
+                    // silent
+                }
+
+                return arr;
+            };
+
+            const computeCountsFromRows = (rows: any[] | null) => {
+                if (!rows || rows.length === 0) return { male: 0, female: 0, funcionarios: 0 };
+                let male = 0;
+                let female = 0;
+                let funcionarios = 0;
+                for (const r of rows) {
+                    const g = (r.genero || '').toString().toLowerCase();
+                    if (g === 'masculino' || g === 'm' || g === 'male') male++;
+                    if (g === 'femenino' || g === 'f' || g === 'female') female++;
+                    if (r.funcion_publica === true || r.funcion_publica === 't' || r.funcion_publica === 1) funcionarios++;
+                }
+                return { male, female, funcionarios };
+            };
+
+            const candidates = buildCandidates(selectedQueryName);
+            for (const c of candidates) {
+                const { data: rows, error } = await supabase
+                    .from('profesionales_sanitarios')
+                    .select('genero, funcion_publica')
+                    .eq('estado_solicitud', 'Aprobado')
+                    .eq(field, c);
+                if (!error && rows && rows.length > 0) {
+                    return computeCountsFromRows(rows);
+                }
+            }
+
+            const cleaned = getCleanGeoName(selectedQueryName);
+            const { data: rows2 } = await supabase
+                .from('profesionales_sanitarios')
+                .select('genero, funcion_publica')
+                .eq('estado_solicitud', 'Aprobado')
+                .ilike(field, `%${cleaned}%`);
+
+            return computeCountsFromRows(rows2 || []);
+        },
+        enabled: !!selectedQueryName,
+    });
+
+    const showLoading = level === "distritos" && districtsLoading;
+    const showMap = geoData && !showLoading;
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h3 className="text-xl font-semibold flex items-center gap-2">
+                        <MapPin className="w-5 h-5 text-teal-600" />
+                        Mapa de Guinea Ecuatorial
+                    </h3>
+                    <p className="text-gray-600">Vista coroplética por provincias o distritos sanitarios</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Select value={level} onValueChange={(v) => {
+                        setLevel(v as Level);
+                        setSelectedGeoKey(null);
+                    }}>
+                        <SelectTrigger className="w-56">
+                            <SelectValue placeholder="Seleccionar nivel" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="provincias">
+                                <div className="flex items-center gap-2">
+                                    <MapIcon className="w-4 h-4" /> Provincias (ADM1)
+                                </div>
+                            </SelectItem>
+                            <SelectItem value="distritos">
+                                <div className="flex items-center gap-2">
+                                    <MapIcon className="w-4 h-4" /> Distritos Sanitarios (ADM2)
+                                </div>
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+                <Card className="w-full">
+                    <CardHeader>
+                        <CardTitle>
+                            {level === "provincias" ? "Profesionales por Provincia" : "Profesionales por Distrito Sanitario"}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="relative h-[720px] bg-gray-50 rounded-lg shadow-inner">
+                            {showLoading ? (
+                                <div className="flex items-center justify-center gap-3 text-gray-600 h-full">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
+                                    <span>Cargando distritos sanitarios de la base de datos...</span>
+                                </div>
+                            ) : showMap ? (
+                                <MapContainer
+                                    center={[1.5, 10]}
+                                    zoom={7}
+                                    scrollWheelZoom={true}
+                                    className="h-full w-full rounded-lg z-0"
+                                >
+                                    <MapController
+                                        level={level}
+                                        geoData={geoData}
+                                        geoJsonRef={geoJsonRef}
+                                    />
+                                    <TileLayer
+                                        attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    />
+
+                                    <GeoJSON
+                                        key={level}
+                                        data={geoData}
+                                        style={style}
+                                        onEachFeature={onEachFeature}
+                                        ref={geoJsonRef}
+                                    />
+
+                                    <div className="absolute bottom-4 left-4 p-2 bg-white/90 rounded shadow-md z-[400] text-sm">
+                                        <h4 className="font-bold mb-1 border-b pb-1">Leyenda</h4>
+                                        <div className="flex items-center">
+                                            <div className="w-4 h-4 mr-2" style={{ backgroundColor: colorScale(maxValue * 0.75), border: '1px solid #aaa' }}></div>
+                                            Alto ({maxValue})
+                                        </div>
+                                        <div className="flex items-center">
+                                            <div className="w-4 h-4 mr-2" style={{ backgroundColor: colorScale(maxValue * 0.4), border: '1px solid #aaa' }}></div>
+                                            Medio
+                                        </div>
+                                        <div className="flex items-center">
+                                            <div className="w-4 h-4 mr-2" style={{ backgroundColor: colorScale(minValue), border: '1px solid #aaa' }}></div>
+                                            Bajo ({minValue})
+                                        </div>
+                                    </div>
+                                </MapContainer>
+                            ) : (
+                                <div className="flex items-center justify-center gap-3 text-gray-600 h-full">
+                                    <span>No hay datos geográficos disponibles para esta selección o GeoJSON no cargado.</span>
+                                </div>
+                            )}
+
+                            {activeName && hoveredGeoKey && (
+                                <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-xl border z-10 min-w-64 pointer-events-none">
+                                    <h4 className="font-semibold text-lg mb-2">{popupTitleDisplay}</h4>
+                                    <div className="space-y-1 text-sm">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-600 flex items-center gap-1"><Users className="w-3 h-3" /> Prof. (aprobados):</span>
+                                            <span className="font-bold text-teal-700">{currentValue(hoveredGeoKey)}</span>
+                                        </div>
+
+                                        <div className="flex justify-between items-center border-t pt-1 mt-1">
+                                            <span className="text-gray-600 flex items-center gap-1"><MapPin className="w-3 h-3" /> Área predominante:</span>
+                                            <span className="font-medium">{level === 'provincias' ? (hoveredProvinceStats?.areas_mas_comunes?.[0] || '—') : '—'}</span>
+                                        </div>
+
+                                        {level === "distritos" ? (
+                                            <div className="flex justify-between items-center border-t pt-1 mt-1">
+                                                <span className="text-gray-600 flex items-center gap-1"><Building className="w-3 h-3" /> Centros:</span>
+                                                <span className="font-medium">{currentCenters(hoveredGeoKey)}</span>
+                                            </div>
+                                        ) : null}
+
+                                        <div className="flex justify-between items-center border-t pt-1 mt-1">
+                                            <span className="text-gray-600 flex items-center gap-1">Género:</span>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-1">{MaleIcon ? <MaleIcon className="w-4 h-4 text-blue-600" /> : null} <span className="font-medium">{genderAndPublic ? genderAndPublic.male : '—'}</span></div>
+                                                <div className="flex items-center gap-1">{FemaleIcon ? <FemaleIcon className="w-4 h-4 text-pink-600" /> : null} <span className="font-medium">{genderAndPublic ? genderAndPublic.female : '—'}</span></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center border-t pt-1 mt-1">
+                                            <span className="text-gray-600 flex items-center gap-1">Funcionarios públicos:</span>
+                                            <span className="font-medium">{genderAndPublic ? genderAndPublic.funcionarios : '—'}</span>
+                                        </div>
+
+                                        <div className="flex justify-between items-center border-t pt-1 mt-1">
+                                            <span className="text-gray-600 flex items-center gap-1">Titulación predominante:</span>
+                                            <span className="font-medium">{titulacionHover && titulacionHover.length ? `${titulacionHover[0].categoria_titulacion} (${titulacionHover[0].total || 0})` : '—'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="mt-3">
+                                        <Button size="sm" className="w-full bg-teal-600 hover:bg-teal-700 pointer-events-auto" onClick={() => {
+                                            const navName = getDisplayTitle(hoveredGeoKey, level);
+                                            if (activeQueryName) onNavigateToProvince?.(activeQueryName);
+                                            else if (navName) onNavigateToProvince?.(navName);
+                                        }}>
+                                            <Eye className="w-4 h-4 mr-1" /> Ver Detalles
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="w-full bg-white rounded-lg shadow-md p-4">
+                    <CardHeader>
+                        <CardTitle>{selectedName ? selectedName : "Estadísticas Generales"}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {selectedGeoKey ? (
+                            <div className="space-y-4">
+                                <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, estado_solicitud: 'Aprobado' } : { distrito_sanitario: selectedQueryName, estado_solicitud: 'Aprobado' })} className="text-center p-4 bg-teal-50 rounded-lg cursor-pointer hover:shadow">
+                                    <div className="text-3xl font-bold text-teal-600">{currentValue(selectedGeoKey)}</div>
+                                    <div className="text-sm text-gray-600">Profesionales (aprobados)</div>
+                                </div>
+                                {level === "distritos" ? (
+                                    <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('health-centers', { distrito_sanitario: selectedQueryName })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
+                                        <div className="flex items-center gap-2">
+                                            <Building className="w-5 h-5 text-gray-600" />
+                                            <span className="text-base font-medium">Centros</span>
+                                        </div>
+                                        <Badge variant="default" className="bg-teal-500 hover:bg-teal-500 text-white text-md p-2">{currentCenters(selectedGeoKey)}</Badge>
+                                    </div>
+                                ) : (
+                                    <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('health-centers', { provincia: selectedQueryName })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
+                                        <div className="flex items-center gap-2">
+                                            <Building className="w-5 h-5 text-gray-600" />
+                                            <span className="text-base font-medium">Centros</span>
+                                        </div>
+                                        <Badge variant="default" className="bg-teal-500 hover:bg-teal-500 text-white text-md p-2">{centersByRegion?.provinceCounts?.get(normalizeName(selectedQueryName || '')) ?? hoveredProvinceStats?.total_centros ?? 0}</Badge>
+                                    </div>
+                                )}
+
+                                <div role="button" tabIndex={0} onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, area_profesional: hoveredProvinceStats?.areas_mas_comunes?.[0] } : { distrito_sanitario: selectedQueryName, area_profesional: hoveredProvinceStats?.areas_mas_comunes?.[0] })} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border cursor-pointer hover:shadow">
+                                    <div className="flex items-center gap-2">
+                                        <Users className="w-5 h-5 text-gray-600" />
+                                        <span className="text-base font-medium">Área predominante</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-bold">{hoveredProvinceStats?.areas_mas_comunes?.[0] || '—'}</div>
+                                        <div className="text-xs text-gray-500">Top area</div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, genero: 'Masculino' } : { distrito_sanitario: selectedQueryName, genero: 'Masculino' })}>
+                                        <div className="text-sm text-gray-600 flex items-center justify-center gap-2">{MaleIcon ? <MaleIcon className="w-4 h-4" /> : null}<span> Hombres</span></div>
+                                        <div className="font-bold">{genderAndPublicSelected?.male ?? '—'}</div>
+                                    </div>
+                                    <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, genero: 'Femenino' } : { distrito_sanitario: selectedQueryName, genero: 'Femenino' })}>
+                                        <div className="text-sm text-gray-600 flex items-center justify-center gap-2">{FemaleIcon ? <FemaleIcon className="w-4 h-4" /> : null}<span> Mujeres</span></div>
+                                        <div className="font-bold">{genderAndPublicSelected?.female ?? '—'}</div>
+                                    </div>
+                                </div>
+
+                                <div className="p-2 bg-white rounded border text-center cursor-pointer hover:shadow" onClick={() => onNavigateToTab?.('professionals', (level === 'provincias') ? { provincia: selectedQueryName, funcion_publica: true } : { distrito_sanitario: selectedQueryName, funcion_publica: true })}>
+                                    <div className="text-sm text-gray-600">Funcionarios públicos</div>
+                                    <div className="font-bold">{genderAndPublicSelected?.funcionarios ?? '—'}</div>
+                                </div>
+
+                                <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => {
+                                    // Open analytics detail view via onSelectRegion if available, otherwise fall back
+                                    if (onSelectRegion) onSelectRegion(selectedQueryName || '', level);
+                                    else onNavigateToProvince?.(selectedQueryName || '');
+                                }}>
+                                    <Eye className="w-4 h-4 mr-2" /> Ver detalles de {selectedName}
+                                </Button>
+                                <Button
+                                    className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700"
+                                    onClick={() => setSelectedGeoKey(null)}
+                                >
+                                    Limpiar Selección
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="text-center">
+                                    <p className="text-gray-600 mb-4">Haz clic en una región para ver detalles</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <h4 className="font-semibold text-sm text-gray-700 border-b pb-1">Top 3 {level === "provincias" ? "Provincias" : "Distritos"}</h4>
+                                    {Array.from((level === "provincias" ? provinciaValues : distritoValues).entries())
+                                        .map(([geoKey, value]) => ({
+                                            name: getDisplayTitle(geoKey, level),
+                                            value: value
+                                        }))
+                                        .filter(item => item.name !== null)
+                                        .sort((a, b) => b.value - a.value)
+                                        .slice(0, 3)
+                                        .map(({ name, value }, index) => (
+                                            <div key={name as string} className="flex items-center justify-between p-2 bg-white rounded-lg shadow-sm border">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-3 h-3 rounded-full ${index === 0 ? "bg-yellow-500" : index === 1 ? "bg-gray-400" : "bg-orange-600"}`} />
+                                                    <span className="text-sm font-medium">{name}</span>
+                                                </div>
+                                                <Badge variant="secondary" className="bg-teal-100 text-teal-700">{value}</Badge>
+                                            </div>
+                                        ))}
+                                </div>
+                                <div className="pt-4 border-t">
+                                    <div className="grid grid-cols-2 gap-2 text-xs text-center">
+                                        <div className="p-3 bg-blue-50 rounded-lg shadow-inner">
+                                            <div className="font-bold text-lg text-blue-600">
+                                                {Array.from((level === "provincias" ? provinciaValues : distritoValues).values()).reduce((s, v) => s + v, 0)}
+                                            </div>
+                                            <div className="text-gray-600">Total Profesionales</div>
+                                        </div>
+                                        {level === "distritos" ? (
+                                            <div className="p-3 bg-green-50 rounded-lg shadow-inner">
+                                                <div className="font-bold text-lg text-green-600">
+                                                    {Array.from(distritoCenters.values()).reduce((s, v) => s + v, 0)}
+                                                </div>
+                                                <div className="text-gray-600">Total Centros</div>
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+};
+
+export default EquatorialGuineaMapLeaflet;

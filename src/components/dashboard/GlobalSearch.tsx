@@ -102,7 +102,8 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ onNavigate }) => {
 
   const handleOpen = (item: ResultItem) => {
     if (item.type === 'profesional') {
-      onNavigate('professionals', { search: item.title });
+      // Prefiere navegar con id exacto para evitar datos indefinidos
+      onNavigate('professionals', { id: item.id });
     } else if (item.type === 'centro') {
       onNavigate('health-centers', { nombreParcial: item.title });
     }

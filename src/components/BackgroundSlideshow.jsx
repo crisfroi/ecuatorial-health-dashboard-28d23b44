@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
@@ -25,7 +25,7 @@ const BackgroundSlideshow = () => {
             .single();
 
         if (error) {
-            console.error("Error al cargar la configuración del carrusel:", error);
+            console.error("Error al cargar la configuración del carrusel:", error?.message ?? error, error);
             // Si hay un error, dejamos los valores por defecto
         } else if (data) {
             // 💡 APLICANDO LAS IMÁGENES y DURACIÓN DE LA BD

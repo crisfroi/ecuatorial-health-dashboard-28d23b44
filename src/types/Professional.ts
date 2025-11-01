@@ -11,6 +11,7 @@ export interface Professional {
   gentilicio_femenino?: string;
   numero_dip?: string;
   numero_pasaporte?: string;
+  numero_tarjeta_rfid?: string;
   numero_documento?: string;
   tipo_documento?: string;
   telefono?: string;
@@ -19,6 +20,7 @@ export interface Professional {
   
   // Campos profesionales
   area_profesional?: string;
+  area_profesional_id?: string; // FK a areas_profesionales
   especialidad?: string;
   numero_carnet_profesional?: string;
   id_profesional_unico?: string;
@@ -113,5 +115,6 @@ export interface Professional {
 export type ProfesionalInsert = Omit<Professional, 'id' | 'created_at' | 'updated_at'> & {
   nombre_completo: string;
   area_profesional?: string;
+  area_profesional_id?: string;
   estado_solicitud?: string;
 };

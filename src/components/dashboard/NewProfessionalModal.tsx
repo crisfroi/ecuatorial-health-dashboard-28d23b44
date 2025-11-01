@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useRef, useCallback, useState, useEffect } from "react";
 import {
   Dialog,

@@ -1968,7 +1968,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             const { data, error } = await query;
 
             if (error) {
-              console.error('❌ Supabase error in fetchValidaciones:', error);
+              const errorMsg = error.message || JSON.stringify(error) || 'Unknown error';
+              console.error('❌ Supabase error in fetchValidaciones:', errorMsg);
               throw error;
             }
 
@@ -1976,7 +1977,8 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
             set({ validaciones: data || [], loading: false });
           });
         } catch (error: any) {
-          console.error('💥 Exception in fetchValidaciones:', error);
+          const errorMsg = error?.message || error?.details || JSON.stringify(error) || 'Unknown error';
+          console.error('💥 Exception in fetchValidaciones:', errorMsg);
           const errorMessage = formatSupabaseError(error);
           set({ error: 'Error al cargar validaciones: ' + errorMessage, loading: false });
         }

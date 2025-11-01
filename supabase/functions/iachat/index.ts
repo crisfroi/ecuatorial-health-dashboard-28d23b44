@@ -15,6 +15,14 @@ function applyFilters(q: any, f: Record<string, any>) {
   if (!f) return qb;
   if (f.area_profesional) qb = qb.eq("area_profesional", f.area_profesional);
   if (f.area_profesional_like) qb = qb.ilike("area_profesional", `%${f.area_profesional_like}%`);
+  // Nuevo: filtrar por FK
+  if (f.area_profesional_id) {
+    if (Array.isArray(f.area_profesional_id) && f.area_profesional_id.length > 0) {
+      qb = qb.in('area_profesional_id', f.area_profesional_id);
+    } else {
+      qb = qb.eq('area_profesional_id', f.area_profesional_id);
+    }
+  }
   if (f.especialidad) qb = qb.eq("especialidad", f.especialidad);
   if (f.especialidad_like) qb = qb.ilike("especialidad", `%${f.especialidad_like}%`);
   if (f.estado_solicitud) qb = qb.eq("estado_solicitud", f.estado_solicitud);
@@ -113,7 +121,7 @@ async function getProfessionalsList(supabase: any, args: { filters?: Record<stri
   const { filters = {}, limit = 50, aprobadosOnly = false } = args || {} as any;
   let qb = supabase
     .from('profesionales_sanitarios')
-    .select('id, nombre_completo, area_profesional, especialidad, estado_solicitud, nombre_centro, centro_salud_id')
+    .select('id, nombre_completo, area_profesional, area_profesional_id, especialidad, estado_solicitud, nombre_centro, centro_salud_id')
     .order('nombre_completo');
   if (aprobadosOnly) {
     qb = qb.eq('estado_solicitud', 'Aprobado');

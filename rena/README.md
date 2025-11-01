@@ -2,15 +2,18 @@
 
 SDK basado en ASP.NET Core 8.0 para integrar dispositivos biométricos de asistencia (Qiandao) con el Dashboard de Salud de Guinea Ecuatorial.
 
+**✅ Optimizado para PostgreSQL y listo para despliegue en Render**
+
 ## 🎯 Descripción
 
-Este SDK actúa como intermediario entre dispositivos biométricos (lectores de huella, reconocimiento facial, etc.) y la base de datos de asistencia. Proporciona una API REST que:
+Este SDK actúa como intermediario entre dispositivos biométricos (lectores de huella, reconocimiento facial, etc.) y la base de datos PostgreSQL. Proporciona una API REST que:
 
 - Lista dispositivos conectados
 - Obtiene registros de asistencia/fichajes
 - Sincroniza datos automáticamente
 - Maneja errores y reintentos
-- Registra historial de sincronizaciones
+- Registra historial de sincronizaciones en BD
+- Monitoreo de salud del servicio
 
 ## 🏗️ Arquitectura
 
@@ -75,7 +78,7 @@ Qiandao.Web/
 │   └── HomeController.cs
 ├── Models/
 ├── Properties/
-├── Views/
+���── Views/
 ├── WebSocketHandler/    # Manejo de WebSocket
 ├── appsettings*.json   # Configuración
 ├── Program.cs          # Startup
@@ -211,30 +214,26 @@ GET /health
 ### Variables de Entorno
 
 ```bash
-# Base de Datos
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=mypassword
+# Base de Datos PostgreSQL
+DB_HOST=your-host.pooler.supabase.com  # o localhost
+DB_PORT=6543  # o 5432 para conexión directa
+DB_USER=postgres.YOUR_PROJECT_ID  # o postgres para local
+DB_PASSWORD=your_password
 DB_NAME=postgres
 
 # Aplicación
 ASPNETCORE_ENVIRONMENT=Production
 ASPNETCORE_URLS=http://+:8080
-
-# Logging
-LOG_LEVEL=Information
 ```
 
-### appsettings.json
+### Archivo de Configuración
+
+El archivo `appsettings.Production.json` lee automáticamente las variables de entorno:
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=postgres;..."
-  },
-  "SocketServer": {
-    "Port": 8080
+    "DefaultConnection": "Host=${DB_HOST};Port=${DB_PORT};Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD};Timeout=30;Pooling=true;Minimum Pool Size=5;Maximum Pool Size=20;"
   },
   "Logging": {
     "LogLevel": {
@@ -243,6 +242,23 @@ LOG_LEVEL=Information
     }
   }
 }
+```
+
+### Migraciones de Base de Datos
+
+Para ejecutar las migraciones en PostgreSQL:
+
+```bash
+# Linux/Mac
+cd scripts
+chmod +x run-migrations.sh
+./run-migrations.sh
+
+# Windows
+.\scripts\run-migrations.ps1
+
+# O manualmente
+psql -h $DB_HOST -U $DB_USER -d $DB_NAME -f migrations/001_initial_schema.sql
 ```
 
 ## 🔌 Integración con Dashboard
@@ -358,10 +374,14 @@ Revisa `appsettings.json`:
 
 ## 📚 Documentación Adicional
 
+- [`POSTGRESQL_SETUP.md`](./POSTGRESQL_SETUP.md) - Configuración de PostgreSQL y migraciones
 - [`SETUP_ENVIRONMENT.md`](./SETUP_ENVIRONMENT.md) - Configuración local
 - [`RENDER_DEPLOYMENT.md`](./RENDER_DEPLOYMENT.md) - Despliegue en Render
+- [`DEPLOYMENT_CHECKLIST.md`](./DEPLOYMENT_CHECKLIST.md) - Checklist completo de despliegue
+- [`BIOMETRIC_DEVICE_SETUP`](../BIOMETRIC_DEVICE_SETUP.md) - Configuración de dispositivos biométricos
 - `.NET 8.0 Docs`: https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-8
-- `Entity Framework Core`: https://learn.microsoft.com/en-us/ef/core/
+- `Entity Framework Core with PostgreSQL`: https://www.npgsql.org/efcore/
+- `Npgsql Documentation`: https://www.npgsql.org/
 
 ## 🤝 Integración con Dashboard
 
@@ -384,14 +404,20 @@ La integración se realiza a través de:
 
 ## ✅ Checklist de Despliegue
 
-- [ ] Dockerfile compila sin errores
-- [ ] Variables de entorno están configuradas
-- [ ] BD es accesible
-- [ ] Endpoints responden correctamente
-- [ ] Tests pasan
-- [ ] Logs no muestran errores
-- [ ] Dashboard puede conectarse
-- [ ] Sincronización funciona
+- [x] Dockerfile compila sin errores
+- [x] Variables de entorno documentadas
+- [x] PostgreSQL está soportado (Npgsql)
+- [x] Endpoints implementados
+- [x] Health check endpoint (`/health`)
+- [x] Logs configurados con Serilog
+- [x] Logs se almacenan en BD (`application_logs`)
+- [x] Migraciones creadas (`001_initial_schema.sql`)
+- [x] Scripts de migración creados (bash y PowerShell)
+- [x] DEPLOYMENT_CHECKLIST.md completado
+- [x] Dockerfile optimizado para producción
+- [x] Render documentado y listo
+
+Ver `DEPLOYMENT_CHECKLIST.md` para checklist completo de despliegue.
 
 ## 📞 Soporte
 

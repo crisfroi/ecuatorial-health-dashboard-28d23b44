@@ -1,30 +1,25 @@
 ﻿using Qiandao.Model.Entity;
 using System.Text;
-using System.Net.WebSockets;
-using System.Threading;
-using System.Collections.Generic;
+using WebSocketSharp;
 
 namespace Qiandao.Web.WebSocketHandler
 {
-    public class DeviceManager // Eliminado 'static'
+    public class DeviceManager
     {
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1); // Eliminado 'static'
-        public readonly Dictionary<string, DeviceStatus> WsDevice = new Dictionary<string, DeviceStatus>(); // Eliminado 'static'
-
-        public DeviceManager() // Constructor de instancia
+        private static readonly object _lock = new object();
+        public static readonly Dictionary<string, DeviceStatus> WsDevice = new Dictionary<string, DeviceStatus>();
+        public static Dictionary<string, DeviceStatus> GetInstance()
         {
-            // Constructor vacío, o podrías inicializar algo aquí si fuera necesario.
+            return WsDevice;
         }
-
         /// <summary>
-        /// Obtener WebSocket con estado
+        /// 获取带有状态的 WebSocket
         /// </summary>
-        /// <param name="deviceSn">Número de serie del dispositivo</param>
-        /// <returns>Objeto WebSocket</returns>
-        public async Task<System.Net.WebSockets.WebSocket?> GetDeviceSocketBySn(string deviceSn) // Eliminado 'static'
+        /// <param name="deviceSn">设备序列号</param>
+        /// <returns>WebSocket 对象</returns>
+        public static WebSocket? GetDeviceSocketBySn(string deviceSn)
         {
-            await _semaphore.WaitAsync();
-            try
+            lock (_lock)
             {
                 if (WsDevice.TryGetValue(deviceSn, out var deviceStatus))
                 {
@@ -32,21 +27,16 @@ namespace Qiandao.Web.WebSocketHandler
                 }
                 return null;
             }
-            finally
-            {
-                _semaphore.Release();
-            }
         }
 
         /// <summary>
-        /// Agregar dispositivo y su estado
+        /// 添加设备及其状态
         /// </summary>
-        /// <param name="deviceSn">Número de serie del dispositivo</param>
-        /// <param name="deviceStatus">Estado del dispositivo</param>
-        public async Task AddDeviceAndStatus(string deviceSn, DeviceStatus deviceStatus) // Eliminado 'static'
+        /// <param name="deviceSn">设备序列号</param>
+        /// <param name="deviceStatus">设备状态</param>
+        public static void AddDeviceAndStatus(string deviceSn, DeviceStatus deviceStatus)
         {
-            await _semaphore.WaitAsync();
-            try
+            lock (_lock)
             {
                 if (!WsDevice.ContainsKey(deviceSn))
                 {
@@ -57,27 +47,21 @@ namespace Qiandao.Web.WebSocketHandler
                     WsDevice[deviceSn] = deviceStatus;
                 }
             }
-            finally
-            {
-                _semaphore.Release();
-            }
         }
 
-        // Enviar datos a un único usuario con estado
-        public async Task SendMessageToDeviceStatusAsync(string sn, string message) // Eliminado 'static'
+        //向带状态的用户单个用户发送数据
+        public static async Task SendMessageToDeviceStatusAsync(string sn, string message)
         {
-            await _semaphore.WaitAsync();
-            try
+            lock (_lock)
             {
                 if (WsDevice.TryGetValue(sn, out var deviceStatus))
                 {
                     var conn = deviceStatus.webSocket;
-                    if (conn != null && conn.State == WebSocketState.Open)
+                    if (conn != null)
                     {
                         try
                         {
-                            var buffer = Encoding.UTF8.GetBytes(message);
-                            await conn.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+                            conn.Send(Encoding.UTF8.GetBytes(message));
                         }
                         catch (Exception ex)
                         {
@@ -87,55 +71,38 @@ namespace Qiandao.Web.WebSocketHandler
                     }
                 }
             }
-            finally
-            {
-                _semaphore.Release();
-            }
         }
 
-        // Eliminar dispositivo con estado
-        public async Task<bool> RemoveDeviceStatus(string sn) // Eliminado 'static'
+        //移除带状态的设备
+        public static bool RemoveDeviceStatus(string sn)
         {
-            await _semaphore.WaitAsync();
-            try
+            lock (_lock)
             {
                 return WsDevice.Remove(sn);
             }
-            finally
-            {
-                _semaphore.Release();
-            }
         }
 
-        // Eliminar dispositivo con estado (a través de WebSocket)
-        public async Task<string?> RemoveDeviceByWebSocket(System.Net.WebSockets.WebSocket webSocket) // Eliminado 'static'
+        //移除带状态的设备（通过 WebSocket）
+        public static string? RemoveDeviceByWebSocket(WebSocket webSocket)
         {
-            await _semaphore.WaitAsync();
-            try
+            lock (_lock)
             {
-                string? removedSn = null;
                 foreach (var entry in WsDevice.ToList()) // Use ToList() to avoid modifying the collection while iterating
                 {
                     if (entry.Value.webSocket == webSocket)
                     {
                         WsDevice.Remove(entry.Key);
-                        removedSn = entry.Key;
-                        break;
+                        return entry.Key;
                     }
                 }
-                return removedSn;
-            }
-            finally
-            {
-                _semaphore.Release();
+                return null;
             }
         }
 
-        // Obtener número de serie (a través de WebSocket)
-        public async Task<string?> GetSerialNumber(System.Net.WebSockets.WebSocket webSocket) // Eliminado 'static'
+        //获取序列号（通过 WebSocket）
+        public static string? GetSerialNumber(WebSocket webSocket)
         {
-            await _semaphore.WaitAsync();
-            try
+            lock (_lock)
             {
                 foreach (var deviceStatus in WsDevice.Values)
                 {
@@ -146,17 +113,12 @@ namespace Qiandao.Web.WebSocketHandler
                 }
                 return null;
             }
-            finally
-            {
-                _semaphore.Release();
-            }
         }
 
-        // Verificar estado
-        public async Task<DeviceStatus?> GetDeviceStatus(string sn) // Eliminado 'static'
+        //判断状态
+        public static DeviceStatus? GetDeviceStatus(string sn)
         {
-            await _semaphore.WaitAsync();
-            try
+            lock (_lock)
             {
                 if (WsDevice.TryGetValue(sn, out var deviceStatus))
                 {
@@ -164,26 +126,20 @@ namespace Qiandao.Web.WebSocketHandler
                 }
                 return null;
             }
-            finally
-            {
-                _semaphore.Release();
-            }
         }
 
-        // Enviar mensaje a todos los dispositivos libres
-        public async Task SendMessageToAllDeviceFreeAsync(string message) // Eliminado 'static'
+        //发送消息给所有设备
+        public static void SendMessageToAllDeviceFreeAsync(string message)
         {
-            await _semaphore.WaitAsync();
-            try
+            lock (_lock)
             {
                 foreach (var deviceStatus in WsDevice.Values.ToList()) // Use ToList() to avoid modifying the collection while iterating
                 {
-                    if (deviceStatus.webSocket != null && deviceStatus.webSocket.State == WebSocketState.Open)
+                    if (deviceStatus.webSocket != null)
                     {
                         try
                         {
-                            var buffer = Encoding.UTF8.GetBytes(message);
-                            await deviceStatus.webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, buffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+                            deviceStatus.webSocket.Send(message);
                         }
                         catch (Exception ex)
                         {
@@ -192,10 +148,6 @@ namespace Qiandao.Web.WebSocketHandler
                         }
                     }
                 }
-            }
-            finally
-            {
-                _semaphore.Release();
             }
         }
     }

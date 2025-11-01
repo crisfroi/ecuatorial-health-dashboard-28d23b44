@@ -4,174 +4,247 @@ using Qiandao.Model.Response;
 using Qiandao.Service;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using WebSocketSharp;
+using WebSocketSharp.Server;
 using Microsoft.IdentityModel.Tokens;
-using System.Net.WebSockets;
-using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
-using System.Threading;
-using System.Collections.Concurrent;
-using System.Net;
-using Microsoft.AspNetCore.Http; // Agregado para HttpContext
+
+
 
 namespace Qiandao.Web.WebSocketHandler
 {
-    public class WebSocketHandler
+    public class WebSocketHandler : WebSocketBehavior
     {
-        private readonly ILogger<WebSocketHandler> _logger;
-        private readonly IServiceProvider _serviceProvider;
-        private readonly DeviceManager _deviceManager; // Restaurado
+        private ILogger<WebSocketHandler> _logger;
+        private IServiceProvider _serviceProvider;
+        private string _clientIp;
+        private int _clientPort;
 
-        public WebSocketHandler(ILogger<WebSocketHandler> logger, IServiceProvider serviceProvider, DeviceManager deviceManager) // Restaurado
+        public WebSocketHandler(ILogger<WebSocketHandler> logger, IServiceProvider serviceProvider)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
-            _deviceManager = deviceManager; // Asignado
         }
-
-        public async Task HandleWebSocketAsync(HttpContext context, System.Net.WebSockets.WebSocket webSocket)
+      
+        protected override async void OnOpen()
         {
-            var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "";
-            var clientPort = context.Connection.RemotePort;
-
-            _logger.LogInformation($"WebSocket connected from {clientIp}:{clientPort}");
-
-            // Aquí debes agregar el WebSocket a tu DeviceManager
-            // Necesitas una forma de identificar el dispositivo desde el WebSocket para agregarlo al DeviceManager
-            // Por ahora, lo agregaremos de forma genérica o esperaremos un mensaje de registro del dispositivo.
-            // await _deviceManager.AddDeviceAndStatus(deviceSn, new DeviceStatus { webSocket = webSocket, status = 1, deviceSn = deviceSn, ConnectionUri = $"ws://{clientIp}:{clientPort}" });
-
-            var buffer = new byte[1024 * 4];
-            WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-
-            while (!result.CloseStatus.HasValue)
+            try
             {
-                var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                _logger.LogInformation($"----Ask message---- {message}");
-
-                // Process the message (similar to your OnMessage logic)
-                using (var scope = _serviceProvider.CreateScope())
+                await Task.Delay(100);  // 延迟 100 毫秒，等待连接完全建立
+               // base.OnOpen();
+                var clientPath = Context?.RequestUri?.PathAndQuery;  // 确保 Context 已经初始化
+                if (clientPath != null)
                 {
-                    var deviceService = scope.ServiceProvider.GetRequiredService<DeviceService>();
-                    var machineCommandService = scope.ServiceProvider.GetRequiredService<Machine_commandService>();
-                    var recordService = scope.ServiceProvider.GetRequiredService<RecordService>();
-                    var personService = scope.ServiceProvider.GetRequiredService<PersonService>();
-                    var enrollinfoService = scope.ServiceProvider.GetRequiredService<EnrollinfoService>();
+                    _logger.LogInformation($"Client connected with path: {clientPath}");
+                }
+                else
+                {
+                    _logger.LogError("Client path is null.");
+                }
+         //       var remoteEndpoint = Context?.UserEndPoint;
+                var remoteEndpoint = Context?.UserEndPoint ?? null; // 或者使用其他逻辑处理
 
-                    await ProcessMessage(message, deviceService, recordService, personService, enrollinfoService, machineCommandService, clientIp, clientPort, webSocket);
+                if (remoteEndpoint != null)
+                {
+                    _clientIp = remoteEndpoint.Address.ToString();
+                    _clientPort = remoteEndpoint.Port; // 使用整数类型存储端口
+                    Console.WriteLine($"Someone Socket conn: {_clientIp}:{_clientPort}");
+                    _logger.LogInformation($"WebSocket connected from {_clientIp}:{_clientPort}");
+                }
+                else
+                {
+                    Console.WriteLine("Failed to retrieve remote endpoint.");
+                    _logger.LogWarning("Failed to retrieve remote endpoint.");
                 }
 
-                result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
             }
-
-            await webSocket.CloseAsync(result.CloseStatus.Value,
-                                     result.CloseStatusDescription,
-                                     CancellationToken.None);
-
-            _logger.LogInformation($"WebSocket closed: {clientIp}:{clientPort}");
-            // Aquí debes remover el WebSocket de tu DeviceManager
-            await _deviceManager.RemoveDeviceByWebSocket(webSocket); // Usar instancia inyectada
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error during WebSocket connection establishment: {ex.Message}");
+            }
         }
 
+        protected override async void OnMessage(MessageEventArgs e)
+        {
+            base.OnMessage(e);
+            string message = e.Data;
+            Console.WriteLine("----Ask message----" + message);
+            _logger.LogInformation("----Ask message---- " + message);
+            var clientPath = Context?.RequestUri?.PathAndQuery;  // 确保 Context 已经初始化
+            if (clientPath != null)
+            {
+                _logger.LogInformation($"Client connected with path: {clientPath}");
+            }
+            else
+            {
+                _logger.LogError("Client path is null.");
+            }
+            var remoteEndpoint = Context?.UserEndPoint;
+            if (remoteEndpoint != null)
+            {
+                _clientIp = remoteEndpoint.Address.ToString();
+                _clientPort = remoteEndpoint.Port; // 使用整数类型存储端口
+                Console.WriteLine($"Someone Socket conn: {_clientIp}:{_clientPort}");
+                _logger.LogInformation($"WebSocket connected from {_clientIp}:{_clientPort}");
+            }
+            else
+            {
+                Console.WriteLine("Failed to retrieve remote endpoint.");
+                _logger.LogWarning("Failed to retrieve remote endpoint.");
+            }
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var deviceService = scope.ServiceProvider.GetRequiredService<DeviceService>();
+                var machineCommandService = scope.ServiceProvider.GetRequiredService<Machine_commandService>();
+                var recordService = scope.ServiceProvider.GetRequiredService<RecordService>();
+                var personService = scope.ServiceProvider.GetRequiredService<PersonService>();
+                var enrollinfoService = scope.ServiceProvider.GetRequiredService<EnrollinfoService>();
+                 await ProcessMessage(message, deviceService, recordService, personService, enrollinfoService, machineCommandService, _clientIp, _clientPort);
+            }
+        }
+        public  void SendMessage(string message)
+        {
+            if (State == WebSocketSharp.WebSocketState.Open)
+            {
+                
+                 Send(message);
+            }
+            else
+            {
+                Console.WriteLine("WebSocket is not open.");
+                _logger.LogInformation("WebSocket is not open.");
+            }
+        }
+  
+        protected override void OnClose(CloseEventArgs e)
+        {
+            // Call the base method if needed
+            base.OnClose(e);
+            Console.WriteLine("WebSocket closed.");
+            _logger.LogInformation("WebSocket closed");
+            // Access the WebSocket instance from the context
+            WebSocketSharp.WebSocket webSocket = Context.WebSocket;
+            // Remove the device from the manager
+            string? sn = DeviceManager.RemoveDeviceByWebSocket(webSocket);
+            if (sn != null)
+            {
+                using (var scope = _serviceProvider.CreateScope())
+                {
+                    var _deviceService = scope.ServiceProvider.GetRequiredService<DeviceService>();
+                    // Fetch the device entity by serial number
+                    ResponseModel pm = _deviceService.selectDeviceBySerialNum(sn);
+                    Device device = pm.Data;
+                    if (device != null)
+                    {
+                        _deviceService.UpdateStatusByPrimaryKey(device.Id, 0);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Device not found for serial number: {SerialNumber}", sn);
+                    }
+                }
+                _logger.LogInformation("WebSocket closed: {RemoteSocketAddress}", this.Context.RequestUri);
+            }
+        }
         private async Task ProcessMessage(string message,
                                              DeviceService deviceService, RecordService recordService,
                                              PersonService personService, EnrollinfoService enrollinfoService,
                                              Machine_commandService machine_commandService, string clientIp,
-                                             int clientPort, System.Net.WebSockets.WebSocket webSocket)
+                                   int clientPort)
         {
             try
             {
                 JObject jsonNode = JObject.Parse(message);
+                WebSocketSharp.WebSocket webSocket = Context.WebSocket;
                 var cmd = jsonNode.Value<string>("cmd");
                 var ret = jsonNode.Value<string>("ret");
                 if (cmd != null) {
                     ret = cmd;
                 }
-
                 switch (ret)
                 {
                     case "reg":
                         _logger.LogInformation("deviceOn" + jsonNode);
-                        await GetDeviceInfo(jsonNode, deviceService, clientIp, clientPort, webSocket);
+                        await GetDeviceInfo(jsonNode, deviceService, clientIp, clientPort);
                         break;
                     case "sendlog":
-                        await GetAttendance(jsonNode, recordService, clientIp, clientPort, webSocket);
+                        GetAttendance(jsonNode, recordService, clientIp, clientPort);
                         break;
                     case "sendqrcode":
                         var qrcodeResponse = "{\"ret\":\"sendqrcode\",\"result\":true,\"access\":1,\"enrollid\":10,\"username\":\"test\"}";
-                        await SendMessage(webSocket, qrcodeResponse);
+                        webSocket.Send(Encoding.UTF8.GetBytes(qrcodeResponse));
                         break;
                     case "senduser":
-                        await GetEnrollInfo(jsonNode,  personService, enrollinfoService,  clientIp,
-                                    clientPort, webSocket);
+                        GetEnrollInfo(jsonNode,  personService, enrollinfoService,  clientIp,
+                                    clientPort);
                         break;
                     case "getuserlist":
                         await GetUserList(jsonNode,  machine_commandService, personService, enrollinfoService,  clientIp,
-                                    clientPort, webSocket);
+                                    clientPort);
                         break;
                     case "getuserinfo":
-                        await GetUserInfo(jsonNode,  enrollinfoService, personService, machine_commandService);
+                        GetUserInfo(jsonNode,  enrollinfoService, personService, machine_commandService);
                         await HandleDeviceStatus(jsonNode,  deviceService,  clientIp,
-                                    clientPort, webSocket);
+                                    clientPort);
                         break;
                     case "setuserinfo":
                         await HandleDeviceStatus(jsonNode,  deviceService,  clientIp,
-                                    clientPort, webSocket);
+                                    clientPort);
                         await UpdateCommandStatus(jsonNode, "setuserinfo", machine_commandService);
                         break;
                     case "getalllog":
-                         await GetAllLog(jsonNode, machine_commandService, recordService, clientIp, clientPort, webSocket);
+                         GetAllLog(jsonNode, machine_commandService, recordService, clientIp, clientPort);
                         break;
                     case "getnewlog":
-                        await GetNewLog(jsonNode,  machine_commandService, recordService, clientIp,
-                                    clientPort, webSocket);
+                        GetNewLog(jsonNode,  machine_commandService, recordService, clientIp,
+                                    clientPort);
                         break;
                     case "deleteuser":
                         await HandleDeviceStatus(jsonNode,  deviceService,  clientIp,
-                                    clientPort, webSocket);
+                                    clientPort);
                         await UpdateCommandStatus(jsonNode, "deleteuser", machine_commandService);
                         break;
                     case "initsys":
-                        await HandleDeviceStatus(jsonNode, deviceService, clientIp, clientPort, webSocket);
+                        await HandleDeviceStatus(jsonNode, deviceService, clientIp, clientPort);
                         await UpdateCommandStatus(jsonNode, "initsys", machine_commandService);
                         break;
                     case "setdevlock":
                         await HandleDeviceStatus(jsonNode,  deviceService,  clientIp,
-                                    clientPort, webSocket);
+                                    clientPort);
                         await UpdateCommandStatus(jsonNode, "setdevlock", machine_commandService);
                         break;
                     case "setuserlock":
                      await   HandleDeviceStatus(jsonNode,  deviceService,  clientIp,
-                                    clientPort, webSocket);
+                                    clientPort);
                         await UpdateCommandStatus(jsonNode, "setuserlock", machine_commandService);
                         break;
                     case "getdevinfo":
                         await HandleDeviceStatus(jsonNode,  deviceService,  clientIp,
-                                    clientPort, webSocket);
+                                    clientPort);
                         await UpdateCommandStatus(jsonNode, "getdevinfo", machine_commandService);
                         break;
                     case "setusername":
                         await HandleDeviceStatus(jsonNode,  deviceService,  clientIp,
-                                    clientPort, webSocket);
+                                    clientPort);
                         await UpdateCommandStatus(jsonNode, "setusername", machine_commandService);
                         break;
                     case "reboot":
                         await HandleDeviceStatus(jsonNode,  deviceService,  clientIp,
-                                    clientPort, webSocket);
+                                    clientPort);
                         await UpdateCommandStatus(jsonNode, "reboot", machine_commandService);
                         break;
                     case "getdevlock":
                         await HandleDeviceStatus(jsonNode,  deviceService,  clientIp,
-                                    clientPort, webSocket);
+                                    clientPort);
                         await UpdateCommandStatus(jsonNode, "getdevlock", machine_commandService);
                         break;
                     case "getuserlock":
                         await HandleDeviceStatus(jsonNode,  deviceService,  clientIp,
-                                    clientPort, webSocket);
+                                    clientPort);
                         await UpdateCommandStatus(jsonNode, "getuserlock", machine_commandService);
                         break;
                     default:
                         await HandleDeviceStatus(jsonNode,  deviceService,  clientIp,
-                                    clientPort, webSocket);
+                                    clientPort);
                         await UpdateCommandStatus(jsonNode, ret, machine_commandService);
                         break;
                 }
@@ -186,49 +259,37 @@ namespace Qiandao.Web.WebSocketHandler
             }
         }
 
-        public async Task SendMessage(System.Net.WebSockets.WebSocket webSocket, string message)
-        {
-            if (webSocket.State == WebSocketState.Open)
-            {
-                var encoded = Encoding.UTF8.GetBytes(message);
-                await webSocket.SendAsync(new ArraySegment<byte>(encoded, 0, encoded.Length),
-                                        WebSocketMessageType.Text, true, CancellationToken.None);
-            }
-            else
-            {
-                _logger.LogInformation("WebSocket is not open.");
-            }
-        }
-
         private async Task HandleDeviceStatus(JObject jsonNode,  DeviceService deviceService, string clientIp,
-                                   int clientPort, System.Net.WebSockets.WebSocket webSocket)
+                                   int clientPort)
         {
+            WebSocketSharp.WebSocket webSocket = Context.WebSocket;
             var sn = jsonNode.Value<string>("sn");
             var deviceStatus = new DeviceStatus { webSocket = webSocket, deviceSn = sn, status = 1, ConnectionUri = $"ws://{clientIp}:{clientPort}" };
-            // Actualizar estado del dispositivo
-            await _deviceManager.AddDeviceAndStatus(sn, deviceStatus); // Usar instancia inyectada
+            // 更新设备状态
+            DeviceManager.AddDeviceAndStatus(sn, deviceStatus);
         }
 
-        private async Task UpdateCommandStatus(JObject jsonNode, string command, Machine_commandService machineCommandService)
+        private async Task UpdateCommandStatus(JObject jsonNode, string command, Machine_commandService machine_commandService)
         {
             var sn = jsonNode.Value<string>("sn");
-           await UpdateCommandStatusx(sn, command, machineCommandService);
+           await UpdateCommandStatusx(sn, command, machine_commandService);
         }
-        public async Task UpdateCommandStatusx(string serial, string commandType, Machine_commandService machineCommandService)
+        public async Task UpdateCommandStatusx(string serial, string commandType, Machine_commandService machine_commandService)
         {
             if (serial != null)
             {
-                var machineCommands = await machineCommandService.FindPendingCommand(1, serial);
+                var machineCommands = await machine_commandService.FindPendingCommand(1, serial);
                 if (machineCommands.Any() && machineCommands.First().Name == commandType)
                 {
-                  await  machineCommandService.UpdateCommandStatus(1, 0, DateTime.Now, machineCommands.First());
+                  await  machine_commandService.UpdateCommandStatus(1, 0, DateTime.Now, machineCommands.First());
                 }
             }
         }
 
         public async Task GetDeviceInfo(JObject jsonNode,  DeviceService deviceService,string clientIp,
-                                   int clientPort, System.Net.WebSockets.WebSocket webSocket)
+                                   int clientPort)
         {
+            WebSocketSharp.WebSocket webSocket = Context.WebSocket;
             var sn = jsonNode.Value<string>("sn");
             if (sn != null)
             {
@@ -248,8 +309,8 @@ namespace Qiandao.Web.WebSocketHandler
                     result = true,
                     cloudtime = DateTime.Now
                 };
-                await SendMessage(webSocket, System.Text.Json.JsonSerializer.Serialize(response));
-
+                var responseData = Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(response));
+                webSocket.Send(responseData);
                 var deviceStatus = new DeviceStatus
                 {
                     webSocket = webSocket,
@@ -257,8 +318,8 @@ namespace Qiandao.Web.WebSocketHandler
                     deviceSn = sn,
                     ConnectionUri = $"ws://{clientIp}:{clientPort}"
                 };
-                // Actualizar estado del dispositivo
-                await _deviceManager.AddDeviceAndStatus(sn, deviceStatus); // Usar instancia inyectada
+                // 更新设备状态
+                DeviceManager.AddDeviceAndStatus(sn, deviceStatus);
             }
             else
             {
@@ -269,8 +330,8 @@ namespace Qiandao.Web.WebSocketHandler
                     reason = 1
                 };
 
-                await SendMessage(webSocket, System.Text.Json.JsonSerializer.Serialize(errorResponse));
-
+                var responseData = Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(errorResponse));
+                 webSocket.Send(responseData);
                 var deviceStatus = new DeviceStatus
                 {
                     webSocket = webSocket,
@@ -278,14 +339,14 @@ namespace Qiandao.Web.WebSocketHandler
                     deviceSn = sn,
                     ConnectionUri= $"ws://{clientIp}:{clientPort}"
                 };
-                // Actualizar estado del dispositivo
-                await _deviceManager.AddDeviceAndStatus(sn, deviceStatus); // Usar instancia inyectada
+                // 更新设备状态
+                DeviceManager.AddDeviceAndStatus(sn, deviceStatus);
             }
         }
      
 
-        public async Task GetAttendance(JObject jsonNode, RecordService recordService, string clientIp,
-                                   int clientPort, System.Net.WebSockets.WebSocket webSocket)
+        public async void GetAttendance(JObject jsonNode, RecordService recordService, string clientIp,
+                                   int clientPort)
         {
             var sn = jsonNode.Value<string>("sn"); 
             int count = jsonNode.Value<int>("count"); 
@@ -293,6 +354,7 @@ namespace Qiandao.Web.WebSocketHandler
             List<Record> recordAll = new List<Record>();
             DeviceStatus deviceStatus = new DeviceStatus();
             bool flag = false;
+            WebSocketSharp.WebSocket webSocket = Context.WebSocket;
             if (count > 0)
             {
                 JArray records = jsonNode.Value<JArray>("record"); 
@@ -367,14 +429,13 @@ namespace Qiandao.Web.WebSocketHandler
                     ? $"{{\"ret\":\"sendlog\",\"result\":true,\"count\":{count},\"logindex\":{logIndex},\"cloudtime\":\"{DateTime.Now}\"}}"
                     : $"{{\"ret\":\"sendlog\",\"result\":true,\"cloudtime\":\"{DateTime.Now}\"}}";
            
-                await SendMessage(webSocket, response);
-
+                webSocket.Send(Encoding.UTF8.GetBytes(response));
                 deviceStatus.webSocket = webSocket;
                 deviceStatus.status = 1;
                 deviceStatus.deviceSn = sn;
                 deviceStatus.ConnectionUri = $"ws://{clientIp}:{clientPort}";
-                // Actualizar estado del dispositivo
-                await _deviceManager.AddDeviceAndStatus(sn, deviceStatus); // Usar instancia inyectada
+                // 更新设备状态
+                DeviceManager.AddDeviceAndStatus(sn, deviceStatus);
                 foreach (var record in recordAll)
                 {
                     if (record != null)
@@ -386,36 +447,37 @@ namespace Qiandao.Web.WebSocketHandler
             else if (count == 0)
             {
                 string response = "{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}";
-                await SendMessage(webSocket, response);
-
+                webSocket.Send(Encoding.UTF8.GetBytes(response));
                 deviceStatus.webSocket = webSocket;
                 deviceStatus.status = 1;
                 deviceStatus.deviceSn = sn;
                 deviceStatus.ConnectionUri = $"ws://{clientIp}:{clientPort}";
-                // Actualizar estado del dispositivo
-                await _deviceManager.AddDeviceAndStatus(sn, deviceStatus); // Usar instancia inyectada
+                // 更新设备状态
+                DeviceManager.AddDeviceAndStatus(sn, deviceStatus);
             }
         }
 
-        private async Task GetEnrollInfo(JObject jsonNode, PersonService personService, EnrollinfoService enrollinfoService, string clientIp,
-                                   int clientPort, System.Net.WebSockets.WebSocket webSocket)
+        private async void GetEnrollInfo(JObject jsonNode, PersonService personService, EnrollinfoService enrollinfoService, string clientIp,
+                                   int clientPort)
         {
-            // Crear formateador de fecha
+            // 创建日期格式化器
                var sn = jsonNode.Value<string>("sn");
             var signatures1 = jsonNode.Value<string>("record");
             bool flag = false;
             DeviceStatus deviceStatus = new DeviceStatus();
+            WebSocketSharp.WebSocket webSocket = Context.WebSocket;
             if (string.IsNullOrEmpty(signatures1))
             {
                 var response = "{\"ret\":\"senduser\",\"result\":false,\"reason\":1}";
-                await SendMessage(webSocket, response);
+                var responseData = Encoding.UTF8.GetBytes(response);
+                webSocket.Send(responseData);
 
                 deviceStatus.webSocket = webSocket;
                 deviceStatus.status = 1;
                 deviceStatus.deviceSn = sn;
                 deviceStatus.ConnectionUri = $"ws://{clientIp}:{clientPort}";
-                // Actualizar estado del dispositivo
-                await _deviceManager.AddDeviceAndStatus(sn, deviceStatus); // Usar instancia inyectada
+                // 更新设备状态
+                DeviceManager.AddDeviceAndStatus(sn, deviceStatus);
             }
             else
             {
@@ -432,7 +494,7 @@ namespace Qiandao.Web.WebSocketHandler
                     Roll_id = rollId
                 };
 
-                if (await personService.SelectByPrimaryKey(enrollId) == null)
+                if (personService.SelectByPrimaryKey(enrollId) == null)
                 {
                      personService.AddPersonAsync(person);
                 }
@@ -464,18 +526,19 @@ namespace Qiandao.Web.WebSocketHandler
                 }
 
                 var response = "{\"ret\":\"senduser\",\"result\":true,\"cloudtime\":\"" + DateTime.Now+ "\"}";
-                await SendMessage(webSocket, response);
+                var responseData = Encoding.UTF8.GetBytes(response);
+                webSocket.Send(responseData);
 
                 deviceStatus.webSocket = webSocket;
                 deviceStatus.status = 1;
                 deviceStatus.deviceSn = sn;
                 deviceStatus.ConnectionUri = $"ws://{clientIp}:{clientPort}";
-                // Actualizar estado del dispositivo
-                await _deviceManager.AddDeviceAndStatus(sn, deviceStatus); // Usar instancia inyectada
+                // 更新设备状态
+                DeviceManager.AddDeviceAndStatus(sn, deviceStatus);
             }
         }
         private async Task GetUserList(JToken jsonNode,  Machine_commandService machine_commandService, PersonService personService, EnrollinfoService enrollInfoService, string clientIp,
-                                   int clientPort, System.Net.WebSockets.WebSocket webSocket)
+                                   int clientPort)
         {
             List<UserTemp> userTemps = new List<UserTemp>();
             var result = jsonNode.Value<bool>("result");
@@ -483,6 +546,7 @@ namespace Qiandao.Web.WebSocketHandler
             JToken records = jsonNode.Value<JArray>("record"); 
             var sn = jsonNode.Value<string>("sn"); 
             DeviceStatus deviceStatus = new DeviceStatus();
+            WebSocketSharp.WebSocket webSocket = Context.WebSocket;
             if (result)
             {
                 count = jsonNode.Value<int>("count");
@@ -499,7 +563,7 @@ namespace Qiandao.Web.WebSocketHandler
                             admin = admin,
                             backupnum = backupnum
                         };
-                        if (await personService.SelectByPrimaryKey(userTemp.enrollId) == null)
+                        if (personService.SelectByPrimaryKey(userTemp.enrollId).Result == null)
                         {
                             Person personTemp = new Person
                             {
@@ -528,11 +592,11 @@ namespace Qiandao.Web.WebSocketHandler
                     deviceStatus.status = 1;
                     deviceStatus.deviceSn = sn;
                     var response = "{\"cmd\":\"getuserlist\",\"stn\":false}";
-                    await SendMessage(webSocket, response);
-
+                    var responseData = Encoding.UTF8.GetBytes(response);
+                    webSocket.Send(responseData);
                     deviceStatus.ConnectionUri = $"ws://{clientIp}:{clientPort}";
-                    // Actualizar estado del dispositivo
-                    await _deviceManager.AddDeviceAndStatus(sn, deviceStatus); // Usar instancia inyectada
+                    // 更新设备状态
+                    DeviceManager.AddDeviceAndStatus(sn, deviceStatus);
                 }
             }
             if (sn != null)
@@ -540,7 +604,7 @@ namespace Qiandao.Web.WebSocketHandler
               await  UpdateCommandStatusx(sn, "getuserlist", machine_commandService);
             }
         }
-        public async Task GetUserInfo(JToken jsonNode, EnrollinfoService enrollinfoService, PersonService personService, Machine_commandService machine_Commandservice)
+        public async void GetUserInfo(JToken jsonNode, EnrollinfoService enrollinfoService, PersonService personService, Machine_commandService machine_Commandservice)
         {
             var result = jsonNode.Value<bool>("result");
             var sn = jsonNode.Value<string>("sn");
@@ -576,7 +640,7 @@ namespace Qiandao.Web.WebSocketHandler
                     }
                 }
 
-                if (await personService.SelectByPrimaryKey(enrollId) == null)
+                if (personService.SelectByPrimaryKey(enrollId).Result == null)
                 {
                     personService.AddPerson(person);
                 }
@@ -607,22 +671,22 @@ namespace Qiandao.Web.WebSocketHandler
             }
         }
 
-        public async Task updateCommandStatus(string serial, string commandType, Machine_commandService machine_Commandservice)
+        public async void updateCommandStatus(string serial, string commandType, Machine_commandService machine_Commandservice)
         {
             if (serial != null)
             {
                 List<Machine_command> machineCommand =await  machine_Commandservice.FindPendingCommand(1, serial);
-                if (machineCommand.Any() && machineCommand.First().Name.Equals(commandType))
+                if (machineCommand.Count() > 0 && machineCommand[0].Name.Equals(commandType))
                 {
                     DateTime dt = DateTime.Now;
-                   await   machine_Commandservice.UpdateCommandStatus(1, 0, dt, machineCommand.First());
+                   await   machine_Commandservice.UpdateCommandStatus(1, 0, dt, machineCommand[0]);
 
                 }
             }
         }
-        //	// Obtener todos los registros de tarjetas
-        private async Task GetAllLog(JToken jsonNode, Machine_commandService machine_commandService, RecordService recordsService, string clientIp,
-                                   int clientPort, System.Net.WebSockets.WebSocket webSocket)
+        //	// 获取全部打卡记录
+        private async void GetAllLog(JToken jsonNode, Machine_commandService machine_commandService, RecordService recordsService, string clientIp,
+                                   int clientPort)
         {
             var result = jsonNode.Value<bool>("result");
             var recordAll = new List<Record>();
@@ -632,6 +696,7 @@ namespace Qiandao.Web.WebSocketHandler
                 var records = jsonNode["record"];
                 var deviceStatus = new DeviceStatus();
                 int count;
+                WebSocketSharp.WebSocket webSocket = Context.WebSocket;
                 bool flag = false;
                 if (result)
                 {
@@ -668,14 +733,14 @@ namespace Qiandao.Web.WebSocketHandler
                             }
                         }
                         var response = "{\"cmd\":\"getalllog\",\"stn\":false}";
-                        await SendMessage(webSocket, response);
-
+                        var responseData = Encoding.UTF8.GetBytes(response);
+                        webSocket.Send(responseData);
                         deviceStatus.webSocket = webSocket;
                         deviceStatus.status = 1;
                         deviceStatus.deviceSn = sn;
                         deviceStatus.ConnectionUri = $"ws://{clientIp}:{clientPort}";
-                        // Actualizar estado del dispositivo
-                        await _deviceManager.AddDeviceAndStatus(sn, deviceStatus); // Usar instancia inyectada
+                        // 更新设备状态
+                        DeviceManager.AddDeviceAndStatus(sn, deviceStatus);
                     }
                 }
                 foreach (var recordTemp in recordAll)
@@ -688,9 +753,9 @@ namespace Qiandao.Web.WebSocketHandler
                 }
             }
         }
-        // Obtener nuevos registros
-        private async Task GetNewLog(JToken jsonNode,  Machine_commandService machine_commandService, RecordService recordsService, string clientIp,
-                                   int clientPort, System.Net.WebSockets.WebSocket webSocket)
+        // 获取全部打卡记录
+        private async void GetNewLog(JToken jsonNode,  Machine_commandService machine_commandService, RecordService recordsService, string clientIp,
+                                   int clientPort)
         {
             var result = jsonNode.Value<bool>("result");
             var recordAll = new List<Record>();
@@ -698,6 +763,7 @@ namespace Qiandao.Web.WebSocketHandler
             var records = jsonNode["record"];
             var deviceStatus = new DeviceStatus();
             int count;
+            WebSocketSharp.WebSocket webSocket = Context.WebSocket;
             if (result)
             {
                 count = jsonNode.Value<int>("count");
@@ -735,14 +801,14 @@ namespace Qiandao.Web.WebSocketHandler
                         }
                     }
                     var response = "{\"cmd\":\"getnewlog\",\"stn\":false}";
-                    await SendMessage(webSocket, response);
-
+                    var responseData = Encoding.UTF8.GetBytes(response);
+                    webSocket.Send(responseData);
                     deviceStatus.webSocket = webSocket;
                     deviceStatus.status = 1;
                     deviceStatus.deviceSn = sn;
                     deviceStatus.ConnectionUri = $"ws://{clientIp}:{clientPort}";
-                    // Actualizar estado del dispositivo
-                    await _deviceManager.AddDeviceAndStatus(sn, deviceStatus); // Usar instancia inyectada
+                    // 更新设备状态
+                    DeviceManager.AddDeviceAndStatus(sn, deviceStatus);
                 }
             }
             foreach (var recordTemp in recordAll)

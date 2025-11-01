@@ -251,8 +251,8 @@ export function AsistenciaOverviewDashboard() {
               centroLogsFiltered.filter((l) => l.inout === 'IN').map((l) => l.id_profesional) || []
             );
             const retardosSet = new Set(
-              centreLogs
-                ?.filter((l) => {
+              centroLogsFiltered
+                .filter((l) => {
                   const time = new Date(l.fecha_hora);
                   return (
                     l.inout === 'IN' &&

@@ -78,16 +78,15 @@ namespace Qiandao.Service
                 // 构建动态 SQL 查询
                 var sqlQuery = $@"
     WITH CTE AS (
-        SELECT *,  ROW_NUMBER() OVER (ORDER BY Id asc) AS RowNum
-        FROM Person)
     SELECT *
-    FROM CTE
-    WHERE RowNum BETWEEN (@SkipCount+1)  AND (@SkipCount + @Limit)";
+    FROM person
+    ORDER BY id ASC
+    LIMIT @Limit OFFSET @SkipCount";
                 // 创建参数列表
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
     {
-        new SqlParameter("@SkipCount", skipCount),
-        new SqlParameter("@Limit", limit)
+        new NpgsqlParameter("@SkipCount", skipCount),
+        new NpgsqlParameter("@Limit", limit)
     };
 
                 // 执行查询

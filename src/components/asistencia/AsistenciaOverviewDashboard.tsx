@@ -699,6 +699,200 @@ export function AsistenciaOverviewDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="analisis" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Análisis de Puntualidad */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-blue-600" />
+                  Análisis de Puntualidad
+                </CardTitle>
+                <CardDescription>Desempeño puntual de profesionales</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-medium">Profesionales a Tiempo</span>
+                    <span className="text-2xl font-bold text-green-600">
+                      {kpiData.presentes - kpiData.retardos}
+                    </span>
+                  </div>
+                  <div className="bg-green-100 rounded-full h-3">
+                    <div
+                      className="bg-green-600 h-3 rounded-full transition-all"
+                      style={{
+                        width: `${
+                          kpiData.presentes > 0
+                            ? ((kpiData.presentes - kpiData.retardos) / kpiData.presentes) * 100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-medium">Profesionales Retardados</span>
+                    <span className="text-2xl font-bold text-yellow-600">{kpiData.retardos}</span>
+                  </div>
+                  <div className="bg-yellow-100 rounded-full h-3">
+                    <div
+                      className="bg-yellow-600 h-3 rounded-full transition-all"
+                      style={{
+                        width: `${
+                          kpiData.presentes > 0
+                            ? (kpiData.retardos / kpiData.presentes) * 100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Tasa de puntualidad:</span>
+                    <span className="font-bold text-green-600">{kpiData.tasaPuntualidad.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Meta recomendada:</span>
+                    <span className="font-bold">95%</span>
+                  </div>
+                  {kpiData.tasaPuntualidad < 95 && (
+                    <div className="mt-3 p-2 bg-yellow-50 rounded border border-yellow-200 flex gap-2">
+                      <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <span className="text-xs text-yellow-800">
+                        La puntualidad está por debajo de la meta. Considere revisar problemas de acceso.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Análisis de Asistencia */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-green-600" />
+                  Análisis de Asistencia
+                </CardTitle>
+                <CardDescription>Desempeño de cobertura de personal</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-medium">Profesionales Presentes</span>
+                    <span className="text-2xl font-bold text-green-600">{kpiData.presentes}</span>
+                  </div>
+                  <div className="bg-green-100 rounded-full h-3">
+                    <div
+                      className="bg-green-600 h-3 rounded-full transition-all"
+                      style={{
+                        width: `${kpiData.totalProfesionales > 0 ? (kpiData.presentes / kpiData.totalProfesionales) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-medium">Profesionales Ausentes</span>
+                    <span className="text-2xl font-bold text-red-600">{kpiData.ausentes}</span>
+                  </div>
+                  <div className="bg-red-100 rounded-full h-3">
+                    <div
+                      className="bg-red-600 h-3 rounded-full transition-all"
+                      style={{
+                        width: `${kpiData.totalProfesionales > 0 ? (kpiData.ausentes / kpiData.totalProfesionales) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Tasa de asistencia:</span>
+                    <span className="font-bold text-green-600">{kpiData.tasaAsistencia.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Meta recomendada:</span>
+                    <span className="font-bold">98%</span>
+                  </div>
+                  {kpiData.tasaAsistencia < 98 && (
+                    <div className="mt-3 p-2 bg-orange-50 rounded border border-orange-200 flex gap-2">
+                      <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                      <span className="text-xs text-orange-800">
+                        Asistencia por debajo de la meta. Investigue causas de ausentismo.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Comparativa de Centros */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-purple-600" />
+                Comparativa de Desempeño por Centro
+              </CardTitle>
+              <CardDescription>Ranking de centros por tasa de asistencia y puntualidad</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {centros.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>Sin datos de centros</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {[...centros]
+                    .sort((a, b) => b.tasaAsistencia - a.tasaAsistencia)
+                    .map((centro, index) => (
+                      <div key={centro.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                              #{index + 1}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">{centro.nombre}</p>
+                              <p className="text-xs text-gray-600">
+                                {centro.presentes + centro.retardos + centro.ausentes} profesionales
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-green-600">{centro.tasaAsistencia.toFixed(1)}%</p>
+                            <p className="text-xs text-gray-600">Asistencia</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                          <div className="bg-green-50 rounded p-2">
+                            <p className="text-green-700 font-bold">{centro.presentes}</p>
+                            <p className="text-green-600">Presentes</p>
+                          </div>
+                          <div className="bg-yellow-50 rounded p-2">
+                            <p className="text-yellow-700 font-bold">{centro.retardos}</p>
+                            <p className="text-yellow-600">Retardos</p>
+                          </div>
+                          <div className="bg-red-50 rounded p-2">
+                            <p className="text-red-700 font-bold">{centro.ausentes}</p>
+                            <p className="text-red-600">Ausentes</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );

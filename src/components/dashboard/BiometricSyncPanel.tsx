@@ -16,6 +16,7 @@ import {
   Database,
 } from 'lucide-react';
 import { useBiometricSync } from '@/hooks/useBiometricSync';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -39,6 +40,7 @@ export default function BiometricSyncPanel({
   const [loadingRecords, setLoadingRecords] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  const { toast } = useToast();
   const { syncStatus, syncRecords, getDevices, getRecords, getSyncHistory, getDeviceStatus } =
     useBiometricSync({
       deviceUrl,
@@ -52,6 +54,20 @@ export default function BiometricSyncPanel({
     try {
       const devs = await getDevices();
       setDevices(devs);
+      if (devs.length === 0) {
+        toast({
+          title: 'No hay dispositivos',
+          description: 'No se encontraron dispositivos en el SDK configurado',
+          variant: 'default',
+        });
+      }
+    } catch (err: any) {
+      const errorMsg = err.message || 'Error al cargar dispositivos';
+      toast({
+        title: 'Error al cargar dispositivos',
+        description: errorMsg,
+        variant: 'destructive',
+      });
     } finally {
       setLoadingDevices(false);
     }
@@ -63,6 +79,20 @@ export default function BiometricSyncPanel({
     try {
       const recs = await getRecords();
       setRecords(recs);
+      if (recs.length === 0) {
+        toast({
+          title: 'No hay registros',
+          description: 'No se encontraron registros en el SDK configurado',
+          variant: 'default',
+        });
+      }
+    } catch (err: any) {
+      const errorMsg = err.message || 'Error al cargar registros';
+      toast({
+        title: 'Error al cargar registros',
+        description: errorMsg,
+        variant: 'destructive',
+      });
     } finally {
       setLoadingRecords(false);
     }

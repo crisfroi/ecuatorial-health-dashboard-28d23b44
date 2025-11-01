@@ -35,6 +35,7 @@ import {
   ArrowRight,
   Sliders,
   ClipboardList,
+  Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -493,6 +494,7 @@ const Dashboard = () => {
     ...(userRole && canAccessTab("renewals") ? [{ id: "renewals", label: "Renovaciones", icon: Calendar }] : []),
     ...(userRole && canAccessTab("guardias") ? [{ id: "guardias", label: "Guardias", icon: Clock }] : []),
     ...(userRole && canAccessTab("asistencia") ? [{ id: "asistencia", label: "Asistencia", icon: Clock }] : []),
+    ...(userRole && canAccessTab("biometric-devices") ? [{ id: "biometric-devices", label: "Dispositivos Biométricos", icon: Zap }] : []),
     ...(userRole && canAccessTab("analytics") ? [{ id: "analytics", label: "Analíticas", icon: TrendingUp }] : []),
     ...(userRole && canAccessTab("parametros") ? [{ id: "parametros", label: "Parámetros", icon: Sliders }] : []),
     ...(userRole && canAccessTab("iachat") ? [{ id: "iachat", label: "IA Chat", icon: MessageSquare }] : []),

@@ -153,10 +153,10 @@ namespace Qiandao.Service
             using (var semaphore = new SemaphoreSlim(1, 1))
             {
                 await semaphore.WaitAsync();  // 异步等待
-                var sqlQuery = $@"SELECT * FROM Person WHERE id = @id";
-                var parameters = new SqlParameter[]
+                var sqlQuery = $@"SELECT * FROM person WHERE id = @id";
+                var parameters = new NpgsqlParameter[]
                 {
-                new SqlParameter("@id", id)
+                new NpgsqlParameter("@id", id)
                 };
 
                 try

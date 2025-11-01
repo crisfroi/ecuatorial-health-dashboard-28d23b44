@@ -1,4 +1,6 @@
 // @ts-nocheck
+import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 import * as d3 from "d3";
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

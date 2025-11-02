@@ -53,12 +53,35 @@ namespace Qiandao.Web.WebSocketHandler
             {
                 try
                 {
-                    var socket = deviceStatus.webSocket;
-                    if (socket.State == WebSocketState.Open)
+                    // If System.Net.WebSockets.WebSocket
+                    if (deviceStatus.webSocket is System.Net.WebSockets.WebSocket sysSocket)
                     {
-                        var buffer = Encoding.UTF8.GetBytes(message);
-                        var segment = new ArraySegment<byte>(buffer);
-                        await socket.SendAsync(segment, WebSocketMessageType.Text, true, CancellationToken.None);
+                        if (sysSocket.State == System.Net.WebSockets.WebSocketState.Open)
+                        {
+                            var buffer = Encoding.UTF8.GetBytes(message);
+                            var segment = new ArraySegment<byte>(buffer);
+                            await sysSocket.SendAsync(segment, WebSocketMessageType.Text, true, CancellationToken.None);
+                        }
+                    }
+                    else
+                    {
+                        // Try dynamic call for WebSocketSharp.WebSocket.Send(byte[])
+                        var wsObj = deviceStatus.webSocket;
+                        var sendMethod = wsObj.GetType().GetMethod("Send", new Type[] { typeof(byte[]) });
+                        if (sendMethod != null)
+                        {
+                            var bytes = Encoding.UTF8.GetBytes(message);
+                            sendMethod.Invoke(wsObj, new object[] { bytes });
+                        }
+                        else
+                        {
+                            // Fallback to Send(string) if available
+                            var sendStr = wsObj.GetType().GetMethod("Send", new Type[] { typeof(string) });
+                            if (sendStr != null)
+                            {
+                                sendStr.Invoke(wsObj, new object[] { message });
+                            }
+                        }
                     }
                 }
                 catch (Exception ex)

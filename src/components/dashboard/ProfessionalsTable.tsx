@@ -70,6 +70,10 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   const dashboardFilters = appliedFilters;
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<'table' | 'cards' | 'compact'>('table');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingStates, setEditingStates] = useState<Record<string, string>>(
     {},
   );

@@ -57,20 +57,22 @@ serve(async (req) => {
     )
 
     const requestData: CalculateNominasRequest = await req.json()
-
     console.log('📊 Calculando nóminas para:', requestData)
 
     const { mes, ano, centro_id, profesional_guardia_id } = requestData
 
-    // 1. Obtener baremos vigentes
+    // 1. Obtener baremos vigentes según protocolo oficial
     const { data: baremos, error: errorBaremos } = await supabaseClient
       .from('baremos')
       .select('*')
       .eq('estado', 'vigente')
+      .eq('fuente', 'protocol')
 
     if (errorBaremos || !baremos || baremos.length === 0) {
-      throw new Error('No se encontraron baremos vigentes. Asegúrate de crear al menos uno.')
+      throw new Error('No se encontraron baremos vigentes del protocolo oficial. Asegúrate de cargar los baremos.')
     }
+
+    console.log(`📋 Baremos disponibles: ${baremos.length}`)
 
     // 2. Obtener guardias del período
     const startDate = new Date(ano, mes - 1, 1).toISOString()
@@ -127,7 +129,7 @@ serve(async (req) => {
           horas: number
           tipo_dia: string
           tipo_guardia: string
-          centro_salud_id: string
+          monto: number
         }>;
         categoria: string;
         profesional_id: string;
@@ -138,7 +140,7 @@ serve(async (req) => {
     for (const guardia of guardias) {
       const profGuardiaId = guardia.profesional_guardia_id
       const profData = guardia.profesionales_guardias
-      
+
       if (!profGuardiaId || !profData) {
         console.warn('⚠️ Guardia sin profesional:', guardia.id)
         continue
@@ -147,6 +149,16 @@ serve(async (req) => {
       const profId = profData.profesional_id
       const category = profData.categoria || 'general_licenciado'
       const nombreCompleto = profData.profesionales_sanitarios?.nombre_completo || 'Sin nombre'
+
+      // Obtener tarifa exacta del protocolo según categoría y tipo de día
+      const baremoAplicable = baremos.find(b =>
+        b.categoria_profesional === category &&
+        b.tipo_guardia === 'fisica' &&
+        b.tipo_dia === (guardia.tipo_dia || 'ordinario') &&
+        b.activo === true
+      )
+
+      const montoPorGuardia = baremoAplicable?.monto_base || 25000 // Default si no encuentra
 
       const key = profGuardiaId
 
@@ -159,17 +171,15 @@ serve(async (req) => {
         })
       }
 
-      const duracion = guardia.horas || (
-        (new Date(guardia.fecha_fin).getTime() - new Date(guardia.fecha_inicio).getTime()) /
-        (1000 * 60 * 60)
-      )
-
       guardiasXProfesional.get(key)!.guardias.push({
         id: guardia.id,
-        horas: duracion,
+        horas: guardia.horas || (
+          (new Date(guardia.fecha_fin).getTime() - new Date(guardia.fecha_inicio).getTime()) /
+          (1000 * 60 * 60)
+        ),
         tipo_dia: guardia.tipo_dia || 'ordinario',
-        tipo_guardia: 'fisica', // Asumir física por defecto
-        centro_salud_id: guardia.centro_salud_id,
+        tipo_guardia: 'fisica',
+        monto: montoPorGuardia,
       })
     }
 
@@ -181,65 +191,29 @@ serve(async (req) => {
     for (const [profGuardiaId, profData] of guardiasXProfesional.entries()) {
       const guardiasList = profData.guardias
       const categoria = profData.categoria
-      const profesionalId = profData.profesional_id
 
-      // Buscar baremo aplicable
-      const baremoAplicable = baremos.find(b =>
-        b.categoria_profesional === categoria &&
-        b.tipo_guardia === 'fisica' &&
-        b.activo === true
-      )
-
-      if (!baremoAplicable) {
-        console.warn(`⚠️ No hay baremo para categoría ${categoria}, usando tarifa por defecto`)
-      }
-
-      const montoPorHora = baremoAplicable?.monto_base || 100
-      const bonificacionFinSemana = (baremoAplicable?.bonificacion_fin_semana || 25) / 100
-      const bonificacionFestivo = (baremoAplicable?.bonificacion_festivo || 50) / 100
-      const bonificacionGuardia = (baremoAplicable?.bonificacion_guardia || 10) / 100
-      const porcentajeDescuentos = (baremoAplicable?.porcentaje_descuentos || 10) / 100
-
-      // Contar guardias por tipo
+      // Calcular totales por tipo de día
       let conteoOrdinarias = 0
       let conteoFines = 0
       let conteoFestivos = 0
-      let horasOrdinarias = 0
-      let horasFines = 0
-      let horasFestivos = 0
-      let montoConBonificacion = 0
+      let montoBruto = 0
 
       for (const guardia of guardiasList) {
+        const montoPorGuardia = guardia.monto
+
         if (guardia.tipo_dia === 'fin_semana') {
           conteoFines++
-          horasFines += guardia.horas
-          montoConBonificacion += guardia.horas * montoPorHora * (1 + bonificacionFinSemana)
         } else if (guardia.tipo_dia === 'festivo') {
           conteoFestivos++
-          horasFestivos += guardia.horas
-          montoConBonificacion += guardia.horas * montoPorHora * (1 + bonificacionFestivo)
         } else {
           conteoOrdinarias++
-          horasOrdinarias += guardia.horas
-          montoConBonificacion += guardia.horas * montoPorHora
         }
+
+        montoBruto += montoPorGuardia
       }
 
       const cantidadGuardias = guardiasList.length
-      const horasTotales = horasOrdinarias + horasFines + horasFestivos
-
-      // Cálculo de montos
-      const montoBases = horasTotales * montoPorHora
-
-      // Bonificaciones por tipo de día
-      const bonificacionFinSemanaTotal = horasFines * montoPorHora * bonificacionFinSemana
-      const bonificacionFestivoTotal = horasFestivos * montoPorHora * bonificacionFestivo
-
-      // Bonificación por cantidad de guardias realizadas
-      const bonificacionGuardiaTotal = cantidadGuardias * (horasTotales * montoPorHora * bonificacionGuardia)
-
-      const montoBruto = montoBases + bonificacionFinSemanaTotal + bonificacionFestivoTotal + bonificacionGuardiaTotal
-      const descuentos = montoBruto * porcentajeDescuentos
+      const descuentos = 0 // Sin descuentos según el protocolo (ya están en las tarifas)
       const montoNeto = montoBruto - descuentos
 
       montoBrutoTotal += montoBruto
@@ -253,15 +227,15 @@ serve(async (req) => {
         conteo_festivos: conteoFestivos,
         localizable_programadas: 0,
         localizable_llamadas: 0,
-        coste_unitario: montoPorHora,
+        coste_unitario: 0,
         total_linea: montoNeto,
-        monto_base: montoBases,
-        bonificacion_guardia: bonificacionGuardiaTotal,
-        bonificacion_fin_semana: bonificacionFinSemanaTotal,
-        bonificacion_festivo: bonificacionFestivoTotal,
+        monto_base: montoBruto,
+        bonificacion_guardia: 0,
+        bonificacion_fin_semana: 0,
+        bonificacion_festivo: 0,
         descuentos: descuentos,
         monto_neto: montoNeto,
-        detalles: `${cantidadGuardias} guardias (${conteoOrdinarias} ord, ${conteoFines} fin, ${conteoFestivos} fest), ${horasTotales.toFixed(1)}h totales`,
+        detalles: `${cantidadGuardias} guardias (${conteoOrdinarias} ordinarias, ${conteoFines} fin de semana, ${conteoFestivos} festivas)`,
       })
     }
 
@@ -279,10 +253,10 @@ serve(async (req) => {
           total_profesionales: lineas.length,
           total_bruto: montoBrutoTotal,
           total_neto: montoNetoTotal,
-          total_descuentos: montoBrutoTotal - montoNetoTotal,
+          total_descuentos: 0,
           cantidad_lineas: lineas.length,
           periodo: `${mes}/${ano}`,
-          observaciones: `Nómina calculada automáticamente para ${mes}/${ano}`,
+          observaciones: `Nómina calculada según protocolo oficial para ${mes}/${ano}`,
         }
       ])
       .select()
@@ -304,9 +278,9 @@ serve(async (req) => {
       guardias_festivos: linea.conteo_festivos,
       localizables_programadas: linea.localizable_programadas,
       localizables_llamadas: linea.localizable_llamadas,
-      coste_unitario_ordinario: linea.coste_unitario,
-      coste_unitario_fin_semana: linea.coste_unitario,
-      coste_unitario_festivo: linea.coste_unitario,
+      coste_unitario_ordinario: 0,
+      coste_unitario_fin_semana: 0,
+      coste_unitario_festivo: 0,
       coste_localizable_programada: 0,
       coste_localizable_llamada: 0,
       total_linea: linea.total_linea,
@@ -340,7 +314,7 @@ serve(async (req) => {
       total_profesionales: lineas.length,
       monto_total_bruto: montoBrutoTotal,
       monto_total_neto: montoNetoTotal,
-      mensaje: `✅ Nómina calculada exitosamente: ${lineas.length} profesionales, XAF ${montoBrutoTotal.toFixed(2)} (bruto), XAF ${montoNetoTotal.toFixed(2)} (neto)`,
+      mensaje: `✅ Nómina calculada exitosamente: ${lineas.length} profesionales, XAF ${montoBrutoTotal.toFixed(0)} (total según protocolo oficial)`,
     }
 
     console.log('✅ Respuesta final:', response)

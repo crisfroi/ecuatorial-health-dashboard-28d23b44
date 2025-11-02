@@ -1,4 +1,3 @@
-﻿
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Qiandao.Service;
@@ -9,6 +8,8 @@ using System;
 using Serilog;
 using Serilog.Events;
 using Microsoft.AspNetCore.Hosting;
+using Npgsql;
+
 public class Program
 {
     public static async Task Main(string[] args)
@@ -30,7 +31,7 @@ public class Program
             // Configure services
             builder.Services.AddControllersWithViews();
             builder.Services.AddDbContext<Db>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             // Register your services
@@ -72,7 +73,25 @@ public class Program
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
 
-            // Start WebSocket server
+            // Configure WebSocket middleware and map the endpoint '/pub/chat'
+            app.UseWebSockets();
+            app.Map("/pub/chat", builder =>
+            {
+                builder.Run(async context =>
+                {
+                    if (!context.WebSockets.IsWebSocketRequest)
+                    {
+                        context.Response.StatusCode = 400;
+                        return;
+                    }
+
+                    var socket = await context.WebSockets.AcceptWebSocketAsync();
+                    var adapterLogger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("WebSocketAdapter");
+                    await WebSocketAdapter.HandleWebSocketAsync(socket, context.RequestServices, adapterLogger);
+                });
+            });
+
+            // Start the ServerManager (kept for compatibility, no-op for WebSocketSharp)
             var webSocketServer = app.Services.GetRequiredService<ServerManager>();
             webSocketServer.Start();
 

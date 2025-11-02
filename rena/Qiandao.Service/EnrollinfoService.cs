@@ -1,9 +1,9 @@
-﻿using Qiandao.Model.Entity;
+using Qiandao.Model.Entity;
 using Qiandao.Model.Response;
 using System.Text;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using Newtonsoft.Json;
 
 namespace Qiandao.Service
@@ -110,7 +110,7 @@ namespace Qiandao.Service
                 @"SELECT id, enroll_id, backupnum, imagepath, signatures 
                 FROM enrollinfo 
                 WHERE enroll_id = @enrollId",
-                new SqlParameter("@enrollId", enrollId)
+                new NpgsqlParameter("@enrollId", enrollId)
             );
 
             if (query == null)
@@ -266,7 +266,7 @@ namespace Qiandao.Service
         }
         public ResponseModel setUsernameToDevice(string deviceSn, List<Person> persons)
         {
-            lock (_lockObject)  // 确保同一时间只有一个线程访问
+            lock (_lockObject)  // 确保同一时间只有一个线��访问
             {
                 DateTime dt = DateTime.Now;
                 StringBuilder sb = new StringBuilder();
@@ -800,8 +800,8 @@ namespace Qiandao.Service
             SELECT id, enroll_id, backupnum, imagepath, signatures
             FROM enrollinfo
             WHERE enroll_id = @enroll_id AND backupnum = @backupnum",
-                        new SqlParameter("@enroll_id", enroll_id),
-                        new SqlParameter("@backupnum", backupnum));
+                        new NpgsqlParameter("@enroll_id", enroll_id),
+                        new NpgsqlParameter("@backupnum", backupnum));
 
                     var resultList = query.ToList();
 
@@ -836,12 +836,12 @@ namespace Qiandao.Service
                 string sql = "INSERT INTO enrollinfo (enroll_id, backupnum, imagepath, signatures) VALUES (@enroll_id, @backupnum, @imagepath, @signatures)";
 
                 // 创建参数集合
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
     {
-        new SqlParameter("@enroll_id", enrollinfo.Enroll_id), // 使用默认值 0L 处理 null
-        new SqlParameter("@backupnum", enrollinfo.Backupnum), // 使用默认值 0 处理 null
-        new SqlParameter("@imagepath", enrollinfo.ImagePath==null?"":enrollinfo.ImagePath), // 使用 null 处理 null 字符串
-        new SqlParameter("@signatures", enrollinfo.Signatures==null?"":enrollinfo.Signatures) // 使用 null 处理 null 字符串
+        new NpgsqlParameter("@enroll_id", enrollinfo.Enroll_id),
+        new NpgsqlParameter("@backupnum", enrollinfo.Backupnum),
+        new NpgsqlParameter("@imagepath", enrollinfo.ImagePath ?? (object)DBNull.Value),
+        new NpgsqlParameter("@signatures", enrollinfo.Signatures ?? (object)DBNull.Value)
     };
 
                 try
@@ -879,13 +879,13 @@ namespace Qiandao.Service
              imagepath = @imagepath,
             signatures = @signatures
             WHERE id = @id";
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
             {
-               new SqlParameter("@enroll_id", enrollinfo.Enroll_id),
-               new SqlParameter("@backupnum",enrollinfo.Backupnum),
-               new SqlParameter("@imagepath",enrollinfo.ImagePath==null?"":enrollinfo.ImagePath),
-              new SqlParameter("@signatures",enrollinfo.Signatures==null?"":enrollinfo.Signatures),
-              new SqlParameter("@id", enrollinfo.Id)
+               new NpgsqlParameter("@enroll_id", enrollinfo.Enroll_id),
+               new NpgsqlParameter("@backupnum", enrollinfo.Backupnum),
+               new NpgsqlParameter("@imagepath", enrollinfo.ImagePath ?? (object)DBNull.Value),
+              new NpgsqlParameter("@signatures", enrollinfo.Signatures ?? (object)DBNull.Value),
+              new NpgsqlParameter("@id", enrollinfo.Id)
             };
 
                 // 执行更新操作

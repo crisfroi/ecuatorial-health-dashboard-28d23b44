@@ -20,11 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, X, Eye, Edit, Download, Save, Copy } from "lucide-react";
+import { Search, X, Eye, Edit, Download, Save, Copy, List, Grid, CheckSquare, Bell, CalendarPlus } from "lucide-react";
 import { useProfesionales } from "@/hooks/useProfesionales";
 import { useProfesionalesMutations } from "@/hooks/useProfesionalesMutations";
 import { useRoleBasedData } from "@/hooks/useRoleBasedData";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from '@/components/ui/checkbox';
+import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '@/components/ui/pagination';
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { DataRestrictionIndicator } from "@/components/ui/data-restriction-indicator";
 import * as XLSX from 'xlsx';
@@ -68,6 +70,10 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
   const dashboardFilters = appliedFilters;
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<'table' | 'cards' | 'compact'>('table');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingStates, setEditingStates] = useState<Record<string, string>>(
     {},
   );
@@ -334,6 +340,47 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     return new Date(dateString).toLocaleDateString("es-ES");
   };
 
+  // Cálculos para paginación y selección
+  const totalItems = sortedFilteredProfesionales.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const paginatedProfesionales = sortedFilteredProfesionales.slice((page - 1) * pageSize, page * pageSize);
+
+  const toggleSelectAllCurrentPage = () => {
+    const newSet = new Set(selectedIds);
+    const allSelected = paginatedProfesionales.length > 0 && paginatedProfesionales.every(p => p.id && newSet.has(p.id));
+    if (allSelected) {
+      paginatedProfesionales.forEach(p => p.id && newSet.delete(p.id));
+    } else {
+      paginatedProfesionales.forEach(p => p.id && newSet.add(p.id));
+    }
+    setSelectedIds(newSet);
+  };
+
+  const toggleSelect = (id?: string) => {
+    if (!id) return;
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedIds(newSet);
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const bulkGenerateCarnets = () => {
+    toast({ title: 'Generar carnets (UI)', description: `Se han marcado ${selectedIds.size} profesionales para generación.` });
+    clearSelection();
+  };
+
+  const bulkAssignGuardias = () => {
+    toast({ title: 'Asignar guardias (UI)', description: `Se han marcado ${selectedIds.size} profesionales para asignación.` });
+    clearSelection();
+  };
+
+  const bulkSendNotification = () => {
+    toast({ title: 'Enviar notificaciones (UI)', description: `Se enviarán notificaciones a ${selectedIds.size} profesionales (simulado).` });
+    clearSelection();
+  };
+
   // Determinar si hay filtros activos para mostrar la tarjeta de filtros aplicados
   const hasActiveFilters =
     searchTerm ||
@@ -536,31 +583,44 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   />
                 </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={exportProfessionalsToExcel}
-                  className="flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Exportar Excel
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('tab', 'professionals');
-                    // Serializa SOLO el searchTerm aquí, ya que el resto de filtros son del dashboard
-                    url.searchParams.set('search', encodeURIComponent(searchTerm));
-                    navigator.clipboard.writeText(url.toString());
-                    toast({ title: 'Enlace copiado', description: 'Filtros listos para compartir.' });
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <Copy className="w-4 h-4" />
-                  Compartir filtros
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportProfessionalsToExcel}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Exportar Excel
+                  </Button>
+
+                  <Button variant="ghost" size="sm" onClick={() => setViewMode('table')} title="Vista tabla">
+                    <List className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setViewMode('cards')} title="Vista tarjetas">
+                    <Grid className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setViewMode('compact')} title="Vista compacta">
+                    <CheckSquare className="w-4 h-4" />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('tab', 'professionals');
+                      // Serializa SOLO el searchTerm aquí, ya que el resto de filtros son del dashboard
+                      url.searchParams.set('search', encodeURIComponent(searchTerm));
+                      navigator.clipboard.writeText(url.toString());
+                      toast({ title: 'Enlace copiado', description: 'Filtros listos para compartir.' });
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Compartir filtros
+                  </Button>
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -574,10 +634,37 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
               className="mb-4"
             />
 
+            {/* Bulk actions toolbar */}
+            {selectedIds.size > 0 && (
+              <div className="mb-3 flex items-center justify-between bg-gray-50 p-3 rounded">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium">{selectedIds.size} seleccionados</span>
+                  <Button variant="outline" size="sm" onClick={bulkGenerateCarnets}>
+                    <Download className="w-4 h-4 mr-1" /> Generar Carnets
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={bulkAssignGuardias}>
+                    <CalendarPlus className="w-4 h-4 mr-1" /> Asignar Guardias
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={bulkSendNotification}>
+                    <Bell className="w-4 h-4 mr-1" /> Notificar
+                  </Button>
+                </div>
+                <div>
+                  <Button variant="ghost" size="sm" onClick={clearSelection}>Limpiar selección</Button>
+                </div>
+              </div>
+            )}
+
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={paginatedProfesionales.length > 0 && paginatedProfesionales.every(p => p.id && selectedIds.has(p.id))}
+                        onCheckedChange={toggleSelectAllCurrentPage}
+                      />
+                    </TableHead>
                     <TableHead>Nombre Completo</TableHead>
                     <TableHead>Area Profesional</TableHead>
                     <TableHead>ID Profesional</TableHead>
@@ -588,18 +675,24 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProfesionales.length === 0 ? (
+                  {totalItems === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={8}
                         className="text-center py-8 text-gray-500"
                       >
                         No se encontraron profesionales con los filtros aplicados.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    sortedFilteredProfesionales.map((profesional) => (
+                    paginatedProfesionales.map((profesional) => (
                       <TableRow key={profesional.id}>
+                        <TableCell className="w-12">
+                          <Checkbox
+                            checked={selectedIds.has(profesional.id || '')}
+                            onCheckedChange={() => toggleSelect(profesional.id)}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">
                           {profesional.nombre_completo}
                         </TableCell>
@@ -667,6 +760,23 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toast({ title: 'Generar carnet (UI)', description: `Carnet simulado para ${profesional.nombre_completo}` })}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toast({ title: 'Enviar notificación (UI)', description: `Notificación simulada a ${profesional.nombre_completo}` })}
+                            >
+                              <Bell className="w-4 h-4" />
+                            </Button>
+
                             {userRole === "administrador" && (
                               <Button
                                 variant="ghost"

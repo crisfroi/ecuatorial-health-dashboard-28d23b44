@@ -1,8 +1,8 @@
-﻿using Qiandao.Model.Entity;
+using Qiandao.Model.Entity;
 using Qiandao.Model.Request;
 using Qiandao.Model.Response;
 using AutoMapper;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -111,14 +111,14 @@ namespace Qiandao.Service
                     return new ResponseModel { Code = 0, Result = "ID isn't null" };
                 }
 
-                string sql = "UPDATE machine_command SET status = @status,serial=@Serial, send_status = @sendStatus, run_time = @runTime WHERE id = @id";
-                var parameters = new SqlParameter[]
+                string sql = "UPDATE machine_command SET status = @status, serial = @Serial, send_status = @sendStatus, run_time = @runTime WHERE id = @id";
+                var parameters = new NpgsqlParameter[]
                 {
-        new SqlParameter("@status", status),
-        new SqlParameter("@sendStatus", sendStatus),
-        new SqlParameter("@runTime", runTime),
-        new SqlParameter("@id", machine_command.Id),
-        new SqlParameter("@Serial", machine_command.Serial),
+        new NpgsqlParameter("@status", status),
+        new NpgsqlParameter("@sendStatus", sendStatus),
+        new NpgsqlParameter("@runTime", runTime),
+        new NpgsqlParameter("@id", machine_command.Id),
+        new NpgsqlParameter("@Serial", machine_command.Serial ?? (object)DBNull.Value),
 
                 };
 
@@ -161,18 +161,18 @@ namespace Qiandao.Service
               gmt_crate = @gmtCrate,
               gmt_modified = @gmtModified
             WHERE id = @id";
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
             {
-               new SqlParameter("@serial", machineCommand.Serial),
-               new SqlParameter("@name",machineCommand.Name),
-               new SqlParameter("@content",machineCommand.Content),
-               new SqlParameter("@status",machineCommand.Status),
-               new SqlParameter("@sendStatus", machineCommand.Send_status),
-              new SqlParameter("@errCount", machineCommand.Err_count),
-              new SqlParameter("@runTime", machineCommand.Run_time),
-              new SqlParameter("@gmtCrate",machineCommand.Gmt_crate),
-              new SqlParameter("@gmtModified",machineCommand.Gmt_modified),
-              new SqlParameter("@id", machineCommand.Id)
+               new NpgsqlParameter("@serial", machineCommand.Serial ?? (object)DBNull.Value),
+               new NpgsqlParameter("@name", machineCommand.Name ?? (object)DBNull.Value),
+               new NpgsqlParameter("@content", machineCommand.Content ?? (object)DBNull.Value),
+               new NpgsqlParameter("@status", machineCommand.Status),
+               new NpgsqlParameter("@sendStatus", machineCommand.Send_status),
+              new NpgsqlParameter("@errCount", machineCommand.Err_count),
+              new NpgsqlParameter("@runTime", machineCommand.Run_time),
+              new NpgsqlParameter("@gmtCrate", machineCommand.Gmt_crate),
+              new NpgsqlParameter("@gmtModified", machineCommand.Gmt_modified),
+              new NpgsqlParameter("@id", machineCommand.Id)
             };
 
                 // 执行更新操作
@@ -196,10 +196,10 @@ namespace Qiandao.Service
                   AND serial = @serial
                   AND err_count != 3";
 
-                var parameters = new SqlParameter[]
+                var parameters = new NpgsqlParameter[]
                 {
-                    new SqlParameter("@sendStatus", sendStatus),
-                    new SqlParameter("@serial", serial)
+                    new NpgsqlParameter("@sendStatus", sendStatus),
+                    new NpgsqlParameter("@serial", serial ?? (object)DBNull.Value)
                 };
                 try
                 {
@@ -215,7 +215,7 @@ namespace Qiandao.Service
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "select Machine_command is exception");
-                    return new List<Machine_command>();  // 返回空列表作为默认值
+                    return new List<Machine_command>();  // 返回空列表作���默认值
                 }
             }
         }

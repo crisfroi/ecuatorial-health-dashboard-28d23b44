@@ -1,8 +1,8 @@
-﻿using Qiandao.Model.Entity;
+using Qiandao.Model.Entity;
 using Qiandao.Model.Response;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 
 
 namespace Qiandao.Service
@@ -33,16 +33,16 @@ namespace Qiandao.Service
         {
             lock (_lockObject)  // 确保同一时间只有一个线程访问
             {
-                var sqlQuery = $@"  SELECT *,
-               ROW_NUMBER() OVER (ORDER BY Id DESC) AS RowNum
-        FROM Records
-        {(string.IsNullOrEmpty(deviceSn) ? "" : "WHERE device_serial_num LIKE '%' + @deviceSn + '%'")}
+                var sqlQuery = $@"SELECT *
+        FROM record
+        {(string.IsNullOrEmpty(deviceSn) ? "" : "WHERE device_serial_num LIKE @deviceSn")}
+        ORDER BY id DESC
     ";
                 // 创建参数列表
-                var parameters = new List<SqlParameter> { };
+                var parameters = new List<NpgsqlParameter> { };
                 if (!string.IsNullOrEmpty(deviceSn))
                 {
-                    parameters.Add(new SqlParameter("@deviceSn", deviceSn));
+                    parameters.Add(new NpgsqlParameter("@deviceSn", "%" + deviceSn + "%"));
                 }
                 // 执行查询
                 var query = _db.Database.SqlQueryRaw<Record>(sqlQuery, parameters.ToArray());
@@ -83,28 +83,24 @@ namespace Qiandao.Service
         {
             lock (_lockObject)  // 确保同一时间只有一个线程访问
             {
-              
+
                 var skipCount = (page-1) * limit;
                 // 构建动态 SQL 查询
                 var sqlQuery = $@"
-    WITH CTE AS (
-        SELECT *,
-               ROW_NUMBER() OVER (ORDER BY Id DESC) AS RowNum
-        FROM Records
-        {(string.IsNullOrEmpty(deviceSn) ? "" : "WHERE device_serial_num LIKE '%' + @deviceSn + '%'")}
-)
     SELECT *
-    FROM CTE
-        WHERE RowNum BETWEEN (@SkipCount+1)  AND (@SkipCount + @Limit)";
+    FROM record
+    {(string.IsNullOrEmpty(deviceSn) ? "" : "WHERE device_serial_num LIKE @deviceSn")}
+    ORDER BY id DESC
+    LIMIT @Limit OFFSET @SkipCount";
                 // 创建参数列表
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
     {
-        new SqlParameter("@SkipCount", skipCount),
-        new SqlParameter("@Limit", limit)
+        new NpgsqlParameter("@SkipCount", skipCount),
+        new NpgsqlParameter("@Limit", limit)
     };
                 if (!string.IsNullOrEmpty(deviceSn))
                 {
-                    parameters.Add(new SqlParameter("@deviceSn", deviceSn));
+                    parameters.Add(new NpgsqlParameter("@deviceSn", "%" + deviceSn + "%"));
                 }
                 // 执行查询
                 var query = _db.Database.SqlQueryRaw<Record>(sqlQuery, parameters.ToArray());
@@ -157,29 +153,25 @@ namespace Qiandao.Service
             using (var semaphore = new SemaphoreSlim(1, 1))
             {
                 await semaphore.WaitAsync();  // 异步等待
-                string sql = "INSERT INTO records (Device_serial_num, Enroll_id, Event, IntOut, Mode, Records_time, Temperature";
+                string sql = "INSERT INTO record (device_serial_num, enroll_id, event, intout, mode, records_time, temperature";
                 string values = ") VALUES (@Device_serial_num, @Enroll_id, @Event, @IntOut, @Mode, @Records_time, @Temperature";
 
-                var parameters = new List<SqlParameter>
+                var parameters = new List<NpgsqlParameter>
         {
-            new SqlParameter("@Device_serial_num", record.Device_serial_num),
-            new SqlParameter("@Enroll_id", record.Enroll_id),
-            new SqlParameter("@Event", record.Event),
-            new SqlParameter("@IntOut", record.IntOut),
-            new SqlParameter("@Mode", record.Mode),
-            new SqlParameter("@Records_time", record.Records_time),
-            new SqlParameter("@Temperature", record.Temperature)
+            new NpgsqlParameter("@Device_serial_num", record.Device_serial_num ?? (object)DBNull.Value),
+            new NpgsqlParameter("@Enroll_id", record.Enroll_id),
+            new NpgsqlParameter("@Event", record.Event ?? (object)DBNull.Value),
+            new NpgsqlParameter("@IntOut", record.IntOut ?? (object)DBNull.Value),
+            new NpgsqlParameter("@Mode", record.Mode ?? (object)DBNull.Value),
+            new NpgsqlParameter("@Records_time", record.Records_time ?? (object)DBNull.Value),
+            new NpgsqlParameter("@Temperature", record.Temperature ?? (object)DBNull.Value)
         };
 
                 if (!string.IsNullOrEmpty(record.Image))
                 {
-                    sql += ", Image";
+                    sql += ", image";
                     values += ", @Image";
-                    parameters.Add(new SqlParameter("@Image", record.Image));
-                }
-                else
-                {
-                    parameters.Add(new SqlParameter("@Image", DBNull.Value));
+                    parameters.Add(new NpgsqlParameter("@Image", record.Image));
                 }
 
                 sql += values + ")";

@@ -23,6 +23,9 @@ class readConf(object):
         # Priority: Environment variable > Config file
         db_url = os.environ.get('DATABASE_URL')
         if db_url:
+            # Convert to psycopg3 dialect if using postgresql://
+            if db_url.startswith('postgresql://'):
+                db_url = db_url.replace('postgresql://', 'postgresql+psycopg://', 1)
             print(f"Using DATABASE_URL from environment: {db_url[:50]}...")
             return db_url
             
@@ -34,12 +37,15 @@ class readConf(object):
         try:
             config.read(config_path, encoding="utf-8")
             url = config.get('db', 'url')
+            # Convert to psycopg3 dialect if using postgresql://
+            if url.startswith('postgresql://'):
+                url = url.replace('postgresql://', 'postgresql+psycopg://', 1)
             print(f"Using DB URL from config: {url[:50]}...")
             return url
         except Exception as e:
             print(f"Error reading config: {e}")
-            # Fallback to Supabase PostgreSQL
-            return "postgresql://postgres.wdieynendfjbkbhfovrx:Renaat1024@aws-0-us-west-1.pooler.supabase.com:6543/postgres"
+            # Fallback to Supabase PostgreSQL with psycopg3 dialect
+            return "postgresql+psycopg://postgres.wdieynendfjbkbhfovrx:Renaat1024@aws-0-us-west-1.pooler.supabase.com:6543/postgres"
     
     def GetUploadParam(self):
         # Use temporary directory for uploads in production

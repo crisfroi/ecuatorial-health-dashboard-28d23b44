@@ -340,6 +340,47 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
     return new Date(dateString).toLocaleDateString("es-ES");
   };
 
+  // Cálculos para paginación y selección
+  const totalItems = sortedFilteredProfesionales.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const paginatedProfesionales = sortedFilteredProfesionales.slice((page - 1) * pageSize, page * pageSize);
+
+  const toggleSelectAllCurrentPage = () => {
+    const newSet = new Set(selectedIds);
+    const allSelected = paginatedProfesionales.length > 0 && paginatedProfesionales.every(p => p.id && newSet.has(p.id));
+    if (allSelected) {
+      paginatedProfesionales.forEach(p => p.id && newSet.delete(p.id));
+    } else {
+      paginatedProfesionales.forEach(p => p.id && newSet.add(p.id));
+    }
+    setSelectedIds(newSet);
+  };
+
+  const toggleSelect = (id?: string) => {
+    if (!id) return;
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedIds(newSet);
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const bulkGenerateCarnets = () => {
+    toast({ title: 'Generar carnets (UI)', description: `Se han marcado ${selectedIds.size} profesionales para generación.` });
+    clearSelection();
+  };
+
+  const bulkAssignGuardias = () => {
+    toast({ title: 'Asignar guardias (UI)', description: `Se han marcado ${selectedIds.size} profesionales para asignación.` });
+    clearSelection();
+  };
+
+  const bulkSendNotification = () => {
+    toast({ title: 'Enviar notificaciones (UI)', description: `Se enviarán notificaciones a ${selectedIds.size} profesionales (simulado).` });
+    clearSelection();
+  };
+
   // Determinar si hay filtros activos para mostrar la tarjeta de filtros aplicados
   const hasActiveFilters =
     searchTerm ||

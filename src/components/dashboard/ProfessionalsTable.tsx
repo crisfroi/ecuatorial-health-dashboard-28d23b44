@@ -654,18 +654,24 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProfesionales.length === 0 ? (
+                  {totalItems === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={8}
                         className="text-center py-8 text-gray-500"
                       >
                         No se encontraron profesionales con los filtros aplicados.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    sortedFilteredProfesionales.map((profesional) => (
+                    paginatedProfesionales.map((profesional) => (
                       <TableRow key={profesional.id}>
+                        <TableCell className="w-12">
+                          <Checkbox
+                            checked={selectedIds.has(profesional.id || '')}
+                            onCheckedChange={() => toggleSelect(profesional.id)}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">
                           {profesional.nombre_completo}
                         </TableCell>
@@ -733,6 +739,23 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toast({ title: 'Generar carnet (UI)', description: `Carnet simulado para ${profesional.nombre_completo}` })}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toast({ title: 'Enviar notificación (UI)', description: `Notificación simulada a ${profesional.nombre_completo}` })}
+                            >
+                              <Bell className="w-4 h-4" />
+                            </Button>
+
                             {userRole === "administrador" && (
                               <Button
                                 variant="ghost"

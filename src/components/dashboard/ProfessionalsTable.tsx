@@ -638,6 +638,12 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={paginatedProfesionales.length > 0 && paginatedProfesionales.every(p => p.id && selectedIds.has(p.id))}
+                        onCheckedChange={toggleSelectAllCurrentPage}
+                      />
+                    </TableHead>
                     <TableHead>Nombre Completo</TableHead>
                     <TableHead>Area Profesional</TableHead>
                     <TableHead>ID Profesional</TableHead>

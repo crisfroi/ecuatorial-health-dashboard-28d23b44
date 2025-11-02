@@ -157,7 +157,24 @@ namespace Qiandao.Web.WebSocketHandler
         {
             foreach (var device in _wdList.Values)
             {
-                if (device.webSocket != null && device.webSocket.State == WebSocketState.Open)
+                if (device.webSocket == null) continue;
+                bool isOpen = false;
+                if (device.webSocket is System.Net.WebSockets.WebSocket sysSocket)
+                {
+                    isOpen = sysSocket.State == System.Net.WebSockets.WebSocketState.Open;
+                }
+                else
+                {
+                    // Try WebSocketSharp 'IsAlive' property
+                    var prop = device.webSocket.GetType().GetProperty("IsAlive");
+                    if (prop != null)
+                    {
+                        var val = prop.GetValue(device.webSocket);
+                        if (val is bool b) isOpen = b;
+                    }
+                }
+
+                if (isOpen)
                 {
                     await DeviceManager.SendMessageToDeviceStatusAsync(device.deviceSn, "heartbeat");
                 }

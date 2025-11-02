@@ -486,6 +486,69 @@ def clean_admin():
     machine_command.insert_machine_command(machine_command)
     return jsons.dump(Msg.success())
 
+# API endpoint for device HTTP requests
+@app.route('/pub/api', methods=['POST', 'GET'])
+def pub_api():
+    """
+    HTTP API endpoint for device communication
+    This endpoint handles HTTP requests from the device
+    """
+    try:
+        if request.method == 'POST':
+            # Get JSON data from POST request
+            data = request.get_json() or {}
+            cmd = data.get('cmd', '')
+            
+            print(f"[/pub/api] Received POST: {data}")
+            
+            # Handle different commands via HTTP
+            if cmd == 'ping':
+                return jsonify({
+                    "ret": "ping",
+                    "result": True,
+                    "cloudtime": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                })
+            
+            elif cmd == 'status':
+                # Device status check
+                sn = data.get('sn', '')
+                if sn:
+                    device = get_device_by_serial_num(sn)
+                    return jsonify({
+                        "ret": "status",
+                        "result": True,
+                        "device": {
+                            "sn": sn,
+                            "status": device.status if device else 0
+                        }
+                    })
+                    
+            # Generic response for unknown commands
+            return jsonify({
+                "ret": cmd or "api",
+                "result": True,
+                "message": "Command received",
+                "cloudtime": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+            
+        elif request.method == 'GET':
+            # Handle GET requests
+            return jsonify({
+                "status": "ok",
+                "message": "Device API endpoint",
+                "websocket_url": "ws://" + request.host + "/pub/chat"
+            })
+            
+    except Exception as e:
+        print(f"[/pub/api] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "ret": "error",
+            "result": False,
+            "message": str(e)
+        }), 500
+
 #endregion-----------web 处理结束---------------------------------------------
 
 #region-----------web socket处理开始---------------------------------------------

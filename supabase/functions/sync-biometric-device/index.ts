@@ -67,45 +67,55 @@ async function syncRecords(
     }
 
     // Get dispositivo ID from device serial
-    const { data: dispositivo } = await supabase
+    const { data: dispositivo, error: devError } = await supabase
       .from("dispositivos")
       .select("id")
       .eq("nombre", deviceSn || "default")
       .single();
 
-    const dispositivoId = dispositivo?.id;
+    if (devError || !dispositivo?.id) {
+      const errorMsg = `Dispositivo not found for SN: ${deviceSn || "default"}`;
+      console.error(errorMsg);
+      return { synced: 0, error: errorMsg };
+    }
+
+    const dispositivoId = dispositivo.id;
 
     // Transform and insert into attendance_logs
     const records: BiometricRecord[] = sdkResponse.data;
     const logs = records
       .filter((r) => r.device_serial_num === deviceSn || !deviceSn)
-      .map((r) => ({
-        id_dispositivo: dispositivoId || deviceSn,
-        id_profesional: null, // Will be linked via empleado_dispositivo_map later
-        en_no: `${r.enroll_id}`,
-        inout: r.int_out === 1 ? "IN" : r.int_out === 0 ? "OUT" : null,
-        mode: `${r.mode || 0}`,
-        fecha_hora: r.records_time,
-        raw_line: JSON.stringify(r),
-        source_file: "biometric_sdk",
-        tm_no: deviceSn,
-        created_at: new Date().toISOString(),
-      }));
+      .map((r) => {
+        // Normalize en_no like useAsistencia does: only digits, max 10 chars
+        const sanitized_en_no = String(r.enroll_id)
+          .replace(/\D/g, "")
+          .slice(0, 10) || null;
+
+        return {
+          id_dispositivo: dispositivoId,
+          id_profesional: null,
+          en_no: sanitized_en_no,
+          inout: r.int_out === 1 ? "IN" : r.int_out === 0 ? "OUT" : null,
+          mode: `${r.mode || 0}`,
+          fecha_hora: r.records_time,
+          raw_line: JSON.stringify(r),
+          source_file: "biometric_sdk",
+          tm_no: deviceSn,
+        };
+      });
 
     if (logs.length === 0) {
       return { synced: 0 };
     }
 
-    // Insert records (allow duplicates to be handled by existence check)
-    // Use INSERT without conflict strategy to avoid overwriting manual imports
-    const { data, error } = await supabase
+    // Insert records - don't include created_at, let DB set it
+    const { error: insertError } = await supabase
       .from("attendance_logs")
-      .insert(logs, { ignoreDuplicates: true });
+      .insert(logs);
 
-    if (error && error.code !== "23505") {
-      // 23505 is duplicate key error - that's OK
-      console.error("Insert error:", error);
-      return { synced: logs.length, error: error.message };
+    if (insertError) {
+      console.error("Insert error:", insertError);
+      return { synced: 0, error: insertError.message };
     }
 
     return { synced: logs.length };

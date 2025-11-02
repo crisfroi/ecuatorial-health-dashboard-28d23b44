@@ -50,14 +50,7 @@ export const GuardiasHelpSystem: React.FC<GuardiasHelpSystemProps> = ({
         tab: 'registro',
         role: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO']
       },
-      {
-        id: 'cuadrantes',
-        title: 'Generar Cuadrantes',
-        description: 'Organice las guardias en cuadrantes mensuales para una mejor visualización y planificación.',
-        icon: <FileText className="w-5 h-5" />,
-        tab: 'cuadrantes',
-        role: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES']
-      },
+      // 'Cuadrantes' UI eliminado — mantener backend y plantillas si es necesario
       {
         id: 'validacion',
         title: 'Validar Guardias',
@@ -111,7 +104,7 @@ export const GuardiasHelpSystem: React.FC<GuardiasHelpSystemProps> = ({
     {
       title: 'Primer Uso - Configuración Inicial',
       description: 'Configure baremos y días festivos antes de registrar guardias',
-      steps: ['ajustes', 'registro', 'cuadrantes'],
+      steps: ['ajustes', 'registro'],
       role: ['SUPER_ADMINISTRADOR']
     },
     {
@@ -123,13 +116,13 @@ export const GuardiasHelpSystem: React.FC<GuardiasHelpSystemProps> = ({
     {
       title: 'Director de Centro - Gestión Diaria',
       description: 'Funciones principales para directores de centros de salud',
-      steps: ['registro', 'cuadrantes', 'reportes'],
+      steps: ['registro', 'reportes'],
       role: ['DIRECTIVO_CENTRO_SANITARIO']
     },
     {
       title: 'Revisor - Validación de Guardias',
       description: 'Proceso de revisión y validación de guardias médicas',
-      steps: ['validacion', 'cuadrantes', 'reportes'],
+      steps: ['validacion', 'reportes'],
       role: ['REVISOR_SOLICITUDES']
     }
   ];

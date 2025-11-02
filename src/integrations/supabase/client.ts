@@ -158,3 +158,14 @@ export const getConnectionStatus = () => ({
   isHealthy: connectionAttempts < MAX_CONNECTION_ATTEMPTS,
   maxAttempts: MAX_CONNECTION_ATTEMPTS
 });
+
+// In browser environments, replace global fetch with the resilientFetch wrapper so Supabase uses it
+try {
+  if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
+    (window as any).originalFetch = window.fetch;
+    (window as any).fetch = resilientFetch;
+    console.log('✅ Global fetch replaced with resilientFetch for enhanced Supabase resilience');
+  }
+} catch (e) {
+  console.warn('⚠️ Could not replace global fetch with resilientFetch:', e);
+}

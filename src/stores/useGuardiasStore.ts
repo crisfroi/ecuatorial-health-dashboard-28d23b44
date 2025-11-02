@@ -1965,14 +1965,15 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               }
             }
 
-            const { data, error } = await query;
+            const result = await executeSupabaseQuery(() => query, 'fetchValidaciones:validaciones');
 
-            if (error) {
-              const errorMsg = error.message || JSON.stringify(error) || 'Unknown error';
-              console.error('❌ Supabase error in fetchValidaciones:', errorMsg);
-              throw error;
+            if (result.error) {
+              const errorMsg = result.error.message || JSON.stringify(result.error) || 'Unknown error';
+              console.error('❌ Supabase wrapper error in fetchValidaciones:', errorMsg, result.error);
+              throw result.error;
             }
 
+            const data = result.data as any[] | null;
             console.log('✅ Validaciones fetched successfully:', data?.length || 0, 'records');
             set({ validaciones: data || [], loading: false });
           });

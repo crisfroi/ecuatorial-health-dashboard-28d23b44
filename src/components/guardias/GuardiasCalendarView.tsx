@@ -35,9 +35,12 @@ import {
   Search,
   Eye,
   AlertCircle,
+  Shield,
+  Zap,
 } from 'lucide-react';
 import { useGuardiasStore } from '@/stores/useGuardiasStore';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Guardia {
   id: string;
@@ -79,6 +82,8 @@ export const GuardiasCalendarView: React.FC<{
   const [selectedDayDetails, setSelectedDayDetails] = useState<DiaStats | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showConflictsOnly, setShowConflictsOnly] = useState(false);
+  const [validandoConflictos, setValidandoConflictos] = useState(false);
+  const [conflictosEdgeFunction, setConflictosEdgeFunction] = useState<any>(null);
 
   // Fetch data
   useEffect(() => {
@@ -217,6 +222,39 @@ export const GuardiasCalendarView: React.FC<{
     setCurrentDate(new Date());
   };
 
+  const handleValidarConflictosEdgeFunction = async () => {
+    setValidandoConflictos(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('detect-guardia-conflicts', {
+        body: {
+          mes: selectedMonth,
+          ano: selectedYear,
+          centro_id: selectedCenter,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setConflictosEdgeFunction(data);
+      toast({
+        title: data.total_conflictos > 0 ? 'Conflictos detectados' : 'Validación completada',
+        description: data.mensaje || `Se validaron ${data.guardias_validadas} guardia(s)`,
+        variant: data.total_conflictos > 0 ? 'destructive' : 'default',
+      });
+    } catch (error) {
+      console.error('Error validando conflictos:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo validar conflictos',
+        variant: 'destructive',
+      });
+    } finally {
+      setValidandoConflictos(false);
+    }
+  };
+
   // Stats
   const totalGuardias = guardias.length;
   const diasConConflictos = diasStats.filter((d) => d.conflictos.length > 0).length;
@@ -234,6 +272,15 @@ export const GuardiasCalendarView: React.FC<{
         </div>
 
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleValidarConflictosEdgeFunction}
+            disabled={validandoConflictos}
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            {validandoConflictos ? 'Validando...' : 'Validar (Backend)'}
+          </Button>
           <Button variant={viewType === 'calendar' ? 'default' : 'outline'} size="sm" onClick={() => setViewType('calendar')}>
             <CalendarIcon className="w-4 h-4 mr-2" />
             Calendario
@@ -306,13 +353,13 @@ export const GuardiasCalendarView: React.FC<{
         </Card>
       </div>
 
-      {/* Conflictos Alert */}
+      {/* Conflictos Alert - Local (frontend) */}
       {conflictosGlobales.length > 0 && (
         <Card className="border-l-4 border-l-red-500 bg-red-50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-700">
               <AlertCircle className="w-5 h-5" />
-              Se detectaron {conflictosGlobales.length} conflicto(s)
+              Se detectaron {conflictosGlobales.length} conflicto(s) locales
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -330,6 +377,37 @@ export const GuardiasCalendarView: React.FC<{
               ))}
               {conflictosGlobales.length > 3 && (
                 <p className="text-xs text-red-700 pt-2">... y {conflictosGlobales.length - 3} conflicto(s) más</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Conflictos Alert - Edge Function (backend) */}
+      {conflictosEdgeFunction && conflictosEdgeFunction.total_conflictos > 0 && (
+        <Card className="border-l-4 border-l-orange-500 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-700">
+              <Zap className="w-5 h-5" />
+              Validación de Backend: {conflictosEdgeFunction.total_conflictos} conflicto(s)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {conflictosEdgeFunction.conflictos.slice(0, 3).map((conflicto: any, idx: number) => (
+                <div key={idx} className="flex items-start gap-3 p-2 bg-white rounded border border-orange-200">
+                  <Shield className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-gray-900">{conflicto.descripcion}</p>
+                    <p className="text-xs text-gray-600 mt-1">{conflicto.recomendacion}</p>
+                  </div>
+                  <Badge variant="outline" className="flex-shrink-0">
+                    {conflicto.severidad}
+                  </Badge>
+                </div>
+              ))}
+              {conflictosEdgeFunction.conflictos.length > 3 && (
+                <p className="text-xs text-orange-700 pt-2">... y {conflictosEdgeFunction.conflictos.length - 3} conflicto(s) más</p>
               )}
             </div>
           </CardContent>

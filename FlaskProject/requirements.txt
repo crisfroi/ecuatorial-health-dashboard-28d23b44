@@ -48,5 +48,6 @@ zope.interface==8.0.1
 websockets
 
 # PostgreSQL Support (Added for Supabase migration)
-psycopg2-binary==2.9.9
+# Using psycopg3 instead of psycopg2 for Python 3.13 compatibility
+psycopg[binary]==3.1.18
 pymysql==1.1.0

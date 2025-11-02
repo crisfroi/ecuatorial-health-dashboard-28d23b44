@@ -154,17 +154,39 @@ namespace Qiandao.Web.WebSocketHandler
 
             foreach (var deviceStatus in snapshot)
             {
-                if (deviceStatus.webSocket != null && deviceStatus.webSocket.State == WebSocketState.Open)
+                if (deviceStatus.webSocket == null) continue;
+                try
                 {
-                    try
+                    if (deviceStatus.webSocket is System.Net.WebSockets.WebSocket sysSocket)
                     {
-                        var buffer = Encoding.UTF8.GetBytes(message);
-                        await deviceStatus.webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+                        if (sysSocket.State == System.Net.WebSockets.WebSocketState.Open)
+                        {
+                            var buffer = Encoding.UTF8.GetBytes(message);
+                            await sysSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Console.WriteLine($"SendAsync failed: {ex.Message}");
+                        var wsObj = deviceStatus.webSocket;
+                        var sendMethod = wsObj.GetType().GetMethod("Send", new Type[] { typeof(byte[]) });
+                        if (sendMethod != null)
+                        {
+                            var bytes = Encoding.UTF8.GetBytes(message);
+                            sendMethod.Invoke(wsObj, new object[] { bytes });
+                        }
+                        else
+                        {
+                            var sendStr = wsObj.GetType().GetMethod("Send", new Type[] { typeof(string) });
+                            if (sendStr != null)
+                            {
+                                sendStr.Invoke(wsObj, new object[] { message });
+                            }
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"SendAsync failed: {ex.Message}");
                 }
             }
         }

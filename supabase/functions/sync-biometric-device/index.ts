@@ -26,12 +26,15 @@ interface BiometricRecord {
 }
 
 // Proxy calls to the Qiandao SDK running on Render
+// Flask endpoints are at /device, /emps, /records (not /api/)
 async function callSdkEndpoint(
   deviceUrl: string,
   endpoint: string
 ): Promise<any> {
   try {
-    const fullUrl = `${deviceUrl}/api/${endpoint}`;
+    // Flask uses these routes: /device, /records, /emps
+    // NOT /api/device, /api/records, /api/emps
+    const fullUrl = `${deviceUrl}/${endpoint}`;
     console.log(`Calling SDK endpoint: ${fullUrl}`);
 
     const response = await fetch(fullUrl, {
@@ -47,7 +50,7 @@ async function callSdkEndpoint(
 
     return await response.json();
   } catch (error) {
-    console.error(`Error calling SDK endpoint:`, error);
+    console.error(`Error calling SDK endpoint: ${endpoint}`, error);
     throw error;
   }
 }

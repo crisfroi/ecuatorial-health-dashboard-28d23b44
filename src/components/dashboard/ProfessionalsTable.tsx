@@ -25,6 +25,8 @@ import { useProfesionales } from "@/hooks/useProfesionales";
 import { useProfesionalesMutations } from "@/hooks/useProfesionalesMutations";
 import { useRoleBasedData } from "@/hooks/useRoleBasedData";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from '@/components/ui/checkbox';
+import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationNext } from '@/components/ui/pagination';
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { DataRestrictionIndicator } from "@/components/ui/data-restriction-indicator";
 import * as XLSX from 'xlsx';

@@ -62,8 +62,8 @@ async function syncRecords(
   deviceSn: string
 ): Promise<{ synced: number; error?: string }> {
   try {
-    // Get records from SDK
-    const sdkResponse = await callSdkEndpoint(deviceUrl, "record");
+    // Get records from SDK (Flask endpoint is /records, not /record)
+    const sdkResponse = await callSdkEndpoint(deviceUrl, "records");
 
     if (!sdkResponse?.data) {
       return { synced: 0, error: "No records returned from SDK" };

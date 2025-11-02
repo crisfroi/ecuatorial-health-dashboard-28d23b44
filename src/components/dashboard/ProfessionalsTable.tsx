@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, X, Eye, Edit, Download, Save, Copy } from "lucide-react";
+import { Search, X, Eye, Edit, Download, Save, Copy, List, Grid, CheckSquare, Bell, CalendarPlus } from "lucide-react";
 import { useProfesionales } from "@/hooks/useProfesionales";
 import { useProfesionalesMutations } from "@/hooks/useProfesionalesMutations";
 import { useRoleBasedData } from "@/hooks/useRoleBasedData";

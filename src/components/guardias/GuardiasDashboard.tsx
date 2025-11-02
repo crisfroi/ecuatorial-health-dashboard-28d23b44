@@ -25,8 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { RegistroGuardias } from './tabs/RegistroGuardias';
 import { CuadrantesGuardias } from './tabs/CuadrantesGuardias';
 import { ValidacionGuardias } from './tabs/ValidacionGuardias';
-import { NominaGuardias } from './tabs/NominaGuardias';
-import { PagosGuardias } from './tabs/PagosGuardias';
+import { NominasPaymentSystemV2 } from './NominasPaymentSystemV2';
 import { ReportesGuardias } from './tabs/ReportesGuardias';
 import { AuditoriaGuardias } from './tabs/AuditoriaGuardias';
 import { AjustesGuardias } from './tabs/AjustesGuardias';
@@ -91,8 +90,7 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
       { id: 'cuadrantesbio', label: 'Cuadrantes', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
       { id: 'cuadrantes', label: 'Cuadrantes Guardias', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES'] },
       { id: 'validacion', label: 'Validación', icon: Shield, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'REVISOR_SOLICITUDES'] },
-      { id: 'nomina', label: 'Nómina', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES'] },
-      { id: 'pagos', label: 'Pagos', icon: CreditCard, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'REVISOR_SOLICITUDES'] },
+      { id: 'nominas-pagos', label: 'Nóminas y Pagos', icon: CreditCard, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES', 'TESORERO'] },
       { id: 'reportes', label: 'Reportes', icon: BarChart3, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES'] },
       { id: 'auditoria', label: 'Auditoría', icon: Shield, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL'] },
       { id: 'ajustes', label: 'Ajustes', icon: Settings, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'DIRECTIVO_CENTRO_SANITARIO'] }
@@ -332,20 +330,11 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
             />
           </TabsContent>
 
-          <TabsContent value="nomina">
-            <NominaGuardias
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-              selectedCenter={selectedCenter}
-              userRole={userRole}
-            />
-          </TabsContent>
-
-          <TabsContent value="pagos">
-            <PagosGuardias
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-              selectedCenter={selectedCenter}
+          <TabsContent value="nominas-pagos">
+            <NominasPaymentSystemV2
+              mes={selectedMonth}
+              ano={selectedYear}
+              centroId={selectedCenter}
               userRole={userRole}
             />
           </TabsContent>

@@ -634,6 +634,27 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
               className="mb-4"
             />
 
+            {/* Bulk actions toolbar */}
+            {selectedIds.size > 0 && (
+              <div className="mb-3 flex items-center justify-between bg-gray-50 p-3 rounded">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium">{selectedIds.size} seleccionados</span>
+                  <Button variant="outline" size="sm" onClick={bulkGenerateCarnets}>
+                    <Download className="w-4 h-4 mr-1" /> Generar Carnets
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={bulkAssignGuardias}>
+                    <CalendarPlus className="w-4 h-4 mr-1" /> Asignar Guardias
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={bulkSendNotification}>
+                    <Bell className="w-4 h-4 mr-1" /> Notificar
+                  </Button>
+                </div>
+                <div>
+                  <Button variant="ghost" size="sm" onClick={clearSelection}>Limpiar selección</Button>
+                </div>
+              </div>
+            )}
+
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>

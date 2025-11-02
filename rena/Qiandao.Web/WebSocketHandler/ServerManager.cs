@@ -1,4 +1,4 @@
-﻿namespace Qiandao.Web.WebSocketHandler
+namespace Qiandao.Web.WebSocketHandler
 {
     using System.Net.Sockets;
     using WebSocketSharp.Server;
@@ -19,7 +19,7 @@
             _logger.LogInformation("ServerManager initialized.");
         }
 
-        // 启动 WebSocket 服务器
+        // 启动 WebSocket 服���器
         public void Start()
         {
             if (_webSocketServer != null && _webSocketServer.IsListening)
@@ -27,23 +27,9 @@
                 Close();
             }
 
-            int port = GetPort();
-            _webSocketServer = new WebSocketServer($"ws://0.0.0.0:{port}");
-
-            // 使用 IServiceProvider 动态创建 WebSocketHandler 实例
-            _webSocketServer.AddWebSocketService<WebSocketHandler>(
-                "/pub/chat",
-                () => new WebSocketHandler(_logger, _serviceProvider));
-
-            try
-            {
-                _webSocketServer.Start();
-                _logger.LogInformation($"WebSocket server started on port {port}.");
-            }
-            catch (SocketException ex)
-            {
-                _logger.LogError(ex, "Failed to start WebSocket server.");
-            }
+            // In Render/AspNetCore hosting we use built-in WebSocket middleware.
+            // ServerManager.Start remains for compatibility but will NOT start a separate WebSocketSharp server.
+            _logger.LogInformation("ServerManager.Start called - using ASP.NET Core WebSockets middleware in-process.");
         }
 
         // 获取端口号

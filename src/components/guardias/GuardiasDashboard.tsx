@@ -23,13 +23,14 @@ import { useToast } from '@/hooks/use-toast';
 
 // Import tab components
 import { RegistroGuardias } from './tabs/RegistroGuardias';
-import { CuadrantesGuardias } from './tabs/CuadrantesGuardias';
+// Cuadrantes (vista de cuadrantes por mes) UI eliminada por redundancia
 import { ValidacionGuardias } from './tabs/ValidacionGuardias';
 import { NominasPaymentSystemV2 } from './NominasPaymentSystemV2';
 import { ReportesGuardias } from './tabs/ReportesGuardias';
 import { AuditoriaGuardias } from './tabs/AuditoriaGuardias';
 import { AjustesGuardias } from './tabs/AjustesGuardias';
-import { TurnosBiometricos } from './tabs/TurnosBiometricos';
+// import { TurnosBiometricos } from './tabs/TurnosBiometricos';
+import { GuardiaAsistenciaComparativa } from './GuardiaAsistenciaComparativa';
 import { CuadrantesBiometricos } from './tabs/CuadrantesBiometricos';
 import { AsistenciaBiometrica } from './tabs/AsistenciaBiometrica';
 import { GuardiasCalendarView } from './GuardiasCalendarView';
@@ -86,9 +87,7 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
     const allTabs = [
       { id: 'registro', label: 'Registro', icon: Calendar, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
       { id: 'calendario', label: 'Calendario', icon: Calendar, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES', 'PERSONALIDAD_MINISTERIAL'] },
-      { id: 'turnos', label: 'Turnos', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
       { id: 'cuadrantesbio', label: 'Cuadrantes', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
-      { id: 'cuadrantes', label: 'Cuadrantes Guardias', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES'] },
       { id: 'validacion', label: 'Validación', icon: Shield, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'REVISOR_SOLICITUDES'] },
       { id: 'nominas-pagos', label: 'Nóminas y Pagos', icon: CreditCard, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES', 'TESORERO'] },
       { id: 'reportes', label: 'Reportes', icon: BarChart3, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES'] },
@@ -168,7 +167,7 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Sistema de Gestión de Guardias Médicas</h2>
               <p className="text-gray-600">
-                Administración integral de guardias, cuadrantes, nóminas y pagos
+                Administración integral de guardias, nóminas y pagos
               </p>
               <NetworkStatusSimple className="mt-2" />
             </div>
@@ -301,25 +300,17 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
           </TabsContent>
 
           <TabsContent value="asistencia">
-            <AsistenciaBiometrica selectedCenter={selectedCenter} />
+            <div className="space-y-6">
+              <AsistenciaBiometrica selectedCenter={selectedCenter} />
+              <GuardiaAsistenciaComparativa mes={selectedMonth} ano={selectedYear} centroId={selectedCenter} />
+            </div>
           </TabsContent>
 
-          <TabsContent value="turnos">
-            <TurnosBiometricos selectedCenter={selectedCenter} />
-          </TabsContent>
 
           <TabsContent value="cuadrantesbio">
             <CuadrantesBiometricos selectedCenter={selectedCenter} />
           </TabsContent>
 
-          <TabsContent value="cuadrantes">
-            <CuadrantesGuardias
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-              selectedCenter={selectedCenter}
-              userRole={userRole}
-            />
-          </TabsContent>
 
           <TabsContent value="validacion">
             <ValidacionGuardias

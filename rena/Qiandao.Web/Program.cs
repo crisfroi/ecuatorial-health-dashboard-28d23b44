@@ -73,7 +73,25 @@ public class Program
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
 
-            // Start WebSocket server
+            // Configure WebSocket middleware and map the endpoint '/pub/chat'
+            app.UseWebSockets();
+            app.Map("/pub/chat", builder =>
+            {
+                builder.Run(async context =>
+                {
+                    if (!context.WebSockets.IsWebSocketRequest)
+                    {
+                        context.Response.StatusCode = 400;
+                        return;
+                    }
+
+                    var socket = await context.WebSockets.AcceptWebSocketAsync();
+                    var adapterLogger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("WebSocketAdapter");
+                    await WebSocketAdapter.HandleWebSocketAsync(socket, context.RequestServices, adapterLogger);
+                });
+            });
+
+            // Start the ServerManager (kept for compatibility, no-op for WebSocketSharp)
             var webSocketServer = app.Services.GetRequiredService<ServerManager>();
             webSocketServer.Start();
 

@@ -117,7 +117,24 @@ export const AjustesGuardias: React.FC<AjustesGuardiasProps> = ({
 
   const handleSubmitBaremo = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Validación básica de protocolo
+    const errors: string[] = [];
+    if (!baremoForm.categoria) errors.push('Categoría requerida');
+    if (!baremoForm.tipo_guardia) errors.push('Tipo de guardia requerido');
+    if (!baremoForm.tipo_dia) errors.push('Tipo de día requerido');
+    if (baremoForm.valor <= 0) errors.push('El valor base debe ser mayor a 0');
+    if (baremoForm.porcentaje_localizable < 0 || baremoForm.porcentaje_localizable > 100) errors.push('% Localizable debe estar entre 0 y 100');
+    if (baremoForm.porcentaje_llamada < 0 || baremoForm.porcentaje_llamada > 100) errors.push('% Llamada debe estar entre 0 y 100');
+    if (baremoForm.vigente_hasta && baremoForm.vigente_desde && new Date(baremoForm.vigente_hasta) < new Date(baremoForm.vigente_desde)) {
+      errors.push('La fecha fin no puede ser anterior a la fecha inicio');
+    }
+
+    if (errors.length) {
+      toast({ title: 'Revisar baremo', description: errors.join(' • '), variant: 'destructive' });
+      return;
+    }
+
     try {
       if (editingBaremo) {
         await updateBaremo(editingBaremo.id, baremoForm);

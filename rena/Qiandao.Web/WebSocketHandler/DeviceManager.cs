@@ -1,6 +1,6 @@
-﻿using Qiandao.Model.Entity;
+using Qiandao.Model.Entity;
 using System.Text;
-using WebSocketSharp;
+using System.Net.WebSockets;
 
 namespace Qiandao.Web.WebSocketHandler
 {
@@ -12,11 +12,7 @@ namespace Qiandao.Web.WebSocketHandler
         {
             return WsDevice;
         }
-        /// <summary>
-        /// 获取带有状态的 WebSocket
-        /// </summary>
-        /// <param name="deviceSn">设备序列号</param>
-        /// <returns>WebSocket 对象</returns>
+
         public static WebSocket? GetDeviceSocketBySn(string deviceSn)
         {
             lock (_lock)
@@ -29,11 +25,6 @@ namespace Qiandao.Web.WebSocketHandler
             }
         }
 
-        /// <summary>
-        /// 添加设备及其状态
-        /// </summary>
-        /// <param name="deviceSn">设备序列号</param>
-        /// <param name="deviceStatus">设备状态</param>
         public static void AddDeviceAndStatus(string deviceSn, DeviceStatus deviceStatus)
         {
             lock (_lock)
@@ -49,31 +40,57 @@ namespace Qiandao.Web.WebSocketHandler
             }
         }
 
-        //向带状态的用户单个用户发送数据
+        // 向带状态的单个设备发送数据（使用 System.Net.WebSockets）
         public static async Task SendMessageToDeviceStatusAsync(string sn, string message)
         {
+            DeviceStatus? deviceStatus = null;
             lock (_lock)
             {
-                if (WsDevice.TryGetValue(sn, out var deviceStatus))
+                WsDevice.TryGetValue(sn, out deviceStatus);
+            }
+
+            if (deviceStatus?.webSocket != null)
+            {
+                try
                 {
-                    var conn = deviceStatus.webSocket;
-                    if (conn != null)
+                    // If System.Net.WebSockets.WebSocket
+                    if (deviceStatus.webSocket is System.Net.WebSockets.WebSocket sysSocket)
                     {
-                        try
+                        if (sysSocket.State == System.Net.WebSockets.WebSocketState.Open)
                         {
-                            conn.Send(Encoding.UTF8.GetBytes(message));
-                        }
-                        catch (Exception ex)
-                        {
-                            // Handle exceptions (e.g., logging)
-                            Console.WriteLine($"SendAsync failed: {ex.Message}");
+                            var buffer = Encoding.UTF8.GetBytes(message);
+                            var segment = new ArraySegment<byte>(buffer);
+                            await sysSocket.SendAsync(segment, WebSocketMessageType.Text, true, CancellationToken.None);
                         }
                     }
+                    else
+                    {
+                        // Try dynamic call for WebSocketSharp.WebSocket.Send(byte[])
+                        var wsObj = deviceStatus.webSocket;
+                        var sendMethod = wsObj.GetType().GetMethod("Send", new Type[] { typeof(byte[]) });
+                        if (sendMethod != null)
+                        {
+                            var bytes = Encoding.UTF8.GetBytes(message);
+                            sendMethod.Invoke(wsObj, new object[] { bytes });
+                        }
+                        else
+                        {
+                            // Fallback to Send(string) if available
+                            var sendStr = wsObj.GetType().GetMethod("Send", new Type[] { typeof(string) });
+                            if (sendStr != null)
+                            {
+                                sendStr.Invoke(wsObj, new object[] { message });
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"SendAsync failed: {ex.Message}");
                 }
             }
         }
 
-        //移除带状态的设备
         public static bool RemoveDeviceStatus(string sn)
         {
             lock (_lock)
@@ -82,12 +99,12 @@ namespace Qiandao.Web.WebSocketHandler
             }
         }
 
-        //移除带状态的设备（通过 WebSocket）
+        // 移除设备（通过 System.Net.WebSockets.WebSocket）
         public static string? RemoveDeviceByWebSocket(WebSocket webSocket)
         {
             lock (_lock)
             {
-                foreach (var entry in WsDevice.ToList()) // Use ToList() to avoid modifying the collection while iterating
+                foreach (var entry in WsDevice.ToList())
                 {
                     if (entry.Value.webSocket == webSocket)
                     {
@@ -99,7 +116,6 @@ namespace Qiandao.Web.WebSocketHandler
             }
         }
 
-        //获取序列号（通过 WebSocket）
         public static string? GetSerialNumber(WebSocket webSocket)
         {
             lock (_lock)
@@ -115,7 +131,6 @@ namespace Qiandao.Web.WebSocketHandler
             }
         }
 
-        //判断状态
         public static DeviceStatus? GetDeviceStatus(string sn)
         {
             lock (_lock)
@@ -128,25 +143,50 @@ namespace Qiandao.Web.WebSocketHandler
             }
         }
 
-        //发送消息给所有设备
-        public static void SendMessageToAllDeviceFreeAsync(string message)
+        // 发送消息给所有设备
+        public static async Task SendMessageToAllDeviceFreeAsync(string message)
         {
+            List<DeviceStatus> snapshot;
             lock (_lock)
             {
-                foreach (var deviceStatus in WsDevice.Values.ToList()) // Use ToList() to avoid modifying the collection while iterating
+                snapshot = WsDevice.Values.ToList();
+            }
+
+            foreach (var deviceStatus in snapshot)
+            {
+                if (deviceStatus.webSocket == null) continue;
+                try
                 {
-                    if (deviceStatus.webSocket != null)
+                    if (deviceStatus.webSocket is System.Net.WebSockets.WebSocket sysSocket)
                     {
-                        try
+                        if (sysSocket.State == System.Net.WebSockets.WebSocketState.Open)
                         {
-                            deviceStatus.webSocket.Send(message);
-                        }
-                        catch (Exception ex)
-                        {
-                            // Handle exceptions (e.g., logging)
-                            Console.WriteLine($"SendAsync failed: {ex.Message}");
+                            var buffer = Encoding.UTF8.GetBytes(message);
+                            await sysSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
                         }
                     }
+                    else
+                    {
+                        var wsObj = deviceStatus.webSocket;
+                        var sendMethod = wsObj.GetType().GetMethod("Send", new Type[] { typeof(byte[]) });
+                        if (sendMethod != null)
+                        {
+                            var bytes = Encoding.UTF8.GetBytes(message);
+                            sendMethod.Invoke(wsObj, new object[] { bytes });
+                        }
+                        else
+                        {
+                            var sendStr = wsObj.GetType().GetMethod("Send", new Type[] { typeof(string) });
+                            if (sendStr != null)
+                            {
+                                sendStr.Invoke(wsObj, new object[] { message });
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"SendAsync failed: {ex.Message}");
                 }
             }
         }

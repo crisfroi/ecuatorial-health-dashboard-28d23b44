@@ -1923,17 +1923,19 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               const startDate = new Date(ano, mes - 1, 1);
               const endDate = new Date(ano, mes, 0, 23, 59, 59);
 
-              const { data: guardiasData, error: guardiasError } = await supabase
+              const guardiasRes = await executeSupabaseQuery(() => supabase
                 .from('guardias')
                 .select('id')
                 .eq('centro_salud_id', centroId)
                 .gte('fecha_inicio', startDate.toISOString())
-                .lte('fecha_inicio', endDate.toISOString());
+                .lte('fecha_inicio', endDate.toISOString()), 'fetchValidaciones:guardiasByCenter');
 
-              if (guardiasError) {
-                console.error('❌ Error fetching guardias for centro:', guardiasError);
-                throw guardiasError;
+              if (guardiasRes.error) {
+                console.error('❌ Error fetching guardias for centro:', guardiasRes.error);
+                throw guardiasRes.error;
               }
+
+              const guardiasData = guardiasRes.data as any[] | null;
 
               if (guardiasData && guardiasData.length > 0) {
                 const guardiaIds = guardiasData.map(g => g.id);
@@ -1948,16 +1950,18 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               const startDate = new Date(ano, mes - 1, 1);
               const endDate = new Date(ano, mes, 0, 23, 59, 59);
 
-              const { data: guardiasData, error: guardiasError } = await supabase
+              const guardiasRes = await executeSupabaseQuery(() => supabase
                 .from('guardias')
                 .select('id')
                 .gte('fecha_inicio', startDate.toISOString())
-                .lte('fecha_inicio', endDate.toISOString());
+                .lte('fecha_inicio', endDate.toISOString()), 'fetchValidaciones:guardiasByPeriod');
 
-              if (guardiasError) {
-                console.error('❌ Error fetching guardias for period:', guardiasError);
-                throw guardiasError;
+              if (guardiasRes.error) {
+                console.error('❌ Error fetching guardias for period:', guardiasRes.error);
+                throw guardiasRes.error;
               }
+
+              const guardiasData = guardiasRes.data as any[] | null;
 
               if (guardiasData && guardiasData.length > 0) {
                 const guardiaIds = guardiasData.map(g => g.id);
@@ -1965,14 +1969,15 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
               }
             }
 
-            const { data, error } = await query;
+            const result = await executeSupabaseQuery(() => query, 'fetchValidaciones:validaciones');
 
-            if (error) {
-              const errorMsg = error.message || JSON.stringify(error) || 'Unknown error';
-              console.error('❌ Supabase error in fetchValidaciones:', errorMsg);
-              throw error;
+            if (result.error) {
+              const errorMsg = result.error.message || JSON.stringify(result.error) || 'Unknown error';
+              console.error('❌ Supabase wrapper error in fetchValidaciones:', errorMsg, result.error);
+              throw result.error;
             }
 
+            const data = result.data as any[] | null;
             console.log('✅ Validaciones fetched successfully:', data?.length || 0, 'records');
             set({ validaciones: data || [], loading: false });
           });
@@ -2189,7 +2194,7 @@ export const useGuardiasStore = create<GuardiasStoreState>()(
         console.log('📄 Generating nomina with data:', data);
         set({ loading: true, error: null });
         try {
-          // Paso 1: Obtener guardias del mes/año/centro especificado
+          // Paso 1: Obtener guardias del mes/a��o/centro especificado
           let guardiasQuery = supabase
             .from('guardias')
             .select(`

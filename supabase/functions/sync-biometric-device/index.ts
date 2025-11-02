@@ -206,8 +206,8 @@ async function handler(req: Request): Promise<Response> {
       case "get-records": {
         const sn = deviceSn || "";
         const endpoint = sn
-          ? `record?deviceSn=${encodeURIComponent(sn)}`
-          : "record";
+          ? `records?deviceSn=${encodeURIComponent(sn)}`
+          : "records";
         const response = await callSdkEndpoint(deviceUrl, endpoint);
         result = { records: response.data || [] };
         break;

@@ -49,5 +49,5 @@ websockets
 
 # PostgreSQL Support (Added for Supabase migration)
 # Using psycopg3 instead of psycopg2 for Python 3.13 compatibility
-psycopg[binary]==3.1.18
+psycopg[binary]==3.2.12
 pymysql==1.1.0

@@ -583,31 +583,44 @@ const ProfessionalsTable = (props: ProfessionalsTableProps) => {
                   />
                 </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={exportProfessionalsToExcel}
-                  className="flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Exportar Excel
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('tab', 'professionals');
-                    // Serializa SOLO el searchTerm aquí, ya que el resto de filtros son del dashboard
-                    url.searchParams.set('search', encodeURIComponent(searchTerm));
-                    navigator.clipboard.writeText(url.toString());
-                    toast({ title: 'Enlace copiado', description: 'Filtros listos para compartir.' });
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <Copy className="w-4 h-4" />
-                  Compartir filtros
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportProfessionalsToExcel}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Exportar Excel
+                  </Button>
+
+                  <Button variant="ghost" size="sm" onClick={() => setViewMode('table')} title="Vista tabla">
+                    <List className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setViewMode('cards')} title="Vista tarjetas">
+                    <Grid className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setViewMode('compact')} title="Vista compacta">
+                    <CheckSquare className="w-4 h-4" />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('tab', 'professionals');
+                      // Serializa SOLO el searchTerm aquí, ya que el resto de filtros son del dashboard
+                      url.searchParams.set('search', encodeURIComponent(searchTerm));
+                      navigator.clipboard.writeText(url.toString());
+                      toast({ title: 'Enlace copiado', description: 'Filtros listos para compartir.' });
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Compartir filtros
+                  </Button>
+                </div>
               </div>
             </div>
           </CardHeader>

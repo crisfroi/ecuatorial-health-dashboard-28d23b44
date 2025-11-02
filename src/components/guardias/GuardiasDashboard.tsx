@@ -29,7 +29,8 @@ import { NominasPaymentSystemV2 } from './NominasPaymentSystemV2';
 import { ReportesGuardias } from './tabs/ReportesGuardias';
 import { AuditoriaGuardias } from './tabs/AuditoriaGuardias';
 import { AjustesGuardias } from './tabs/AjustesGuardias';
-import { TurnosBiometricos } from './tabs/TurnosBiometricos';
+// import { TurnosBiometricos } from './tabs/TurnosBiometricos';
+import { GuardiaAsistenciaComparativa } from './GuardiaAsistenciaComparativa';
 import { CuadrantesBiometricos } from './tabs/CuadrantesBiometricos';
 import { AsistenciaBiometrica } from './tabs/AsistenciaBiometrica';
 import { GuardiasCalendarView } from './GuardiasCalendarView';
@@ -86,7 +87,6 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
     const allTabs = [
       { id: 'registro', label: 'Registro', icon: Calendar, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
       { id: 'calendario', label: 'Calendario', icon: Calendar, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES', 'PERSONALIDAD_MINISTERIAL'] },
-      { id: 'turnos', label: 'Turnos', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
       { id: 'cuadrantesbio', label: 'Cuadrantes', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO'] },
       { id: 'cuadrantes', label: 'Cuadrantes Guardias', icon: FileText, permissions: ['SUPER_ADMINISTRADOR', 'DIRECTIVO_CENTRO_SANITARIO', 'REVISOR_SOLICITUDES'] },
       { id: 'validacion', label: 'Validación', icon: Shield, permissions: ['SUPER_ADMINISTRADOR', 'PERSONALIDAD_MINISTERIAL', 'REVISOR_SOLICITUDES'] },
@@ -301,12 +301,12 @@ export const GuardiasDashboard: React.FC<GuardiasDashboardProps> = ({ userRole }
           </TabsContent>
 
           <TabsContent value="asistencia">
-            <AsistenciaBiometrica selectedCenter={selectedCenter} />
+            <div className="space-y-6">
+              <AsistenciaBiometrica selectedCenter={selectedCenter} />
+              <GuardiaAsistenciaComparativa mes={selectedMonth} ano={selectedYear} centroId={selectedCenter} />
+            </div>
           </TabsContent>
 
-          <TabsContent value="turnos">
-            <TurnosBiometricos selectedCenter={selectedCenter} />
-          </TabsContent>
 
           <TabsContent value="cuadrantesbio">
             <CuadrantesBiometricos selectedCenter={selectedCenter} />

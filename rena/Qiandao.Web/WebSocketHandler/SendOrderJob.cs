@@ -1,8 +1,8 @@
-﻿using Qiandao.Model.Entity;
+using Qiandao.Model.Entity;
 using Qiandao.Service;
 using System.Collections.Concurrent;
 using System.Text;
-using WebSocketSharp;
+using System.Net.WebSockets;
 
 namespace Qiandao.Web.WebSocketHandler
 {
@@ -133,7 +133,7 @@ namespace Qiandao.Web.WebSocketHandler
                     var deviceResponse = deviceService.selectDeviceBySerialNum(command.Serial);
                     if (deviceResponse?.Data?.Status != 0)
                     {
-                        SendAndUpdateCommand(deviceStatus, command, machineCommandService, now);
+                        SendAndUpdateCommand(deviceStatus, command, machineCommandService, now).GetAwaiter().GetResult();
                     }
                 }
                 else
@@ -155,13 +155,10 @@ namespace Qiandao.Web.WebSocketHandler
 
         private async Task SendHeartbeatAsync()
         {
-            // 实际的心跳逻辑可以在这里实现
-            // 例如：遍历设备并发送心跳消息
             foreach (var device in _wdList.Values)
             {
-                if (device.webSocket?.IsAlive == true)
+                if (device.webSocket != null && device.webSocket.State == WebSocketState.Open)
                 {
-                    // 发送心跳消息
                     await DeviceManager.SendMessageToDeviceStatusAsync(device.deviceSn, "heartbeat");
                 }
             }
@@ -169,41 +166,30 @@ namespace Qiandao.Web.WebSocketHandler
 
         private async Task ReconnectWebSocket(DeviceStatus deviceStatus, CancellationToken stoppingToken)
         {
-            WebSocket? webSocket = deviceStatus.webSocket;
-
-            if (webSocket != null)
+            // Use ClientWebSocket to attempt reconnect when needed
+            if (string.IsNullOrEmpty(deviceStatus.ConnectionUri))
             {
-                try
-                {
-                    webSocket.Close();
-                    _logger.LogInformation($"Closed previous WebSocket connection for device {deviceStatus.deviceSn}.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"Failed to close WebSocket for device {deviceStatus.deviceSn}.");
-                }
+                _logger.LogWarning($"No ConnectionUri for device {deviceStatus.deviceSn}");
+                return;
             }
 
             deviceStatus.ReconnectAttempts = 0;
 
-            while (deviceStatus.ReconnectAttempts < 5)
+            while (deviceStatus.ReconnectAttempts < 5 && !stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    var wsUri = deviceStatus.ConnectionUri;
-                    _logger.LogInformation($"Attempting to reconnect WebSocket for device {deviceStatus.deviceSn} at {wsUri}...");
-
-                    deviceStatus.webSocket = new WebSocket(wsUri);
-                    deviceStatus.webSocket.Connect();
-
-                    await Task.Delay(1000, stoppingToken);
-                    bool islive = deviceStatus.webSocket.IsAlive;
-
-                    if (islive)
+                    using (var client = new ClientWebSocket())
                     {
-                        _logger.LogInformation($"Reconnected WebSocket for device {deviceStatus.deviceSn} successfully.");
-                        deviceStatus.ReconnectAttempts = 0;
-                        return;
+                        var uri = new Uri(deviceStatus.ConnectionUri);
+                        await client.ConnectAsync(uri, stoppingToken);
+                        if (client.State == WebSocketState.Open)
+                        {
+                            _logger.LogInformation($"Reconnected WebSocket for device {deviceStatus.deviceSn} successfully.");
+                            deviceStatus.webSocket = client;
+                            deviceStatus.ReconnectAttempts = 0;
+                            return;
+                        }
                     }
                 }
                 catch (Exception ex)

@@ -30,6 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { useReportesAsistencia } from '@/hooks/useReportesAsistencia';
+import { useAsistenciaConsolidada } from '@/hooks/useAsistenciaConsolidada';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CentroOption {

@@ -296,10 +296,10 @@ export function MetricasPanel() {
             <CardTitle className="flex items-center gap-2 text-base">
               <UserCheck className="h-5 w-5" /> Top profesionales puntuales
             </CardTitle>
-            <CardDescription>Promedio de hora de entrada durante el periodo.</CardDescription>
+            <CardDescription>Promedio de hora de entrada durante el periodo. (Datos consolidados: biométrico + manual)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {logsQuery.isLoading ? (
+            {consolidatedQuery.isLoading || logsQuery.isLoading ? (
               <Skeleton className="h-48 w-full" />
             ) : metrics.punctualRanking.length ? (
               metrics.punctualRanking.map((item, index) => {

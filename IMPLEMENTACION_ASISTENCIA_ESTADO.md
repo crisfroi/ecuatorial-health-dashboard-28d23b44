@@ -172,27 +172,24 @@ def start_thread_once():
 
 ---
 
-## 🔧 PROBLEMAS TÉCNICOS A RESOLVER
+## 🔧 PROBLEMAS TÉCNICOS - FIXES APLICADOS ✅
 
-### 1. Temperatura /10 vs /100 ⏳
+### 1. Temperatura /10 vs /100 ✅ CORREGIDO
 
-**Ubicación:** `FlaskProject/app.py` líneas ~1011-1014 y ~1260-1266
+**Ubicación:** `FlaskProject/app.py` líneas 574 y 1039
 
-**Problema:**
+**Cambios realizados:**
 ```python
-# get_attendance
-temperature = record["temp"] / 10  # ❌ Factor incorrecto
+# ANTES (línea 574, 1039)
+temperature = round(record["temp"] / 10, 1)  # ❌ Factor incorrecto
 
-# get_all_log
-temperature = record["temp"] / 100  # ✅ Correcto
+# DESPUÉS
+temperature = round(record["temp"] / 100, 1)  # ✅ Correcto (36.5°C)
 ```
 
-**Fix:**
-```python
-# Estandarizar AMBAS a /100
-temperature = record.get("temperature", 0) / 100
-temperature = round(temperature, 1)  # 36.5°C
-```
+**Estandarización:** Todas las líneas ahora usan `/100` (escala Celsius × 100)
+
+**Status:** ✅ **COMPLETADO**
 
 ### 2. DateTime ISO 8601 ⏳
 

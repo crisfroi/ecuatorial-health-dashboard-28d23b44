@@ -1,4 +1,5 @@
 from database import db
+from Models.BaseModel import BaseModel
 # class AccessDay(db.Model):
 #     def __init__(self, id=None, serial=None, name=None,
 #                  start_time1=None, end_time1=None,

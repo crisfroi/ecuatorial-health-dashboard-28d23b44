@@ -366,10 +366,10 @@ export function MetricasPanel() {
           <CardTitle className="flex items-center gap-2 text-base">
             <Activity className="h-5 w-5" /> Rendimiento por profesional
           </CardTitle>
-          <CardDescription>Días asistidos y horas totales por profesional.</CardDescription>
+          <CardDescription>Días asistidos y horas totales por profesional (datos consolidados: biométrico + manual).</CardDescription>
         </CardHeader>
         <CardContent>
-          {logsQuery.isLoading ? (
+          {consolidatedQuery.isLoading || logsQuery.isLoading ? (
             <Skeleton className="h-64 w-full" />
           ) : professionalSummary.length ? (
             <div className="overflow-x-auto rounded-md border">

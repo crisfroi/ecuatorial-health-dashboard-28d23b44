@@ -1,5 +1,6 @@
 from datetime import datetime
 from database import db
+from Models.BaseModel import BaseModel
 # class MachineCommand:
 #     def __init__(self, id=None, serial=None, name=None, content=None,
 #                  status=None, send_status=None, err_count=None,

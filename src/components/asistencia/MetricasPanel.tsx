@@ -102,9 +102,28 @@ export function MetricasPanel() {
     enabled: consolidatedQuery.isError, // Only use as fallback
   });
 
+  // Convert consolidated data to legacy format for compatibility
+  const convertedEntries = useMemo(() => {
+    if (consolidatedQuery.data && consolidatedQuery.data.length > 0) {
+      return consolidatedQuery.data.map((entry) => ({
+        id: entry.id,
+        id_profesional: entry.profesional_id,
+        en_no: entry.numero_enno,
+        entrada: entry.inout === 'IN' ? entry.fecha_hora : null,
+        salida: entry.inout === 'OUT' ? entry.fecha_hora : null,
+        professionalName: entry.numero_enno,
+        empNo: entry.numero_enno,
+        source_type: entry.source_type,
+      }));
+    }
+    return [];
+  }, [consolidatedQuery.data]);
+
   const enrichedEntries = useMemo(
-    () => buildEnrichedDailyEntries(logsQuery.data || []),
-    [logsQuery.data, buildEnrichedDailyEntries]
+    () => consolidatedQuery.data && consolidatedQuery.data.length > 0
+      ? convertedEntries
+      : buildEnrichedDailyEntries(logsQuery.data || []),
+    [consolidatedQuery.data, convertedEntries, logsQuery.data, buildEnrichedDailyEntries]
   );
 
   const professionalSummary = useMemo(

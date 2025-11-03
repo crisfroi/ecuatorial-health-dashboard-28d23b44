@@ -60,7 +60,7 @@ def logRecords():  # put application's code here
 def index2():
     data = {'key1': 'value1', 'key2': 'value2'}
 
-    # 使用jsonify函数将data转换为JSON格式并返回
+    # 使用jsonify函数将data转��为JSON格式并返回
     return jsonify(data)
 
 from Models.Device import Device, insert_device, get_all_devices, get_device_by_id, get_device_by_serial_num, update_device
@@ -569,10 +569,13 @@ def pub_api():
                         
                         # Insert record into database
                         try:
-                            insert_record2(**record_data)
-                            print(f"[/pub/api] Attendance record saved: enrollid={enroll_id}, time={time_str}")
+                            record_id = insert_record2(**record_data)
+                            print(f"[/pub/api] SUCCESS: Attendance record saved - id={record_id}, enroll_id={enroll_id}, time={time_str}, device={sn}")
+                        except ValueError as e:
+                            print(f"[/pub/api] VALIDATION ERROR: {e}")
+                            print(f"[/pub/api] Record data: {record_data}")
                         except Exception as e:
-                            print(f"[/pub/api] Error inserting record: {e}")
+                            print(f"[/pub/api] DATABASE ERROR: Error inserting record: {e}")
                             import traceback
                             traceback.print_exc()
                     
@@ -762,7 +765,7 @@ def handler(sock):
                         update_device_websocket(sn, deviceStatus)
                         update_command_status_websocket(sn,"setuserinfo")
                     elif ret == "getalllog":
-                        print("获取所有打卡记录"+ str(jsonMsg))
+                        print("���取所有打卡记录"+ str(jsonMsg))
                         try:
                             get_all_log(jsonMsg, sock)
                         except Exception as err:
@@ -1422,4 +1425,3 @@ if __name__ == '__main__':
     finally:
         pass
         # Stop the thread when the app is shut down
-

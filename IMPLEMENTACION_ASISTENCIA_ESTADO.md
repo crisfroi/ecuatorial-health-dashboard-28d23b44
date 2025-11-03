@@ -114,19 +114,28 @@ def start_thread_once():
 
 **Status:** ✅ **COMPLETADO** - Sincronización activa cada 5 minutos
 
-### 2. REFACTORIZAR COMPONENTES FRONTEND ⏳
+### 2. REFACTORIZAR COMPONENTES FRONTEND 🔄 PARCIAL
 
-**Archivos a Actualizar:**
-- `src/components/asistencia/AsistenciaOverviewDashboard.tsx`
+**Archivos Actualizados:**
+
+✅ `src/components/asistencia/MetricasPanel.tsx`
+- Importado `useAsistenciaConsolidada`
+- Reemplazado queries por vista consolidada
+- Fallback a legacy `fetchLogsWithMeta` si falla
+- Actualizado loading states
+- Descripción ahora indica "datos consolidados (biométrico + manual)"
+
+**Archivos por Actualizar:**
+
+⏳ `src/components/asistencia/AsistenciaOverviewDashboard.tsx`
   - Reemplazar múltiples queries por `useAsistenciaConsolidada()`
   - Remover lógica de UNION en frontend
-  
-- `src/components/asistencia/BiometricSyncPanel.tsx`
-  - Usar datos de Supabase en lugar de Render
+
+⏳ Crear `src/components/asistencia/BiometricSyncPanel.tsx` (nuevo)
+  - Usar datos consolidados de Supabase
   - Mostrar status de sincronización desde BD
 
-- `src/components/asistencia/MetricasPanel.tsx`
-  - Usar vista unificada para cálculos
+⏳ Revisar otros componentes de asistencia
 
 ### 3. MEJORAR UI/UX ⏳
 

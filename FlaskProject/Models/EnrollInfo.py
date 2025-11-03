@@ -20,7 +20,7 @@ from Models.BaseModel import BaseModel
 # Base = declarative_base()
 
 
-class EnrollInfo(db.Model):
+class EnrollInfo(BaseModel):
     __tablename__ = 'enroll_info'
 
     id = db.Column(db.Integer, primary_key=True)

@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_day: {
+        Row: {
+          created_at: string | null
+          id: number
+          time1_end: string | null
+          time1_start: string | null
+          time2_end: string | null
+          time2_start: string | null
+          time3_end: string | null
+          time3_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: number
+          time1_end?: string | null
+          time1_start?: string | null
+          time2_end?: string | null
+          time2_start?: string | null
+          time3_end?: string | null
+          time3_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          time1_end?: string | null
+          time1_start?: string | null
+          time2_end?: string | null
+          time2_start?: string | null
+          time3_end?: string | null
+          time3_start?: string | null
+        }
+        Relationships: []
+      }
+      access_week: {
+        Row: {
+          created_at: string | null
+          fri: number | null
+          id: number
+          mon: number | null
+          sat: number | null
+          sun: number | null
+          thu: number | null
+          tue: number | null
+          wed: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          fri?: number | null
+          id: number
+          mon?: number | null
+          sat?: number | null
+          sun?: number | null
+          thu?: number | null
+          tue?: number | null
+          wed?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          fri?: number | null
+          id?: number
+          mon?: number | null
+          sat?: number | null
+          sun?: number | null
+          thu?: number | null
+          tue?: number | null
+          wed?: number | null
+        }
+        Relationships: []
+      }
       ajustes_baremos: {
         Row: {
           activo: boolean | null
@@ -321,6 +390,111 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      baremos: {
+        Row: {
+          activo: boolean | null
+          bonificacion_festivo: number | null
+          bonificacion_fin_semana: number | null
+          bonificacion_guardia: number | null
+          categoria_profesional: string
+          created_at: string | null
+          created_by: string | null
+          descripcion: string | null
+          estado: string
+          fuente: string | null
+          id: string
+          monto_base: number
+          nombre: string
+          observaciones: string | null
+          porcentaje_descuentos: number | null
+          porcentaje_llamada: number | null
+          porcentaje_localizable: number | null
+          tipo_dia: string
+          tipo_guardia: string
+          updated_at: string | null
+          vigente_desde: string
+          vigente_hasta: string | null
+        }
+        Insert: {
+          activo?: boolean | null
+          bonificacion_festivo?: number | null
+          bonificacion_fin_semana?: number | null
+          bonificacion_guardia?: number | null
+          categoria_profesional: string
+          created_at?: string | null
+          created_by?: string | null
+          descripcion?: string | null
+          estado?: string
+          fuente?: string | null
+          id?: string
+          monto_base?: number
+          nombre: string
+          observaciones?: string | null
+          porcentaje_descuentos?: number | null
+          porcentaje_llamada?: number | null
+          porcentaje_localizable?: number | null
+          tipo_dia: string
+          tipo_guardia: string
+          updated_at?: string | null
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Update: {
+          activo?: boolean | null
+          bonificacion_festivo?: number | null
+          bonificacion_fin_semana?: number | null
+          bonificacion_guardia?: number | null
+          categoria_profesional?: string
+          created_at?: string | null
+          created_by?: string | null
+          descripcion?: string | null
+          estado?: string
+          fuente?: string | null
+          id?: string
+          monto_base?: number
+          nombre?: string
+          observaciones?: string | null
+          porcentaje_descuentos?: number | null
+          porcentaje_llamada?: number | null
+          porcentaje_localizable?: number | null
+          tipo_dia?: string
+          tipo_guardia?: string
+          updated_at?: string | null
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Relationships: []
+      }
+      biometric_sync_logs: {
+        Row: {
+          created_at: string | null
+          device_sn: string
+          error_message: string | null
+          id: number
+          records_synced: number | null
+          status: string
+          synced_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_sn: string
+          error_message?: string | null
+          id?: number
+          records_synced?: number | null
+          status: string
+          synced_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device_sn?: string
+          error_message?: string | null
+          id?: number
+          records_synced?: number | null
+          status?: string
+          synced_at?: string | null
+        }
+        Relationships: []
       }
       bitacora_guardias: {
         Row: {
@@ -742,6 +916,30 @@ export type Database = {
           },
         ]
       }
+      device: {
+        Row: {
+          created_at: string | null
+          id: number
+          serial_num: string
+          status: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          serial_num: string
+          status?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          serial_num?: string
+          status?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       dias_festivos: {
         Row: {
           activo: boolean | null
@@ -917,6 +1115,41 @@ export type Database = {
             columns: ["id_profesional"]
             isOneToOne: false
             referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enroll_info: {
+        Row: {
+          backupnum: number
+          created_at: string | null
+          enroll_id: number
+          id: number
+          imagepath: string | null
+          signatures: string | null
+        }
+        Insert: {
+          backupnum: number
+          created_at?: string | null
+          enroll_id: number
+          id?: number
+          imagepath?: string | null
+          signatures?: string | null
+        }
+        Update: {
+          backupnum?: number
+          created_at?: string | null
+          enroll_id?: number
+          id?: number
+          imagepath?: string | null
+          signatures?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enroll_info_enroll_id_fkey"
+            columns: ["enroll_id"]
+            isOneToOne: false
+            referencedRelation: "person"
             referencedColumns: ["id"]
           },
         ]
@@ -1421,6 +1654,36 @@ export type Database = {
           },
         ]
       }
+      lock_group: {
+        Row: {
+          access_week_id: number | null
+          created_at: string | null
+          id: number
+          lock1: number | null
+          lock2: number | null
+          lock3: number | null
+          lock4: number | null
+        }
+        Insert: {
+          access_week_id?: number | null
+          created_at?: string | null
+          id: number
+          lock1?: number | null
+          lock2?: number | null
+          lock3?: number | null
+          lock4?: number | null
+        }
+        Update: {
+          access_week_id?: number | null
+          created_at?: string | null
+          id?: number
+          lock1?: number | null
+          lock2?: number | null
+          lock3?: number | null
+          lock4?: number | null
+        }
+        Relationships: []
+      }
       logs_sistema: {
         Row: {
           accion: string
@@ -1442,6 +1705,42 @@ export type Database = {
           error?: boolean | null
           fecha?: string | null
           id?: never
+        }
+        Relationships: []
+      }
+      machine_command: {
+        Row: {
+          content: string | null
+          err_count: number | null
+          gmt_crate: string | null
+          gmt_modified: string | null
+          id: number
+          name: string | null
+          send_status: number | null
+          serial: string | null
+          status: number | null
+        }
+        Insert: {
+          content?: string | null
+          err_count?: number | null
+          gmt_crate?: string | null
+          gmt_modified?: string | null
+          id?: number
+          name?: string | null
+          send_status?: number | null
+          serial?: string | null
+          status?: number | null
+        }
+        Update: {
+          content?: string | null
+          err_count?: number | null
+          gmt_crate?: string | null
+          gmt_modified?: string | null
+          id?: number
+          name?: string | null
+          send_status?: number | null
+          serial?: string | null
+          status?: number | null
         }
         Relationships: []
       }
@@ -1546,6 +1845,7 @@ export type Database = {
           anio: number
           approved_at: string | null
           approved_by: string | null
+          cantidad_lineas: number | null
           centro_salud_id: string
           created_at: string | null
           created_by: string | null
@@ -1553,8 +1853,12 @@ export type Database = {
           id: string
           mes: number
           observaciones: string | null
+          periodo: string | null
+          total_bruto: number | null
+          total_descuentos: number | null
           total_guardias: number | null
           total_importe: number | null
+          total_neto: number | null
           total_profesionales: number | null
           updated_at: string | null
         }
@@ -1562,6 +1866,7 @@ export type Database = {
           anio: number
           approved_at?: string | null
           approved_by?: string | null
+          cantidad_lineas?: number | null
           centro_salud_id: string
           created_at?: string | null
           created_by?: string | null
@@ -1569,8 +1874,12 @@ export type Database = {
           id?: string
           mes: number
           observaciones?: string | null
+          periodo?: string | null
+          total_bruto?: number | null
+          total_descuentos?: number | null
           total_guardias?: number | null
           total_importe?: number | null
+          total_neto?: number | null
           total_profesionales?: number | null
           updated_at?: string | null
         }
@@ -1578,6 +1887,7 @@ export type Database = {
           anio?: number
           approved_at?: string | null
           approved_by?: string | null
+          cantidad_lineas?: number | null
           centro_salud_id?: string
           created_at?: string | null
           created_by?: string | null
@@ -1585,8 +1895,12 @@ export type Database = {
           id?: string
           mes?: number
           observaciones?: string | null
+          periodo?: string | null
+          total_bruto?: number | null
+          total_descuentos?: number | null
           total_guardias?: number | null
           total_importe?: number | null
+          total_neto?: number | null
           total_profesionales?: number | null
           updated_at?: string | null
         }
@@ -1602,6 +1916,9 @@ export type Database = {
       }
       nominas_guardias_lineas: {
         Row: {
+          bonificacion_festivo: number | null
+          bonificacion_fin_semana: number | null
+          bonificacion_guardia: number | null
           categoria: Database["public"]["Enums"]["categoria_profesional_guardia"]
           coste_localizable_llamada: number | null
           coste_localizable_programada: number | null
@@ -1609,18 +1926,25 @@ export type Database = {
           coste_unitario_fin_semana: number | null
           coste_unitario_ordinario: number | null
           created_at: string | null
+          descuentos: number | null
+          detalles: string | null
           guardias_festivos: number | null
           guardias_fines_semana: number | null
           guardias_ordinarias: number | null
           id: string
           localizables_llamadas: number | null
           localizables_programadas: number | null
+          monto_base: number | null
+          monto_neto: number | null
           nomina_id: string
           profesional_guardia_id: string
           total_linea: number | null
           updated_at: string | null
         }
         Insert: {
+          bonificacion_festivo?: number | null
+          bonificacion_fin_semana?: number | null
+          bonificacion_guardia?: number | null
           categoria: Database["public"]["Enums"]["categoria_profesional_guardia"]
           coste_localizable_llamada?: number | null
           coste_localizable_programada?: number | null
@@ -1628,18 +1952,25 @@ export type Database = {
           coste_unitario_fin_semana?: number | null
           coste_unitario_ordinario?: number | null
           created_at?: string | null
+          descuentos?: number | null
+          detalles?: string | null
           guardias_festivos?: number | null
           guardias_fines_semana?: number | null
           guardias_ordinarias?: number | null
           id?: string
           localizables_llamadas?: number | null
           localizables_programadas?: number | null
+          monto_base?: number | null
+          monto_neto?: number | null
           nomina_id: string
           profesional_guardia_id: string
           total_linea?: number | null
           updated_at?: string | null
         }
         Update: {
+          bonificacion_festivo?: number | null
+          bonificacion_fin_semana?: number | null
+          bonificacion_guardia?: number | null
           categoria?: Database["public"]["Enums"]["categoria_profesional_guardia"]
           coste_localizable_llamada?: number | null
           coste_localizable_programada?: number | null
@@ -1647,12 +1978,16 @@ export type Database = {
           coste_unitario_fin_semana?: number | null
           coste_unitario_ordinario?: number | null
           created_at?: string | null
+          descuentos?: number | null
+          detalles?: string | null
           guardias_festivos?: number | null
           guardias_fines_semana?: number | null
           guardias_ordinarias?: number | null
           id?: string
           localizables_llamadas?: number | null
           localizables_programadas?: number | null
+          monto_base?: number | null
+          monto_neto?: number | null
           nomina_id?: string
           profesional_guardia_id?: string
           total_linea?: number | null
@@ -1725,13 +2060,18 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           estado: string | null
+          fecha_aprobacion: string | null
           fecha_pago: string | null
+          fecha_procesamiento: string | null
           forma_pago: string
           id: string
           importe: number
+          metodo_pago: string | null
           nomina_id: string
+          nomina_linea_id: string | null
           observaciones: string | null
           profesional_guardia_id: string
+          referencia_pago: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1739,13 +2079,18 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           estado?: string | null
+          fecha_aprobacion?: string | null
           fecha_pago?: string | null
+          fecha_procesamiento?: string | null
           forma_pago: string
           id?: string
           importe: number
+          metodo_pago?: string | null
           nomina_id: string
+          nomina_linea_id?: string | null
           observaciones?: string | null
           profesional_guardia_id: string
+          referencia_pago?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1753,13 +2098,18 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           estado?: string | null
+          fecha_aprobacion?: string | null
           fecha_pago?: string | null
+          fecha_procesamiento?: string | null
           forma_pago?: string
           id?: string
           importe?: number
+          metodo_pago?: string | null
           nomina_id?: string
+          nomina_linea_id?: string | null
           observaciones?: string | null
           profesional_guardia_id?: string
+          referencia_pago?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1869,6 +2219,27 @@ export type Database = {
           restricciones?: Json | null
           updated_at?: string | null
           usuario_id?: string
+        }
+        Relationships: []
+      }
+      person: {
+        Row: {
+          created_at: string | null
+          id: number
+          name: string
+          roll_id: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: number
+          name: string
+          roll_id?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          name?: string
+          roll_id?: number | null
         }
         Relationships: []
       }
@@ -2421,6 +2792,66 @@ export type Database = {
           },
         ]
       }
+      record: {
+        Row: {
+          created_at: string | null
+          day: number | null
+          device_serial_num: string | null
+          enroll_id: number | null
+          event: number | null
+          hour: number | null
+          id: number
+          int_out: number | null
+          minute: number | null
+          mode: number | null
+          month: number | null
+          record_time: string | null
+          reserved: number | null
+          second: number | null
+          verify_mode: number | null
+          workcode: number | null
+          year: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          day?: number | null
+          device_serial_num?: string | null
+          enroll_id?: number | null
+          event?: number | null
+          hour?: number | null
+          id?: number
+          int_out?: number | null
+          minute?: number | null
+          mode?: number | null
+          month?: number | null
+          record_time?: string | null
+          reserved?: number | null
+          second?: number | null
+          verify_mode?: number | null
+          workcode?: number | null
+          year?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          day?: number | null
+          device_serial_num?: string | null
+          enroll_id?: number | null
+          event?: number | null
+          hour?: number | null
+          id?: number
+          int_out?: number | null
+          minute?: number | null
+          mode?: number | null
+          month?: number | null
+          record_time?: string | null
+          reserved?: number | null
+          second?: number | null
+          verify_mode?: number | null
+          workcode?: number | null
+          year?: number | null
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           center_restricted: boolean | null
@@ -2905,6 +3336,41 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      user_lock: {
+        Row: {
+          created_at: string | null
+          end_time: string | null
+          enroll_id: number | null
+          id: number
+          lock_group_id: number | null
+          start_time: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_time?: string | null
+          enroll_id?: number | null
+          id?: number
+          lock_group_id?: number | null
+          start_time?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          end_time?: string | null
+          enroll_id?: number | null
+          id?: number
+          lock_group_id?: number | null
+          start_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_lock_enroll_id_fkey"
+            columns: ["enroll_id"]
+            isOneToOne: false
+            referencedRelation: "person"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_profiles: {
         Row: {

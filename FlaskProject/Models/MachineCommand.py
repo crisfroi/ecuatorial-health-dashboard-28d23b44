@@ -30,18 +30,18 @@ from Models.BaseModel import BaseModel
 # db = SQLAlchemy(app)
 
 
-class MachineCommand(db.Model):
+class MachineCommand(BaseModel):
     __tablename__ = 'machine_command'
     id = db.Column(db.Integer, primary_key=True)
-    serial = db.Column(db.String(80), nullable=False)
-    name = db.Column(db.String(80), nullable=False)
-    content = db.Column(db.String(255), nullable=False)
-    status = db.Column(db.Integer, nullable=False)
-    send_status = db.Column(db.Integer, nullable=False)
-    err_count = db.Column(db.Integer, nullable=False)
-    run_time = db.Column(db.DateTime, nullable=False)
-    gmt_crate = db.Column(db.DateTime, nullable=False)
-    gmt_modified = db.Column(db.DateTime, nullable=False)
+    serial = db.Column(db.String(80), default='')
+    name = db.Column(db.String(80), default='')
+    content = db.Column(db.Text)
+    status = db.Column(db.Integer, default=0)
+    send_status = db.Column(db.Integer, default=0)
+    err_count = db.Column(db.Integer, default=0)
+    run_time = db.Column(db.DateTime)
+    gmt_crate = db.Column(db.DateTime)
+    gmt_modified = db.Column(db.DateTime)
 
 
 

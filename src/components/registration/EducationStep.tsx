@@ -34,14 +34,29 @@ export const EducationStep = ({ form }: EducationStepProps) => {
   // Estados para añadir nueva institución y periodo
   const [addingNew, setAddingNew] = React.useState(false);
   const [categoriaInstitucion, setCategoriaInstitucion] = React.useState<string>('Universidad');
-  const [anioInicio, setAnioInicio] = React.useState<number | ''>('');
-  const [anioFin, setAnioFin] = React.useState<number | ''>('');
 
+  // Recuperar anio_inicio y anio_fin del formulario si existen
+  const savedAnioInicio = form.watch('anio_inicio');
+  const savedAnioFin = form.watch('anio_fin');
+
+  const [anioInicio, setAnioInicio] = React.useState<number | ''>(savedAnioInicio || '');
+  const [anioFin, setAnioFin] = React.useState<number | ''>(savedAnioFin || '');
+
+  // Sincronizar años con el formulario para persistencia
+  React.useEffect(() => {
+    if (anioInicio) form.setValue('anio_inicio', anioInicio);
+  }, [anioInicio, form]);
+
+  React.useEffect(() => {
+    if (anioFin) form.setValue('anio_fin', anioFin);
+  }, [anioFin, form]);
+
+  // Calcular período cuando los años cambian
   React.useEffect(() => {
     if (typeof anioInicio === 'number' && typeof anioFin === 'number' && anioInicio > 1900 && anioFin >= anioInicio) {
       form.setValue('periodo_formacion', `${anioInicio}-${anioFin}`);
     }
-  }, [anioInicio, anioFin]);
+  }, [anioInicio, anioFin, form]);
 
   React.useEffect(() => {
     // Si selecciona una institución existente, limpiamos la categoría editable

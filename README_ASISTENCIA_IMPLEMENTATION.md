@@ -284,22 +284,41 @@ Total: ~60 minutos para entender completamente
 ## 💡 TIPS IMPORTANTES
 
 ### Performance
-- **Vista es eficiente:** usa índices automáticamente
-- **Caché:** React Query por 1 minuto
-- **Paginación:** soportada en hook (limit + offset)
+- **Vista SQL:** Usa 4 índices para queries rápidas (< 200ms)
+- **React Query:** Caché por 1 minuto, fallback automático
+- **Paginación:** Soportada en hook (limit=100, offset=0)
+- **Volumen:** Optimizado para 140k registros/mes
 
-### Seguridad  
-- **RLS:** hereda permisos de tablas base
-- **Auditoría:** tabla lista para triggers futuros
+### Seguridad
+- **RLS Policies:** Auditoría visible solo para admins
+- **Auditoría automática:** Triggers en INSERT/UPDATE/DELETE
+- **Backward Compatible:** Ambos métodos siguen activos
 
-### Compatibilidad
-- **Backward Compatible:** ambos métodos siguen activos
-- **Deprecation Gradual:** sin cambios forzados
+### Archivos Clave para Próximo Desarrollador
 
-### Para Próximo Desarrollador
-- Los archivos .md tienen código listo para copy-paste
-- El hook React está listo para usar inmediatamente
-- Solo falta activar sync en Flask (es una línea)
+**Documentación:**
+1. `IMPLEMENTACION_ASISTENCIA_ESTADO.md` ← **LEER PRIMERO**
+2. `TESTING_ASISTENCIA_CONSOLIDADA.md` ← Para testing
+3. `PLAN_IMPLEMENTACION_ASISTENCIA.md` ← Detalles técnicos
+4. `ANALISIS_ASISTENCIA_COMPLETO.md` ← Arquitectura
+
+**Código Ready-to-Use:**
+```typescript
+// Hook React
+import { useAsistenciaConsolidada } from '@/hooks/useAsistenciaConsolidada';
+
+// Dashboard integrado
+import { AsistenciaIntegradoDashboard } from '@/components/asistencia/AsistenciaIntegradoDashboard';
+
+// Usar en componente
+<AsistenciaIntegradoDashboard />
+```
+
+**Backend Configurado:**
+- ✅ Supabase cliente en `database.py`
+- ✅ Scheduler en `app.py`
+- ✅ Sincronización automática cada 5 minutos
+- ✅ Solo faltan credenciales en env variables si es necesario cambiarlas
 
 ---
 

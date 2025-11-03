@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { TurnosBiometricos } from '@/components/guardias/tabs/TurnosBiometricos';
 import { Zap } from 'lucide-react';
 
+import { AsistenciaIntegradoDashboard } from './AsistenciaIntegradoDashboard';
 import { AsistenciaOverviewDashboard } from './AsistenciaOverviewDashboard';
 import { DispositivosPanel } from './DispositivosPanel';
 import { HorariosBasePanel } from './HorariosBasePanel';

@@ -498,20 +498,130 @@ def pub_api():
             # Get JSON data from POST request
             data = request.get_json() or {}
             cmd = data.get('cmd', '')
+            sn = data.get('sn', '')
             
             print(f"[/pub/api] Received POST: {data}")
             
-            # Handle different commands via HTTP
-            if cmd == 'ping':
+            # Handle device registration
+            if cmd == 'reg':
+                if sn:
+                    # Check if device exists
+                    device = get_device_by_serial_num(sn)
+                    if device is None:
+                        # Insert new device
+                        insert_device(sn, 1)
+                        print(f"[/pub/api] New device registered: {sn}")
+                    else:
+                        # Update existing device status
+                        update_status_by_primary_key(device.id, 1)
+                        print(f"[/pub/api] Device status updated: {sn}")
+                    
+                    return jsonify({
+                        "ret": "reg",
+                        "result": True,
+                        "cloudtime": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    })
+                else:
+                    return jsonify({
+                        "ret": "reg",
+                        "result": False,
+                        "reason": 1
+                    })
+            
+            # Handle attendance logs
+            elif cmd == 'sendlog':
+                count = data.get('count', 0)
+                log_index = data.get('logindex', -1)
+                records_data = data.get('record', [])
+                
+                if count > 0 and records_data:
+                    # Process each attendance record
+                    for record in records_data:
+                        enroll_id = record.get("enrollid")
+                        time_str = record.get("time")
+                        mode = record.get("mode")
+                        in_out = record.get("inout")
+                        event = record.get("event")
+                        temperature = 0
+                        
+                        if record.get("temp"):
+                            temperature = round(record["temp"] / 10, 1)
+                        
+                        # Prepare record for insertion
+                        record_data = {
+                            'device_serial_num': sn,
+                            'enroll_id': enroll_id,
+                            'event': event,
+                            'intOut': in_out,
+                            'mode': mode,
+                            'records_time': time_str,
+                            'temperature': temperature
+                        }
+                        
+                        # Handle image if present
+                        if record.get("image"):
+                            pic_name = str(uuid.uuid4())
+                            try:
+                                base64_to_image(record["image"], pic_name)
+                                record_data["image"] = pic_name + ".jpg"
+                            except Exception as e:
+                                print(f"[/pub/api] Error saving image: {e}")
+                        
+                        # Insert record into database
+                        try:
+                            insert_record2(**record_data)
+                            print(f"[/pub/api] Attendance record saved: enrollid={enroll_id}, time={time_str}")
+                        except Exception as e:
+                            print(f"[/pub/api] Error inserting record: {e}")
+                            import traceback
+                            traceback.print_exc()
+                    
+                    # Send success response
+                    if log_index >= 0:
+                        return jsonify({
+                            "ret": "sendlog",
+                            "result": True,
+                            "count": count,
+                            "logindex": log_index,
+                            "cloudtime": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        })
+                    else:
+                        return jsonify({
+                            "ret": "sendlog",
+                            "result": True,
+                            "cloudtime": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        })
+                else:
+                    return jsonify({
+                        "ret": "sendlog",
+                        "result": False,
+                        "reason": 1
+                    })
+            
+            # Handle device heartbeat/keepalive
+            elif cmd == 'checklive':
+                if sn:
+                    # Update device status to show it's alive
+                    device = get_device_by_serial_num(sn)
+                    if device:
+                        update_status_by_primary_key(device.id, 1)
+                
+                return jsonify({
+                    "ret": "checklive",
+                    "result": True,
+                    "cloudtime": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                })
+            
+            # Handle ping command
+            elif cmd == 'ping':
                 return jsonify({
                     "ret": "ping",
                     "result": True,
                     "cloudtime": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 })
             
+            # Handle status check
             elif cmd == 'status':
-                # Device status check
-                sn = data.get('sn', '')
                 if sn:
                     device = get_device_by_serial_num(sn)
                     return jsonify({

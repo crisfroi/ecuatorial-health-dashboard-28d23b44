@@ -263,13 +263,13 @@ export function MetricasPanel() {
           label="% asistencia promedio"
           value={metrics.attendanceRate}
           suffix="%"
-          loading={logsQuery.isLoading}
+          loading={consolidatedQuery.isLoading || logsQuery.isLoading}
         />
         <MetricCard
           icon={<Clock3 className="h-5 w-5" />}
           label="Retrasos detectados"
           value={metrics.lateCount}
-          loading={logsQuery.isLoading}
+          loading={consolidatedQuery.isLoading || logsQuery.isLoading}
         >
           <p className="text-xs text-muted-foreground">Retraso medio: {metrics.averageDelayMinutes} min</p>
         </MetricCard>
@@ -279,14 +279,14 @@ export function MetricasPanel() {
           value={metrics.overtimeHours}
           precision={1}
           suffix="h"
-          loading={logsQuery.isLoading}
+          loading={consolidatedQuery.isLoading || logsQuery.isLoading}
         />
         <MetricCard
           icon={<ShieldCheck className="h-5 w-5" />}
           label="Cumplimiento de turnos"
           value={metrics.complianceRate}
           suffix="%"
-          loading={logsQuery.isLoading}
+          loading={consolidatedQuery.isLoading || logsQuery.isLoading}
         />
       </div>
 

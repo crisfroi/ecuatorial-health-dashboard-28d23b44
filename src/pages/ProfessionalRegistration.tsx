@@ -184,7 +184,7 @@ const formSchema = z
       .boolean()
       .refine((val) => val === true, "Debe aceptar las políticas"),
   })
-  .superRefine((data, ctx) => {
+  .superRefine(async (data, ctx) => {
     if (!data.nacionalidad || data.nacionalidad.trim() === "") {
       return;
     }
@@ -196,6 +196,25 @@ const formSchema = z
           message: "Verifique su número de DIP",
           path: ["numero_dip"],
         });
+      } else {
+        // Validar que DIP sea único en la base de datos
+        try {
+          const { data: existingDIP, error } = await supabase
+            .from('profesionales_sanitarios')
+            .select('id')
+            .eq('numero_dip', data.numero_dip.trim())
+            .maybeSingle();
+
+          if (existingDIP && !error) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Este número de DIP ya está registrado en el sistema",
+              path: ["numero_dip"],
+            });
+          }
+        } catch (e) {
+          console.warn("Error validando DIP único:", e);
+        }
       }
     } else {
       if (!data.numero_pasaporte || data.numero_pasaporte.trim() === "") {
@@ -204,6 +223,25 @@ const formSchema = z
           message: "Verifique su número de Pasaporte.",
           path: ["numero_pasaporte"],
         });
+      } else {
+        // Validar que Pasaporte sea único en la base de datos
+        try {
+          const { data: existingPassport, error } = await supabase
+            .from('profesionales_sanitarios')
+            .select('id')
+            .eq('numero_pasaporte', data.numero_pasaporte.trim())
+            .maybeSingle();
+
+          if (existingPassport && !error) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Este número de Pasaporte ya está registrado en el sistema",
+              path: ["numero_pasaporte"],
+            });
+          }
+        } catch (e) {
+          console.warn("Error validando Pasaporte único:", e);
+        }
       }
     }
 

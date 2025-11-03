@@ -41,60 +41,85 @@ class SyncLogger:
 
 def push_new_records_to_supabase(supabase_client=None):
     """
-    Push newly created records from Flask to Supabase.
-    
-    This function queries for records created in the last hour and syncs them.
-    
+    Push newly created records from Flask to Supabase asistencia_fichajes.
+
+    This function queries for records created in the last hour and syncs them,
+    enriching with professional and center data via mapping tables.
+
     Args:
         supabase_client: Supabase client instance (for testing/optional)
     """
     if supabase_client is None:
         SyncLogger.log("Supabase client not configured. Skipping push.", "WARN")
         return
-    
+
     try:
         from Models.Records import Record
         from database import app
-        
+
         with app.app_context():
             # Find records created in last hour
             one_hour_ago = datetime.utcnow() - timedelta(hours=1)
             new_records = Record.query.filter(Record.created_at > one_hour_ago).all()
-            
+
             synced_count = 0
             for record in new_records:
                 try:
-                    # Prepare data for Supabase
+                    # Enrich record with profesional_id and centro_salud_id from mapping
+                    profesional_id = None
+                    centro_salud_id = None
+
+                    # Try to fetch mapping from Supabase
+                    try:
+                        mapping_response = supabase_client.table('empleado_dispositivo_map') \
+                            .select('id_profesional, id_dispositivo') \
+                            .eq('en_no', str(record.enroll_id)) \
+                            .limit(1) \
+                            .execute()
+
+                        if mapping_response.data and len(mapping_response.data) > 0:
+                            profesional_id = mapping_response.data[0].get('id_profesional')
+                            dispositivo_id = mapping_response.data[0].get('id_dispositivo')
+
+                            # Get center from dispositivo if needed
+                            if dispositivo_id:
+                                device_response = supabase_client.table('asistencia_dispositivos') \
+                                    .select('centro_salud_id') \
+                                    .eq('id', dispositivo_id) \
+                                    .limit(1) \
+                                    .execute()
+
+                                if device_response.data and len(device_response.data) > 0:
+                                    centro_salud_id = device_response.data[0].get('centro_salud_id')
+                    except Exception as mapping_err:
+                        SyncLogger.log(f"Warning: Could not fetch mapping for enroll_id {record.enroll_id}: {mapping_err}", "WARN")
+
+                    # Prepare data for asistencia_fichajes table
                     data = {
                         'enroll_id': record.enroll_id,
-                        'records_time': record.records_time.isoformat(),
+                        'device_sn': record.device_serial_num,
+                        'profesional_id': profesional_id,
+                        'centro_salud_id': centro_salud_id,
+                        'time_local': record.records_time.isoformat(),
+                        'inout': record.intOut,  # 0=IN, 1=OUT
                         'mode': record.mode,
-                        'int_out': record.intOut,
                         'event': record.event,
-                        'device_serial_num': record.device_serial_num,
-                        'temperature': record.temperature,
-                        'image': record.image,
-                        'verify_mode': record.verify_mode,
-                        'year': record.year,
-                        'month': record.month,
-                        'day': record.day,
-                        'hour': record.hour,
-                        'minute': record.minute,
-                        'second': record.second,
-                        'workcode': record.workcode,
-                        'reserved': record.reserved,
+                        'temperature': record.temperature / 100.0 if record.temperature else None,  # Standardize to Celsius
+                        'image_url': record.image,
+                        'source_type': 'biometrico',  # Mark as biometric source
+                        'raw_index': record.workcode,
                     }
-                    
-                    # Insert to Supabase
-                    supabase_client.table('records').insert(data).execute()
+
+                    # Insert to asistencia_fichajes in Supabase
+                    supabase_client.table('asistencia_fichajes').insert(data).execute()
                     synced_count += 1
-                    
+
                 except Exception as e:
                     SyncLogger.log(f"Error syncing record {record.id}: {e}", "ERROR")
-            
+
             if synced_count > 0:
-                SyncLogger.log(f"✅ Pushed {synced_count} records to Supabase", "INFO")
-    
+                SyncLogger.log(f"✅ Pushed {synced_count} records to asistencia_fichajes", "INFO")
+
     except Exception as e:
         SyncLogger.log(f"Error in push_new_records_to_supabase: {e}", "ERROR")
 

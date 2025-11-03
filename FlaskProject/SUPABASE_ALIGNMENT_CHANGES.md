@@ -148,6 +148,19 @@ Added optional dependency for bidirectional sync:
 
 ## Database Schema Alignment
 
+### ✅ Migrations Applied to Supabase (2024)
+
+The following migrations were applied to fully align Supabase with Flask schemas:
+
+1. ✅ `add_updated_at_to_person` - Added updated_at timestamp to person table
+2. ✅ `add_updated_at_to_enroll_info` - Added updated_at timestamp to enroll_info table
+3. ✅ `add_updated_at_to_records` - Added updated_at timestamp to records table
+4. ✅ `add_updated_at_to_access_day` - Added updated_at timestamp to access_day table
+5. ✅ `add_updated_at_to_access_week` - Added updated_at timestamp to access_week table
+6. ✅ `add_created_at_updated_at_to_machine_command` - Added both timestamps to machine_command table
+
+**Result**: Flask and Supabase now have identical timestamp columns across all biometric SDK tables.
+
 ### Supabase ← → Flask Alignment
 
 #### Records Table
@@ -167,7 +180,7 @@ Added optional dependency for bidirectional sync:
 | **month** | Integer | ✅ NEW | Month extracted from time |
 | **day** | Integer | ✅ NEW | Day extracted from time |
 | **hour** | Integer | ✅ NEW | Hour extracted from time |
-| **minute** | Integer | ✅ NEW | Minute extracted from time |
+| **minute** | Integer | ��� NEW | Minute extracted from time |
 | **second** | Integer | ✅ NEW | Second extracted from time |
 | **workcode** | Integer | ✅ NEW | Work code |
 | **reserved** | Integer | ✅ NEW | Reserved field |

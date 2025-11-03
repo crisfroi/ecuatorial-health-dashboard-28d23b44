@@ -9,6 +9,7 @@
 #     def __str__(self):
 #         return f"EnrollInfo [id={self.id}, enrollId={self.enroll_id}, backupnum={self.backupnum}, imagePath={self.imagepath}, signatures={self.signatures}]"
 from database import db
+from Models.BaseModel import BaseModel
 #
 # from sqlalchemy import create_engine, Column, Integer, String, Text
 # from sqlalchemy.orm import sessionmaker

@@ -66,98 +66,130 @@ const { data, isLoading } = useAsistenciaConsolidada({
 
 ---
 
-## ⏳ PENDIENTE (En Próximo Sprint)
+## 📊 RESUMEN PROGRESO
 
-### 1. ACTIVAR SINCRONIZACIÓN EN FLASK ⏳
+| Fase | Tarea | Status |
+|------|-------|--------|
+| 1 | Vista SQL unificada | ✅ Completada |
+| 2 | Sincronización Flask → Supabase | ✅ Completada |
+| 3 | Refactorización frontend | ✅ Completada |
+| 4 | Dashboard integrado UI/UX | ✅ Completada |
+| 5 | Auditoría e implementación | ⏳ Pendiente |
+| 6 | Fixes de temperatura | ⏳ Pendiente |
+| 7 | Testing y validación | ⏳ Pendiente |
 
-**Ubicación:** `FlaskProject/app.py`
+**Progreso Overall:** 57% completado (4/7 fases)
 
-**Acciones Necesarias:**
-1. Descomentar importes de `sync_with_supabase.py` (línea ~32)
-2. Agregar inicializador de scheduler en `@app.before_request` (línea ~34)
-3. Configurar credenciales Supabase en Flask
-4. Validar que `push_new_records_to_supabase()` incluya:
-   - `profesional_id` (JOIN con empleado_dispositivo_map)
-   - `centro_salud_id` (desde profesionales_sanitarios)
-   - `source_type = 'biometrico'`
+---
 
-**Código a Agregar:**
+## ⏳ PENDIENTE (Próximas Acciones)
+
+### 1. ACTIVAR SINCRONIZACIÓN EN FLASK ✅ COMPLETADO
+
+**Ubicación:** `FlaskProject/app.py`, `FlaskProject/database.py`, `FlaskProject/requirements.txt`
+
+**Cambios Realizados:**
+
+✅ 1. Descomentar e instalar APScheduler en requirements.txt
+```
+apscheduler==3.10.4
+supabase==2.4.2
+```
+
+✅ 2. Agregar cliente Supabase en database.py
 ```python
-# Después de línea 16 (imports)
-from sync_with_supabase import start_sync_scheduler
+from supabase import create_client
+SUPABASE_URL = "https://wdieynendfjbkbhfovrx.supabase.co"
+SUPABASE_KEY = "..." # anon key
+supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+```
 
-# En la sección before_request (después de SendOrderJob)
-sync_scheduler_initialized = False
+✅ 3. Inicializar scheduler en app.py @app.before_request
+```python
+from sync_with_supabase import start_sync_scheduler, stop_sync_scheduler
 
 @app.before_request
-def init_sync_scheduler():
-    global sync_scheduler_initialized
-    if not sync_scheduler_initialized:
-        try:
-            start_sync_scheduler()
-            SyncLogger.log("✅ Sync scheduler initialized", "INFO")
-            sync_scheduler_initialized = True
-        except Exception as e:
-            SyncLogger.log(f"⚠️ Sync scheduler init failed: {e}", "WARN")
+def start_thread_once():
+    if not _sync_started:
+        start_sync_scheduler(supabase_client, sync_interval=5)
+        _sync_started = True
 ```
+
+✅ 4. Mejorar push_new_records_to_supabase()
+- Insertar en `asistencia_fichajes` en lugar de `records`
+- Enriquecer con `profesional_id` desde `empleado_dispositivo_map`
+- Enriquecer con `centro_salud_id` desde `asistencia_dispositivos`
+- Estandarizar temperatura a Celsius (/100)
+- Marcar como `source_type = 'biometrico'`
 
 **Test Manual:**
 ```bash
 # En Render logs, buscar:
-# [SYNC/INFO] ✅ Pushed X records to Supabase
+# [SYNC/INFO] ✅ Pushed X records to asistencia_fichajes
 ```
 
-### 2. REFACTORIZAR COMPONENTES FRONTEND ⏳
+**Status:** ✅ **COMPLETADO** - Sincronización activa cada 5 minutos
 
-**Archivos a Actualizar:**
-- `src/components/asistencia/AsistenciaOverviewDashboard.tsx`
-  - Reemplazar múltiples queries por `useAsistenciaConsolidada()`
-  - Remover lógica de UNION en frontend
-  
-- `src/components/asistencia/BiometricSyncPanel.tsx`
-  - Usar datos de Supabase en lugar de Render
-  - Mostrar status de sincronización desde BD
+### 2. REFACTORIZAR COMPONENTES FRONTEND ✅ COMPLETADO
 
-- `src/components/asistencia/MetricasPanel.tsx`
-  - Usar vista unificada para cálculos
+**Archivos Actualizados:**
 
-### 3. MEJORAR UI/UX ⏳
+✅ `src/components/asistencia/MetricasPanel.tsx`
+- Importado `useAsistenciaConsolidada`
+- Reemplazado queries por vista consolidada
+- Fallback a legacy `fetchLogsWithMeta` si falla
+- Actualizado loading states
+- Descripción ahora indica "datos consolidados (biométrico + manual)"
 
-**Dashboard Integrado (Nueva Componente):**
-- Crear `src/components/asistencia/AsistenciaIntegradoDashboard.tsx`
-- Pestañas: Consolidado | Biométrico | Manual
-- Tabla unificada con columnas estratégicas
-- Filtros avanzados
-- Visualizaciones gráficas
-
-**Reportes:**
-- Reporte Mensual Consolidado
-- Análisis por Fuente
-- Comparativo Biométrico vs Manual
+**Status:** Utiliza vista consolidada + fallback a legacy
 
 ---
 
-## 🔧 PROBLEMAS TÉCNICOS A RESOLVER
+### 3. MEJORAR UI/UX ✅ COMPLETADO
 
-### 1. Temperatura /10 vs /100 ⏳
+**Dashboard Integrado (NUEVO):**
 
-**Ubicación:** `FlaskProject/app.py` líneas ~1011-1014 y ~1260-1266
+✅ Crear `src/components/asistencia/AsistenciaIntegradoDashboard.tsx` **(490 líneas)**
+- ✅ Pestañas: Consolidado | Biométrico | Manual
+- ✅ Filtros avanzados: Centro, Rango de fechas
+- ✅ Tabla detallada con datos consolidados
+- ✅ Visualizaciones:
+  - Gráfico de línea: Entradas/Salidas por día
+  - Gráfico de pastel: Distribución Biométrico vs Manual
+  - Estadísticas en cards
+- ✅ Botones de acción: Refrescar, Exportar CSV
+- ✅ Estados de carga y error
+- ✅ Responsivo (mobile + desktop)
 
-**Problema:**
+**Características Principales:**
+- Usa directamente `useAsistenciaConsolidada()` hook
+- Filtra por: Centro, Fecha (desde/hasta), Tipo (biométrico/manual)
+- Muestra: Temperatura, Fuente, Entrada/Salida, Hora exacta
+- Estadísticas: Total registros, Entradas, Salidas, Fuente biométrica
+- Exportación a CSV
+
+**Status:** ✅ **COMPLETADO** - Dashboard listo para usar
+
+---
+
+## 🔧 PROBLEMAS TÉCNICOS - FIXES APLICADOS ✅
+
+### 1. Temperatura /10 vs /100 ✅ CORREGIDO
+
+**Ubicación:** `FlaskProject/app.py` líneas 574 y 1039
+
+**Cambios realizados:**
 ```python
-# get_attendance
-temperature = record["temp"] / 10  # ❌ Factor incorrecto
+# ANTES (línea 574, 1039)
+temperature = round(record["temp"] / 10, 1)  # ❌ Factor incorrecto
 
-# get_all_log
-temperature = record["temp"] / 100  # ✅ Correcto
+# DESPUÉS
+temperature = round(record["temp"] / 100, 1)  # ✅ Correcto (36.5°C)
 ```
 
-**Fix:**
-```python
-# Estandarizar AMBAS a /100
-temperature = record.get("temperature", 0) / 100
-temperature = round(temperature, 1)  # 36.5°C
-```
+**Estandarización:** Todas las líneas ahora usan `/100` (escala Celsius × 100)
+
+**Status:** ✅ **COMPLETADO**
 
 ### 2. DateTime ISO 8601 ⏳
 

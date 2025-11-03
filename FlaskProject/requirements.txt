@@ -52,6 +52,6 @@ websockets
 psycopg[binary]==3.2.12
 pymysql==1.1.0
 
-# Optional: Bidirectional Supabase sync (uncomment if using sync_with_supabase)
-# apscheduler==3.10.4
-# Uncomment above line and run: pip install apscheduler
+# Supabase SDK and async task scheduling for bidirectional sync
+apscheduler==3.10.4
+supabase==2.4.2

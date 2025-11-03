@@ -47,7 +47,7 @@ export default function AsistenciaDashboard() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
-          <AsistenciaOverviewDashboard />
+          <AsistenciaIntegradoDashboard />
         </TabsContent>
 
         <TabsContent value="dispositivos" className="mt-6">

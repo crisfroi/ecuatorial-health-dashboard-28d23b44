@@ -1036,7 +1036,7 @@ def get_attendance(json_node, conn):
             event = record["event"]
             temperature = 0
             if record.get("temp"):
-                temperature = round(record["temp"] / 10, 1)
+                temperature = round(record["temp"] / 100, 1)
                 obj["temperature"] = str(temperature)
             records = {
                 'device_serial_num': sn,

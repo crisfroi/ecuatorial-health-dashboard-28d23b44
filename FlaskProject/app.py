@@ -30,14 +30,40 @@ app.config['SQLALCHEMY_DATABASE_URI'] = url
 db.init_app(app)
 #region -----------长时任务开始---------------------------------------------
 import atexit
+from sync_with_supabase import start_sync_scheduler, stop_sync_scheduler
+
 send_order_job = SendOrderJob()
+
+# Global flags to track initialization
+_thread_started = False
+_sync_started = False
+
 @app.before_request
 def start_thread_once():
-    if not send_order_job.is_running():
+    global _thread_started, _sync_started
+
+    # Start SendOrderJob
+    if not _thread_started and not send_order_job.is_running():
         print("start----------")
         send_order_job.start_thread()
+        _thread_started = True
 
+    # Start Supabase sync scheduler (only once)
+    if not _sync_started:
+        try:
+            from database import supabase_client
+            if supabase_client:
+                if start_sync_scheduler(supabase_client, sync_interval=5):
+                    print("✅ Supabase sync scheduler initialized (interval: 5 minutes)")
+                    _sync_started = True
+            else:
+                print("⚠️  Supabase client not available. Sync scheduler disabled.")
+        except Exception as e:
+            print(f"⚠️  Error initializing sync scheduler: {e}")
+
+# Clean up on exit
 atexit.register(send_order_job.stop_thread)
+atexit.register(stop_sync_scheduler)
 #endregion -----------长时任务结束---------------------------------------------
 #region-----------web 处理开始---------------------------------------------
 @app.route('/')
@@ -1002,7 +1028,7 @@ def get_attendance(json_node, conn):
     flag = False
     if count > 0:
         for record in json_node["record"]:
-            obj = {} # todo: 现在没有用，这个 2024年1月11日18:40:14
+            obj = {} # todo: 现在没有用，这个 2024年1��11日18:40:14
             enroll_id = record["enrollid"]
             time_str = record["time"]
             mode = record["mode"]

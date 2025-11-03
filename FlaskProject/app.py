@@ -569,9 +569,9 @@ def pub_api():
                         in_out = record.get("inout")
                         event = record.get("event")
                         temperature = 0
-                        
+
                         if record.get("temp"):
-                            temperature = round(record["temp"] / 10, 1)
+                            temperature = round(record["temp"] / 100, 1)
                         
                         # Prepare record for insertion
                         record_data = {

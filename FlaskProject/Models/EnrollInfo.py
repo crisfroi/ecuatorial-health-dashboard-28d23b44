@@ -20,7 +20,7 @@ from database import db
 
 
 class EnrollInfo(db.Model):
-    __tablename__ = 'enrollinfo'
+    __tablename__ = 'enroll_info'
 
     id = db.Column(db.Integer, primary_key=True)
     enroll_id = db.Column(db.Integer)

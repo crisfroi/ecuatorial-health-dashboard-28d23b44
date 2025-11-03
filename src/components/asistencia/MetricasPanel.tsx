@@ -69,6 +69,19 @@ export function MetricasPanel() {
     staleTime: 5 * 60_000,
   });
 
+  const consolidatedFilters = useMemo(
+    () => ({
+      centroId: centerId === 'todos' ? undefined : centerId,
+      fechaDesde: from,
+      fechaHasta: to,
+    }),
+    [from, to, centerId]
+  );
+
+  // Use consolidated asistencia view instead of separate attendance_logs
+  const consolidatedQuery = useAsistenciaConsolidada(consolidatedFilters);
+
+  // Keep legacy hook for backward compatibility if needed
   const filters = useMemo(
     () => ({
       from,
@@ -80,11 +93,13 @@ export function MetricasPanel() {
     [from, to, centerId]
   );
 
+  // Fallback to legacy method if consolidated fails
   const logsQuery = useQuery({
     queryKey: ['attendance-metrics', filters],
     queryFn: () => fetchLogsWithMeta(filters),
     keepPreviousData: true,
     staleTime: 60_000,
+    enabled: consolidatedQuery.isError, // Only use as fallback
   });
 
   const enrichedEntries = useMemo(

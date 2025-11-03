@@ -33,7 +33,7 @@ from Models.BaseModel import BaseModel
 
 
 
-class AccessDay(db.Model):
+class AccessDay(BaseModel):
     __tablename__ = 'access_day'
 
     id = db.Column(db.Integer, primary_key=True)

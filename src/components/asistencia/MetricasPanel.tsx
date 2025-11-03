@@ -331,10 +331,10 @@ export function MetricasPanel() {
             <CardTitle className="flex items-center gap-2 text-base">
               <BarChart3 className="h-5 w-5" /> Resumen por centro
             </CardTitle>
-            <CardDescription>Suma de horas registradas en cada centro.</CardDescription>
+            <CardDescription>Suma de horas registradas en cada centro (datos consolidados).</CardDescription>
           </CardHeader>
           <CardContent>
-            {logsQuery.isLoading ? (
+            {consolidatedQuery.isLoading || logsQuery.isLoading ? (
               <Skeleton className="h-48 w-full" />
             ) : centerSummary.length ? (
               <div className="space-y-4">

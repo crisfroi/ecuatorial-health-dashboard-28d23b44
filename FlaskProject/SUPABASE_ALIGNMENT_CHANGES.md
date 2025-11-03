@@ -180,17 +180,27 @@ The following migrations were applied to fully align Supabase with Flask schemas
 | **month** | Integer | ✅ NEW | Month extracted from time |
 | **day** | Integer | ✅ NEW | Day extracted from time |
 | **hour** | Integer | ✅ NEW | Hour extracted from time |
-| **minute** | Integer | ��� NEW | Minute extracted from time |
+| **minute** | Integer | ✅ NEW | Minute extracted from time |
 | **second** | Integer | ✅ NEW | Second extracted from time |
 | **workcode** | Integer | ✅ NEW | Work code |
 | **reserved** | Integer | ✅ NEW | Reserved field |
 | **created_at** | DateTime | ✅ INHERITED | Auto timestamp |
 | **updated_at** | DateTime | ✅ INHERITED | Auto timestamp |
 
-#### All Tables
-All tables now have:
+#### All Tables - Perfect Alignment ✅
+
+All biometric SDK tables now have:
 - `created_at` - Creation timestamp (automatic)
 - `updated_at` - Last update timestamp (automatic)
+
+**Alignment Status**:
+- person ✅ created_at, updated_at
+- device ✅ created_at, updated_at
+- enroll_info ✅ created_at, updated_at
+- records ✅ created_at, updated_at + 9 descriptive columns
+- machine_command ✅ created_at, updated_at (+ legacy gmt_crate, gmt_modified)
+- access_day ✅ created_at, updated_at
+- access_week ✅ created_at, updated_at
 
 ---
 

@@ -17,14 +17,15 @@ from datetime import datetime
 class Record(db.Model):
     __tablename__ = 'records'
     id = db.Column(db.Integer, primary_key=True)
-    enroll_id = db.Column(db.BigInteger)
-    records_time = db.Column(db.DateTime)
-    mode = db.Column(db.Integer)
-    intOut = db.Column(db.Integer)
-    event = db.Column(db.Integer)
-    device_serial_num = db.Column(db.String)
+    enroll_id = db.Column(db.BigInteger, nullable=False)
+    records_time = db.Column(db.DateTime, nullable=False)
+    mode = db.Column(db.Integer, nullable=False)
+    intOut = db.Column(db.Integer, nullable=False)
+    event = db.Column(db.Integer, nullable=False)
+    device_serial_num = db.Column(db.String(50))
     temperature = db.Column(db.Float)
-    image = db.Column(db.String)
+    image = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __str__(self):
         return f"Record [id={self.id}, enroll_id={self.enroll_id}, records_time={self.records_time}, mode={self.mode}, " \

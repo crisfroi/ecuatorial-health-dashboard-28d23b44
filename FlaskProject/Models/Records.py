@@ -54,10 +54,27 @@ class Record(db.Model):
 def insert_record(record):
     db.session.add(record)
     db.session.commit()
-def insert_record2(**record):
-    record = Record(**record)
-    db.session.add(record)
-    db.session.commit()
+def insert_record2(**record_data):
+    try:
+        # Validate required fields
+        required_fields = ['enroll_id', 'records_time', 'mode', 'intOut', 'event', 'device_serial_num']
+        for field in required_fields:
+            if field not in record_data:
+                raise ValueError(f"Missing required field: {field}")
+
+        # Create record instance
+        record = Record(**record_data)
+        db.session.add(record)
+        db.session.flush()  # Flush to ensure ID is generated
+        db.session.commit()
+
+        # Log successful insertion
+        print(f"[Records.insert_record2] Successfully inserted record: id={record.id}, enroll_id={record.enroll_id}, time={record.records_time}")
+        return record.id
+    except Exception as e:
+        db.session.rollback()
+        print(f"[Records.insert_record2] Error inserting record: {str(e)}")
+        raise
 
 def select_record_by_id(id):
     return  db.session.query(Record).get(id)

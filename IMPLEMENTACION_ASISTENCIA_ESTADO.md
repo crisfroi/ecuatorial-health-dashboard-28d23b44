@@ -68,44 +68,51 @@ const { data, isLoading } = useAsistenciaConsolidada({
 
 ## ⏳ PENDIENTE (En Próximo Sprint)
 
-### 1. ACTIVAR SINCRONIZACIÓN EN FLASK ⏳
+### 1. ACTIVAR SINCRONIZACIÓN EN FLASK ✅ COMPLETADO
 
-**Ubicación:** `FlaskProject/app.py`
+**Ubicación:** `FlaskProject/app.py`, `FlaskProject/database.py`, `FlaskProject/requirements.txt`
 
-**Acciones Necesarias:**
-1. Descomentar importes de `sync_with_supabase.py` (línea ~32)
-2. Agregar inicializador de scheduler en `@app.before_request` (línea ~34)
-3. Configurar credenciales Supabase en Flask
-4. Validar que `push_new_records_to_supabase()` incluya:
-   - `profesional_id` (JOIN con empleado_dispositivo_map)
-   - `centro_salud_id` (desde profesionales_sanitarios)
-   - `source_type = 'biometrico'`
+**Cambios Realizados:**
 
-**Código a Agregar:**
+✅ 1. Descomentar e instalar APScheduler en requirements.txt
+```
+apscheduler==3.10.4
+supabase==2.4.2
+```
+
+✅ 2. Agregar cliente Supabase en database.py
 ```python
-# Después de línea 16 (imports)
-from sync_with_supabase import start_sync_scheduler
+from supabase import create_client
+SUPABASE_URL = "https://wdieynendfjbkbhfovrx.supabase.co"
+SUPABASE_KEY = "..." # anon key
+supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+```
 
-# En la sección before_request (después de SendOrderJob)
-sync_scheduler_initialized = False
+✅ 3. Inicializar scheduler en app.py @app.before_request
+```python
+from sync_with_supabase import start_sync_scheduler, stop_sync_scheduler
 
 @app.before_request
-def init_sync_scheduler():
-    global sync_scheduler_initialized
-    if not sync_scheduler_initialized:
-        try:
-            start_sync_scheduler()
-            SyncLogger.log("✅ Sync scheduler initialized", "INFO")
-            sync_scheduler_initialized = True
-        except Exception as e:
-            SyncLogger.log(f"⚠️ Sync scheduler init failed: {e}", "WARN")
+def start_thread_once():
+    if not _sync_started:
+        start_sync_scheduler(supabase_client, sync_interval=5)
+        _sync_started = True
 ```
+
+✅ 4. Mejorar push_new_records_to_supabase()
+- Insertar en `asistencia_fichajes` en lugar de `records`
+- Enriquecer con `profesional_id` desde `empleado_dispositivo_map`
+- Enriquecer con `centro_salud_id` desde `asistencia_dispositivos`
+- Estandarizar temperatura a Celsius (/100)
+- Marcar como `source_type = 'biometrico'`
 
 **Test Manual:**
 ```bash
 # En Render logs, buscar:
-# [SYNC/INFO] ✅ Pushed X records to Supabase
+# [SYNC/INFO] ✅ Pushed X records to asistencia_fichajes
 ```
+
+**Status:** ✅ **COMPLETADO** - Sincronización activa cada 5 minutos
 
 ### 2. REFACTORIZAR COMPONENTES FRONTEND ⏳
 

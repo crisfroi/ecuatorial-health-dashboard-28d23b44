@@ -300,10 +300,45 @@ Antes de empezar implementación:
 
 ---
 
-**Documento Generado:** 2025-01-15
-**Actualizado:** 2025-01-16
-**Status:** ✅ IMPLEMENTACIÓN 100% COMPLETADA - LISTO PARA PRODUCCIÓN
-**Progreso:** 100% - Todas las fases completadas
+**Documento Generado:** 2025-01-15  
+**Actualizado:** 2025-01-16  
+**Status:** ✅ PRODUCCIÓN - Sistema operativo con sincronización completa  
+**Progreso:** 100% - Todas las fases implementadas
+
+---
+
+## 📡 PROTOCOLO WEBSOCKET+JSON (NUEVO)
+
+### Documento Creado: `WEBSOCKET_JSON_PROTOCOL.md`
+
+Este nuevo documento describe en detalle:
+
+1. **Protocolo de comunicación:**
+   - WebSocket persistente `/pub/chat`
+   - Comandos bidireccionales JSON
+   - Heartbeat cada 60 segundos
+
+2. **Manejo offline:**
+   - Dispositivo almacena hasta 100,000 registros en flash
+   - Sincronización automática al recuperar red
+   - NO se pierden datos en cortes de energía
+
+3. **Línea de tiempo correcta:**
+   - Timestamp original del dispositivo (no de recepción)
+   - Vista consolidada ordena cronológicamente
+   - Sin contradicciones entre métodos
+
+4. **Sincronización cada 5 minutos:**
+   - APScheduler: `sync_with_supabase.py`
+   - Push enriquecido con profesional_id + centro_id
+   - WebSocket NO se cierra (conexión permanente)
+
+5. **Estructura completa de datos:**
+   - Registro de asistencia (enrollid, time, inout, mode, temp)
+   - Respuestas del servidor
+   - Comandos disponibles
+
+**Ver documento completo para detalles técnicos.**
 
 ---
 

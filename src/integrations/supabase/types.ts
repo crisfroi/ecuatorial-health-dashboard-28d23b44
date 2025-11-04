@@ -24,6 +24,7 @@ export type Database = {
           time2_start: string | null
           time3_end: string | null
           time3_start: string | null
+          updated_at: string | null
         }
         Insert: {
           created_at?: string | null
@@ -34,6 +35,7 @@ export type Database = {
           time2_start?: string | null
           time3_end?: string | null
           time3_start?: string | null
+          updated_at?: string | null
         }
         Update: {
           created_at?: string | null
@@ -44,6 +46,7 @@ export type Database = {
           time2_start?: string | null
           time3_end?: string | null
           time3_start?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -57,6 +60,7 @@ export type Database = {
           sun: number | null
           thu: number | null
           tue: number | null
+          updated_at: string | null
           wed: number | null
         }
         Insert: {
@@ -68,6 +72,7 @@ export type Database = {
           sun?: number | null
           thu?: number | null
           tue?: number | null
+          updated_at?: string | null
           wed?: number | null
         }
         Update: {
@@ -79,6 +84,7 @@ export type Database = {
           sun?: number | null
           thu?: number | null
           tue?: number | null
+          updated_at?: string | null
           wed?: number | null
         }
         Relationships: []
@@ -161,6 +167,39 @@ export type Database = {
         }
         Relationships: []
       }
+      asistencia_auditoria: {
+        Row: {
+          accion: string
+          created_at: string | null
+          datos_antes: Json | null
+          datos_despues: Json | null
+          fichaje_id: string | null
+          id: string
+          ip_address: unknown
+          usuario_id: string | null
+        }
+        Insert: {
+          accion: string
+          created_at?: string | null
+          datos_antes?: Json | null
+          datos_despues?: Json | null
+          fichaje_id?: string | null
+          id?: string
+          ip_address?: unknown
+          usuario_id?: string | null
+        }
+        Update: {
+          accion?: string
+          created_at?: string | null
+          datos_antes?: Json | null
+          datos_despues?: Json | null
+          fichaje_id?: string | null
+          id?: string
+          ip_address?: unknown
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
       asistencia_dispositivos: {
         Row: {
           centro_salud_id: string | null
@@ -233,6 +272,7 @@ export type Database = {
       }
       asistencia_fichajes: {
         Row: {
+          centro_salud_id: string | null
           created_at: string | null
           device_sn: string
           enroll_id: number
@@ -247,6 +287,7 @@ export type Database = {
           time_local: string
         }
         Insert: {
+          centro_salud_id?: string | null
           created_at?: string | null
           device_sn: string
           enroll_id: number
@@ -261,6 +302,7 @@ export type Database = {
           time_local: string
         }
         Update: {
+          centro_salud_id?: string | null
           created_at?: string | null
           device_sn?: string
           enroll_id?: number
@@ -275,6 +317,13 @@ export type Database = {
           time_local?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "asistencia_fichajes_centro_salud_id_fkey"
+            columns: ["centro_salud_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "asistencia_fichajes_profesional_id_fkey"
             columns: ["profesional_id"]
@@ -1127,6 +1176,7 @@ export type Database = {
           id: number
           imagepath: string | null
           signatures: string | null
+          updated_at: string | null
         }
         Insert: {
           backupnum: number
@@ -1135,6 +1185,7 @@ export type Database = {
           id?: number
           imagepath?: string | null
           signatures?: string | null
+          updated_at?: string | null
         }
         Update: {
           backupnum?: number
@@ -1143,6 +1194,7 @@ export type Database = {
           id?: number
           imagepath?: string | null
           signatures?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -1711,36 +1763,45 @@ export type Database = {
       machine_command: {
         Row: {
           content: string | null
+          created_at: string | null
           err_count: number | null
           gmt_crate: string | null
           gmt_modified: string | null
           id: number
           name: string | null
+          run_time: string | null
           send_status: number | null
           serial: string | null
           status: number | null
+          updated_at: string | null
         }
         Insert: {
           content?: string | null
+          created_at?: string | null
           err_count?: number | null
           gmt_crate?: string | null
           gmt_modified?: string | null
           id?: number
           name?: string | null
+          run_time?: string | null
           send_status?: number | null
           serial?: string | null
           status?: number | null
+          updated_at?: string | null
         }
         Update: {
           content?: string | null
+          created_at?: string | null
           err_count?: number | null
           gmt_crate?: string | null
           gmt_modified?: string | null
           id?: number
           name?: string | null
+          run_time?: string | null
           send_status?: number | null
           serial?: string | null
           status?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2228,18 +2289,21 @@ export type Database = {
           id: number
           name: string
           roll_id: number | null
+          updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           id: number
           name: string
           roll_id?: number | null
+          updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           id?: number
           name?: string
           roll_id?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2393,7 +2457,6 @@ export type Database = {
           notas_revision: string | null
           numero_autonumerico_correlativo: number | null
           numero_dip: string | null
-          numero_documento: string | null
           numero_enrolamiento_enno: number | null
           numero_funcionario: string | null
           numero_pasaporte: string | null
@@ -2413,7 +2476,6 @@ export type Database = {
           situacion_laboral: string | null
           telefono: string | null
           tipo_cooperacion: string | null
-          tipo_documento: string | null
           tipo_formacion_1: string | null
           tipo_formacion_2: string | null
           tipo_sector: string | null
@@ -2492,7 +2554,6 @@ export type Database = {
           notas_revision?: string | null
           numero_autonumerico_correlativo?: number | null
           numero_dip?: string | null
-          numero_documento?: string | null
           numero_enrolamiento_enno?: number | null
           numero_funcionario?: string | null
           numero_pasaporte?: string | null
@@ -2512,7 +2573,6 @@ export type Database = {
           situacion_laboral?: string | null
           telefono?: string | null
           tipo_cooperacion?: string | null
-          tipo_documento?: string | null
           tipo_formacion_1?: string | null
           tipo_formacion_2?: string | null
           tipo_sector?: string | null
@@ -2591,7 +2651,6 @@ export type Database = {
           notas_revision?: string | null
           numero_autonumerico_correlativo?: number | null
           numero_dip?: string | null
-          numero_documento?: string | null
           numero_enrolamiento_enno?: number | null
           numero_funcionario?: string | null
           numero_pasaporte?: string | null
@@ -2611,7 +2670,6 @@ export type Database = {
           situacion_laboral?: string | null
           telefono?: string | null
           tipo_cooperacion?: string | null
-          tipo_documento?: string | null
           tipo_formacion_1?: string | null
           tipo_formacion_2?: string | null
           tipo_sector?: string | null
@@ -2792,7 +2850,7 @@ export type Database = {
           },
         ]
       }
-      record: {
+      records: {
         Row: {
           created_at: string | null
           day: number | null
@@ -2801,13 +2859,16 @@ export type Database = {
           event: number | null
           hour: number | null
           id: number
-          int_out: number | null
+          image: string | null
+          intOut: number | null
           minute: number | null
           mode: number | null
           month: number | null
-          record_time: string | null
+          records_time: string | null
           reserved: number | null
           second: number | null
+          temperature: number | null
+          updated_at: string | null
           verify_mode: number | null
           workcode: number | null
           year: number | null
@@ -2820,13 +2881,16 @@ export type Database = {
           event?: number | null
           hour?: number | null
           id?: number
-          int_out?: number | null
+          image?: string | null
+          intOut?: number | null
           minute?: number | null
           mode?: number | null
           month?: number | null
-          record_time?: string | null
+          records_time?: string | null
           reserved?: number | null
           second?: number | null
+          temperature?: number | null
+          updated_at?: string | null
           verify_mode?: number | null
           workcode?: number | null
           year?: number | null
@@ -2839,13 +2903,16 @@ export type Database = {
           event?: number | null
           hour?: number | null
           id?: number
-          int_out?: number | null
+          image?: string | null
+          intOut?: number | null
           minute?: number | null
           mode?: number | null
           month?: number | null
-          record_time?: string | null
+          records_time?: string | null
           reserved?: number | null
           second?: number | null
+          temperature?: number | null
+          updated_at?: string | null
           verify_mode?: number | null
           workcode?: number | null
           year?: number | null
@@ -3554,6 +3621,25 @@ export type Database = {
       }
     }
     Views: {
+      asistencia_consolidada: {
+        Row: {
+          centro_salud_id: string | null
+          created_at: string | null
+          dispositivo_sn: string | null
+          event: string | null
+          fecha_hora: string | null
+          id: string | null
+          image_url: string | null
+          inout: Database["public"]["Enums"]["inout_type"] | null
+          mode: string | null
+          numero_enno: string | null
+          profesional_id: string | null
+          raw_line: string | null
+          source_type: string | null
+          temperature: number | null
+        }
+        Relationships: []
+      }
       usuarios_con_centro: {
         Row: {
           assigned_center_id: string | null

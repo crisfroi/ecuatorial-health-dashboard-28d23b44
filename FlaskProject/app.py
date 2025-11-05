@@ -31,16 +31,21 @@ db.init_app(app)
 #region -----------长时任务开始---------------------------------------------
 import atexit
 from sync_with_supabase import start_sync_scheduler, stop_sync_scheduler
+from sync_turnos_to_device import sync_turnos_a_todos_dispositivos
 
 send_order_job = SendOrderJob()
 
 # Global flags to track initialization
 _thread_started = False
 _sync_started = False
+_turnos_sync_started = False
+
+# APScheduler for periodic tasks
+scheduler = None
 
 @app.before_request
 def start_thread_once():
-    global _thread_started, _sync_started
+    global _thread_started, _sync_started, _turnos_sync_started, scheduler
 
     # Start SendOrderJob
     if not _thread_started and not send_order_job.is_running():
@@ -61,9 +66,54 @@ def start_thread_once():
         except Exception as e:
             print(f"⚠️  Error initializing sync scheduler: {e}")
 
+    # Start turnos sync scheduler (only once)
+    if not _turnos_sync_started:
+        try:
+            from database import supabase_client
+            if supabase_client:
+                # Initialize APScheduler if not already done
+                if scheduler is None:
+                    try:
+                        from apscheduler.schedulers.background import BackgroundScheduler
+                        scheduler = BackgroundScheduler()
+
+                        # Agregar tarea de sync de turnos cada 10 minutos
+                        scheduler.add_job(
+                            func=sync_turnos_a_todos_dispositivos,
+                            args=[supabase_client, send_order_job],
+                            trigger="interval",
+                            minutes=10,
+                            id='sync_turnos_biometricos',
+                            replace_existing=True,
+                            max_instances=1
+                        )
+
+                        if not scheduler.running:
+                            scheduler.start()
+                            print("✅ Turnos sync scheduler initialized (interval: 10 minutes)")
+                            _turnos_sync_started = True
+                        else:
+                            _turnos_sync_started = True
+                    except ImportError:
+                        print("⚠️  APScheduler not available. Turnos sync disabled. Install: pip install apscheduler")
+                    except Exception as e:
+                        print(f"⚠️  Error initializing APScheduler: {e}")
+                else:
+                    _turnos_sync_started = True
+            else:
+                print("⚠️  Supabase client not available. Turnos sync disabled.")
+        except Exception as e:
+            print(f"⚠️  Error initializing turnos sync scheduler: {e}")
+
 # Clean up on exit
+def cleanup_scheduler():
+    global scheduler
+    if scheduler and scheduler.running:
+        scheduler.shutdown(wait=False)
+
 atexit.register(send_order_job.stop_thread)
 atexit.register(stop_sync_scheduler)
+atexit.register(cleanup_scheduler)
 #endregion -----------长时任务结束---------------------------------------------
 #region-----------web 处理开始---------------------------------------------
 @app.route('/')

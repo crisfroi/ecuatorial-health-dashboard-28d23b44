@@ -91,56 +91,42 @@ serve(async (req) => {
       throw new Error('No hay dispositivos activos en el centro');
     }
 
-    // 4. Crear comandos en Render (machine_command)
-    // NOTA: Aquí usamos URL de Render para insertar comandos
-    const RENDER_DB_URL = Deno.env.get('RENDER_DB_URL');
-    if (!RENDER_DB_URL) {
-      throw new Error('RENDER_DB_URL no configurado');
-    }
-
-    const comandos = [];
+    // 4. Crear comandos en tabla de cola de Supabase
+    const comandosInsert = [];
     for (const empleado of empleadosFinal) {
       for (const dispositivo of dispositivosData) {
-        const comando = {
+        const comandoJson = {
           cmd: 'setuserinfo',
           enrollid: empleado.enroll_id,
           name: empleado.profesionales_sanitarios.nombre_completo,
-          backupnum: 10, // 10=Huella, 11=Rostro (usar 10 por defecto)
+          backupnum: 10, // 10=Huella, 11=Rostro
           admin: 0,
-          record: '', // Sin datos biométricos (solo nombre y ENNO)
+          record: '', // Sin datos biométricos
         };
 
-        comandos.push({
-          name: 'setuserinfo',
-          serial: dispositivo.device_sn,
-          content: JSON.stringify(comando),
-          status: 0,
-          send_status: 0,
-          err_count: 0,
-          gmt_create: new Date().toISOString(),
-          gmt_modified: new Date().toISOString(),
+        comandosInsert.push({
+          device_sn: dispositivo.device_sn,
+          comando_tipo: 'setuserinfo',
+          comando_json: comandoJson,
+          profesional_id: empleado.profesional_id,
+          enroll_id: empleado.enroll_id,
+          estado: 'pendiente',
         });
       }
     }
 
-    // 5. Insertar comandos en Render vía HTTP
-    const response = await fetch(`${RENDER_DB_URL}/api/insert-commands`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('RENDER_API_KEY')}`,
-      },
-      body: JSON.stringify({ commands: comandos }),
-    });
+    // 5. Insertar en tabla comandos_biometricos
+    const { data: comandosData, error: comandosError } = await supabaseClient
+      .from('comandos_biometricos')
+      .insert(comandosInsert)
+      .select();
 
-    if (!response.ok) {
-      throw new Error(`Error insertando comandos en Render: ${response.statusText}`);
+    if (comandosError) {
+      throw new Error(`Error insertando comandos: ${comandosError.message}`);
     }
 
-    const result = await response.json();
-
     console.log('✅ Comandos insertados:', {
-      total: comandos.length,
+      total: comandosData.length,
       empleados: empleadosFinal.length,
       dispositivos: dispositivosData.length,
     });
@@ -148,8 +134,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `${comandos.length} comandos enviados`,
-        comandos_enviados: comandos.length,
+        message: `${comandosData.length} comandos en cola de sincronización`,
+        comandos_enviados: comandosData.length,
         detalle: {
           empleados: empleadosFinal.length,
           dispositivos: dispositivosData.length,

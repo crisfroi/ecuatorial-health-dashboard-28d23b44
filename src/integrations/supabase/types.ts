@@ -200,50 +200,6 @@ export type Database = {
         }
         Relationships: []
       }
-      asistencia_dispositivos: {
-        Row: {
-          centro_salud_id: string | null
-          created_at: string | null
-          estado: string | null
-          firmware: string | null
-          id: string
-          modelo: string | null
-          sn: string
-          updated_at: string | null
-          ws_url: string | null
-        }
-        Insert: {
-          centro_salud_id?: string | null
-          created_at?: string | null
-          estado?: string | null
-          firmware?: string | null
-          id?: string
-          modelo?: string | null
-          sn: string
-          updated_at?: string | null
-          ws_url?: string | null
-        }
-        Update: {
-          centro_salud_id?: string | null
-          created_at?: string | null
-          estado?: string | null
-          firmware?: string | null
-          id?: string
-          modelo?: string | null
-          sn?: string
-          updated_at?: string | null
-          ws_url?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "asistencia_dispositivos_centro_salud_id_fkey"
-            columns: ["centro_salud_id"]
-            isOneToOne: false
-            referencedRelation: "centros_salud"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       asistencia_enroll_map: {
         Row: {
           created_at: string | null
@@ -809,6 +765,62 @@ export type Database = {
         }
         Relationships: []
       }
+      comandos_biometricos: {
+        Row: {
+          comando_json: Json
+          comando_tipo: string
+          completado_at: string | null
+          creado_por: string | null
+          created_at: string | null
+          device_sn: string
+          enroll_id: number | null
+          error_mensaje: string | null
+          estado: string
+          id: string
+          intentos: number | null
+          procesado_at: string | null
+          profesional_id: string | null
+        }
+        Insert: {
+          comando_json: Json
+          comando_tipo: string
+          completado_at?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          device_sn: string
+          enroll_id?: number | null
+          error_mensaje?: string | null
+          estado?: string
+          id?: string
+          intentos?: number | null
+          procesado_at?: string | null
+          profesional_id?: string | null
+        }
+        Update: {
+          comando_json?: Json
+          comando_tipo?: string
+          completado_at?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          device_sn?: string
+          enroll_id?: number | null
+          error_mensaje?: string | null
+          estado?: string
+          id?: string
+          intentos?: number | null
+          procesado_at?: string | null
+          profesional_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comandos_biometricos_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesionales_sanitarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cuadrantes_biometricos: {
         Row: {
           centro_salud_id: string | null
@@ -1021,6 +1033,7 @@ export type Database = {
           activo: boolean
           centro_salud_id: string | null
           created_at: string
+          device_sn: string | null
           id: string
           last_seen_at: string | null
           nombre: string
@@ -1032,6 +1045,7 @@ export type Database = {
           activo?: boolean
           centro_salud_id?: string | null
           created_at?: string
+          device_sn?: string | null
           id?: string
           last_seen_at?: string | null
           nombre: string
@@ -1043,6 +1057,7 @@ export type Database = {
           activo?: boolean
           centro_salud_id?: string | null
           created_at?: string
+          device_sn?: string | null
           id?: string
           last_seen_at?: string | null
           nombre?: string
@@ -1130,6 +1145,7 @@ export type Database = {
         Row: {
           created_at: string
           en_no: string
+          enroll_id: number | null
           id: string
           id_dispositivo: string
           id_profesional: string
@@ -1138,6 +1154,7 @@ export type Database = {
         Insert: {
           created_at?: string
           en_no: string
+          enroll_id?: number | null
           id?: string
           id_dispositivo: string
           id_profesional: string
@@ -1146,6 +1163,7 @@ export type Database = {
         Update: {
           created_at?: string
           en_no?: string
+          enroll_id?: number | null
           id?: string
           id_dispositivo?: string
           id_profesional?: string
@@ -3371,6 +3389,69 @@ export type Database = {
           },
         ]
       }
+      turnos_maestros: {
+        Row: {
+          activo: boolean | null
+          centro_salud_id: string | null
+          created_at: string | null
+          dispositivo_id: string | null
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          nombre_turno: string
+          sync_a_dispositivo: boolean | null
+          tipo: string | null
+          tolerancia_entrada_min: number | null
+          tolerancia_salida_min: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          activo?: boolean | null
+          centro_salud_id?: string | null
+          created_at?: string | null
+          dispositivo_id?: string | null
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          nombre_turno: string
+          sync_a_dispositivo?: boolean | null
+          tipo?: string | null
+          tolerancia_entrada_min?: number | null
+          tolerancia_salida_min?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          activo?: boolean | null
+          centro_salud_id?: string | null
+          created_at?: string | null
+          dispositivo_id?: string | null
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          nombre_turno?: string
+          sync_a_dispositivo?: boolean | null
+          tipo?: string | null
+          tolerancia_entrada_min?: number | null
+          tolerancia_salida_min?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turnos_maestros_centro_salud_id_fkey"
+            columns: ["centro_salud_id"]
+            isOneToOne: false
+            referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turnos_maestros_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: false
+            referencedRelation: "dispositivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       turnos_plantillas: {
         Row: {
           created_at: string | null
@@ -3760,6 +3841,7 @@ export type Database = {
       }
       insertar_baremos_protocolo: { Args: never; Returns: undefined }
       is_admin_user: { Args: never; Returns: boolean }
+      limpiar_comandos_antiguos: { Args: never; Returns: number }
       marcar_carnet_generado: {
         Args: { p_profesional_id: string; p_url_carnet: string }
         Returns: boolean

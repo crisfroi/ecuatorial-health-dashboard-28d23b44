@@ -7,8 +7,7 @@ def singleton(cls):
         if cls not in instances:
             instances[cls] = cls()
         return instances[cls]
-
-    return get_instance()
+    return get_instance
 
 @singleton
 class Logger():
@@ -23,4 +22,3 @@ class Logger():
             ]
         )
         self.logr = logging.getLogger('root')
-        

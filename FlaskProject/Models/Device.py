@@ -1,13 +1,13 @@
-
-
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
 from database import db
-class Device(db.Model):
+from Models.BaseModel import BaseModel
+
+class Device(BaseModel):
     id = db.Column(db.Integer, primary_key=True)
     serial_num = db.Column(db.String(80), unique=True, nullable=False)
-    status = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.Integer, default=0, nullable=False)
 
     def __str__(self):
         return "Device [id={}, serialNum={}, status={}]".format(self.id, self.serial_num, self.status)

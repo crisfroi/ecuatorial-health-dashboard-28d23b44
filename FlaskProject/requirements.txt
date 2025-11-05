@@ -51,3 +51,7 @@ websockets
 # Using psycopg3 instead of psycopg2 for Python 3.13 compatibility
 psycopg[binary]==3.2.12
 pymysql==1.1.0
+
+# Supabase SDK and async task scheduling for bidirectional sync
+apscheduler==3.10.4
+supabase==2.4.2

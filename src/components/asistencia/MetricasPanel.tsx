@@ -30,6 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { useReportesAsistencia } from '@/hooks/useReportesAsistencia';
+import { useAsistenciaConsolidada } from '@/hooks/useAsistenciaConsolidada';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CentroOption {
@@ -68,6 +69,19 @@ export function MetricasPanel() {
     staleTime: 5 * 60_000,
   });
 
+  const consolidatedFilters = useMemo(
+    () => ({
+      centroId: centerId === 'todos' ? undefined : centerId,
+      fechaDesde: from,
+      fechaHasta: to,
+    }),
+    [from, to, centerId]
+  );
+
+  // Use consolidated asistencia view instead of separate attendance_logs
+  const consolidatedQuery = useAsistenciaConsolidada(consolidatedFilters);
+
+  // Keep legacy hook for backward compatibility if needed
   const filters = useMemo(
     () => ({
       from,
@@ -79,16 +93,37 @@ export function MetricasPanel() {
     [from, to, centerId]
   );
 
+  // Fallback to legacy method if consolidated fails
   const logsQuery = useQuery({
     queryKey: ['attendance-metrics', filters],
     queryFn: () => fetchLogsWithMeta(filters),
     keepPreviousData: true,
     staleTime: 60_000,
+    enabled: consolidatedQuery.isError, // Only use as fallback
   });
 
+  // Convert consolidated data to legacy format for compatibility
+  const convertedEntries = useMemo(() => {
+    if (consolidatedQuery.data && consolidatedQuery.data.length > 0) {
+      return consolidatedQuery.data.map((entry) => ({
+        id: entry.id,
+        id_profesional: entry.profesional_id,
+        en_no: entry.numero_enno,
+        entrada: entry.inout === 'IN' ? entry.fecha_hora : null,
+        salida: entry.inout === 'OUT' ? entry.fecha_hora : null,
+        professionalName: entry.numero_enno,
+        empNo: entry.numero_enno,
+        source_type: entry.source_type,
+      }));
+    }
+    return [];
+  }, [consolidatedQuery.data]);
+
   const enrichedEntries = useMemo(
-    () => buildEnrichedDailyEntries(logsQuery.data || []),
-    [logsQuery.data, buildEnrichedDailyEntries]
+    () => consolidatedQuery.data && consolidatedQuery.data.length > 0
+      ? convertedEntries
+      : buildEnrichedDailyEntries(logsQuery.data || []),
+    [consolidatedQuery.data, convertedEntries, logsQuery.data, buildEnrichedDailyEntries]
   );
 
   const professionalSummary = useMemo(
@@ -228,13 +263,13 @@ export function MetricasPanel() {
           label="% asistencia promedio"
           value={metrics.attendanceRate}
           suffix="%"
-          loading={logsQuery.isLoading}
+          loading={consolidatedQuery.isLoading || logsQuery.isLoading}
         />
         <MetricCard
           icon={<Clock3 className="h-5 w-5" />}
           label="Retrasos detectados"
           value={metrics.lateCount}
-          loading={logsQuery.isLoading}
+          loading={consolidatedQuery.isLoading || logsQuery.isLoading}
         >
           <p className="text-xs text-muted-foreground">Retraso medio: {metrics.averageDelayMinutes} min</p>
         </MetricCard>
@@ -244,14 +279,14 @@ export function MetricasPanel() {
           value={metrics.overtimeHours}
           precision={1}
           suffix="h"
-          loading={logsQuery.isLoading}
+          loading={consolidatedQuery.isLoading || logsQuery.isLoading}
         />
         <MetricCard
           icon={<ShieldCheck className="h-5 w-5" />}
           label="Cumplimiento de turnos"
           value={metrics.complianceRate}
           suffix="%"
-          loading={logsQuery.isLoading}
+          loading={consolidatedQuery.isLoading || logsQuery.isLoading}
         />
       </div>
 
@@ -261,10 +296,10 @@ export function MetricasPanel() {
             <CardTitle className="flex items-center gap-2 text-base">
               <UserCheck className="h-5 w-5" /> Top profesionales puntuales
             </CardTitle>
-            <CardDescription>Promedio de hora de entrada durante el periodo.</CardDescription>
+            <CardDescription>Promedio de hora de entrada durante el periodo. (Datos consolidados: biométrico + manual)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {logsQuery.isLoading ? (
+            {consolidatedQuery.isLoading || logsQuery.isLoading ? (
               <Skeleton className="h-48 w-full" />
             ) : metrics.punctualRanking.length ? (
               metrics.punctualRanking.map((item, index) => {
@@ -296,10 +331,10 @@ export function MetricasPanel() {
             <CardTitle className="flex items-center gap-2 text-base">
               <BarChart3 className="h-5 w-5" /> Resumen por centro
             </CardTitle>
-            <CardDescription>Suma de horas registradas en cada centro.</CardDescription>
+            <CardDescription>Suma de horas registradas en cada centro (datos consolidados).</CardDescription>
           </CardHeader>
           <CardContent>
-            {logsQuery.isLoading ? (
+            {consolidatedQuery.isLoading || logsQuery.isLoading ? (
               <Skeleton className="h-48 w-full" />
             ) : centerSummary.length ? (
               <div className="space-y-4">
@@ -331,10 +366,10 @@ export function MetricasPanel() {
           <CardTitle className="flex items-center gap-2 text-base">
             <Activity className="h-5 w-5" /> Rendimiento por profesional
           </CardTitle>
-          <CardDescription>Días asistidos y horas totales por profesional.</CardDescription>
+          <CardDescription>Días asistidos y horas totales por profesional (datos consolidados: biométrico + manual).</CardDescription>
         </CardHeader>
         <CardContent>
-          {logsQuery.isLoading ? (
+          {consolidatedQuery.isLoading || logsQuery.isLoading ? (
             <Skeleton className="h-64 w-full" />
           ) : professionalSummary.length ? (
             <div className="overflow-x-auto rounded-md border">

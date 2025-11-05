@@ -1,5 +1,7 @@
 from database import db
 from datetime import datetime
+from Models.BaseModel import BaseModel
+
 # class Records:
 #     def __init__(self, id=None, enroll_id=None, records_time=None, mode=None,
 #                  intout=None, event=None, device_serial_num=None, temperature=None, image=None):
@@ -14,7 +16,7 @@ from datetime import datetime
 #         self.image = image if image is not None else None
 
 
-class Record(db.Model):
+class Record(BaseModel):
     __tablename__ = 'records'
     id = db.Column(db.Integer, primary_key=True)
     enroll_id = db.Column(db.BigInteger, nullable=False)
@@ -25,7 +27,15 @@ class Record(db.Model):
     device_serial_num = db.Column(db.String(50))
     temperature = db.Column(db.Float)
     image = db.Column(db.String(255))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    verify_mode = db.Column(db.Integer)
+    year = db.Column(db.Integer)
+    month = db.Column(db.Integer)
+    day = db.Column(db.Integer)
+    hour = db.Column(db.Integer)
+    minute = db.Column(db.Integer)
+    second = db.Column(db.Integer)
+    workcode = db.Column(db.Integer)
+    reserved = db.Column(db.Integer)
 
     def __str__(self):
         return f"Record [id={self.id}, enroll_id={self.enroll_id}, records_time={self.records_time}, mode={self.mode}, " \

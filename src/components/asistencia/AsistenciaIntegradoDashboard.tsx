@@ -322,10 +322,14 @@ export function AsistenciaIntegradoDashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                  <p className="text-2xl font-bold mt-2">
-                    {isLoading ? <Skeleton className="h-8 w-12" /> : stat.value}
-                    {stat.suffix && <span className="text-sm text-muted-foreground ml-2">{stat.suffix}</span>}
-                  </p>
+                  {isLoading ? (
+                    <Skeleton className="h-8 w-12 mt-2" />
+                  ) : (
+                    <p className="text-2xl font-bold mt-2">
+                      {stat.value}
+                      {stat.suffix && <span className="text-sm text-muted-foreground ml-2">{stat.suffix}</span>}
+                    </p>
+                  )}
                 </div>
                 <div className={`p-2 rounded-lg ${stat.color}`}>{stat.icon}</div>
               </div>

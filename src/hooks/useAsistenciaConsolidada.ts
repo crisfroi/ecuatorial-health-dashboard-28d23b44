@@ -4,7 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 export interface AsistenciaConsolidada {
   id: string;
   profesional_id: string | null;
+  nombre_profesional: string;
   centro_salud_id: string | null;
+  nombre_centro: string;
   numero_enno: string;
   fecha_hora: string;
   inout: 'IN' | 'OUT' | null;

@@ -223,8 +223,8 @@ export function AsistenciaIntegradoDashboard() {
         format(new Date(record.fecha_hora), 'yyyy-MM-dd'),
         format(new Date(record.fecha_hora), 'HH:mm:ss'),
         record.inout || '',
-        record.numero_enno || '',
-        record.centro_salud_id || '',
+        record.nombre_profesional || 'Desconocido',
+        record.nombre_centro || 'Desconocido',
         record.source_type || '',
         record.temperature || '',
       ]),
@@ -413,9 +413,9 @@ export function AsistenciaIntegradoDashboard() {
                           {record.inout || '-'}
                         </Badge>
                       </TableCell>
-                      <TableCell>{record.numero_enno || 'Sin identificar'}</TableCell>
+                      <TableCell>{record.nombre_profesional || 'Desconocido'}</TableCell>
                       <TableCell className="text-sm">
-                        {record.centro_salud_id || '-'}
+                        {record.nombre_centro || 'Desconocido'}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">

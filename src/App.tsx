@@ -95,6 +95,21 @@ function App() {
                 <Route path="/solicitud-establecimiento" element={<SolicitudEstablecimiento />} />
                 <Route path="/dynamic-forms" element={<DynamicForms />} />
                 <Route path="/form/:publicUrl" element={<PublicForm />} />
+
+                {/* HOSIX Routes */}
+                <Route path="/hosix/login" element={<HosixLogin />} />
+                <Route path="/hosix" element={<HosixLayout />}>
+                  <Route index element={<HosixDashboard />} />
+                  <Route path="pacientes" element={<PacientesPage />} />
+                  <Route path="urgencias" element={<UrgenciasPage />} />
+                  <Route path="citas" element={<CitasPage />} />
+                  <Route path="hospitalizacion" element={<HospitalizacionPage />} />
+                  <Route path="quirofanos" element={<QuirofanosPage />} />
+                  <Route path="farmacia" element={<FarmaciaPage />} />
+                  <Route path="configuracion" element={<ConfiguracionPage />} />
+                  <Route path="bi" element={<BiPage />} />
+                </Route>
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

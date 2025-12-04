@@ -1,230 +1,202 @@
 import React, { useState } from 'react';
 import { useHosixPacientes } from '@/hooks/useHosixPacientes';
-import { useHosixAuth } from '@/hooks/useHosixAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Search, Edit, Trash2 } from 'lucide-react';
-import { useHosixAuditoria } from '@/hooks/useHosixAuditoria';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { Users, Plus, Edit2, Trash2, Eye, AlertCircle } from 'lucide-react';
+import PacienteForm from './PacienteForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
-const PacientesList: React.FC = () => {
-  const { user } = useHosixAuth();
-  const { pacientes, isLoadingPacientes, buscarPacientes, desactivarPaciente } = useHosixPacientes();
-  const { auditarAcceso, auditarEliminacion } = useHosixAuditoria();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredPacientes, setFilteredPacientes] = useState(pacientes);
+export default function PacientesList() {
+  const { pacientes, isLoadingPacientes, filtros, setFiltros, eliminarPaciente, isEliminingPaciente } = useHosixPacientes();
+  const [showForm, setShowForm] = useState(false);
+  const [editingPaciente, setEditingPaciente] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  // Registrar acceso
-  React.useEffect(() => {
-    auditarAcceso('hosix_pacientes');
-  }, []);
+  const totalPages = Math.ceil(pacientes.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedPacientes = pacientes.slice(startIndex, startIndex + itemsPerPage);
 
-  // Filtrar pacientes
-  React.useEffect(() => {
-    if (!searchTerm) {
-      setFilteredPacientes(pacientes);
-    } else {
-      const filtered = pacientes.filter(p =>
-        p.primer_nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.primer_apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.ppi.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.numero_documento?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
-      );
-      setFilteredPacientes(filtered);
-    }
-  }, [searchTerm, pacientes]);
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTerm) {
-      try {
-        const resultados = await buscarPacientes({ busqueda: searchTerm });
-        setFilteredPacientes(resultados);
-      } catch (err) {
-        console.error('Error searching patients:', err);
-      }
+  const handleEliminar = (id: string) => {
+    if (window.confirm('¿Está seguro de que desea desactivar este paciente?')) {
+      eliminarPaciente(id, {
+        onSuccess: () => {
+          toast.success('Paciente desactivado correctamente');
+        },
+        onError: (error: any) => {
+          toast.error(`Error: ${error.message}`);
+        },
+      });
     }
   };
 
-  const handleDelete = async (id: string, nombrePaciente: string) => {
-    if (window.confirm(`¿Desactivar a ${nombrePaciente}?`)) {
-      try {
-        await desactivarPaciente(id);
-        auditarEliminacion('hosix_pacientes', id, { nombre: nombrePaciente });
-      } catch (err) {
-        console.error('Error deleting patient:', err);
-      }
-    }
+  const handleFormSuccess = () => {
+    setShowForm(false);
+    setEditingPaciente(null);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Encabezado */}
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <Users className="h-6 w-6 text-blue-600" />
+          <h2 className="text-2xl font-bold">Gestión de Pacientes</h2>
+        </div>
+        <Button onClick={() => { setEditingPaciente(null); setShowForm(true); }} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Nuevo Paciente
+        </Button>
+      </div>
+
+      {/* Filtros */}
       <Card>
-        <CardHeader>
-          <CardTitle>Gestión de Pacientes</CardTitle>
-          <CardDescription>
-            Centro de Salud: {user?.nombre_completo || 'Cargando...'}
-          </CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Filtros</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Barra de búsqueda */}
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                placeholder="Buscar por nombre, PPI o documento..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button type="submit">Buscar</Button>
-            <Button variant="outline" type="button">
-              <Plus className="w-4 h-4 mr-2" />
-              Nuevo Paciente
-            </Button>
-          </form>
+          <div className="flex gap-4">
+            <Input
+              placeholder="Buscar por PPI, nombre, documento..."
+              value={filtros.busqueda || ''}
+              onChange={(e) => {
+                setFiltros({ ...filtros, busqueda: e.target.value });
+                setCurrentPage(1);
+              }}
+              className="flex-1"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-          {/* Tabla de pacientes */}
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-100">
-                  <TableHead>PPI</TableHead>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Documento</TableHead>
-                  <TableHead>Teléfono</TableHead>
-                  <TableHead>Grupo Sanguíneo</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingPacientes ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell>
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-32" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-24" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-24" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-12" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-16" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : filteredPacientes.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      <p className="text-gray-500">No hay pacientes registrados</p>
-                    </TableCell>
+      {/* Tabla de pacientes */}
+      <Card>
+        <CardContent>
+          {isLoadingPacientes ? (
+            <div className="flex justify-center py-8">
+              <p className="text-gray-500">Cargando pacientes...</p>
+            </div>
+          ) : pacientes.length === 0 ? (
+            <div className="flex justify-center py-8">
+              <p className="text-gray-500">No hay pacientes registrados</p>
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead>PPI</TableHead>
+                    <TableHead>Nombre Completo</TableHead>
+                    <TableHead>Documento</TableHead>
+                    <TableHead>Contacto</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Acciones</TableHead>
                   </TableRow>
-                ) : (
-                  filteredPacientes.map(paciente => (
+                </TableHeader>
+                <TableBody>
+                  {paginatedPacientes.map((paciente) => (
                     <TableRow key={paciente.id} className="hover:bg-gray-50">
-                      <TableCell className="font-mono text-sm">{paciente.ppi}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">
-                          {paciente.primer_nombre} {paciente.primer_apellido}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {paciente.segundo_nombre} {paciente.segundo_apellido}
-                        </div>
-                      </TableCell>
-                      <TableCell>{paciente.numero_documento || '-'}</TableCell>
-                      <TableCell>{paciente.telefono_movil || '-'}</TableCell>
-                      <TableCell>
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                          {paciente.grupo_sanguineo || 'N/D'}
-                        </span>
+                      <TableCell className="font-mono font-bold text-blue-600">{paciente.ppi}</TableCell>
+                      <TableCell className="font-medium">
+                        {paciente.primer_nombre} {paciente.primer_apellido}
                       </TableCell>
                       <TableCell>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          paciente.activo
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {paciente.activo ? 'Activo' : 'Inactivo'}
+                        <span className="text-sm">
+                          {paciente.tipo_documento}: {paciente.numero_documento || 'N/A'}
                         </span>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        <div className="space-y-1">
+                          {paciente.telefono_movil && <p>📱 {paciente.telefono_movil}</p>}
+                          {paciente.email && <p>✉️ {paciente.email}</p>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {paciente.fallecido ? (
+                          <Badge variant="destructive">Fallecido</Badge>
+                        ) : paciente.activo ? (
+                          <Badge variant="default" className="bg-green-600">Activo</Badge>
+                        ) : (
+                          <Badge variant="secondary">Inactivo</Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           <Button
+                            variant="ghost"
                             size="sm"
-                            variant="outline"
-                            className="h-8 w-8 p-0"
-                            title="Editar"
+                            onClick={() => {
+                              setEditingPaciente(paciente);
+                              setShowForm(true);
+                            }}
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit2 className="h-4 w-4" />
                           </Button>
                           <Button
+                            variant="ghost"
                             size="sm"
-                            variant="destructive"
-                            className="h-8 w-8 p-0"
-                            title="Desactivar"
-                            onClick={() =>
-                              handleDelete(
-                                paciente.id,
-                                `${paciente.primer_nombre} ${paciente.primer_apellido}`
-                              )
-                            }
+                            onClick={() => handleEliminar(paciente.id)}
+                            disabled={isEliminingPaciente}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="h-4 w-4 text-red-600" />
                           </Button>
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
 
-          {/* Información adicional */}
-          <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-            <div>
-              <p className="text-sm text-gray-500">Total de Pacientes</p>
-              <p className="text-2xl font-bold">{filteredPacientes.length}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Pacientes Activos</p>
-              <p className="text-2xl font-bold">
-                {filteredPacientes.filter(p => p.activo).length}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Pacientes Inactivos</p>
-              <p className="text-2xl font-bold">
-                {filteredPacientes.filter(p => !p.activo).length}
-              </p>
-            </div>
-          </div>
+              {/* Paginación */}
+              <div className="flex justify-center mt-6">
+                <Pagination>
+                  <PaginationContent>
+                    {currentPage > 1 && (
+                      <PaginationItem>
+                        <PaginationPrevious onClick={() => setCurrentPage(currentPage - 1)} />
+                      </PaginationItem>
+                    )}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    {currentPage < totalPages && (
+                      <PaginationItem>
+                        <PaginationNext onClick={() => setCurrentPage(currentPage + 1)} />
+                      </PaginationItem>
+                    )}
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
+
+      {/* Dialog para formulario */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingPaciente ? 'Editar Paciente' : 'Nuevo Paciente'}</DialogTitle>
+          </DialogHeader>
+          <PacienteForm 
+            paciente={editingPaciente} 
+            onSuccess={handleFormSuccess}
+            onCancel={() => setShowForm(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default PacientesList;
+}

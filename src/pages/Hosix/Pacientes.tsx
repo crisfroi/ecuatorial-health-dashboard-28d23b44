@@ -1,4 +1,4 @@
-import { HosixLayout } from '@/components/hosix/HosixLayout';
+import HosixLayout from '@/components/hosix/HosixLayout';
 import PacientesList from '@/components/hosix/pacientes/PacientesList';
 
 export default function PacientesPage() {

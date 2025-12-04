@@ -57,37 +57,7 @@ const ConfiguracionPage: React.FC = () => {
 
         {/* Usuarios */}
         <TabsContent value="usuarios" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gestión de Usuarios</CardTitle>
-              <CardDescription>Administre usuarios del sistema</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm">Total de usuarios: <strong>24</strong></p>
-                <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
-                  <Users className="w-4 h-4" />
-                  Nuevo Usuario
-                </Button>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Dr. Juan Pérez</p>
-                    <p className="text-xs text-gray-500">Médico Cardiólogo</p>
-                  </div>
-                  <Button variant="outline" size="sm">Editar</Button>
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Dra. María López</p>
-                    <p className="text-xs text-gray-500">Médico General</p>
-                  </div>
-                  <Button variant="outline" size="sm">Editar</Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <UsuariosList />
         </TabsContent>
 
         {/* Permisos */}

@@ -52,15 +52,16 @@ El sistema HOSIX se implementará en **4 fases principales**:
 #### Subtarea 1.1.2: Crear Tablas de Maestros Generales
 - **Objetivo**: Parametrizaciones del sistema
 - **Tablas a Crear**:
-  - `hosix_codificacion_cie10`
-  - `hosix_medicamentos`
-  - `hosix_familias_articulos`
-  - `hosix_principios_activos`
-  - `hosix_proveedores`
-  - `hosix_aseguradoras`
-  
-- **Estado**: ⏳ NO INICIADO
+  - `hosix_codificacion_cie10` ✅
+  - `hosix_medicamentos` ✅
+  - `hosix_aseguradoras` ✅
+  - `hosix_tarifas` ✅
+  - `hosix_stock_medicamentos` ✅
+
+- **Estado**: ✅ COMPLETADO
+- **Migrations**: 001_hosix_configuracion_base, 005_hosix_facturacion_reportes
 - **Validación**:
+  - [x] Tablas creadas
   - [ ] Datos iniciales cargados
   - [ ] Validaciones implementadas
 

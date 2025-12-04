@@ -191,16 +191,18 @@ El sistema HOSIX se implementará en **4 fases principales**:
 #### Subtarea 1.5.1: Implementar Login HOSIX
 - **Objetivo**: Sistema de autenticación específico para HOSIX
 - **Funcionalidades**:
-  - Login con usuario/contraseña
-  - Validación de complejidad de contraseña
-  - Expiración de sesión por inactividad
-  - Control de intentos fallidos
-  - Obligar cambio de contraseña
-  
-- **Estado**: ⏳ NO INICIADO
+  - Login con usuario/contraseña ✅
+  - Validación de complejidad de contraseña ✅
+  - Expiración de sesión por inactividad ✅
+  - Control de intentos fallidos ✅
+  - Obligar cambio de contraseña ✅
+  - Persistencia de sesión ✅
+  - Redirección a /hosix si ya está autenticado ✅
+
+- **Estado**: ✅ COMPLETADO
 - **Archivos**:
-  - `src/pages/Hosix/Login.tsx`
-  - `src/components/hosix/LoginForm.tsx`
+  - `src/pages/Hosix/HosixLogin.tsx` ✅ Integrada con useHosixAuth
+  - `src/components/hosix/LoginForm.tsx` (REUTILIZA componentes de UI)
 
 #### Subtarea 1.5.2: Implementar Control de Permisos
 - **Objetivo**: Sistema granular de permisos

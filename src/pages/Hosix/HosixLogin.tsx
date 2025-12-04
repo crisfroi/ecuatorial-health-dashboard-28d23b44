@@ -1,46 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Hospital, Lock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
+import { useHosixAuth } from '@/hooks/useHosixAuth';
 
 const HosixLogin: React.FC = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { login, isLoading, error: authError, isAuthenticated } = useHosixAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/hosix');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
+
+    if (!username || !password) {
+      setError('Por favor ingrese usuario y contraseña');
+      return;
+    }
 
     try {
-      // TODO: Integrar con autenticación real
-      if (!username || !password) {
-        setError('Por favor ingrese usuario y contraseña');
-        return;
-      }
-
-      // Simular login
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: 'Éxito',
-        description: 'Sesión iniciada correctamente',
-      });
-
+      await login(username, password);
       navigate('/hosix');
     } catch (err) {
-      setError('Error al iniciar sesión. Verifique sus credenciales.');
+      setError(authError || 'Error al iniciar sesión. Verifique sus credenciales.');
       console.error(err);
-    } finally {
-      setIsLoading(false);
     }
   };
 

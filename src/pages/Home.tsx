@@ -15,6 +15,7 @@ import {
   UserPlus,
   Search,
   Shield,
+  Hospital,
 } from "lucide-react";
 import { useState } from "react";
 import { ENABLE_INTERACTIVE_TOURS, isTourCompleted, setTourCompleted } from "@/config/featureFlags";
@@ -82,15 +83,21 @@ const Home = () => {
                   Ministerio de Sanidad - Guinea Ecuatorial
                 </h1>
               </div>
-              <nav className="flex items-center space-x-4">
+              <nav className="flex items-center space-x-2">
                 <Link to="/search" data-tour="home-verify">
-                  <Button variant="outline">
+                  <Button variant="outline" size="sm">
                     <Search className="w-4 h-4 mr-2" />
                     Verificar Profesional
                   </Button>
                 </Link>
                 <Link to="/auth" data-tour="home-dashboard">
-                  <Button variant="outline">Panel de Control</Button>
+                  <Button variant="outline" size="sm">Panel de Control</Button>
+                </Link>
+                <Link to="/hosix/login">
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" size="sm">
+                    <Hospital className="w-4 h-4 mr-2" />
+                    HOSIX
+                  </Button>
                 </Link>
               </nav>
             </div>
@@ -128,6 +135,12 @@ const Home = () => {
               <Link to="/solicitud-establecimiento">
                 <Button size="lg" variant="outline" className="px-8 py-3">
                   Solicitud de Establecimiento
+                </Button>
+              </Link>
+              <Link to="/hosix/login">
+                <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3">
+                  <Hospital className="w-5 h-5 mr-2" />
+                  Sistema HOSIX
                 </Button>
               </Link>
             </div>

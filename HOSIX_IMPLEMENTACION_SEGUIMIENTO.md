@@ -534,41 +534,55 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ## 🔄 PRÓXIMOS PASOS INMEDIATOS
 
-### COMPLETADO (FASE 1 - 60% avanzado):
+### COMPLETADO (FASE 1 - 80% avanzado):
 1. **✅ Base de Datos**:
    - [x] Crear migrations para tablas de configuración
    - [x] Implementar RLS policies
-   - [ ] Crear datos iniciales de prueba
+   - [ ] Crear datos iniciales de prueba (A hacer)
 
 2. **✅ Frontend Base**:
    - [x] Crear componentes base de HOSIX
    - [x] Implementar layout principal
    - [x] Setup de rutas
+   - [x] Botón de acceso en página de inicio
 
-### PRÓXIMO (FASE 1 - Últimas Tareas):
-1. **Autenticación e Integración** (PRIORIDAD ALTA):
-   - [ ] Edge Functions de autenticación HOSIX
-   - [ ] Integración con Supabase Auth
-   - [ ] Validación de permisos
-   - [ ] Logout y manejo de sesiones
+3. **✅ Autenticación**:
+   - [x] Implementar useHosixAuth.ts
+   - [x] Integrar con HosixLogin.tsx
+   - [x] Manejo de sesiones con localStorage
+   - [x] Control de intentos fallidos y bloqueos
 
-2. **Hooks y Servicios** (PRIORIDAD ALTA):
-   - [ ] `useHosixAuth.ts` - Autenticación
-   - [ ] `useHosixUsers.ts` - Gestión de usuarios
-   - [ ] `useHosixPacientes.ts` - Pacientes CRUD
-   - [ ] `useHosixPermisos.ts` - Control de permisos
-   - [ ] Servicios API compartidos
+4. **✅ Hooks y Servicios**:
+   - [x] useHosixAuth.ts - Autenticación
+   - [x] useHosixUsers.ts - Gestión de usuarios
+   - [x] useHosixPacientes.ts - Pacientes CRUD
+   - [x] useHosixPermisos.ts - Control de permisos
+   - [x] useHosixAuditoria.ts - Auditoría completa
 
-3. **Testing FASE 1**:
-   - [ ] Testing de rutas
-   - [ ] Testing de componentes
-   - [ ] Testing de integración BD
+### PRÓXIMO (FASE 1 - Completar al 100%):
+1. **Edge Functions** (PRIORIDAD ALTA):
+   - [ ] hosix-auth-login - Validación de contraseña con hash
+   - [ ] hosix-usuarios-crud - CRUD con validaciones
+   - [ ] hosix-permisos-check - Validación de permisos
+   - [ ] hosix-auditoria-eventos - Logging de eventos
+
+2. **Componentes CRUD** (PRIORIDAD ALTA):
+   - [ ] PacientesListComponent - Tabla de pacientes con filtros
+   - [ ] PacientesFormComponent - Formulario de crear/editar
+   - [ ] UsuariosListComponent - Tabla de usuarios
+   - [ ] UsuariosFormComponent - Formulario de usuarios
+
+3. **Validaciones y Testing FASE 1**:
+   - [ ] Testing de flujo de login
+   - [ ] Testing de permisos
+   - [ ] Testing de auditoría
+   - [ ] Crear datos de prueba en BD
 
 ### DESPUÉS (FASE 2 - Módulos Administrativos):
-- Gestión de Pacientes CRUD completo
-- Módulo de Urgencias
-- Sistema de Citas
-- Hospitalización y camas
+- Integración real de CRUD de pacientes
+- Módulo de Urgencias (triage, atenciones)
+- Sistema de Citas y agendas
+- Hospitalización y gestión de camas
 - Facturación
 
 ---

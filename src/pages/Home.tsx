@@ -15,6 +15,7 @@ import {
   UserPlus,
   Search,
   Shield,
+  Hospital,
 } from "lucide-react";
 import { useState } from "react";
 import { ENABLE_INTERACTIVE_TOURS, isTourCompleted, setTourCompleted } from "@/config/featureFlags";

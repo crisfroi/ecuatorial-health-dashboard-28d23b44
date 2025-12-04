@@ -68,6 +68,11 @@ export const useHosixAuth = () => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
+      // Validar que se proporcionen credenciales
+      if (!username || !password) {
+        throw new Error('Usuario y contraseña requeridos');
+      }
+
       const { data, error } = await supabase
         .from('hosix_usuarios')
         .select('*')
@@ -79,10 +84,11 @@ export const useHosixAuth = () => {
         throw new Error('Usuario o contraseña incorrectos');
       }
 
-      // TODO: Validar contraseña con hash en backend
-      // Por ahora, esto es una validación simple
-      if (!password) {
-        throw new Error('Contraseña requerida');
+      // NOTA: En desarrollo, aceptamos cualquier contraseña
+      // En producción, esto debe validarse con hash en edge function
+      // Por ahora, solo validamos que la contraseña no esté vacía
+      if (!password || password.length < 3) {
+        throw new Error('Contraseña debe tener mínimo 3 caracteres');
       }
 
       // Verificar si usuario está bloqueado por intentos fallidos

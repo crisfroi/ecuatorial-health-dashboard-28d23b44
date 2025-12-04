@@ -15,6 +15,17 @@ import DynamicForms from "./pages/DynamicForms";
 import PublicForm from "./pages/PublicForm";
 import Auth from "./pages/Auth";
 import ErrorBoundary from "@/components/ui/error-boundary";
+import HosixDashboard from "./pages/Hosix/HosixDashboard";
+import HosixLogin from "./pages/Hosix/HosixLogin";
+import HosixLayout from "./components/hosix/HosixLayout";
+import PacientesPage from "./pages/Hosix/Pacientes";
+import UrgenciasPage from "./pages/Hosix/Urgencias";
+import CitasPage from "./pages/Hosix/Citas";
+import HospitalizacionPage from "./pages/Hosix/Hospitalizacion";
+import QuirofanosPage from "./pages/Hosix/Quirofanos";
+import FarmaciaPage from "./pages/Hosix/Farmacia";
+import ConfiguracionPage from "./pages/Hosix/Configuracion";
+import BiPage from "./pages/Hosix/BI";
 import "./utils/authErrorHandler"; // Initialize global auth error handling
 import "./utils/storageCleanup"; // Initialize storage cleanup
 import { initResizeObserverErrorHandling } from "./utils/resizeObserverHandler";
@@ -84,6 +95,21 @@ function App() {
                 <Route path="/solicitud-establecimiento" element={<SolicitudEstablecimiento />} />
                 <Route path="/dynamic-forms" element={<DynamicForms />} />
                 <Route path="/form/:publicUrl" element={<PublicForm />} />
+
+                {/* HOSIX Routes */}
+                <Route path="/hosix/login" element={<HosixLogin />} />
+                <Route path="/hosix" element={<HosixLayout />}>
+                  <Route index element={<HosixDashboard />} />
+                  <Route path="pacientes" element={<PacientesPage />} />
+                  <Route path="urgencias" element={<UrgenciasPage />} />
+                  <Route path="citas" element={<CitasPage />} />
+                  <Route path="hospitalizacion" element={<HospitalizacionPage />} />
+                  <Route path="quirofanos" element={<QuirofanosPage />} />
+                  <Route path="farmacia" element={<FarmaciaPage />} />
+                  <Route path="configuracion" element={<ConfiguracionPage />} />
+                  <Route path="bi" element={<BiPage />} />
+                </Route>
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

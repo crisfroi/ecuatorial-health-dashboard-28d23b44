@@ -157,17 +157,18 @@ El sistema HOSIX se implementará en **4 fases principales**:
 #### Subtarea 1.4.1: Crear Hooks Principales
 - **Objetivo**: Lógica compartida del sistema
 - **Hooks a Crear**:
-  - `src/hooks/useHosixAuth.ts` - Autenticación HOSIX
-  - `src/hooks/useHosixUsers.ts` - Gestión de usuarios
-  - `src/hooks/useHosixPermisos.ts` - Control de permisos
-  - `src/hooks/useHosixPacientes.ts` - Gestión de pacientes
-  - `src/hooks/useHosixAuditoria.ts` - Auditoría
-  
-- **Estado**: ⏳ NO INICIADO
+  - `src/hooks/useHosixAuth.ts` - Autenticación HOSIX ✅ COMPLETADO
+  - `src/hooks/useHosixUsers.ts` - Gestión de usuarios ⏳ EN PROGRESO
+  - `src/hooks/useHosixPermisos.ts` - Control de permisos ✅ COMPLETADO
+  - `src/hooks/useHosixPacientes.ts` - Gestión de pacientes ✅ COMPLETADO
+  - `src/hooks/useHosixAuditoria.ts` - Auditoría ⏳ PENDIENTE
+
+- **Estado**: 60% COMPLETADO (3 de 5)
 - **Validación**:
-  - [ ] Llamadas API integradas
-  - [ ] Manejo de errores
-  - [ ] Loading states
+  - [x] Llamadas API integradas
+  - [x] Manejo de errores
+  - [x] Loading states
+  - [ ] Testing en componentes
 
 #### Subtarea 1.4.2: Crear Edge Functions Base
 - **Objetivo**: Lógica backend en Supabase

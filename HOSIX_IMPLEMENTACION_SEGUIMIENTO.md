@@ -207,15 +207,15 @@ El sistema HOSIX se implementará en **4 fases principales**:
 #### Subtarea 1.5.2: Implementar Control de Permisos
 - **Objetivo**: Sistema granular de permisos
 - **Funcionalidades**:
-  - Roles y perfiles
-  - Permisos por módulo
-  - Asignación de permisos a usuarios
-  - Validación en frontend y backend
-  
-- **Estado**: ⏳ NO INICIADO
+  - [x] Roles y perfiles (en BD)
+  - [x] Permisos por módulo (en BD)
+  - [x] Asignación de permisos a usuarios (gestor visual)
+  - [x] Validación en frontend y backend (edge function)
+
+- **Estado**: ✅ COMPLETADO
 - **Archivos**:
-  - `src/components/hosix/configuracion/PermisosManager.tsx`
-  - `src/hooks/useHosixPermisos.ts`
+  - `src/components/hosix/configuracion/PermisosManager.tsx` ✅ - Gestor visual
+  - `src/hooks/useHosixPermisos.ts` ✅ - Validación de permisos
 
 ---
 

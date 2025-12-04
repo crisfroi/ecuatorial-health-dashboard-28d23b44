@@ -278,58 +278,85 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ### 2.1 Gestión de Pacientes (Módulo ADM 1.0)
 
-#### Subtarea 2.1.1: CRUD Pacientes
+#### Subtarea 2.1.1: CRUD Pacientes ✅
 - **Objetivo**: Crear, leer, actualizar y eliminar pacientes
-- **Componentes**:
-  - `src/components/hosix/pacientes/PacientesList.tsx`
-  - `src/components/hosix/pacientes/PacienteForm.tsx`
-  - `src/components/hosix/pacientes/PacienteDetail.tsx`
-  
-- **Estado**: ⏳ NO INICIADO
-- **Validación**:
-  - [ ] CRUD funcionando
-  - [ ] Generación de PPI
-  - [ ] Búsqueda de duplicados
+- **Componentes Creados**:
+  - `src/components/hosix/pacientes/PacientesList.tsx` ✅ - Tabla con listado, filtros y paginación
+  - `src/components/hosix/pacientes/PacienteForm.tsx` ✅ - Formulario completo con búsqueda de duplicados
+  - `src/hooks/useHosixPacientes.ts` ✅ - Hook con CRUD completo
+
+- **Estado**: ✅ COMPLETADO
+- **Características**:
+  - [x] CRUD funcionando completamente
+  - [x] Generación automática de PPI secuencial
+  - [x] Búsqueda y alerta de duplicados
+  - [x] Soft delete (desactivación) de pacientes
+  - [x] Filtros por nombre, documento, PPI
 
 #### Subtarea 2.1.2: Historia Clínica Electrónica
 - **Objetivo**: Visualizar y gestionar HCE
 - **Componentes**:
-  - `src/components/hosix/pacientes/HistoriaClinicaView.tsx`
-  - `src/components/hosix/pacientes/EntradaHistoriaForm.tsx`
-  
-- **Estado**: ⏳ NO INICIADO
+  - `src/components/hosix/pacientes/HistoriaClinicaView.tsx` ⏳
+  - `src/components/hosix/pacientes/EntradaHistoriaForm.tsx` ⏳
+
+- **Estado**: ⏳ EN PROGRESO
+- **Nota**: HCE se registra automáticamente en urgencias, citas, y hospitalizacion
 
 #### Subtarea 2.1.3: Documentos y Avisos
 - **Objetivo**: Gestionar adjuntos y alertas
 - **Componentes**:
-  - `src/components/hosix/pacientes/DocumentosManager.tsx`
-  - `src/components/hosix/pacientes/AvisosManager.tsx`
-  
-- **Estado**: ⏳ NO INICIADO
+  - `src/components/hosix/pacientes/DocumentosManager.tsx` ⏳
+  - `src/components/hosix/pacientes/AvisosManager.tsx` ⏳
+
+- **Estado**: ⏳ EN PROGRESO
+- **Funcionalidades Implementadas**:
+  - [x] Hooks para agregar contactos de emergencia
+  - [x] Hooks para agregar avisos al paciente
+  - [ ] Componentes UI para documentos
+  - [ ] Componentes UI para avisos
 
 ---
 
-### 2.2 Módulo de Urgencias (Módulo ADM 2.0)
+### 2.2 Módulo de Urgencias (Módulo ADM 2.0) ✅
 
-#### Subtarea 2.2.1: Registro de Entrada
+#### Subtarea 2.2.1: Registro de Entrada ✅
 - **Objetivo**: Recepción de pacientes en urgencias
-- **Componentes**:
-  - `src/components/hosix/urgencias/EntradaUrgenciasForm.tsx`
-  - `src/components/hosix/urgencias/TriageSelector.tsx`
-  
-- **Estado**: ⏳ NO INICIADO
-- **Funcionalidades**:
-  - Registro de entrada con lugar, procedencia, box, clasificación
-  - Impresión de pulsera identificativa
-  - Sistema de triage por gravedad
+- **Componentes Creados**:
+  - `src/components/hosix/urgencias/UrgenciasWorklist.tsx` ✅ - Worklist con estadísticas
+  - `src/hooks/useHosixUrgencias.ts` ✅ - Hook completo de urgencias
 
-#### Subtarea 2.2.2: Gestión de Atenciones
+- **Estado**: ✅ COMPLETADO
+- **Funcionalidades**:
+  - [x] Registro de entrada con lugar, procedencia, box
+  - [x] Integración automática a historia clínica
+  - [x] Worklist ordenada por nivel de triage
+  - [x] Cálculo automático de tiempo de espera
+  - [x] Estadísticas por nivel de urgencia
+
+#### Subtarea 2.2.2: Sistema de Triage ✅
+- **Objetivo**: Evaluación de gravedad en urgencias
+- **Componentes Creados**:
+  - `src/components/hosix/urgencias/TriageForm.tsx` ✅ - Formulario de triage con signos vitales
+
+- **Estado**: ✅ COMPLETADO
+- **Funcionalidades**:
+  - [x] 5 niveles de triage (Emergencia - No Urgente)
+  - [x] Registro de signos vitales completos
+  - [x] Selección de síntomas comunes
+  - [x] Observaciones y motivo de consulta
+
+#### Subtarea 2.2.3: Gestión de Atenciones ✅
 - **Objetivo**: Seguimiento de atención en urgencias
-- **Componentes**:
-  - `src/components/hosix/urgencias/UrgenciasWorklist.tsx`
-  - `src/components/hosix/urgencias/AtencionForm.tsx`
-  
-- **Estado**: ⏳ NO INICIADO
+- **Componentes Creados**:
+  - `src/components/hosix/urgencias/AtencionForm.tsx` ✅ - Formulario de atención y cierre
+
+- **Estado**: ✅ COMPLETADO
+- **Funcionalidades**:
+  - [x] Registro de diagnóstico inicial y final
+  - [x] Documentación de observaciones
+  - [x] Cierre de episodio con tipo de salida
+  - [x] Destino de salida (alta, ingreso, traslado)
+  - [x] Integración a historia clínica automática
 
 ---
 

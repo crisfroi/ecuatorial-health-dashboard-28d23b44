@@ -1,10 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
-import { useHosixAuth } from './useHosixAuth';
+import { useState } from 'react';
 
-export interface HosixPaciente {
+export interface Paciente {
   id: string;
   ppi: string;
   primer_nombre: string;
@@ -13,229 +11,318 @@ export interface HosixPaciente {
   segundo_apellido?: string;
   fecha_nacimiento: string;
   sexo: string;
+  tipo_documento?: string;
   numero_documento?: string;
+  pais_documento?: string;
+  direccion?: string;
+  ciudad?: string;
+  provincia?: string;
+  codigo_postal?: string;
+  telefono_fijo?: string;
   telefono_movil?: string;
   email?: string;
   grupo_sanguineo?: string;
   alergias?: string[];
+  antecedentes_familiares?: any[];
+  antecedentes_personales?: any[];
+  aseguradora_principal_id?: string;
+  numero_poliza?: string;
   activo: boolean;
+  fallecido: boolean;
+  fecha_fallecimiento?: string;
+  centro_registro_id?: string;
   created_at: string;
   updated_at: string;
 }
 
-export interface FiltrosPacientes {
-  busqueda?: string;
-  estado?: 'activo' | 'inactivo' | 'todos';
-  página?: number;
-  limite?: number;
+export interface PacienteFormData {
+  primer_nombre: string;
+  segundo_nombre?: string;
+  primer_apellido: string;
+  segundo_apellido?: string;
+  fecha_nacimiento: string;
+  sexo: string;
+  tipo_documento?: string;
+  numero_documento?: string;
+  pais_documento?: string;
+  direccion?: string;
+  ciudad?: string;
+  provincia?: string;
+  codigo_postal?: string;
+  telefono_fijo?: string;
+  telefono_movil?: string;
+  email?: string;
+  grupo_sanguineo?: string;
+  alergias?: string[];
+  antecedentes_familiares?: any[];
+  antecedentes_personales?: any[];
+  aseguradora_principal_id?: string;
+  numero_poliza?: string;
+  centro_registro_id?: string;
 }
 
 export const useHosixPacientes = () => {
-  const { user } = useHosixAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [filtros, setFiltros] = useState<{
+    busqueda?: string;
+    activo?: boolean;
+    centro_id?: string;
+  }>({});
+
+  // Generar PPI secuencial
+  const generarPPI = async (): Promise<string> => {
+    const { data } = await supabase
+      .from('hosix_pacientes')
+      .select('ppi')
+      .order('ppi', { ascending: false })
+      .limit(1);
+    
+    if (!data || data.length === 0) {
+      return 'PPI-0001';
+    }
+    
+    const ultimoPPI = data[0].ppi;
+    const numero = parseInt(ultimoPPI.split('-')[1]) + 1;
+    return `PPI-${String(numero).padStart(4, '0')}`;
+  };
+
+  // Detectar duplicados por documento
+  const buscarDuplicados = async (numero_documento: string) => {
+    if (!numero_documento) return [];
+    
+    const { data } = await supabase
+      .from('hosix_pacientes')
+      .select('*')
+      .eq('numero_documento', numero_documento);
+    
+    return data || [];
+  };
 
   // Obtener lista de pacientes
-  const {
-    data: pacientes,
-    isLoading: isLoadingPacientes,
-    error: errorPacientes,
-    refetch: refetchPacientes,
-  } = useQuery({
-    queryKey: ['hosix-pacientes', user?.centro_salud_id],
+  const { data: pacientes = [], isLoading: isLoadingPacientes, error: errorPacientes } = useQuery({
+    queryKey: ['pacientes', filtros],
     queryFn: async () => {
-      if (!user?.centro_salud_id) return [];
-
-      const { data, error } = await supabase
-        .from('hosix_pacientes')
-        .select('*')
-        .eq('activo', true)
-        .order('updated_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-      return (data || []) as HosixPaciente[];
-    },
-    enabled: !!user?.centro_salud_id,
-  });
-
-  // Buscar pacientes
-  const buscarPacientes = useCallback(async (filtros: FiltrosPacientes) => {
-    try {
       let query = supabase
         .from('hosix_pacientes')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (filtros.busqueda) {
-        query = query.or(
-          `primer_nombre.ilike.%${filtros.busqueda}%,` +
-          `primer_apellido.ilike.%${filtros.busqueda}%,` +
-          `ppi.ilike.%${filtros.busqueda}%,` +
-          `numero_documento.ilike.%${filtros.busqueda}%`
-        );
+        const busqueda = `%${filtros.busqueda}%`;
+        query = query.or(`primer_nombre.ilike.${busqueda},primer_apellido.ilike.${busqueda},numero_documento.ilike.${busqueda},ppi.ilike.${busqueda}`);
       }
 
-      if (filtros.estado && filtros.estado !== 'todos') {
-        query = query.eq('activo', filtros.estado === 'activo');
+      if (filtros.activo !== undefined) {
+        query = query.eq('activo', filtros.activo);
       }
 
-      const { data, error } = await query
-        .order('updated_at', { ascending: false })
-        .limit(filtros.limite || 50)
-        .offset((filtros.página || 0) * (filtros.limite || 50));
+      if (filtros.centro_id) {
+        query = query.eq('centro_registro_id', filtros.centro_id);
+      }
 
+      const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as HosixPaciente[];
-    } catch (err) {
-      console.error('Error searching patients:', err);
-      throw err;
-    }
-  }, []);
+      return data as Paciente[];
+    },
+  });
 
-  // Obtener paciente por ID
-  const obtenerPaciente = useCallback(async (id: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('hosix_pacientes')
-        .select('*')
-        .eq('id', id)
-        .single();
+  // Obtener detalle de paciente
+  const obtenerPaciente = async (id: string) => {
+    const { data, error } = await supabase
+      .from('hosix_pacientes')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-      if (error) throw error;
-      return data as HosixPaciente;
-    } catch (err) {
-      console.error('Error fetching patient:', err);
-      throw err;
-    }
-  }, []);
-
-  // Generar PPI único
-  const generarPPI = useCallback(async (): Promise<string> => {
-    try {
-      const timestamp = Date.now().toString().slice(-8);
-      const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-      return `PPI-${timestamp}-${random}`;
-    } catch (err) {
-      console.error('Error generating PPI:', err);
-      throw err;
-    }
-  }, []);
+    if (error) throw error;
+    return data as Paciente;
+  };
 
   // Crear paciente
-  const crearPaciente = useMutation({
-    mutationFn: async (pacienteData: Partial<HosixPaciente>) => {
-      if (!user?.centro_salud_id) throw new Error('Centro de salud requerido');
-
+  const crearPacienteMutation = useMutation({
+    mutationFn: async (formData: PacienteFormData) => {
+      // Generar PPI
       const ppi = await generarPPI();
+
+      // Verificar duplicados
+      if (formData.numero_documento) {
+        const duplicados = await buscarDuplicados(formData.numero_documento);
+        if (duplicados.length > 0) {
+          throw new Error(`Paciente con documento ${formData.numero_documento} ya existe`);
+        }
+      }
 
       const { data, error } = await supabase
         .from('hosix_pacientes')
-        .insert({
-          ...pacienteData,
-          ppi,
-          centro_registro_id: user.centro_salud_id,
-        })
+        .insert([
+          {
+            ...formData,
+            ppi,
+            activo: true,
+            fallecido: false,
+          },
+        ])
         .select()
         .single();
 
       if (error) throw error;
-      return data as HosixPaciente;
+      return data as Paciente;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hosix-pacientes'] });
-      toast({
-        title: 'Éxito',
-        description: 'Paciente creado correctamente',
-      });
-    },
-    onError: (err) => {
-      console.error('Error creating patient:', err);
-      toast({
-        title: 'Error',
-        description: 'Error al crear paciente',
-        variant: 'destructive',
-      });
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] });
     },
   });
 
   // Actualizar paciente
-  const actualizarPaciente = useMutation({
-    mutationFn: async (pacienteData: Partial<HosixPaciente> & { id: string }) => {
-      const { id, ...updateData } = pacienteData;
-
-      const { data, error } = await supabase
+  const actualizarPacienteMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<PacienteFormData> }) => {
+      const { data: result, error } = await supabase
         .from('hosix_pacientes')
-        .update(updateData)
+        .update(data)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as HosixPaciente;
+      return result as Paciente;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hosix-pacientes'] });
-      toast({
-        title: 'Éxito',
-        description: 'Paciente actualizado correctamente',
-      });
-    },
-    onError: (err) => {
-      console.error('Error updating patient:', err);
-      toast({
-        title: 'Error',
-        description: 'Error al actualizar paciente',
-        variant: 'destructive',
-      });
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] });
     },
   });
 
-  // Desactivar paciente
-  const desactivarPaciente = useMutation({
+  // Eliminar paciente (soft delete)
+  const eliminarPacienteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('hosix_pacientes')
         .update({ activo: false })
-        .eq('id', id)
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] });
+    },
+  });
+
+  // Fusionar historias clínicas duplicadas
+  const fusionarPacientesMutation = useMutation({
+    mutationFn: async ({ paciente_principal_id, paciente_duplicado_id, motivo }: 
+      { paciente_principal_id: string; paciente_duplicado_id: string; motivo: string }) => {
+      // Registrar fusión en identificadores
+      const { error: errorIdentificadores } = await supabase
+        .from('hosix_pacientes_identificadores')
+        .insert([
+          {
+            paciente_principal_id,
+            fusionado_de: paciente_duplicado_id,
+            fecha_fusion: new Date().toISOString(),
+            motivo_fusion: motivo,
+          },
+        ]);
+
+      if (errorIdentificadores) throw errorIdentificadores;
+
+      // Marcar duplicado como inactivo
+      const { error: errorDelete } = await supabase
+        .from('hosix_pacientes')
+        .update({ activo: false })
+        .eq('id', paciente_duplicado_id);
+
+      if (errorDelete) throw errorDelete;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] });
+    },
+  });
+
+  // Agregar contacto de emergencia
+  const agregarContactoMutation = useMutation({
+    mutationFn: async ({ paciente_id, nombre, parentesco, telefono, email, es_principal }: 
+      { paciente_id: string; nombre: string; parentesco?: string; telefono?: string; email?: string; es_principal?: boolean }) => {
+      const { data, error } = await supabase
+        .from('hosix_pacientes_contactos')
+        .insert([
+          {
+            paciente_id,
+            nombre,
+            parentesco,
+            telefono,
+            email,
+            es_contacto_principal: es_principal || false,
+          },
+        ])
         .select()
         .single();
 
       if (error) throw error;
-      return data as HosixPaciente;
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hosix-pacientes'] });
-      toast({
-        title: 'Éxito',
-        description: 'Paciente desactivado correctamente',
-      });
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] });
     },
-    onError: (err) => {
-      console.error('Error deactivating patient:', err);
-      toast({
-        title: 'Error',
-        description: 'Error al desactivar paciente',
-        variant: 'destructive',
-      });
+  });
+
+  // Agregar aviso al paciente
+  const agregarAvisoMutation = useMutation({
+    mutationFn: async ({ paciente_id, tipo_aviso, descripcion, prioridad }: 
+      { paciente_id: string; tipo_aviso?: string; descripcion: string; prioridad?: string }) => {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase
+        .from('hosix_pacientes_avisos')
+        .insert([
+          {
+            paciente_id,
+            tipo_aviso,
+            descripcion,
+            prioridad: prioridad || 'normal',
+            creado_por: userData?.user?.id,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pacientes'] });
     },
   });
 
   return {
-    pacientes: pacientes || [],
+    // Estado
+    pacientes,
     isLoadingPacientes,
     errorPacientes,
-    refetchPacientes,
-    buscarPacientes,
+    filtros,
+    setFiltros,
+
+    // Funciones
     obtenerPaciente,
     generarPPI,
-    crearPaciente: crearPaciente.mutate,
-    crearPacienteAsync: crearPaciente.mutateAsync,
-    isCreatingPaciente: crearPaciente.isPending,
-    actualizarPaciente: actualizarPaciente.mutate,
-    actualizarPacienteAsync: actualizarPaciente.mutateAsync,
-    isActualizandoPaciente: actualizarPaciente.isPending,
-    desactivarPaciente: desactivarPaciente.mutate,
-    desactivarPacienteAsync: desactivarPaciente.mutateAsync,
-    isDesactivandoPaciente: desactivarPaciente.isPending,
+    buscarDuplicados,
+
+    // Mutaciones
+    crearPaciente: crearPacienteMutation.mutate,
+    isCreatingPaciente: crearPacienteMutation.isPending,
+    actualizarPaciente: actualizarPacienteMutation.mutate,
+    isUpdatingPaciente: actualizarPacienteMutation.isPending,
+    eliminarPaciente: eliminarPacienteMutation.mutate,
+    isEliminingPaciente: eliminarPacienteMutation.isPending,
+    fusionarPacientes: fusionarPacientesMutation.mutate,
+    isFusioningPacientes: fusionarPacientesMutation.isPending,
+    agregarContacto: agregarContactoMutation.mutate,
+    isAddingContacto: agregarContactoMutation.isPending,
+    agregarAviso: agregarAvisoMutation.mutate,
+    isAddingAviso: agregarAvisoMutation.isPending,
+
+    // Errores
+    errorCrearPaciente: crearPacienteMutation.error?.message,
+    errorActualizar: actualizarPacienteMutation.error?.message,
+    errorEliminar: eliminarPacienteMutation.error?.message,
+    errorFusionar: fusionarPacientesMutation.error?.message,
   };
 };

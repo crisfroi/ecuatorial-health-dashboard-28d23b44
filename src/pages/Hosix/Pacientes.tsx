@@ -1,19 +1,12 @@
-import React from 'react';
+import HosixLayout from '@/components/hosix/HosixLayout';
 import PacientesList from '@/components/hosix/pacientes/PacientesList';
 
-const PacientesPage: React.FC = () => {
+export default function PacientesPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Gestión de Pacientes</h1>
-        <p className="text-gray-500 mt-1">
-          Administre el registro de pacientes y su información clínica
-        </p>
+    <HosixLayout>
+      <div className="p-8">
+        <PacientesList />
       </div>
-
-      <PacientesList />
-    </div>
+    </HosixLayout>
   );
-};
-
-export default PacientesPage;
+}

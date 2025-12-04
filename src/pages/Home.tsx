@@ -137,6 +137,12 @@ const Home = () => {
                   Solicitud de Establecimiento
                 </Button>
               </Link>
+              <Link to="/hosix/login">
+                <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3">
+                  <Hospital className="w-5 h-5 mr-2" />
+                  Sistema HOSIX
+                </Button>
+              </Link>
             </div>
           </div>
 

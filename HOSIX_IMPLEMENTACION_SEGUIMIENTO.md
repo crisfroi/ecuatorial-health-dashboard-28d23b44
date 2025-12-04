@@ -224,28 +224,30 @@ El sistema HOSIX se implementará en **4 fases principales**:
 #### Subtarea 1.6.1: Implementar Sistema de Búsqueda Global
 - **Objetivo**: Búsqueda centralizada de pacientes, profesionales y recursos
 - **Funcionalidades**:
-  - Búsqueda por PPI (Patient Primary Index)
-  - Búsqueda por nombre, documento
-  - Búsqueda rápida en barra de navegación
-  - Historial de búsquedas
-  
-- **Estado**: ⏳ NO INICIADO
+  - [x] Búsqueda por PPI (Patient Primary Index)
+  - [x] Búsqueda por nombre, documento
+  - [x] Búsqueda rápida en barra de navegación
+  - [x] Historial de búsquedas
+  - [x] Resultados en tiempo real
+
+- **Estado**: ✅ COMPLETADO
 - **Archivos**:
-  - `src/components/hosix/GlobalSearch.tsx`
-  - `src/hooks/useGlobalSearch.ts`
+  - `src/components/hosix/GlobalSearch.tsx` ✅ - Componente UI
+  - `src/hooks/useGlobalSearch.ts` ✅ - Lógica de búsqueda
 
 #### Subtarea 1.6.2: Implementar Master Patient Index
 - **Objetivo**: Índice maestro centralizado de pacientes
 - **Funcionalidades**:
-  - Asignación de PPI único
-  - Búsqueda automática de duplicados
-  - Fusión de historias
-  - Vista centralizada
-  
-- **Estado**: ⏳ NO INICIADO
+  - [x] Asignación de PPI único
+  - [x] Búsqueda automática de duplicados
+  - [x] Fusión de historias clínicas
+  - [x] Vista centralizada de estadísticas
+  - [x] Generación de PPI secuencial
+
+- **Estado**: ✅ COMPLETADO
 - **Archivos**:
-  - `src/components/hosix/configuracion/MPI.tsx`
-  - `src/hooks/useHosixMPI.ts`
+  - `src/components/hosix/configuracion/MPI.tsx` ✅ - Interfaz MPI
+  - `src/hooks/useHosixMPI.ts` ✅ - Lógica de MPI
 
 ---
 

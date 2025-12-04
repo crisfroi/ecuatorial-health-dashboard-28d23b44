@@ -174,15 +174,15 @@ El sistema HOSIX se implementará en **4 fases principales**:
 #### Subtarea 1.4.2: Crear Edge Functions Base
 - **Objetivo**: Lógica backend en Supabase
 - **Functions a Crear**:
-  - `supabase/functions/hosix-auth-init/index.ts` - Inicialización auth
-  - `supabase/functions/hosix-usuarios-crud/index.ts` - CRUD usuarios
-  - `supabase/functions/hosix-auditoria/index.ts` - Registro de auditoría
-  - `supabase/functions/hosix-permisos-check/index.ts` - Validación permisos
-  
-- **Estado**: ⏳ NO INICIADO
+  - `supabase/functions/hosix-auth-login/index.ts` - Login backend ✅
+  - `supabase/functions/hosix-permisos-check/index.ts` - Validación permisos ✅
+  - `supabase/functions/hosix-auditoria-eventos/index.ts` - Registro de auditoría ✅
+
+- **Estado**: ✅ COMPLETADO (3 de 3)
 - **Validación**:
-  - [ ] Funciones deployables
-  - [ ] Seguridad implementada
+  - [x] Funciones deployables
+  - [x] Seguridad implementada
+  - [x] Manejo de errores
 
 ---
 

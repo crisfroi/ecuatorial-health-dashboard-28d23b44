@@ -16,7 +16,7 @@ export const MPI: React.FC = () => {
   } = useHosixMPI();
 
   const [duplicadoSeleccionado, setDuplicadoSeleccionado] = useState<string | null>(null);
-  const [pacienteSeleccionado, setP acienteSeleccionado] = useState<{
+  const [pacienteSeleccionado, setPacienteSeleccionado] = useState<{
     original: string;
     duplicado: string;
   } | null>(null);

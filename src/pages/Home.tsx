@@ -83,15 +83,21 @@ const Home = () => {
                   Ministerio de Sanidad - Guinea Ecuatorial
                 </h1>
               </div>
-              <nav className="flex items-center space-x-4">
+              <nav className="flex items-center space-x-2">
                 <Link to="/search" data-tour="home-verify">
-                  <Button variant="outline">
+                  <Button variant="outline" size="sm">
                     <Search className="w-4 h-4 mr-2" />
                     Verificar Profesional
                   </Button>
                 </Link>
                 <Link to="/auth" data-tour="home-dashboard">
-                  <Button variant="outline">Panel de Control</Button>
+                  <Button variant="outline" size="sm">Panel de Control</Button>
+                </Link>
+                <Link to="/hosix/login">
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" size="sm">
+                    <Hospital className="w-4 h-4 mr-2" />
+                    HOSIX
+                  </Button>
                 </Link>
               </nav>
             </div>

@@ -67,13 +67,13 @@
 
 **Estimado**: 3-4 horas
 
-### Datos de Prueba (0%)
-- [ ] Usuarios de prueba (admin, médico, enfermero)
-- [ ] Perfiles (administrador, médico, enfermería)
+### Datos de Prueba (60%)
+- [x] Usuarios de prueba (admin, medico_prueba, enfermera_prueba) ✅
+- [x] Perfiles (administrador, médico, enfermería, farmacia) ✅
 - [ ] Pacientes de ejemplo
 - [ ] Permisos configurados
 
-**Estimado**: 1-2 horas
+**Estimado**: 1-2 horas (parcialmente completado)
 
 ### Testing y Validaciones (0%)
 - [ ] Testing flujo de login

@@ -33,15 +33,16 @@ El sistema HOSIX se implementará en **4 fases principales**:
 #### Subtarea 1.1.1: Crear Esquema Base y Tablas de Configuración
 - **Objetivo**: Establecer las tablas fundamentales del sistema
 - **Tablas a Crear**:
-  - `hosix_departamentos`
-  - `hosix_servicios`
-  - `hosix_usuarios`
-  - `hosix_perfiles`
-  - `hosix_auditoria`
-  - `hosix_pacientes`
-  - `hosix_historia_clinica`
-  
-- **Estado**: ⏳ NO INICIADO
+  - `hosix_departamentos` ✅
+  - `hosix_servicios` ✅
+  - `hosix_usuarios` ✅
+  - `hosix_perfiles` ✅
+  - `hosix_auditoria` ✅
+  - `hosix_pacientes` ✅
+  - `hosix_historia_clinica` ✅
+
+- **Estado**: ✅ COMPLETADO
+- **Migrations**: 001_hosix_configuracion_base, 002_hosix_pacientes_historia_clinica
 - **Responsable**: Backend/Database
 - **Validación**: 
   - [ ] Migrations creadas en `/supabase/migrations/`

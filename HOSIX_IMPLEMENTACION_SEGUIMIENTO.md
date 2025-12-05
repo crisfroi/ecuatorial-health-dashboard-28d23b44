@@ -760,9 +760,9 @@ TOTAL:  ███████████████████████░
 - ADM 11.0-12.0: 0% ⏳ (pendiente: almacenes, compras)
 
 **Duración Real FASE 2 (hasta ahora):**
-- Sesiones: 4 (Sesión 6, 7, 8, 9)
-- Horas: ~40 horas
-- Tiempo estimado restante: ~20 horas (ADM 10-12)
+- Sesiones: 5 (Sesión 6, 7, 8, 9, 10)
+- Horas: ~46 horas
+- Tiempo estimado restante: ~18 horas (ADM 11-12)
 
 ---
 

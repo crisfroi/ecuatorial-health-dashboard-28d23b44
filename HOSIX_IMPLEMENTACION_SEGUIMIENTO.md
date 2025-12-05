@@ -545,6 +545,22 @@ Módulo para gestionar licitaciones, pedidos y compras
 
 ---
 
+## 🔧 CORRECCIONES Y CAMBIOS EN SESIÓN 10
+
+### Corrección 1: Icon Import Error - Vial no existe en lucide-react
+**Problema**: `SyntaxError: The requested module '/node_modules/.vite/deps/lucide-react.js?v=c18c2ebf' does not provide an export named 'Vial'`
+**Raíz**: El ícono `Vial` no existe en la librería lucide-react. Solo `TestTube` es el ícono disponible para ampollas/viales.
+**Solución**:
+  - Archivo 1: `src/components/hosix/suministros/ArticulosManager.tsx`
+    - Cambio: `import { Vial, ... }` → `import { TestTube, ... }`
+    - Cambio: `<Vial className="..." />` → `<TestTube className="..." />`
+  - Archivo 2: `src/pages/Hosix/Suministros.tsx`
+    - Cambio: `import { ..., Vial }` → `import { ..., TestTube }`
+    - Cambio: `<Vial className="..." />` → `<TestTube className="..." />`
+**Estado**: ✅ SOLUCIONADO
+
+---
+
 ## 🔧 CORRECCIONES Y CAMBIOS EN SESIÓN 9
 
 ### Corrección 1: Rutas Faltantes en App.tsx

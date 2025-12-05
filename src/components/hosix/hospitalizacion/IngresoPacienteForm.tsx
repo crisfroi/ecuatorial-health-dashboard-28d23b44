@@ -126,9 +126,9 @@ const IngresoPacienteForm: React.FC = () => {
                   <SelectValue placeholder="Selecciona un médico" />
                 </SelectTrigger>
                 <SelectContent>
-                  {profesionales.data?.filter(p => p.tipo_profesional?.includes('Médico'))?.map((prof) => (
+                  {profesionales?.filter(p => p.area_profesional?.includes('Médico') || p.area_profesional === 'Médico')?.map((prof) => (
                     <SelectItem key={prof.id} value={prof.id}>
-                      Dr. {prof.nombre} ({prof.especialidad})
+                      {prof.nombre_completo || `${prof.primer_nombre} ${prof.primer_apellido}`}
                     </SelectItem>
                   ))}
                 </SelectContent>

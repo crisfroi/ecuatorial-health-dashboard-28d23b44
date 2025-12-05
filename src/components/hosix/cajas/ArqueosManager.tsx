@@ -132,7 +132,7 @@ export function ArqueosManager() {
     parseFloat(formData.cheques_monto || 0) + 
     parseFloat(formData.tarjetas_monto || 0);
 
-  const diferenciaPre view = totalArqueoPreview - parseFloat(formData.saldo_esperado || 0);
+  const diferenciasPreview = totalArqueoPreview - parseFloat(formData.saldo_esperado || 0);
 
   const arqueosRecientes = arqueos.slice(0, 20);
 
@@ -314,8 +314,8 @@ export function ArqueosManager() {
                       <span>Total Arqueo:</span>
                       <span className="font-mono">${totalArqueoPreview.toFixed(2)}</span>
                     </div>
-                    <div className={`text-right font-bold ${diferenciaPreview === 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                      Diferencia: ${diferenciaPreview.toFixed(2)}
+                    <div className={`text-right font-bold ${diferenciasPreview === 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                      Diferencia: ${diferenciasPreview.toFixed(2)}
                     </div>
                   </div>
 

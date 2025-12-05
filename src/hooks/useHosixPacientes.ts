@@ -340,6 +340,6 @@ export const useHosixPacientes = () => {
     errorCrearPaciente: crearPacienteMutation.error?.message,
     errorActualizar: actualizarPacienteMutation.error?.message,
     errorEliminar: eliminarPacienteMutation.error?.message,
-    errorFusionar: fusionarPacienteMutation.error?.message,
+    errorFusionar: fusionarPacientesMutation.error?.message,
   };
 };

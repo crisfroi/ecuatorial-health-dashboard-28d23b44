@@ -15,23 +15,25 @@ import DynamicForms from "./pages/DynamicForms";
 import PublicForm from "./pages/PublicForm";
 import Auth from "./pages/Auth";
 import ErrorBoundary from "@/components/ui/error-boundary";
-import HosixDashboard from "./pages/Hosix/HosixDashboard";
-import HosixLogin from "./pages/Hosix/HosixLogin";
-import HosixLayout from "./components/hosix/HosixLayout";
-import PacientesPage from "./pages/Hosix/Pacientes";
-import UrgenciasPage from "./pages/Hosix/Urgencias";
-import CitasPage from "./pages/Hosix/Citas";
-import HospitalizacionPage from "./pages/Hosix/Hospitalizacion";
-import QuirofanosPage from "./pages/Hosix/Quirofanos";
-import FarmaciaPage from "./pages/Hosix/Farmacia";
-import ConfiguracionPage from "./pages/Hosix/Configuracion";
-import BiPage from "./pages/Hosix/BI";
-import FacturacionPage from "./pages/Hosix/Facturacion";
-import CajasPage from "./pages/Hosix/Cajas";
-import RecobrosPage from "./pages/Hosix/Recobros";
 import "./utils/authErrorHandler"; // Initialize global auth error handling
 import "./utils/storageCleanup"; // Initialize storage cleanup
 import { initResizeObserverErrorHandling } from "./utils/resizeObserverHandler";
+
+// HOSIX Pages
+import HosixLogin from "./pages/Hosix/HosixLogin";
+import HosixLayout from "./components/hosix/HosixLayout";
+import HosixDashboard from "./pages/Hosix/HosixDashboard";
+import Pacientes from "./pages/Hosix/Pacientes";
+import Urgencias from "./pages/Hosix/Urgencias";
+import Citas from "./pages/Hosix/Citas";
+import Hospitalizacion from "./pages/Hosix/Hospitalizacion";
+import Quirofanos from "./pages/Hosix/Quirofanos";
+import Farmacia from "./pages/Hosix/Farmacia";
+import FacturacionPage from "./pages/Hosix/Facturacion";
+import CajasPage from "./pages/Hosix/Cajas";
+import RecobrosPage from "./pages/Hosix/Recobros";
+import Configuracion from "./pages/Hosix/Configuracion";
+import BI from "./pages/Hosix/BI";
 
 // Initialize ResizeObserver error handling
 initResizeObserverErrorHandling();
@@ -98,24 +100,21 @@ function App() {
                 <Route path="/solicitud-establecimiento" element={<SolicitudEstablecimiento />} />
                 <Route path="/dynamic-forms" element={<DynamicForms />} />
                 <Route path="/form/:publicUrl" element={<PublicForm />} />
-
-                {/* HOSIX Routes */}
                 <Route path="/hosix/login" element={<HosixLogin />} />
                 <Route path="/hosix" element={<HosixLayout />}>
                   <Route index element={<HosixDashboard />} />
-                  <Route path="pacientes" element={<PacientesPage />} />
-                  <Route path="urgencias" element={<UrgenciasPage />} />
-                  <Route path="citas" element={<CitasPage />} />
-                  <Route path="hospitalizacion" element={<HospitalizacionPage />} />
-                  <Route path="quirofanos" element={<QuirofanosPage />} />
-                  <Route path="farmacia" element={<FarmaciaPage />} />
+                  <Route path="pacientes" element={<Pacientes />} />
+                  <Route path="urgencias" element={<Urgencias />} />
+                  <Route path="citas" element={<Citas />} />
+                  <Route path="hospitalizacion" element={<Hospitalizacion />} />
+                  <Route path="quirofanos" element={<Quirofanos />} />
+                  <Route path="farmacia" element={<Farmacia />} />
                   <Route path="facturacion" element={<FacturacionPage />} />
                   <Route path="cajas" element={<CajasPage />} />
                   <Route path="recobros" element={<RecobrosPage />} />
-                  <Route path="configuracion" element={<ConfiguracionPage />} />
-                  <Route path="bi" element={<BiPage />} />
+                  <Route path="configuracion" element={<Configuracion />} />
+                  <Route path="bi" element={<BI />} />
                 </Route>
-
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

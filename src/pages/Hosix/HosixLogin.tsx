@@ -39,6 +39,8 @@ const HosixLogin: React.FC = () => {
     }
   };
 
+  const isDev = import.meta.env.DEV;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -84,6 +86,7 @@ const HosixLogin: React.FC = () => {
                     onChange={(e) => setUsername(e.target.value)}
                     className="pl-10"
                     disabled={isLoading}
+                    autoComplete="username"
                   />
                 </div>
               </div>
@@ -103,6 +106,7 @@ const HosixLogin: React.FC = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
                     disabled={isLoading}
+                    autoComplete="current-password"
                   />
                 </div>
               </div>
@@ -127,6 +131,24 @@ const HosixLogin: React.FC = () => {
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </Button>
             </form>
+
+            {/* Development Credentials Info */}
+            {isDev && (
+              <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <h3 className="text-sm font-semibold text-amber-900 mb-2">🔧 Credenciales de Desarrollo</h3>
+                <div className="space-y-2 text-xs text-amber-800">
+                  <div>
+                    <span className="font-medium">Admin:</span> usuario: <code className="bg-white px-1 py-0.5 rounded">admin</code> | contraseña: <code className="bg-white px-1 py-0.5 rounded">cualquiera</code>
+                  </div>
+                  <div>
+                    <span className="font-medium">Médico:</span> usuario: <code className="bg-white px-1 py-0.5 rounded">medico_prueba</code> | contraseña: <code className="bg-white px-1 py-0.5 rounded">cualquiera</code>
+                  </div>
+                  <div>
+                    <span className="font-medium">Enfermera:</span> usuario: <code className="bg-white px-1 py-0.5 rounded">enfermera_prueba</code> | contraseña: <code className="bg-white px-1 py-0.5 rounded">cualquiera</code>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

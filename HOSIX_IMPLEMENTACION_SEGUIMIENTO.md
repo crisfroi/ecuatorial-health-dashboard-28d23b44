@@ -293,27 +293,41 @@ El sistema HOSIX se implementará en **4 fases principales**:
   - [x] Soft delete (desactivación) de pacientes
   - [x] Filtros por nombre, documento, PPI
 
-#### Subtarea 2.1.2: Historia Clínica Electrónica
+#### Subtarea 2.1.2: Historia Clínica Electrónica ✅
 - **Objetivo**: Visualizar y gestionar HCE
-- **Componentes**:
-  - `src/components/hosix/pacientes/HistoriaClinicaView.tsx` ⏳
-  - `src/components/hosix/pacientes/EntradaHistoriaForm.tsx` ⏳
+- **Componentes Creados**:
+  - `src/components/hosix/pacientes/HistoriaClinicaView.tsx` ✅ - Vista completa de historia clínica
 
-- **Estado**: ⏳ EN PROGRESO
-- **Nota**: HCE se registra automáticamente en urgencias, citas, y hospitalizacion
+- **Estado**: ✅ COMPLETADO
+- **Características**:
+  - [x] Seleccionar paciente y ver su historia clínica
+  - [x] Visualización cronológica de entradas
+  - [x] Búsqueda y filtrado por tipo de entrada
+  - [x] Información detallada de paciente (datos demográficos)
+  - [x] Clasificación de tipos de entrada (consulta, urgencia, hospitalización, etc.)
+  - [x] Visualización de estado de firma
+  - [x] Nota: HCE se registra automáticamente en urgencias, citas, y hospitalización
 
-#### Subtarea 2.1.3: Documentos y Avisos
-- **Objetivo**: Gestionar adjuntos y alertas
-- **Componentes**:
-  - `src/components/hosix/pacientes/DocumentosManager.tsx` ⏳
-  - `src/components/hosix/pacientes/AvisosManager.tsx` ⏳
+#### Subtarea 2.1.3: Documentos y Avisos ✅
+- **Objetivo**: Gestionar adjuntos y alertas médicas
+- **Componentes Creados**:
+  - `src/components/hosix/pacientes/DocumentosManager.tsx` ✅ - Gestión de documentos
+  - `src/components/hosix/pacientes/AvisosManager.tsx` ✅ - Gestión de avisos y alertas
 
-- **Estado**: ⏳ EN PROGRESO
-- **Funcionalidades Implementadas**:
-  - [x] Hooks para agregar contactos de emergencia
-  - [x] Hooks para agregar avisos al paciente
-  - [ ] Componentes UI para documentos
-  - [ ] Componentes UI para avisos
+- **Estado**: ✅ COMPLETADO
+- **Funcionalidades Documentos**:
+  - [x] Agregar documentos (cédula, pasaporte, licencia, comprobante, seguro, etc.)
+  - [x] Visualizar documentos cargados en tabla
+  - [x] Descargar documentos
+  - [x] Eliminar documentos
+  - [x] Filtrar por tipo de documento
+
+- **Funcionalidades Avisos**:
+  - [x] Crear avisos con tipo (alerta, alergia, contraindicación, precaución, importante)
+  - [x] Definir severidad (baja, media, alta, crítica)
+  - [x] Visualización visual según severidad
+  - [x] Eliminar avisos
+  - [x] Información de fecha de creación
 
 ---
 
@@ -360,49 +374,93 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ---
 
-### 2.3 Sistema de Citas (Módulo ADM 3.0)
+### 2.3 Sistema de Citas (Módulo ADM 3.0) ✅
 
-#### Subtarea 2.3.1: Configuración de Agendas
+#### Subtarea 2.3.1: Configuración de Agendas ✅
 - **Objetivo**: Crear y configurar agendas
-- **Componentes**:
-  - `src/components/hosix/citas/AgendaConfigurador.tsx`
-  - `src/components/hosix/citas/HorarioSelector.tsx`
-  
-- **Estado**: ⏳ NO INICIADO
-- **Funcionalidades**:
-  - Definición por servicio, médico, sala
-  - Períodos hábiles y festividades
-  - Duración estimada por actividad
+- **Componentes Creados**:
+  - `src/components/hosix/citas/AgendasList.tsx` ✅ - Gestión completa de agendas
 
-#### Subtarea 2.3.2: Gestión de Citas
+- **Estado**: ✅ COMPLETADO
+- **Funcionalidades**:
+  - [x] Crear nuevas agendas
+  - [x] Definición por servicio, médico, sala
+  - [x] Duración estimada por actividad configurable
+  - [x] Capacidad máxima por día
+  - [x] Permitir teleconsulta
+  - [x] Tabla de agendas con filtros y búsqueda
+
+#### Subtarea 2.3.2: Gestión de Citas ✅
 - **Objetivo**: Agendar, cancelar, confirmar citas
-- **Componentes**:
-  - `src/components/hosix/citas/CitasCalendario.tsx`
-  - `src/components/hosix/citas/CitasForm.tsx`
-  - `src/components/hosix/citas/CitasListado.tsx`
-  
-- **Estado**: ⏳ NO INICIADO
+- **Componentes Creados**:
+  - `src/components/hosix/citas/CitasForm.tsx` ✅ - Formulario para agendar citas
+  - `src/components/hosix/citas/CitasList.tsx` ✅ - Gestión de citas con filtros
+  - `src/components/hosix/citas/ListaEsperaManager.tsx` ✅ - Gestión de lista de espera
+  - `src/hooks/useHosixCitas.ts` ✅ - Hook completo con validaciones
+
+- **Estado**: ✅ COMPLETADO
+- **Funcionalidades Citas**:
+  - [x] Agendar citas con validación de disponibilidad
+  - [x] Confirmar citas
+  - [x] Cancelar citas con motivo
+  - [x] Filtrar por estado (programada, confirmada, completada, etc.)
+  - [x] Buscar por paciente
+  - [x] Teleconsulta opcional
+
+- **Funcionalidades Lista de Espera**:
+  - [x] Crear solicitud en lista de espera
+  - [x] 6 tipos de solicitud (hospitalización, consulta, examen, cirugía, etc.)
+  - [x] Prioridades (baja, media, alta, urgente)
+  - [x] Asignar desde lista de espera
+  - [x] Seguimiento automático
 
 ---
 
-### 2.4 Hospitalización (Módulo ADM 5.0)
+### 2.4 Hospitalización (Módulo ADM 5.0) ✅
 
-#### Subtarea 2.4.1: Gestión de Camas
+#### Subtarea 2.4.1: Gestión de Camas ✅
 - **Objetivo**: Administración de camas disponibles
-- **Componentes**:
-  - `src/components/hosix/hospitalizacion/CamasGrid.tsx`
-  - `src/components/hosix/hospitalizacion/CamasManager.tsx`
-  
-- **Estado**: ⏳ NO INICIADO
+- **Funcionalidades**:
+  - [x] Visualizar camas disponibles
+  - [x] Filtrar por servicio
+  - [x] Estados de cama (disponible, ocupada, mantenimiento, reservada)
+  - [x] Actualizar estado automáticamente al ingresar/egresar
 
-#### Subtarea 2.4.2: Episodios de Hospitalización
+- **Estado**: ✅ COMPLETADO
+
+#### Subtarea 2.4.2: Episodios de Hospitalización ✅
 - **Objetivo**: Registro y seguimiento de ingresos
-- **Componentes**:
-  - `src/components/hosix/hospitalizacion/IngresoPacienteForm.tsx`
-  - `src/components/hosix/hospitalizacion/AltaForm.tsx`
-  - `src/components/hosix/hospitalizacion/TrasladsManager.tsx`
-  
-- **Estado**: ⏳ NO INICIADO
+- **Componentes Creados**:
+  - `src/components/hosix/hospitalizacion/IngresoPacienteForm.tsx` ✅ - Ingreso de paciente
+  - `src/components/hosix/hospitalizacion/AltaForm.tsx` ✅ - Alta de paciente con informe
+  - `src/components/hosix/hospitalizacion/TrasladosManager.tsx` ✅ - Gestión de traslados
+  - `src/hooks/useHosixHospitalizacion.ts` ✅ - Hook completo
+
+- **Estado**: ✅ COMPLETADO
+- **Funcionalidades Ingreso**:
+  - [x] Seleccionar paciente a hospitalizar
+  - [x] Origen de ingreso (urgencias, programado, traslado)
+  - [x] Asignar médico responsable
+  - [x] Seleccionar cama disponible
+  - [x] Registrar diagnóstico de ingreso
+  - [x] Duración prevista
+  - [x] Marcar cama como ocupada automáticamente
+
+- **Funcionalidades Alta**:
+  - [x] Seleccionar paciente hospitalizado
+  - [x] Ver días de estancia
+  - [x] Tipo de alta (domicilio, traslado, defunción, voluntaria)
+  - [x] Diagnóstico de alta
+  - [x] Informe de alta detallado
+  - [x] Liberar cama automáticamente
+
+- **Funcionalidades Traslados**:
+  - [x] Trasladar paciente entre camas
+  - [x] Trasladar entre servicios
+  - [x] Validar disponibilidad de cama destino
+  - [x] Registrar motivo del traslado
+  - [x] Actualizar servicios automáticamente
+  - [x] Historial de traslados
 
 ---
 
@@ -533,15 +591,15 @@ El sistema HOSIX se implementará en **4 fases principales**:
 | **Fases** | 4 | 1 | 1 | 2 |
 | **Módulos FASE 1** | 7 | 7 | 0 | 0 |
 | **Subtareas FASE 1** | 15 | 15 | 0 | 0 |
-| **Módulos FASE 2** | 5 | 2 | 3 | 0 |
-| **Componentes** | 100+ | 25 | 5 | 70+ |
+| **Módulos FASE 2** | 7 | 4 | 0 | 3 |
+| **Componentes** | 100+ | 35 | 0 | 65+ |
 | **Tablas BD** | 150+ | 42 | 0 | 108+ |
-| **Hooks** | 10 | 9 | 0 | 1 |
+| **Hooks** | 12 | 11 | 0 | 1 |
 | **Migrations** | 5 | 5 | 0 | 0 |
 | **Páginas HOSIX** | 10 | 10 | 0 | 0 |
 | **Edge Functions** | 3 | 3 | 0 | 0 |
-| **Formularios CRUD** | 5 | 3 | 2 | 0 |
-| **Componentes Especiales** | 3 | 3 | 2 | 0 |
+| **Formularios CRUD** | 8 | 8 | 0 | 0 |
+| **Componentes Especiales** | 10 | 10 | 0 | 0 |
 
 ### Completado en Sesión Anterior (15-01-2025) ✅
 - [x] 5 Migraciones de base de datos (ConfigBase, Pacientes, Urgencias, Hospitalizacion, Facturacion)
@@ -683,9 +741,10 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ## 🏁 ESTADO ACTUAL - FASE 1 ✅ / FASE 2 EN PROGRESO 🚀
 
-**Estado Actual**: ✅ **FASE 1 - 100% COMPLETADO** | 🚀 **FASE 2 - INICIADA (40% PROGRESO)**
-**Última Actualización**: 2025-01-20 (Sesión 5)
-**Tiempo Total Invertido**: ~22 horas (5 sesiones)
+**Estado Actual**: ✅ **FASE 1 - 100% COMPLETADO** | ✅ **FASE 2 - 57% COMPLETADO** | ⏳ **FASE 3 - PENDIENTE**
+**Última Actualización**: 2025-01-21 (Sesión 7)
+**Tiempo Total Invertido**: ~25 horas (7 sesiones)
+**Módulos Completados**: 4 de 7 en FASE 2
 
 ### Resumen de Implementación COMPLETO:
 - **Migraciones SQL**: 5 (1,113 líneas de código SQL, 100+ tablas)
@@ -726,62 +785,83 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ---
 
-## 🚀 FASE 2 - INICIADA (Sesión 5 - 20 de Enero 2025)
+## 🚀 FASE 2 - MÓDULOS ADMINISTRATIVOS (60% COMPLETADA)
 
-### COMPLETADO EN ESTA SESIÓN:
+### SESIÓN 5 (20 de Enero 2025) - COMPLETADO:
 
-#### ADM 1.0 - Gestión de Pacientes ✅
-- `useHosixPacientes.ts` - Hook completo con CRUD, búsqueda de duplicados, fusión
-- `PacientesList.tsx` - Tabla con filtros, paginación, búsqueda
-- `PacienteForm.tsx` - Formulario creación/edición con validación de duplicados
-- Página integrada a HosixLayout
+#### ADM 1.0 - Gestión de Pacientes ✅ (PARCIALMENTE)
+- `useHosixPacientes.ts` - Hook con CRUD básico
+- `PacientesList.tsx` - Tabla con filtros y búsqueda
+- `PacienteForm.tsx` - Formulario creación/edición
 
-**Características Implementadas**:
-- Generación automática de PPI secuencial (PPI-0001, PPI-0002, etc.)
-- Búsqueda y alerta de pacientes duplicados
-- Soft delete de pacientes (desactivación)
-- Filtros por nombre, documento, PPI
-- Formulario completo con validación
-- Gestión de contactos de emergencia
-- Gestión de avisos al paciente
+**Características**:
+- [x] CRUD de pacientes
+- [x] Generación automática de PPI
+- [x] Búsqueda de duplicados
+- [x] Soft delete
 
-#### ADM 2.0 - Módulo de Urgencias ✅
-- `useHosixUrgencias.ts` - Hook completo con gestión de triage y atención
-- `UrgenciasWorklist.tsx` - Worklist con estadísticas y priorización
-- `TriageForm.tsx` - Formulario de triage con 5 niveles y signos vitales
-- `AtencionForm.tsx` - Formulario de atención y cierre de episodio
-- Página integrada a HosixLayout
+#### ADM 2.0 - Módulo de Urgencias ✅ (100% COMPLETADO)
+- `useHosixUrgencias.ts` - Hook completo
+- `UrgenciasWorklist.tsx` - Worklist con priorización
+- `TriageForm.tsx` - Formulario triage con 5 niveles
+- `AtencionForm.tsx` - Gestión de atenciones
 
-**Características Implementadas**:
-- Registro de entrada a urgencias
-- Sistema de triage con 5 niveles (Emergencia - No Urgente)
-- Registro de signos vitales completos
-- Selección de síntomas comunes
-- Registro de diagnóstico inicial y final
-- Cierre de episodio con tipos de salida (alta, ingreso, traslado, etc.)
-- Integración automática a historia clínica
-- Cálculo automático de tiempo de espera
-- Worklist ordenada por prioridad y tiempo
+**Características**: [x] Todas las funcionalidades
 
-### PRÓXIMOS MÓDULOS DE FASE 2:
+#### ADM 3.0 - Sistema de Citas ✅ (100% COMPLETADO - Sesión 6)
+- `useHosixCitas.ts` (411 líneas) - Hook completo
+- `AgendasList.tsx` - Gestión de agendas
+- `CitasForm.tsx` - Agendar nuevas citas
+- `CitasList.tsx` - Gestión de citas con filtros
+- `ListaEsperaManager.tsx` - Gestión de lista de espera
 
-#### ADM 3.0 - Sistema de Citas (En Progreso)
-- Configuración de agendas
-- Calendario de citas
-- Reserva y cancelación
-- Listas de espera
+**Características**: [x] Todas las funcionalidades
 
-#### ADM 5.0 - Hospitalización
-- Gestión de camas
-- Episodios de hospitalización
-- Traslados entre servicios
-- Informe de alta
+#### ADM 5.0 - Hospitalización ✅ (100% COMPLETADO - Sesión 6)
+- `useHosixHospitalizacion.ts` (366 líneas) - Hook completo
+- `IngresoPacienteForm.tsx` - Ingreso de pacientes
+- `AltaForm.tsx` - Alta de pacientes con informe
+- `TrasladosManager.tsx` - Gestión de traslados
 
+**Características**: [x] Todas las funcionalidades
+
+### SESIÓN 7 (21 de Enero 2025) - CORRECCIONES Y COMPLETAMIENTO:
+
+#### ✅ ARREGLOS REALIZADOS:
+1. **Dashboard Anidado** - Removido HosixLayout de páginas Pacientes y Urgencias
+   - Las páginas ahora usan Tabs para organizar contenido
+   - No hay anidamiento de layouts
+
+2. **ADM 1.0 - Completado 100%**:
+   - `HistoriaClinicaView.tsx` ✅ - Vista de historia clínica electrónica
+   - `DocumentosManager.tsx` ✅ - Gestión de documentos
+   - `AvisosManager.tsx` ✅ - Gestión de avisos y alertas
+   - Página Pacientes refactorizada con 5 tabs
+
+3. **ADM 2.0 - Completado 100%**:
+   - Página Urgencias refactorizada con 3 tabs (Worklist, Triage, Atención)
+   - Integración correcta sin layouts anidados
+
+4. **Documento Actualizado**:
+   - HOSIX_IMPLEMENTACION_SEGUIMIENTO.md actualizado con estado correcto
+   - Estadísticas de progreso actualizadas
+
+### MÓDULOS COMPLETADOS EN FASE 2:
+
+| Módulo | Estado | Completado |
+|--------|--------|-----------|
+| ADM 1.0 - Pacientes | ✅ 100% | 2.1.1 + 2.1.2 + 2.1.3 |
+| ADM 2.0 - Urgencias | ✅ 100% | 2.2.1 + 2.2.2 + 2.2.3 |
+| ADM 3.0 - Citas | ✅ 100% | 2.3.1 + 2.3.2 |
+| ADM 5.0 - Hospitalización | ✅ 100% | 2.4.1 + 2.4.2 |
+
+### PRÓXIMOS MÓDULOS:
+
+#### ADM 4.0 - Lista de Espera (Parcialmente en ADM 3.0)
+#### ADM 6.0 - Teleconsulta
 #### ADM 7.0 - Facturación
-- Cuentas de pacientes
-- Generación de facturas
-- Gestión de cobros
-- Reportes de facturación
+#### ADM 8.0-12.0 - Otros módulos administrativos
 
-**Estimado de Duración FASE 2**: 3-4 semanas (con dedicación a tiempo completo)
-**Próximo Checkpoint**: Completar ADM 3.0, ADM 5.0, ADM 7.0 en próxima sesión
+**Progreso FASE 2**: 4/7 módulos = **57% Completado**
+**Componentes Creados**: 35 componentes React
+**Líneas de Código**: 2,000+ líneas nuevas en esta sesión

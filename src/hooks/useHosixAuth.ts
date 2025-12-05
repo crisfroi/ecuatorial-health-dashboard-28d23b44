@@ -68,62 +68,49 @@ export const useHosixAuth = () => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Validar que se proporcionen credenciales
-      if (!username || !password) {
-        throw new Error('Usuario y contraseña requeridos');
+      if (!username) {
+        throw new Error('Usuario requerido');
       }
 
-      const { data, error } = await supabase
-        .from('hosix_usuarios')
-        .select('*')
-        .eq('username', username)
-        .eq('activo', true)
-        .single();
-
-      if (error || !data) {
-        throw new Error('Usuario o contraseña incorrectos');
+      if (!password) {
+        throw new Error('Contraseña requerida');
       }
 
-      // NOTA: En desarrollo, aceptamos cualquier contraseña
-      // En producción, esto debe validarse con hash en edge function
-      // Por ahora, solo validamos que la contraseña no esté vacía
-      if (!password || password.length < 3) {
-        throw new Error('Contraseña debe tener mínimo 3 caracteres');
+      console.log('🔐 Iniciando login HOSIX para usuario:', username);
+
+      // Llamar a la edge function hosix-auth-login
+      const { data, error } = await supabase.functions.invoke('hosix-auth-login', {
+        body: {
+          username: username.trim(),
+          password: password.trim(),
+        },
+      });
+
+      console.log('📡 Respuesta de edge function:', { success: data?.success, error });
+
+      if (error) {
+        console.error('❌ Error en edge function:', error);
+        throw new Error(error.message || 'Error al conectar con el servidor');
       }
 
-      // Verificar si usuario está bloqueado por intentos fallidos
-      const intentosFallidos = data.intentos_fallidos || 0;
-      if (intentosFallidos >= 3 && data.bloqueado_hasta) {
-        const bloqueadoHasta = new Date(data.bloqueado_hasta);
-        if (bloqueadoHasta > new Date()) {
-          throw new Error(`Usuario bloqueado. Intente más tarde.`);
-        }
+      if (!data?.success || !data?.user) {
+        throw new Error(data?.error || 'Usuario o contraseña incorrectos');
       }
+
+      const user: HosixUser = {
+        id: data.user.id,
+        username: data.user.username,
+        email: data.user.email,
+        nombre_completo: data.user.nombre_completo,
+        perfil_id: data.user.perfil_id,
+        centro_salud_id: data.user.centro_salud_id || '',
+        activo: true,
+      };
 
       // Crear sesión
       const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 8); // 8 horas de sesión
+      expiresAt.setHours(expiresAt.getHours() + 8);
 
-      const user: HosixUser = {
-        id: data.id,
-        username: data.username,
-        email: data.email,
-        nombre_completo: data.nombre_completo,
-        perfil_id: data.perfil_id,
-        centro_salud_id: data.centro_salud_id,
-        activo: data.activo,
-      };
-
-      // Actualizar último acceso
-      await supabase
-        .from('hosix_usuarios')
-        .update({ 
-          ultimo_acceso: new Date().toISOString(),
-          intentos_fallidos: 0
-        })
-        .eq('id', data.id);
-
-      // Guardar sesión
       localStorage.setItem(
         'hosix_session',
         JSON.stringify({ user, expiresAt: expiresAt.toISOString() })
@@ -137,13 +124,15 @@ export const useHosixAuth = () => {
       });
 
       toast({
-        title: 'Bienvenido',
+        title: '¡Bienvenido!',
         description: `Bienvenido ${user.nombre_completo}`,
       });
 
       return user;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al iniciar sesión';
+      console.error('🔴 Error en login:', errorMessage, err);
+
       setAuthState(prev => ({
         ...prev,
         isLoading: false,

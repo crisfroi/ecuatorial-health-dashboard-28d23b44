@@ -33,6 +33,7 @@ import FacturacionPage from "./pages/Hosix/Facturacion";
 import CajasPage from "./pages/Hosix/Cajas";
 import RecobrosPage from "./pages/Hosix/Recobros";
 import Suministros from "./pages/Hosix/Suministros";
+import Almacenes from "./pages/Hosix/Almacenes";
 import Configuracion from "./pages/Hosix/Configuracion";
 import BI from "./pages/Hosix/BI";
 
@@ -114,6 +115,7 @@ function App() {
                   <Route path="cajas" element={<CajasPage />} />
                   <Route path="recobros" element={<RecobrosPage />} />
                   <Route path="suministros" element={<Suministros />} />
+                  <Route path="almacenes" element={<Almacenes />} />
                   <Route path="configuracion" element={<Configuracion />} />
                   <Route path="bi" element={<BI />} />
                 </Route>

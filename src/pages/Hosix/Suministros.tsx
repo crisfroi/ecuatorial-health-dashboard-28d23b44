@@ -6,7 +6,7 @@ import GruposManager from '@/components/hosix/suministros/GruposManager';
 import UnidadesManager from '@/components/hosix/suministros/UnidadesManager';
 import UbicacionesManager from '@/components/hosix/suministros/UbicacionesManager';
 import ArticulosManager from '@/components/hosix/suministros/ArticulosManager';
-import { Package, Folder, Layers, Gauge, MapPin, Vial } from 'lucide-react';
+import { Package, Folder, Layers, Gauge, MapPin, TestTube } from 'lucide-react';
 import { useHosixSuministros } from '@/hooks/useHosixSuministros';
 
 export default function Suministros() {
@@ -77,7 +77,7 @@ export default function Suministros() {
                   <p className="text-sm text-gray-600">Total de Artículos</p>
                   <p className="text-3xl font-bold">{articulos.filter((a) => a.activo).length}</p>
                 </div>
-                <Vial className="h-10 w-10 text-orange-400 opacity-50" />
+                <TestTube className="h-10 w-10 text-orange-400 opacity-50" />
               </div>
             </CardContent>
           </Card>

@@ -38,6 +38,7 @@ const HosixSidebar: React.FC<HosixSidebarProps> = ({ isOpen }) => {
     { label: 'Cajas', icon: Vault, path: '/hosix/cajas' },
     { label: 'Recobros', icon: TrendingDown, path: '/hosix/recobros' },
     { label: 'Suministros', icon: Package, path: '/hosix/suministros' },
+    { label: 'Almacenes', icon: Package, path: '/hosix/almacenes' },
     { label: 'BI & Reportes', icon: BarChart3, path: '/hosix/bi' },
   ];
 

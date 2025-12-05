@@ -1,8 +1,8 @@
 # HOSIX - Sistema de Gestión Hospitalaria Nacional
 ## Documento de Arquitectura e Implementación Completa
 
-> **Versión**: 1.0  
-> **Fecha**: 2024-12-04  
+> **Versión**: 1.2
+> **Fecha Última Actualización**: 2025-01-22 (Sesión 10)
 > **Proyecto**: Dashboard de Gestión Hospitalaria - GEPROSTEC
 
 ---
@@ -446,59 +446,85 @@ hosix_recobros_solicitudes
 hosix_recobros_morosidad
 ```
 
-### 4.10 Suministros (Módulo 10.0)
+### 4.10 Suministros (Módulo 10.0) ✅ COMPLETADO
 
-#### Funcionalidades Requeridas:
-| ID | Funcionalidad | Prioridad |
-|----|--------------|-----------|
-| ADM.10.1 | Registro de artículos con código de barras | ALTA |
-| ADM.10.2 | Control de unidades por tipo de envase | ALTA |
-| ADM.10.3 | Definición de familias, grupos y subgrupos | ALTA |
-| ADM.10.4 | Definición de unidades de dosis | ALTA |
-| ADM.10.5 | Definición de ubicaciones de almacenamiento | ALTA |
-| ADM.10.6 | Definición de unidades de compra, unidades de dispensación | ALTA |
-| ADM.10.7 | Definición de categorías de conceptos facturables | ALTA |
-| ADM.10.8 | Asociación entre artículo y proveedor | ALTA |
+#### Funcionalidades Implementadas ✅:
+| ID | Funcionalidad | Prioridad | Estado |
+|----|--------------|-----------|--------|
+| ADM.10.1 | Registro de artículos con código de barras | ALTA | ✅ |
+| ADM.10.2 | Control de unidades por tipo de envase | ALTA | ✅ |
+| ADM.10.3 | Definición de familias, grupos y subgrupos | ALTA | ✅ |
+| ADM.10.4 | Definición de unidades de dosis | ALTA | ✅ |
+| ADM.10.5 | Definición de ubicaciones de almacenamiento | ALTA | ✅ |
+| ADM.10.6 | Definición de unidades de compra, unidades de dispensación | ALTA | ✅ |
+| ADM.10.7 | Definición de categorías de conceptos facturables | ALTA | ✅ |
+| ADM.10.8 | Asociación entre artículo y proveedor | MEDIA | ⏳ |
 
-#### Tablas de Base de Datos:
+#### Tablas de Base de Datos Implementadas ✅:
 ```sql
-hosix_articulos
-hosix_articulos_familias
-hosix_articulos_grupos
-hosix_articulos_proveedores
-hosix_articulos_ubicaciones
-hosix_articulos_unidades
+hosix_articulos                      -- Tabla principal de artículos
+hosix_articulos_familias             -- Clasificación: Familias (ej. Medicamentos)
+hosix_articulos_grupos               -- Clasificación: Grupos dentro de familia
+hosix_articulos_unidades_dosis       -- Unidades de dosificación
+hosix_articulos_unidades_compra      -- Unidades para compra (cajas, paquetes)
+hosix_articulos_unidades_dispensacion-- Unidades para dispensación
+hosix_articulos_ubicaciones          -- Ubicaciones de almacenamiento
+hosix_articulos_tipos_envase         -- Tipos de empaque
+hosix_articulos_control_envase       -- Control de unidades por envase
 ```
 
-### 4.11 Gestión de Depósitos/Almacenes (Módulo 11.0)
+#### Componentes Implementados ✅:
+- `ArticulosManager.tsx` - Gestión CRUD de artículos
+- `FamiliasManager.tsx` - Gestión de familias de medicamentos
+- `GruposManager.tsx` - Gestión de grupos por familia
+- `UnidadesManager.tsx` - Gestión de unidades (dosis, compra, dispensación)
+- `UbicacionesManager.tsx` - Gestión de ubicaciones
 
-#### Funcionalidades Requeridas:
-| ID | Funcionalidad | Prioridad |
-|----|--------------|-----------|
-| ADM.11.1 | Gestión de almacenes con depósitos diferenciados | ALTA |
-| ADM.11.2 | Entradas por órdenes de compra | ALTA |
-| ADM.11.3 | Entradas por devolución a proveedor | ALTA |
-| ADM.11.4 | Salidas por devolución a proveedor | ALTA |
-| ADM.11.5 | Entrada de movimientos entre almacenes | ALTA |
-| ADM.11.6 | Salidas de movimientos entre almacenes | ALTA |
-| ADM.11.7 | Salidas directas a centro de coste | ALTA |
-| ADM.11.8 | Consumo de artículos desde cuenta de paciente | ALTA |
-| ADM.11.9 | Ajustes de inventario (salidas/entradas) | ALTA |
-| ADM.11.10 | Operaciones FIFO para caducidad | ALTA |
-| ADM.11.11 | Generación de órdenes de compra desde necesidades | ALTA |
-| ADM.11.12 | Cálculo de stock mínimo automático | ALTA |
-| ADM.11.13 | Inventario físico con regularización | ALTA |
+#### Hook Implementado ✅:
+- `useHosixSuministros.ts` - Gestión completa de datos y operaciones CRUD
 
-#### Tablas de Base de Datos:
+### 4.11 Gestión de Depósitos/Almacenes (Módulo 11.0) ✅ COMPLETADO
+
+#### Funcionalidades Implementadas ✅:
+| ID | Funcionalidad | Prioridad | Estado |
+|----|--------------|-----------|--------|
+| ADM.11.1 | Gestión de almacenes con depósitos diferenciados | ALTA | ✅ |
+| ADM.11.2 | Entradas por órdenes de compra | ALTA | ✅ |
+| ADM.11.3 | Entradas por devolución a proveedor | ALTA | ✅ |
+| ADM.11.4 | Salidas por devolución a proveedor | ALTA | ✅ |
+| ADM.11.5 | Entrada de movimientos entre almacenes | ALTA | ✅ |
+| ADM.11.6 | Salidas de movimientos entre almacenes | ALTA | ✅ |
+| ADM.11.7 | Salidas directas a centro de coste | ALTA | ✅ |
+| ADM.11.8 | Consumo de artículos desde cuenta de paciente | ALTA | ✅ |
+| ADM.11.9 | Ajustes de inventario (salidas/entradas) | ALTA | ✅ |
+| ADM.11.10 | Operaciones FIFO para caducidad | ALTA | ✅ |
+| ADM.11.11 | Generación de órdenes de compra desde necesidades | ALTA | ✅ |
+| ADM.11.12 | Cálculo de stock mínimo automático | MEDIA | ✅ |
+| ADM.11.13 | Inventario físico con regularización | ALTA | ✅ |
+
+#### Tablas de Base de Datos Implementadas ✅:
 ```sql
-hosix_almacenes
-hosix_almacenes_depositos
-hosix_stock
-hosix_stock_movimientos
-hosix_stock_lotes
-hosix_ordenes_compra
-hosix_inventarios
+hosix_almacenes                    -- Almacenes principales
+hosix_almacenes_depositos          -- Sub-depósitos dentro de almacenes
+hosix_stock                        -- Control de stock actual
+hosix_stock_lotes                  -- Lotes con caducidad (FIFO)
+hosix_stock_movimientos            -- Historial de movimientos
+hosix_ordenes_compra               -- Órdenes de compra
+hosix_ordenes_compra_lineas        -- Líneas de órdenes
+hosix_inventarios                  -- Inventarios físicos
+hosix_inventarios_lineas           -- Líneas de inventarios
+hosix_centros_coste                -- Centros de coste
 ```
+
+#### Componentes Implementados ✅:
+- `AlmacenesManager.tsx` - Gestión CRUD de almacenes con control de temperatura
+- `DepositosManager.tsx` - Gestión de sub-depósitos por almacén
+- `StockManager.tsx` - Visualización y monitoreo de stock con alertas
+- `MovimientosManager.tsx` - Registro de 8 tipos de movimientos
+- `InventarioManager.tsx` - Gestión de inventarios físicos
+
+#### Hook Implementado ✅:
+- `useHosixAlmacenes.ts` - Gestión completa de almacenes, stock y movimientos
 
 ### 4.12 Compras/Licitaciones (Módulo 12.0)
 

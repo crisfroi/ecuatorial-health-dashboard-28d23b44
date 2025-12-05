@@ -526,12 +526,13 @@ Módulo para gestionar licitaciones, pedidos y compras
 |------|----------|------|--------|
 | FASE 1 | 4 semanas | 5 sesiones (20h) | ✅ COMPLETADO |
 | FASE 2 ADM 1.0-5.0 | 2 semanas | 2 sesiones (8h) | ✅ COMPLETADO |
-| FASE 2 ADM 6.0-12.0 | 3 semanas | ⏳ PENDIENTE | - |
+| FASE 2 ADM 7.0 | 1 semana | 1 sesión (10h) | ✅ COMPLETADO |
+| FASE 2 ADM 8.0-12.0 | 2 semanas | ⏳ PENDIENTE | - |
 | FASE 3 | 6 semanas | ⏳ NO INICIADO | - |
 | FASE 4 | 3 semanas | ⏳ NO INICIADO | - |
 
-**Total Estimado**: 16 semanas = 4 meses  
-**Tiempo Real (hasta ahora)**: 7 sesiones = 28 horas
+**Total Estimado**: 16 semanas = 4 meses
+**Tiempo Real (hasta ahora)**: 8 sesiones = 38 horas
 
 ---
 

@@ -20,6 +20,7 @@ import "./utils/storageCleanup"; // Initialize storage cleanup
 import { initResizeObserverErrorHandling } from "./utils/resizeObserverHandler";
 
 // HOSIX Pages
+import HosixLogin from "./pages/Hosix/HosixLogin";
 import CajasPage from "./pages/Hosix/Cajas";
 import RecobrosPage from "./pages/Hosix/Recobros";
 import FacturacionPage from "./pages/Hosix/Facturacion";

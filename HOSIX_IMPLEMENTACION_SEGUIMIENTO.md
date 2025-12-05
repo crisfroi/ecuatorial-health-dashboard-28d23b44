@@ -591,15 +591,15 @@ El sistema HOSIX se implementará en **4 fases principales**:
 | **Fases** | 4 | 1 | 1 | 2 |
 | **Módulos FASE 1** | 7 | 7 | 0 | 0 |
 | **Subtareas FASE 1** | 15 | 15 | 0 | 0 |
-| **Módulos FASE 2** | 5 | 2 | 3 | 0 |
-| **Componentes** | 100+ | 25 | 5 | 70+ |
+| **Módulos FASE 2** | 7 | 4 | 0 | 3 |
+| **Componentes** | 100+ | 35 | 0 | 65+ |
 | **Tablas BD** | 150+ | 42 | 0 | 108+ |
-| **Hooks** | 10 | 9 | 0 | 1 |
+| **Hooks** | 12 | 11 | 0 | 1 |
 | **Migrations** | 5 | 5 | 0 | 0 |
 | **Páginas HOSIX** | 10 | 10 | 0 | 0 |
 | **Edge Functions** | 3 | 3 | 0 | 0 |
-| **Formularios CRUD** | 5 | 3 | 2 | 0 |
-| **Componentes Especiales** | 3 | 3 | 2 | 0 |
+| **Formularios CRUD** | 8 | 8 | 0 | 0 |
+| **Componentes Especiales** | 10 | 10 | 0 | 0 |
 
 ### Completado en Sesión Anterior (15-01-2025) ✅
 - [x] 5 Migraciones de base de datos (ConfigBase, Pacientes, Urgencias, Hospitalizacion, Facturacion)

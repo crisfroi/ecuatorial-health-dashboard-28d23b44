@@ -776,8 +776,9 @@ TOTAL:  ███████████████████████░
 5. ✅ `20250116_005_hosix_facturacion_reportes.sql` (9.8K) - Facturación, stock y BI
 6. ✅ `20250121_006_hosix_cajas_completo.sql` (8.4K) - Cajas, turnos, movimientos, cierres, arqueos
 7. ✅ `20250121_007_hosix_recobros.sql` (8.3K) - Recobros, notas, solicitudes, morosidad
+8. ✅ `20250121_008_hosix_suministros.sql` (10.2K) - Suministros, artículos, familias, grupos, unidades, ubicaciones
 
-**Total**: 7 migrations, ~58.6 KB, ~80+ tablas, todos los índices y RLS policies configuradas ✅
+**Total**: 8 migrations, ~68.8 KB, ~90+ tablas, todos los índices y RLS policies configuradas ✅
 
 ---
 

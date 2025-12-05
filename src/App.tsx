@@ -89,6 +89,7 @@ function App() {
                 <Route path="/solicitud-establecimiento" element={<SolicitudEstablecimiento />} />
                 <Route path="/dynamic-forms" element={<DynamicForms />} />
                 <Route path="/form/:publicUrl" element={<PublicForm />} />
+                <Route path="/hosix/facturacion" element={<FacturacionPage />} />
                 <Route path="/hosix/cajas" element={<CajasPage />} />
                 <Route path="/hosix/recobros" element={<RecobrosPage />} />
                 <Route path="*" element={<NotFound />} />

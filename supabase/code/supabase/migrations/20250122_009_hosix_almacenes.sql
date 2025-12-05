@@ -88,10 +88,10 @@ CREATE TABLE IF NOT EXISTS hosix_stock_lotes (
   fecha_vencimiento DATE NOT NULL,
   cantidad_original DECIMAL(12,3) NOT NULL,
   cantidad_disponible DECIMAL(12,3) NOT NULL,
-  dias_para_caducidad INT GENERATED ALWAYS AS (fecha_vencimiento - CURRENT_DATE) STORED,
+  dias_para_caducidad INT, -- Calculado por TRIGGER o aplicación (fecha_vencimiento - CURRENT_DATE)
   posicion_fifo INT NOT NULL,
   costo_unitario DECIMAL(12,4),
-  costo_total DECIMAL(14,2) GENERATED ALWAYS AS (ROUND(cantidad_original * costo_unitario, 2)) STORED,
+  costo_total DECIMAL(14,2), -- Calculado: cantidad_original * costo_unitario
   proveedor_id UUID REFERENCES hosix_proveedores(id),
   numero_factura_compra VARCHAR(100),
   activo BOOLEAN DEFAULT true,

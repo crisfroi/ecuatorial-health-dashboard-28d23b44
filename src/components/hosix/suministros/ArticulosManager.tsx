@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Vial, Plus, Edit2, Trash2 } from 'lucide-react';
+import { TestTube, Plus, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ArticulosManager() {
@@ -177,7 +177,7 @@ export default function ArticulosManager() {
       {/* Encabezado */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <Vial className="h-6 w-6 text-orange-600" />
+          <TestTube className="h-6 w-6 text-orange-600" />
           <h2 className="text-2xl font-bold">Artículos y Medicamentos</h2>
         </div>
         <Button onClick={() => handleOpenForm()} className="gap-2">

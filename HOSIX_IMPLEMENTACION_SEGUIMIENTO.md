@@ -617,6 +617,20 @@ Módulo para gestionar licitaciones, pedidos y compras
 
 ---
 
+## 🔧 CORRECCIONES Y CAMBIOS EN SESIÓN 11 (CONTINUACIÓN ADM 11.0)
+
+### Corrección 1: PostgreSQL EXTRACT Function Error
+**Problema**: `ERROR: 42883: function pg_catalog.extract(unknown, integer) does not exist`
+**Raíz**: Línea 172 de migración ADM 11.0 intentaba usar `EXTRACT(DAY FROM (fecha_vencimiento - CURRENT_DATE))` pero PostgreSQL no puede extraer DAY de un INTEGER (resultado de restar dos DATEs)
+**Solución**:
+  - Cambio: `EXTRACT(DAY FROM (fecha_vencimiento - CURRENT_DATE))::INT` → `fecha_vencimiento - CURRENT_DATE`
+  - Reemplazado en: `supabase/code/supabase/migrations/20250122_009_hosix_almacenes.sql`
+  - Línea 122-125: GENERATED ALWAYS AS formula corregida
+**Explicación**: En PostgreSQL, restar dos DATEs devuelve directamente un INTEGER (número de días), no un INTERVAL. La columna `dias_para_caducidad` ahora calcula correctamente usando: `fecha_vencimiento - CURRENT_DATE`
+**Estado**: ✅ SOLUCIONADO
+
+---
+
 ## 🔧 CORRECCIONES Y CAMBIOS EN SESIÓN 10
 
 ### Corrección 1: Icon Import Error - Vial no existe en lucide-react

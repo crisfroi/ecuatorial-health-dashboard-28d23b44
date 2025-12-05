@@ -94,7 +94,7 @@ const IngresoPacienteForm: React.FC = () => {
                   <SelectValue placeholder="Selecciona un paciente" />
                 </SelectTrigger>
                 <SelectContent>
-                  {pacientes.data?.map((paciente) => (
+                  {pacientes?.map((paciente) => (
                     <SelectItem key={paciente.id} value={paciente.id}>
                       {paciente.primer_nombre} {paciente.primer_apellido} ({paciente.ppi})
                     </SelectItem>

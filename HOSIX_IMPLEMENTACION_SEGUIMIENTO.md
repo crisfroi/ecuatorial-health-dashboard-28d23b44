@@ -416,24 +416,51 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ---
 
-### 2.4 Hospitalización (Módulo ADM 5.0)
+### 2.4 Hospitalización (Módulo ADM 5.0) ✅
 
-#### Subtarea 2.4.1: Gestión de Camas
+#### Subtarea 2.4.1: Gestión de Camas ✅
 - **Objetivo**: Administración de camas disponibles
-- **Componentes**:
-  - `src/components/hosix/hospitalizacion/CamasGrid.tsx`
-  - `src/components/hosix/hospitalizacion/CamasManager.tsx`
-  
-- **Estado**: ⏳ NO INICIADO
+- **Funcionalidades**:
+  - [x] Visualizar camas disponibles
+  - [x] Filtrar por servicio
+  - [x] Estados de cama (disponible, ocupada, mantenimiento, reservada)
+  - [x] Actualizar estado automáticamente al ingresar/egresar
 
-#### Subtarea 2.4.2: Episodios de Hospitalización
+- **Estado**: ✅ COMPLETADO
+
+#### Subtarea 2.4.2: Episodios de Hospitalización ✅
 - **Objetivo**: Registro y seguimiento de ingresos
-- **Componentes**:
-  - `src/components/hosix/hospitalizacion/IngresoPacienteForm.tsx`
-  - `src/components/hosix/hospitalizacion/AltaForm.tsx`
-  - `src/components/hosix/hospitalizacion/TrasladsManager.tsx`
-  
-- **Estado**: ⏳ NO INICIADO
+- **Componentes Creados**:
+  - `src/components/hosix/hospitalizacion/IngresoPacienteForm.tsx` ✅ - Ingreso de paciente
+  - `src/components/hosix/hospitalizacion/AltaForm.tsx` ✅ - Alta de paciente con informe
+  - `src/components/hosix/hospitalizacion/TrasladosManager.tsx` ✅ - Gestión de traslados
+  - `src/hooks/useHosixHospitalizacion.ts` ✅ - Hook completo
+
+- **Estado**: ✅ COMPLETADO
+- **Funcionalidades Ingreso**:
+  - [x] Seleccionar paciente a hospitalizar
+  - [x] Origen de ingreso (urgencias, programado, traslado)
+  - [x] Asignar médico responsable
+  - [x] Seleccionar cama disponible
+  - [x] Registrar diagnóstico de ingreso
+  - [x] Duración prevista
+  - [x] Marcar cama como ocupada automáticamente
+
+- **Funcionalidades Alta**:
+  - [x] Seleccionar paciente hospitalizado
+  - [x] Ver días de estancia
+  - [x] Tipo de alta (domicilio, traslado, defunción, voluntaria)
+  - [x] Diagnóstico de alta
+  - [x] Informe de alta detallado
+  - [x] Liberar cama automáticamente
+
+- **Funcionalidades Traslados**:
+  - [x] Trasladar paciente entre camas
+  - [x] Trasladar entre servicios
+  - [x] Validar disponibilidad de cama destino
+  - [x] Registrar motivo del traslado
+  - [x] Actualizar servicios automáticamente
+  - [x] Historial de traslados
 
 ---
 

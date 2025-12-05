@@ -87,7 +87,7 @@ export default function TarifasManager() {
     }
 
     const tarifaData = {
-      aseguradora_id: formData.aseguradora_id || undefined,
+      aseguradora_id: formData.aseguradora_id === 'general' ? undefined : formData.aseguradora_id || undefined,
       codigo_concepto: formData.codigo_concepto,
       descripcion: formData.descripcion,
       precio: parseFloat(formData.precio),

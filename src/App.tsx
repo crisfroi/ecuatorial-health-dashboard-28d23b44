@@ -21,6 +21,7 @@ import { initResizeObserverErrorHandling } from "./utils/resizeObserverHandler";
 
 // HOSIX Pages
 import HosixLogin from "./pages/Hosix/HosixLogin";
+import HosixLayout from "./components/hosix/HosixLayout";
 import HosixDashboard from "./pages/Hosix/HosixDashboard";
 import CajasPage from "./pages/Hosix/Cajas";
 import RecobrosPage from "./pages/Hosix/Recobros";
@@ -92,10 +93,12 @@ function App() {
                 <Route path="/dynamic-forms" element={<DynamicForms />} />
                 <Route path="/form/:publicUrl" element={<PublicForm />} />
                 <Route path="/hosix/login" element={<HosixLogin />} />
-                <Route path="/hosix" element={<HosixDashboard />} />
-                <Route path="/hosix/facturacion" element={<FacturacionPage />} />
-                <Route path="/hosix/cajas" element={<CajasPage />} />
-                <Route path="/hosix/recobros" element={<RecobrosPage />} />
+                <Route path="/hosix" element={<HosixLayout />}>
+                  <Route index element={<HosixDashboard />} />
+                  <Route path="facturacion" element={<FacturacionPage />} />
+                  <Route path="cajas" element={<CajasPage />} />
+                  <Route path="recobros" element={<RecobrosPage />} />
+                </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

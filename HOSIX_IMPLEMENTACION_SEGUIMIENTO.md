@@ -374,28 +374,45 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ---
 
-### 2.3 Sistema de Citas (Módulo ADM 3.0)
+### 2.3 Sistema de Citas (Módulo ADM 3.0) ✅
 
-#### Subtarea 2.3.1: Configuración de Agendas
+#### Subtarea 2.3.1: Configuración de Agendas ✅
 - **Objetivo**: Crear y configurar agendas
-- **Componentes**:
-  - `src/components/hosix/citas/AgendaConfigurador.tsx`
-  - `src/components/hosix/citas/HorarioSelector.tsx`
-  
-- **Estado**: ⏳ NO INICIADO
-- **Funcionalidades**:
-  - Definición por servicio, médico, sala
-  - Períodos hábiles y festividades
-  - Duración estimada por actividad
+- **Componentes Creados**:
+  - `src/components/hosix/citas/AgendasList.tsx` ✅ - Gestión completa de agendas
 
-#### Subtarea 2.3.2: Gestión de Citas
+- **Estado**: ✅ COMPLETADO
+- **Funcionalidades**:
+  - [x] Crear nuevas agendas
+  - [x] Definición por servicio, médico, sala
+  - [x] Duración estimada por actividad configurable
+  - [x] Capacidad máxima por día
+  - [x] Permitir teleconsulta
+  - [x] Tabla de agendas con filtros y búsqueda
+
+#### Subtarea 2.3.2: Gestión de Citas ✅
 - **Objetivo**: Agendar, cancelar, confirmar citas
-- **Componentes**:
-  - `src/components/hosix/citas/CitasCalendario.tsx`
-  - `src/components/hosix/citas/CitasForm.tsx`
-  - `src/components/hosix/citas/CitasListado.tsx`
-  
-- **Estado**: ⏳ NO INICIADO
+- **Componentes Creados**:
+  - `src/components/hosix/citas/CitasForm.tsx` ✅ - Formulario para agendar citas
+  - `src/components/hosix/citas/CitasList.tsx` ✅ - Gestión de citas con filtros
+  - `src/components/hosix/citas/ListaEsperaManager.tsx` ✅ - Gestión de lista de espera
+  - `src/hooks/useHosixCitas.ts` ✅ - Hook completo con validaciones
+
+- **Estado**: ✅ COMPLETADO
+- **Funcionalidades Citas**:
+  - [x] Agendar citas con validación de disponibilidad
+  - [x] Confirmar citas
+  - [x] Cancelar citas con motivo
+  - [x] Filtrar por estado (programada, confirmada, completada, etc.)
+  - [x] Buscar por paciente
+  - [x] Teleconsulta opcional
+
+- **Funcionalidades Lista de Espera**:
+  - [x] Crear solicitud en lista de espera
+  - [x] 6 tipos de solicitud (hospitalización, consulta, examen, cirugía, etc.)
+  - [x] Prioridades (baja, media, alta, urgente)
+  - [x] Asignar desde lista de espera
+  - [x] Seguimiento automático
 
 ---
 

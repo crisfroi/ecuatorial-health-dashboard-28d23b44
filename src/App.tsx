@@ -26,6 +26,7 @@ import QuirofanosPage from "./pages/Hosix/Quirofanos";
 import FarmaciaPage from "./pages/Hosix/Farmacia";
 import ConfiguracionPage from "./pages/Hosix/Configuracion";
 import BiPage from "./pages/Hosix/BI";
+import FacturacionPage from "./pages/Hosix/Facturacion";
 import "./utils/authErrorHandler"; // Initialize global auth error handling
 import "./utils/storageCleanup"; // Initialize storage cleanup
 import { initResizeObserverErrorHandling } from "./utils/resizeObserverHandler";

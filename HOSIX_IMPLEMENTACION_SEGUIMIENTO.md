@@ -59,16 +59,17 @@ El sistema HOSIX se implementará en **4 fases principales**:
 | ADM 3.0 | Sistema de Citas | ✅ 100% | 2/2 subtareas |
 | ADM 4.0 | Lista de Espera | ✅ 100% | Integrada en ADM 3.0 |
 | ADM 5.0 | Hospitalización | ✅ 100% | 2/2 subtareas |
-| ADM 6.0 | Teleconsulta | ⏳ OMITIDA | 0/10 |
+| ADM 6.0 | Teleconsulta | 🚫 OMITIDA | 0/10 |
 | ADM 7.0 | Facturación | ✅ 100% | 3/3 subtareas |
 | ADM 8.0 | Cajas | ✅ 100% | 1/1 subtarea |
 | ADM 9.0 | Recobros | ✅ 100% | 1/1 subtarea |
 | ADM 10.0 | Suministros | ✅ 100% | 1/1 subtarea |
 | ADM 11.0 | Almacenes | ✅ 100% | 1/1 subtarea |
-| ADM 12.0 | Compras | ⏳ PENDIENTE | 0/6 |
+| ADM 12.0 | Compras | ⏳ 50% | 1/2 subtareas (SQL ✅) |
 
 **Total FASE 2**: 10/12 módulos completados = **91%** (ADM 6.0 omitida = 10/11 = 91%)
-**Subtareas Completadas**: 18/52 (sin ADM 6.0) = **35%**
+**Progreso Actual**: 91% completado + ADM 12.0 SQL = **92%** de FASE 2
+**Subtareas**: Completadas 19 de 52 (sin ADM 6.0) = **36%**
 
 ---
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useHosixHospitalizacion } from '@/hooks/useHosixHospitalizacion';
 import { useHosixPacientes } from '@/hooks/useHosixPacientes';
+import { useProfesionales } from '@/hooks/useProfesionales';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,8 @@ import { CheckCircle } from 'lucide-react';
 
 const IngresoPacienteForm: React.FC = () => {
   const { camasDisponibles, createHospitalizacion, isCreatingHospitalizacion } = useHosixHospitalizacion();
-  const { pacientes, profesionales } = useHosixPacientes();
+  const { pacientes } = useHosixPacientes();
+  const { data: profesionales = [] } = useProfesionales();
 
   const [formData, setFormData] = useState({
     paciente_id: '',

@@ -110,7 +110,7 @@ export function useHosixRecobros() {
     }
   });
 
-  const crearRecobr oMutation = useMutation({
+  const crearRecobroMutation = useMutation({
     mutationFn: async (data: Omit<Recobro, 'id' | 'created_at' | 'updated_at'>) => {
       const { error } = await supabase.from('hosix_recobros').insert([data]);
       if (error) throw error;
@@ -124,7 +124,7 @@ export function useHosixRecobros() {
     }
   });
 
-  const actualizarRecobrMutation = useMutation({
+  const actualizarRecobroMutation = useMutation({
     mutationFn: async ({ id, ...data }: Partial<Recobro> & { id: string }) => {
       const { error } = await supabase
         .from('hosix_recobros')
@@ -316,7 +316,7 @@ export function useHosixRecobros() {
     recobros,
     recobrosLoading,
     crearRecobro: crearRecobroMutation.mutate,
-    actualizarRecobro: actualizarRecobrMutation.mutate,
+    actualizarRecobro: actualizarRecobroMutation.mutate,
     crearRecobroLoading: crearRecobroMutation.isPending,
 
     // Notas de Cargo

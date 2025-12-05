@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 import { DispositivoForm, type DispositivoFormValues } from './DispositivoForm';
-import { MapeosProfesionalesDialog } from './MapeosProfesionalesDialog';
+import { MapeosProfesionalesMultiple } from './MapeosProfesionalesMultiple';
 
 interface CentroOption {
   id: string;
@@ -260,7 +260,7 @@ export function DispositivosPanel() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <MapeosProfesionalesDialog
+      <MapeosProfesionalesMultiple
         device={mappingDevice}
         open={!!mappingDevice}
         onOpenChange={(open) => {

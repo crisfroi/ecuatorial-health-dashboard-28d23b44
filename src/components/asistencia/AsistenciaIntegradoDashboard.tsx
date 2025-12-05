@@ -223,8 +223,8 @@ export function AsistenciaIntegradoDashboard() {
         format(new Date(record.fecha_hora), 'yyyy-MM-dd'),
         format(new Date(record.fecha_hora), 'HH:mm:ss'),
         record.inout || '',
-        record.numero_enno || '',
-        record.centro_salud_id || '',
+        record.nombre_profesional || 'Desconocido',
+        record.nombre_centro || 'Desconocido',
         record.source_type || '',
         record.temperature || '',
       ]),
@@ -322,10 +322,14 @@ export function AsistenciaIntegradoDashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                  <p className="text-2xl font-bold mt-2">
-                    {isLoading ? <Skeleton className="h-8 w-12" /> : stat.value}
-                    {stat.suffix && <span className="text-sm text-muted-foreground ml-2">{stat.suffix}</span>}
-                  </p>
+                  {isLoading ? (
+                    <Skeleton className="h-8 w-12 mt-2" />
+                  ) : (
+                    <p className="text-2xl font-bold mt-2">
+                      {stat.value}
+                      {stat.suffix && <span className="text-sm text-muted-foreground ml-2">{stat.suffix}</span>}
+                    </p>
+                  )}
                 </div>
                 <div className={`p-2 rounded-lg ${stat.color}`}>{stat.icon}</div>
               </div>
@@ -334,72 +338,34 @@ export function AsistenciaIntegradoDashboard() {
         ))}
       </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Asistencia Diaria</CardTitle>
-            <CardDescription>Tendencia de entradas y salidas</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-64 w-full" />
-            ) : chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="IN" stroke="#10b981" name="Entradas" />
-                  <Line type="monotone" dataKey="OUT" stroke="#ef4444" name="Salidas" />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-64 text-muted-foreground">
-                Sin datos para mostrar
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribución por Fuente</CardTitle>
-            <CardDescription>Biométrico vs Manual</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-64 w-full" />
-            ) : sourceData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={sourceData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, value, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {sourceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-64 text-muted-foreground">
-                Sin datos para mostrar
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Gráfico */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Asistencia Diaria</CardTitle>
+          <CardDescription>Tendencia de entradas y salidas</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-64 w-full" />
+          ) : chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="IN" stroke="#10b981" name="Entradas" />
+                <Line type="monotone" dataKey="OUT" stroke="#ef4444" name="Salidas" />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-muted-foreground">
+              Sin datos para mostrar
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Tabla de Registros */}
       <Card>
@@ -434,7 +400,7 @@ export function AsistenciaIntegradoDashboard() {
                   <TableRow>
                     <TableHead>Fecha/Hora</TableHead>
                     <TableHead>Tipo</TableHead>
-                    <TableHead>EnNo</TableHead>
+                    <TableHead>Profesional</TableHead>
                     <TableHead>Centro</TableHead>
                     <TableHead>Fuente</TableHead>
                     <TableHead>Temperatura</TableHead>
@@ -451,9 +417,9 @@ export function AsistenciaIntegradoDashboard() {
                           {record.inout || '-'}
                         </Badge>
                       </TableCell>
-                      <TableCell>{record.numero_enno}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {record.centro_salud_id?.substring(0, 8) || '-'}
+                      <TableCell>{record.nombre_profesional || 'Desconocido'}</TableCell>
+                      <TableCell className="text-sm">
+                        {record.nombre_centro || 'Desconocido'}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">

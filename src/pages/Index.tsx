@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowRight, Users, FileText, BarChart3, UserPlus } from "lucide-react";
+import { ArrowRight, Users, FileText, BarChart3, UserPlus, Hospital } from "lucide-react";
 
 const Index = () => {
   return (
@@ -28,7 +28,7 @@ const Index = () => {
             Plataforma integral para el registro, gestión y seguimiento de
             profesionales de la salud en Guinea Ecuatorial
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
             <Link to="/register">
               <Button
                 size="lg"
@@ -42,6 +42,15 @@ const Index = () => {
               <Button size="lg" variant="outline" className="px-8 py-3">
                 Acceder al Dashboard
                 <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </Link>
+            <Link to="/hosix/login">
+              <Button
+                size="lg"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3"
+              >
+                <Hospital className="w-5 h-5 mr-2" />
+                Sistema HOSIX
               </Button>
             </Link>
           </div>

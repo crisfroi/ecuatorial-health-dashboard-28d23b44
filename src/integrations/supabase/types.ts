@@ -3711,8 +3711,10 @@ export type Database = {
           fecha_hora: string | null
           id: string | null
           image_url: string | null
-          inout: Database["public"]["Enums"]["inout_type"] | null
+          inout: string | null
           mode: string | null
+          nombre_centro: string | null
+          nombre_profesional: string | null
           numero_enno: string | null
           profesional_id: string | null
           raw_line: string | null

@@ -560,8 +560,17 @@ Módulo para gestionar licitaciones, pedidos y compras
 1. **MPI integrado en configuración** - Sistema centralizado de pacientes
 2. **HCE automática** - Se genera desde urgencias, citas, hospitalización
 3. **Lista de espera en ADM 3.0** - Integrada con sistema de citas
-4. **Teleconsulta pendiente** - Requiere integración con servicio externo
-5. **Facturación pendiente** - Módulo crítico, requiere análisis detallado
+4. **ADM 6.0 Teleconsulta OMITIDA** - Por decisión del usuario (no prioritaria para MVP)
+5. **ADM 7.0 Facturación COMPLETADA** - Módulo crítico implementado en Sesión 8
+   - Tablas SQL ya existían en migración 20250116_005
+   - Implementados 5 componentes principales + hook + página integrada
+   - Flujo completo: Aseguradoras → Tarifas → Cuentas → Facturas → Pagos
+6. **Orden de implementación ADM 8.0-12.0** - Por dependencias funcionales:
+   - ADM 8.0 Cajas (depende de facturas)
+   - ADM 9.0 Recobros (depende de facturas)
+   - ADM 10.0 Suministros (base para almacenes)
+   - ADM 11.0 Almacenes (depende de suministros)
+   - ADM 12.0 Compras (depende de almacenes)
 
 ### Riesgos Identificados:
 1. **Módulos interdependientes** - Muchas referencias cruzadas

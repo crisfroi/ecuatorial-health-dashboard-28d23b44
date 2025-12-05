@@ -14,6 +14,7 @@ import {
   LogOut,
   Vault,
   TrendingDown,
+  Package,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -36,6 +37,7 @@ const HosixSidebar: React.FC<HosixSidebarProps> = ({ isOpen }) => {
     { label: 'Facturación', icon: DollarSign, path: '/hosix/facturacion' },
     { label: 'Cajas', icon: Vault, path: '/hosix/cajas' },
     { label: 'Recobros', icon: TrendingDown, path: '/hosix/recobros' },
+    { label: 'Suministros', icon: Package, path: '/hosix/suministros' },
     { label: 'BI & Reportes', icon: BarChart3, path: '/hosix/bi' },
   ];
 

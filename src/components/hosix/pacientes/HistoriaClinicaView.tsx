@@ -124,13 +124,13 @@ const HistoriaClinicaView: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {historiaClinica.isLoading ? (
+            {isLoadingHistoria ? (
               <Alert>
                 <AlertDescription>Cargando historia clínica...</AlertDescription>
               </Alert>
-            ) : historiaClinica.error ? (
+            ) : errorHistoria ? (
               <Alert variant="destructive">
-                <AlertDescription>Error al cargar: {historiaClinica.error.message}</AlertDescription>
+                <AlertDescription>Error al cargar: {errorHistoria.message}</AlertDescription>
               </Alert>
             ) : historiasDelPaciente.length === 0 ? (
               <Alert>

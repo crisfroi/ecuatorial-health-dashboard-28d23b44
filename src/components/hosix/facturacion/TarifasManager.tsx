@@ -87,7 +87,7 @@ export default function TarifasManager() {
     }
 
     const tarifaData = {
-      aseguradora_id: formData.aseguradora_id || undefined,
+      aseguradora_id: formData.aseguradora_id === 'general' ? undefined : formData.aseguradora_id || undefined,
       codigo_concepto: formData.codigo_concepto,
       descripcion: formData.descripcion,
       precio: parseFloat(formData.precio),
@@ -173,16 +173,16 @@ export default function TarifasManager() {
               className="flex-1"
             />
             <Select
-              value={filtros.aseguradora_id || ''}
+              value={filtros.aseguradora_id || 'todas'}
               onValueChange={(value) => {
-                setFiltros({ ...filtros, aseguradora_id: value || undefined });
+                setFiltros({ ...filtros, aseguradora_id: value === 'todas' ? undefined : value });
               }}
             >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Aseguradora" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas</SelectItem>
+                <SelectItem value="todas">Todas</SelectItem>
                 {aseguradoras.map((seg) => (
                   <SelectItem key={seg.id} value={seg.id}>
                     {seg.nombre}
@@ -293,7 +293,7 @@ export default function TarifasManager() {
                   <SelectValue placeholder="Seleccionar aseguradora" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">General (sin aseguradora)</SelectItem>
+                  <SelectItem value="general">General (sin aseguradora)</SelectItem>
                   {aseguradoras.map((seg) => (
                     <SelectItem key={seg.id} value={seg.id}>
                       {seg.nombre}

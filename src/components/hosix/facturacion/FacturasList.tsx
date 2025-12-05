@@ -161,16 +161,16 @@ export default function FacturasList() {
               className="flex-1"
             />
             <Select
-              value={filtros.estado || ''}
+              value={filtros.estado || 'todos'}
               onValueChange={(value) => {
-                setFiltros({ ...filtros, estado: value || undefined });
+                setFiltros({ ...filtros, estado: value === 'todos' ? undefined : value });
               }}
             >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos los estados</SelectItem>
+                <SelectItem value="todos">Todos los estados</SelectItem>
                 <SelectItem value="emitida">Emitida</SelectItem>
                 <SelectItem value="pagada">Pagada</SelectItem>
                 <SelectItem value="parcialmente_pagada">

@@ -61,7 +61,12 @@ export default function CuentasManager() {
       return;
     }
 
-    crearCuenta(formData, {
+    const dataToSubmit = {
+      ...formData,
+      aseguradora_id: formData.aseguradora_id === 'sin-aseguradora' ? '' : formData.aseguradora_id,
+    };
+
+    crearCuenta(dataToSubmit, {
       onSuccess: () => {
         toast.success('Cuenta de facturación creada');
         setShowForm(false);
@@ -142,16 +147,16 @@ export default function CuentasManager() {
               className="flex-1"
             />
             <Select
-              value={filtros.estado || ''}
+              value={filtros.estado || 'todos'}
               onValueChange={(value) => {
-                setFiltros({ ...filtros, estado: value || undefined });
+                setFiltros({ ...filtros, estado: value === 'todos' ? undefined : value });
               }}
             >
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="abierta">Abierta</SelectItem>
                 <SelectItem value="cerrada">Cerrada</SelectItem>
               </SelectContent>
@@ -320,7 +325,7 @@ export default function CuentasManager() {
                   <SelectValue placeholder="Seleccionar aseguradora" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin aseguradora</SelectItem>
+                  <SelectItem value="sin-aseguradora">Sin aseguradora</SelectItem>
                   {aseguradoras.map((aseg) => (
                     <SelectItem key={aseg.id} value={aseg.id}>
                       {aseg.nombre}

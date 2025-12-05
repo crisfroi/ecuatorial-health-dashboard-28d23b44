@@ -28,8 +28,8 @@ import { es } from 'date-fns/locale';
 export function RecobrosManager() {
   const { recobros, recobrosLoading, crearRecobro, actualizarRecobro, crearRecobroLoading, error, setError } = useHosixRecobros();
   const [open, setOpen] = useState(false);
-  const [filtroEstado, setFiltroEstado] = useState<string>('');
-  const [filtroPrioridad, setFiltroPrioridad] = useState<string>('');
+  const [filtroEstado, setFiltroEstado] = useState<string>('todos');
+  const [filtroPrioridad, setFiltroPrioridad] = useState<string>('todas');
   
   const [formData, setFormData] = useState({
     numero_factura: '',
@@ -77,8 +77,8 @@ export function RecobrosManager() {
   };
 
   const recobrosFiltered = recobros.filter(r => {
-    if (filtroEstado && r.estado !== filtroEstado) return false;
-    if (filtroPrioridad && r.prioridad !== filtroPrioridad) return false;
+    if (filtroEstado !== 'todos' && r.estado !== filtroEstado) return false;
+    if (filtroPrioridad !== 'todas' && r.prioridad !== filtroPrioridad) return false;
     return true;
   });
 
@@ -235,7 +235,7 @@ export function RecobrosManager() {
                 <SelectValue placeholder="Todos los estados" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="pendiente">Pendiente</SelectItem>
                 <SelectItem value="en_proceso">En Proceso</SelectItem>
                 <SelectItem value="parcial">Parcial</SelectItem>
@@ -252,7 +252,7 @@ export function RecobrosManager() {
                 <SelectValue placeholder="Todas las prioridades" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas</SelectItem>
+                <SelectItem value="todas">Todas</SelectItem>
                 <SelectItem value="baja">Baja</SelectItem>
                 <SelectItem value="media">Media</SelectItem>
                 <SelectItem value="alta">Alta</SelectItem>

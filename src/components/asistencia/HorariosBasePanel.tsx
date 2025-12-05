@@ -537,7 +537,7 @@ export function HorariosBasePanel() {
                             </FormControl>
                             <SelectContent>
                               {turnosQuery.isLoading ? (
-                                <SelectItem value="" disabled>Cargando turnos...</SelectItem>
+                                <SelectItem value="cargando" disabled>Cargando turnos...</SelectItem>
                               ) : (
                                 (turnosQuery.data ?? []).map((turno) => (
                                   <SelectItem key={turno.id} value={turno.id}>

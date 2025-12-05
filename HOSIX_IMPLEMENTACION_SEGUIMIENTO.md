@@ -404,13 +404,63 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ---
 
-### 2.8 ADM 8.0 - Cajas (⏳ PENDIENTE)
+### 2.8 ADM 8.0 - Cajas ✅ (100% COMPLETADA)
 
-Módulo para gestionar cajas, turnos y movimientos de efectivo
+#### ✅ Subtarea 2.8.1: Gestión de Cajas
+- **Estado**: ✅ COMPLETADO (Sesión 9)
+- **Componentes Creados**:
+  - `src/components/hosix/cajas/CajasManager.tsx` ✅ (274 líneas)
+  - `src/hooks/useHosixCajas.ts` ✅ (398 líneas)
+  - `src/pages/Hosix/Cajas.tsx` ✅ (276 líneas)
 
-### 2.9 ADM 9.0 - Recobros (⏳ PENDIENTE)
+- **Características Implementadas**:
+  - [x] CRUD de cajas (crear, editar, cambiar estado)
+  - [x] Gestión de turnos (apertura y cierre)
+  - [x] Registro de movimientos (cobros, pagos, devoluciones)
+  - [x] Cierres diarios con cuadre de saldos
+  - [x] Arqueos de caja (efectivo, cheques, tarjetas)
+  - [x] 5 componentes + 1 hook + 1 página integrada
+  - [x] Dashboard con KPIs (cajas activas, turnos, movimientos)
+  - [x] Formas de pago configurables
+  - [x] Validaciones y control de flujo
 
-Módulo para gestionar recobros, notas de cargo/crédito y morosidad
+#### Características por Componente:
+- **CajasManager**: CRUD de cajas con estados (abierta, cerrada, mantenimiento)
+- **TurnosCajaManager**: Apertura y cierre de turnos con saldos
+- **MovimientosCajaForm**: Registro de transacciones con cálculo automático
+- **CierresCajaManager**: Cierre diario con detección de cuadres/descuadres
+- **ArqueosManager**: Conteo físico de efectivo y documentos
+
+---
+
+### 2.9 ADM 9.0 - Recobros ✅ (100% COMPLETADA)
+
+#### ✅ Subtarea 2.9.1: Gestión de Recobros
+- **Estado**: ✅ COMPLETADO (Sesión 9)
+- **Componentes Creados**:
+  - `src/components/hosix/recobros/RecobrosManager.tsx` ✅ (339 líneas)
+  - `src/components/hosix/recobros/NotasCargoCredito.tsx` ✅ (458 líneas)
+  - `src/components/hosix/recobros/MorosidadAnalytics.tsx` ✅ (197 líneas)
+  - `src/hooks/useHosixRecobros.ts` ✅ (318 líneas)
+  - `src/pages/Hosix/Recobros.tsx` ✅ (168 líneas)
+
+- **Características Implementadas**:
+  - [x] Solicitudes de recobro (denegación de facturas)
+  - [x] Notas de cargo (cargos adicionales)
+  - [x] Notas de crédito (devoluciones y ajustes)
+  - [x] Solicitudes a aseguradoras (devolucion, aclaración, denegación)
+  - [x] Análisis de morosidad por aseguradora
+  - [x] Estados de cobranza (activo, en litigio, incobrable)
+  - [x] Cálculo automático de deudas vencidas
+  - [x] Dashboard con KPIs (recobros, notas, deuda)
+  - [x] Filtros por estado y prioridad
+  - [x] Seguimiento automático
+
+#### Características por Componente:
+- **RecobrosManager**: Denegación de facturas con motivos y prioridades
+- **NotasCargoCredito**: Notas de cargo y crédito con aprobación
+- **MorosidadAnalytics**: Análisis de morosidad y estado de cobranza
+- **Dashboard**: Resumen de recobros, notas, deudor total
 
 ### 2.10 ADM 10.0 - Suministros (⏳ PENDIENTE)
 

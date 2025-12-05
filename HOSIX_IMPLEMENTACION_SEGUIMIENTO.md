@@ -1,10 +1,10 @@
 # HOSIX - Sistema de Gestión Hospitalaria Nacional
 ## Plan de Implementación y Seguimiento de Progreso
 
-> **Versión**: 2.1  
-> **Fecha Inicio**: 2025-01-15  
-> **Última Actualización**: 2025-01-21 (Sesión 7)  
-> **Estado General**: ✅ FASE 1 COMPLETADA | ⏳ FASE 2 EN PROGRESO (60%)  
+> **Versión**: 2.2
+> **Fecha Inicio**: 2025-01-15
+> **Última Actualización**: 2025-01-21 (Sesión 9)
+> **Estado General**: ✅ FASE 1 COMPLETADA | ⏳ FASE 2 EN PROGRESO (66%)  
 > **Proyecto**: Dashboard de Gestión Hospitalaria - GEPROSTEC
 
 ---
@@ -404,13 +404,63 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ---
 
-### 2.8 ADM 8.0 - Cajas (⏳ PENDIENTE)
+### 2.8 ADM 8.0 - Cajas ✅ (100% COMPLETADA)
 
-Módulo para gestionar cajas, turnos y movimientos de efectivo
+#### ✅ Subtarea 2.8.1: Gestión de Cajas
+- **Estado**: ✅ COMPLETADO (Sesión 9)
+- **Componentes Creados**:
+  - `src/components/hosix/cajas/CajasManager.tsx` ✅ (274 líneas)
+  - `src/hooks/useHosixCajas.ts` ✅ (398 líneas)
+  - `src/pages/Hosix/Cajas.tsx` ✅ (276 líneas)
 
-### 2.9 ADM 9.0 - Recobros (⏳ PENDIENTE)
+- **Características Implementadas**:
+  - [x] CRUD de cajas (crear, editar, cambiar estado)
+  - [x] Gestión de turnos (apertura y cierre)
+  - [x] Registro de movimientos (cobros, pagos, devoluciones)
+  - [x] Cierres diarios con cuadre de saldos
+  - [x] Arqueos de caja (efectivo, cheques, tarjetas)
+  - [x] 5 componentes + 1 hook + 1 página integrada
+  - [x] Dashboard con KPIs (cajas activas, turnos, movimientos)
+  - [x] Formas de pago configurables
+  - [x] Validaciones y control de flujo
 
-Módulo para gestionar recobros, notas de cargo/crédito y morosidad
+#### Características por Componente:
+- **CajasManager**: CRUD de cajas con estados (abierta, cerrada, mantenimiento)
+- **TurnosCajaManager**: Apertura y cierre de turnos con saldos
+- **MovimientosCajaForm**: Registro de transacciones con cálculo automático
+- **CierresCajaManager**: Cierre diario con detección de cuadres/descuadres
+- **ArqueosManager**: Conteo físico de efectivo y documentos
+
+---
+
+### 2.9 ADM 9.0 - Recobros ✅ (100% COMPLETADA)
+
+#### ✅ Subtarea 2.9.1: Gestión de Recobros
+- **Estado**: ✅ COMPLETADO (Sesión 9)
+- **Componentes Creados**:
+  - `src/components/hosix/recobros/RecobrosManager.tsx` ✅ (339 líneas)
+  - `src/components/hosix/recobros/NotasCargoCredito.tsx` ✅ (458 líneas)
+  - `src/components/hosix/recobros/MorosidadAnalytics.tsx` ✅ (197 líneas)
+  - `src/hooks/useHosixRecobros.ts` ✅ (318 líneas)
+  - `src/pages/Hosix/Recobros.tsx` ✅ (168 líneas)
+
+- **Características Implementadas**:
+  - [x] Solicitudes de recobro (denegación de facturas)
+  - [x] Notas de cargo (cargos adicionales)
+  - [x] Notas de crédito (devoluciones y ajustes)
+  - [x] Solicitudes a aseguradoras (devolucion, aclaración, denegación)
+  - [x] Análisis de morosidad por aseguradora
+  - [x] Estados de cobranza (activo, en litigio, incobrable)
+  - [x] Cálculo automático de deudas vencidas
+  - [x] Dashboard con KPIs (recobros, notas, deuda)
+  - [x] Filtros por estado y prioridad
+  - [x] Seguimiento automático
+
+#### Características por Componente:
+- **RecobrosManager**: Denegación de facturas con motivos y prioridades
+- **NotasCargoCredito**: Notas de cargo y crédito con aprobación
+- **MorosidadAnalytics**: Análisis de morosidad y estado de cobranza
+- **Dashboard**: Resumen de recobros, notas, deudor total
 
 ### 2.10 ADM 10.0 - Suministros (⏳ PENDIENTE)
 
@@ -432,15 +482,15 @@ Módulo para gestionar licitaciones, pedidos y compras
 |---------|-------|-----------|-------------|-----------|
 | **Fases** | 4 | 1 | 1 | 2 |
 | **Módulos FASE 1** | 7 | 7 | 0 | 0 |
-| **Módulos FASE 2** | 12 | 6 | 0 | 6 |
-| **Subtareas FASE 2** | 62 | 18 | 0 | 44 |
-| **Componentes** | 100+ | 45 | 0 | 55+ |
-| **Hooks** | 15 | 9 | 0 | 6 |
-| **Tablas BD** | 150+ | 50 | 0 | 100+ |
-| **Migrations** | 5 | 5 | 0 | 0 |
-| **Líneas de Código** | 5,000+ | 4,230+ | - | 770+ |
+| **Módulos FASE 2** | 12 | 8 | 0 | 4 |
+| **Subtareas FASE 2** | 62 | 24 | 0 | 38 |
+| **Componentes** | 100+ | 53 | 0 | 47+ |
+| **Hooks** | 15 | 10 | 0 | 5 |
+| **Tablas BD** | 150+ | 60 | 0 | 90+ |
+| **Migrations** | 7 | 7 | 0 | 0 |
+| **Líneas de Código** | 8,000+ | 6,500+ | - | 1,500+ |
 
-**Progreso FASE 2**: 6/12 módulos = **50%** (fue 42%)
+**Progreso FASE 2**: 8/12 módulos = **66%** (fue 50%)
 
 ---
 

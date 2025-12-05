@@ -607,14 +607,30 @@ El sistema HOSIX se implementará en **4 fases principales**:
   - [x] RLS Policies completadas
   - [x] Seed data para presupuestos 2025
 
-#### ⏳ Subtarea 2.12.2: Componentes React (PENDIENTE)
-- Componentes a crear:
-  - `PresupuestosManager.tsx` - Gestión CRUD de presupuestos
-  - `LicitacionesManager.tsx` - Creación y seguimiento de licitaciones
-  - `OfertasManager.tsx` - Evaluación de ofertas de proveedores
-  - `AdjudicacionesManager.tsx` - Registro de adjudicaciones
-  - `src/hooks/useHosixCompras.ts` - Hook de gestión
-  - `src/pages/Hosix/Compras.tsx` - Página integrada
+#### ✅ Subtarea 2.12.2: Página Dashboard y Hook (COMPLETADO)
+- **Estado**: ✅ COMPLETADO (22 Enero 2025)
+- **Archivos Creados**:
+  - `src/hooks/useHosixCompras.ts` ✅ (346 líneas) - Hook completo de gestión
+  - `src/pages/Hosix/Compras.tsx` ✅ (251 líneas) - Página dashboard integrada
+  - Actualizado: `src/App.tsx` - Ruta `/hosix/compras` agregada
+  - Actualizado: `src/components/hosix/HosixSidebar.tsx` - Menú "Compras" con icono
+
+- **Características Implementadas**:
+  - [x] Dashboard con KPIs (presupuesto, utilizado, disponible, adjudicaciones)
+  - [x] Gráficos de licitaciones por estado (Recharts)
+  - [x] Gráficos de presupuestos y disponibilidad
+  - [x] Tabs para Dashboard, Presupuestos, Licitaciones, Adjudicaciones
+  - [x] Hook useHosixCompras con mutations CRUD
+  - [x] Gestión de presupuestos con cálculo de disponibilidad
+  - [x] Gestión de licitaciones, ofertas y adjudicaciones
+  - [x] RLS policies integradas en backend
+
+#### ⏳ Subtarea 2.12.3: Componentes Managers (PENDIENTE)
+- Componentes detallados a crear (para sesiones futuras):
+  - `PresupuestosManager.tsx` - CRUD con validación de límites
+  - `LicitacionesManager.tsx` - Creación y seguimiento
+  - `OfertasManager.tsx` - Evaluación con puntuaciones
+  - `AdjudicacionesManager.tsx` - Registro y monitoreo
 
 ---
 

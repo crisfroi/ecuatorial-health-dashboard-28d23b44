@@ -183,7 +183,6 @@ const CitasList: React.FC = () => {
                   <SelectValue placeholder="Todos los estados" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos los estados</SelectItem>
                   <SelectItem value="programada">Programada</SelectItem>
                   <SelectItem value="confirmada">Confirmada</SelectItem>
                   <SelectItem value="en_proceso">En Proceso</SelectItem>
@@ -192,6 +191,14 @@ const CitasList: React.FC = () => {
                   <SelectItem value="no_asistio">No Asistió</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEstadoFilter('')}
+                className="w-full"
+              >
+                Limpiar filtro
+              </Button>
             </div>
           </div>
 

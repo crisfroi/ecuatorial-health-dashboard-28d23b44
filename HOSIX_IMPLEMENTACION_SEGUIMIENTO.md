@@ -404,14 +404,25 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ---
 
-### 2.8-2.12 ADM 8.0-12.0 - Otros Módulos (⏳ PENDIENTE)
+### 2.8 ADM 8.0 - Cajas (⏳ PENDIENTE)
 
-Módulos para siguiente sesión:
-- ADM 8.0 - Cajas
-- ADM 9.0 - Recobros
-- ADM 10.0 - Suministros
-- ADM 11.0 - Almacenes
-- ADM 12.0 - Compras/Licitaciones
+Módulo para gestionar cajas, turnos y movimientos de efectivo
+
+### 2.9 ADM 9.0 - Recobros (⏳ PENDIENTE)
+
+Módulo para gestionar recobros, notas de cargo/crédito y morosidad
+
+### 2.10 ADM 10.0 - Suministros (⏳ PENDIENTE)
+
+Módulo para gestionar artículos, medicamentos y materiales
+
+### 2.11 ADM 11.0 - Almacenes (⏳ PENDIENTE)
+
+Módulo para gestionar almacenes, depósitos y movimientos de stock
+
+### 2.12 ADM 12.0 - Compras (⏳ PENDIENTE)
+
+Módulo para gestionar licitaciones, pedidos y compras
 
 ---
 

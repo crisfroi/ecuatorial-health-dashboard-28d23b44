@@ -518,6 +518,21 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ### 2.11 ADM 11.0 - Almacenes ✅ (100% COMPLETADA)
 
+#### 🔧 CORRECCIÓN SQL APLICADA (22 Enero 2025)
+
+**Error PostgreSQL Resuelto**:
+- **Error Original**: `ERROR: 42883: function pg_catalog.extract(unknown, integer) does not exist LINE 172: EXTRACT(DAY FROM (fecha_vencimiento - CURRENT_DATE))::INT`
+- **Causa**: Intento de usar EXTRACT sobre un INTEGER. En PostgreSQL, restar dos DATEs devuelve directamente un INTEGER (número de días), no un INTERVAL
+- **Solución**:
+  ```sql
+  -- ANTES (Incorrecto)
+  EXTRACT(DAY FROM (fecha_vencimiento - CURRENT_DATE))::INT
+
+  -- DESPUÉS (Correcto)
+  fecha_vencimiento - CURRENT_DATE
+  ```
+- **Resultado**: Migración SQL completamente funcional ✅
+
 #### ✅ Subtarea 2.11.1: Gestión de Almacenes y Movimientos de Stock
 - **Estado**: ✅ COMPLETADO (Sesión 10)
 - **Componentes Creados**:

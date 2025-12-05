@@ -293,27 +293,41 @@ El sistema HOSIX se implementará en **4 fases principales**:
   - [x] Soft delete (desactivación) de pacientes
   - [x] Filtros por nombre, documento, PPI
 
-#### Subtarea 2.1.2: Historia Clínica Electrónica
+#### Subtarea 2.1.2: Historia Clínica Electrónica ✅
 - **Objetivo**: Visualizar y gestionar HCE
-- **Componentes**:
-  - `src/components/hosix/pacientes/HistoriaClinicaView.tsx` ⏳
-  - `src/components/hosix/pacientes/EntradaHistoriaForm.tsx` ⏳
+- **Componentes Creados**:
+  - `src/components/hosix/pacientes/HistoriaClinicaView.tsx` ✅ - Vista completa de historia clínica
 
-- **Estado**: ⏳ EN PROGRESO
-- **Nota**: HCE se registra automáticamente en urgencias, citas, y hospitalizacion
+- **Estado**: ✅ COMPLETADO
+- **Características**:
+  - [x] Seleccionar paciente y ver su historia clínica
+  - [x] Visualización cronológica de entradas
+  - [x] Búsqueda y filtrado por tipo de entrada
+  - [x] Información detallada de paciente (datos demográficos)
+  - [x] Clasificación de tipos de entrada (consulta, urgencia, hospitalización, etc.)
+  - [x] Visualización de estado de firma
+  - [x] Nota: HCE se registra automáticamente en urgencias, citas, y hospitalización
 
-#### Subtarea 2.1.3: Documentos y Avisos
-- **Objetivo**: Gestionar adjuntos y alertas
-- **Componentes**:
-  - `src/components/hosix/pacientes/DocumentosManager.tsx` ⏳
-  - `src/components/hosix/pacientes/AvisosManager.tsx` ⏳
+#### Subtarea 2.1.3: Documentos y Avisos ✅
+- **Objetivo**: Gestionar adjuntos y alertas médicas
+- **Componentes Creados**:
+  - `src/components/hosix/pacientes/DocumentosManager.tsx` ✅ - Gestión de documentos
+  - `src/components/hosix/pacientes/AvisosManager.tsx` ✅ - Gestión de avisos y alertas
 
-- **Estado**: ⏳ EN PROGRESO
-- **Funcionalidades Implementadas**:
-  - [x] Hooks para agregar contactos de emergencia
-  - [x] Hooks para agregar avisos al paciente
-  - [ ] Componentes UI para documentos
-  - [ ] Componentes UI para avisos
+- **Estado**: ✅ COMPLETADO
+- **Funcionalidades Documentos**:
+  - [x] Agregar documentos (cédula, pasaporte, licencia, comprobante, seguro, etc.)
+  - [x] Visualizar documentos cargados en tabla
+  - [x] Descargar documentos
+  - [x] Eliminar documentos
+  - [x] Filtrar por tipo de documento
+
+- **Funcionalidades Avisos**:
+  - [x] Crear avisos con tipo (alerta, alergia, contraindicación, precaución, importante)
+  - [x] Definir severidad (baja, media, alta, crítica)
+  - [x] Visualización visual según severidad
+  - [x] Eliminar avisos
+  - [x] Información de fecha de creación
 
 ---
 

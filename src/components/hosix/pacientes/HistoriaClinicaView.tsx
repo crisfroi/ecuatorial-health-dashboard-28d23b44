@@ -9,12 +9,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FileText, Calendar, User, AlertCircle } from 'lucide-react';
 
 const HistoriaClinicaView: React.FC = () => {
-  const { pacientes, historiaClinica } = useHosixPacientes();
+  const { pacientes, historiaClinica, isLoadingHistoria, errorHistoria } = useHosixPacientes();
   const [selectedPacienteId, setSelectedPacienteId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const pacienteSeleccionado = pacientes.data?.find(p => p.id === selectedPacienteId);
-  const historiasDelPaciente = historiaClinica.data?.filter(h => h.paciente_id === selectedPacienteId) || [];
+  const pacienteSeleccionado = pacientes?.find(p => p.id === selectedPacienteId);
+  const historiasDelPaciente = historiaClinica?.filter(h => h.paciente_id === selectedPacienteId) || [];
 
   const formatFecha = (fecha: string) => {
     return new Date(fecha).toLocaleDateString('es-ES', {
@@ -124,13 +124,13 @@ const HistoriaClinicaView: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {historiaClinica.isLoading ? (
+            {isLoadingHistoria ? (
               <Alert>
                 <AlertDescription>Cargando historia clínica...</AlertDescription>
               </Alert>
-            ) : historiaClinica.error ? (
+            ) : errorHistoria ? (
               <Alert variant="destructive">
-                <AlertDescription>Error al cargar: {historiaClinica.error.message}</AlertDescription>
+                <AlertDescription>Error al cargar: {errorHistoria.message}</AlertDescription>
               </Alert>
             ) : historiasDelPaciente.length === 0 ? (
               <Alert>

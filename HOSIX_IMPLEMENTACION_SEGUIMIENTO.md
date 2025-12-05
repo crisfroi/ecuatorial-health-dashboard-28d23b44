@@ -586,13 +586,34 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ---
 
-### 2.12 ADM 12.0 - Compras (⏳ PENDIENTE)
+### 2.12 ADM 12.0 - Compras/Licitaciones ⏳ (0% - EN DESARROLLO)
 
-Módulo para gestionar almacenes, depósitos y movimientos de stock
+#### ✅ Subtarea 2.12.1: Migración SQL Completada
+- **Estado**: ✅ COMPLETADO (22 Enero 2025)
+- **Archivo**: `supabase/code/supabase/migrations/20250122_010_hosix_compras.sql` (287 líneas)
+- **Tablas Creadas**:
+  - `hosix_presupuestos` - Presupuestos por centro de coste
+  - `hosix_licitaciones` - Licitaciones principales
+  - `hosix_licitaciones_partidas` - Partidas de licitaciones
+  - `hosix_licitaciones_ofertas` - Ofertas de proveedores
+  - `hosix_adjudicaciones` - Resultados de adjudicaciones
+- **Características**:
+  - [x] Presupuestos con control de disponibilidad
+  - [x] Licitaciones con estados (borrador, publicada, evaluación, adjudicada)
+  - [x] Partidas con especificaciones técnicas
+  - [x] Ofertas con evaluación (técnica + precio)
+  - [x] Adjudicaciones con supervisor
+  - [x] RLS Policies completadas
+  - [x] Seed data para presupuestos 2025
 
-### 2.12 ADM 12.0 - Compras (⏳ PENDIENTE)
-
-Módulo para gestionar licitaciones, pedidos y compras
+#### ⏳ Subtarea 2.12.2: Componentes React (PENDIENTE)
+- Componentes a crear:
+  - `PresupuestosManager.tsx` - Gestión CRUD de presupuestos
+  - `LicitacionesManager.tsx` - Creación y seguimiento de licitaciones
+  - `OfertasManager.tsx` - Evaluación de ofertas de proveedores
+  - `AdjudicacionesManager.tsx` - Registro de adjudicaciones
+  - `src/hooks/useHosixCompras.ts` - Hook de gestión
+  - `src/pages/Hosix/Compras.tsx` - Página integrada
 
 ---
 

@@ -26,6 +26,7 @@ import QuirofanosPage from "./pages/Hosix/Quirofanos";
 import FarmaciaPage from "./pages/Hosix/Farmacia";
 import ConfiguracionPage from "./pages/Hosix/Configuracion";
 import BiPage from "./pages/Hosix/BI";
+import FacturacionPage from "./pages/Hosix/Facturacion";
 import "./utils/authErrorHandler"; // Initialize global auth error handling
 import "./utils/storageCleanup"; // Initialize storage cleanup
 import { initResizeObserverErrorHandling } from "./utils/resizeObserverHandler";
@@ -106,6 +107,7 @@ function App() {
                   <Route path="hospitalizacion" element={<HospitalizacionPage />} />
                   <Route path="quirofanos" element={<QuirofanosPage />} />
                   <Route path="farmacia" element={<FarmaciaPage />} />
+                  <Route path="facturacion" element={<FacturacionPage />} />
                   <Route path="configuracion" element={<ConfiguracionPage />} />
                   <Route path="bi" element={<BiPage />} />
                 </Route>

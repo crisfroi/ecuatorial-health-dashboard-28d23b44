@@ -311,6 +311,9 @@ export const useHosixPacientes = () => {
     pacientes,
     isLoadingPacientes,
     errorPacientes,
+    historiaClinica,
+    isLoadingHistoria,
+    errorHistoria,
     filtros,
     setFiltros,
 
@@ -337,6 +340,6 @@ export const useHosixPacientes = () => {
     errorCrearPaciente: crearPacienteMutation.error?.message,
     errorActualizar: actualizarPacienteMutation.error?.message,
     errorEliminar: eliminarPacienteMutation.error?.message,
-    errorFusionar: fusionarPacientesMutation.error?.message,
+    errorFusionar: fusionarPacienteMutation.error?.message,
   };
 };

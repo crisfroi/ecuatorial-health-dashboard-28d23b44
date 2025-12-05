@@ -22,6 +22,7 @@ import { initResizeObserverErrorHandling } from "./utils/resizeObserverHandler";
 // HOSIX Pages
 import CajasPage from "./pages/Hosix/Cajas";
 import RecobrosPage from "./pages/Hosix/Recobros";
+import FacturacionPage from "./pages/Hosix/Facturacion";
 
 // Initialize ResizeObserver error handling
 initResizeObserverErrorHandling();

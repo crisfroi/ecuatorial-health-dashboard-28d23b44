@@ -23,9 +23,17 @@ import { initResizeObserverErrorHandling } from "./utils/resizeObserverHandler";
 import HosixLogin from "./pages/Hosix/HosixLogin";
 import HosixLayout from "./components/hosix/HosixLayout";
 import HosixDashboard from "./pages/Hosix/HosixDashboard";
+import Pacientes from "./pages/Hosix/Pacientes";
+import Urgencias from "./pages/Hosix/Urgencias";
+import Citas from "./pages/Hosix/Citas";
+import Hospitalizacion from "./pages/Hosix/Hospitalizacion";
+import Quirofanos from "./pages/Hosix/Quirofanos";
+import Farmacia from "./pages/Hosix/Farmacia";
+import FacturacionPage from "./pages/Hosix/Facturacion";
 import CajasPage from "./pages/Hosix/Cajas";
 import RecobrosPage from "./pages/Hosix/Recobros";
-import FacturacionPage from "./pages/Hosix/Facturacion";
+import Configuracion from "./pages/Hosix/Configuracion";
+import BI from "./pages/Hosix/BI";
 
 // Initialize ResizeObserver error handling
 initResizeObserverErrorHandling();
@@ -95,9 +103,17 @@ function App() {
                 <Route path="/hosix/login" element={<HosixLogin />} />
                 <Route path="/hosix" element={<HosixLayout />}>
                   <Route index element={<HosixDashboard />} />
+                  <Route path="pacientes" element={<Pacientes />} />
+                  <Route path="urgencias" element={<Urgencias />} />
+                  <Route path="citas" element={<Citas />} />
+                  <Route path="hospitalizacion" element={<Hospitalizacion />} />
+                  <Route path="quirofanos" element={<Quirofanos />} />
+                  <Route path="farmacia" element={<Farmacia />} />
                   <Route path="facturacion" element={<FacturacionPage />} />
                   <Route path="cajas" element={<CajasPage />} />
                   <Route path="recobros" element={<RecobrosPage />} />
+                  <Route path="configuracion" element={<Configuracion />} />
+                  <Route path="bi" element={<BI />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -478,25 +478,45 @@ Módulo para gestionar licitaciones, pedidos y compras
 
 ## 🚀 PRÓXIMAS PRIORIDADES (FASE 2)
 
-### SESIÓN 8 (Próxima):
-1. **ADM 6.0 - Teleconsulta** (4-6 horas)
-   - Componentes para programación
-   - Integración con Jitsi/Zoom
-   - Notificaciones
+### SESIÓN 8 (✅ COMPLETADA):
+1. **ADM 7.0 - Facturación** ✅ (10 horas)
+   - ✅ Gestión de aseguradoras y tarifas
+   - ✅ Gestión de cuentas
+   - ✅ Generación de facturas
+   - ✅ Cobros y pagos
+   - ✅ Página integrada con 5 componentes
 
-2. **ADM 7.0 - Facturación** (8-10 horas)
-   - Gestión de cuentas
-   - Generación de facturas
-   - Cobros y pagos
+### SESIÓN 9 (Próxima):
+1. **ADM 8.0 - Cajas** (6-8 horas)
+   - Movimientos de caja
+   - Formas de pago
+   - Cierres diarios
+   - Arqueos
 
-### SESIÓN 9:
-1. **ADM 8.0 - Cajas**
-2. **ADM 9.0 - Recobros**
-3. **ADM 10.0 - Suministros**
+2. **ADM 9.0 - Recobros** (4-6 horas)
+   - Notas de cargo/crédito
+   - Denegación de facturas
+   - Análisis de morosidad
 
 ### SESIÓN 10:
-1. **ADM 11.0 - Almacenes**
-2. **ADM 12.0 - Compras**
+1. **ADM 10.0 - Suministros** (6-8 horas)
+   - Catálogo de artículos
+   - Familias y grupos
+   - Códigos de barras
+
+2. **ADM 11.0 - Almacenes** (8-10 horas)
+   - Gestión de almacenes
+   - Movimientos de stock
+   - Inventario físico
+
+### SESIÓN 11:
+1. **ADM 12.0 - Compras** (6-8 horas)
+   - Licitaciones
+   - Pedidos
+   - Presupuestos
+
+### NOTAS:
+- **ADM 6.0 - Teleconsulta**: OMITIDA por decisión del usuario (no prioritario)
 
 ---
 

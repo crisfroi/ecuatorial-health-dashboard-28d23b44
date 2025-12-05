@@ -117,6 +117,7 @@ function App() {
                   <Route path="recobros" element={<RecobrosPage />} />
                   <Route path="suministros" element={<Suministros />} />
                   <Route path="almacenes" element={<Almacenes />} />
+                  <Route path="compras" element={<ComprasPage />} />
                   <Route path="configuracion" element={<Configuracion />} />
                   <Route path="bi" element={<BI />} />
                 </Route>

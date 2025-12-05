@@ -329,19 +329,78 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ---
 
-### 2.7 ADM 7.0 - Facturación (⏳ PENDIENTE)
+### 2.7 ADM 7.0 - Facturación ✅ (100% COMPLETADA)
 
-#### Subtarea 2.7.1: Gestión de Cuentas
-- **Estado**: ⏳ NO INICIADO
-- **Estimado**: 4 horas
+#### ✅ Subtarea 2.7.1: Gestión de Aseguradoras y Tarifas
+- **Estado**: ✅ COMPLETADO (Sesión 8)
+- **Componentes Creados**:
+  - `src/components/hosix/facturacion/AseguradorasList.tsx` ✅ (381 líneas)
+  - `src/components/hosix/facturacion/TarifasManager.tsx` ✅ (383 líneas)
 
-#### Subtarea 2.7.2: Generación de Facturas
-- **Estado**: ⏳ NO INICIADO
-- **Estimado**: 6 horas
+- **Características Implementadas**:
+  - [x] CRUD completo de aseguradoras (crear, editar, desactivar)
+  - [x] Filtrado por tipo (pública/privada) y búsqueda
+  - [x] Gestión de tarifas por aseguradora
+  - [x] Validación de vigencia de tarifas
+  - [x] Edición de tarifas activas
+  - [x] Indicadores visuales de estado
 
-#### Subtarea 2.7.3: Cobros y Pagos
-- **Estado**: ⏳ NO INICIADO
-- **Estimado**: 5 horas
+#### ✅ Subtarea 2.7.2: Gestión de Cuentas y Conceptos
+- **Estado**: ✅ COMPLETADO (Sesión 8)
+- **Componentes Creados**:
+  - `src/components/hosix/facturacion/CuentasManager.tsx` ✅ (366 líneas)
+
+- **Características Implementadas**:
+  - [x] Crear cuentas de facturación por paciente
+  - [x] Generación automática de número de cuenta secuencial
+  - [x] Asociar con aseguradora
+  - [x] Filtrado por estado (abierta/cerrada)
+  - [x] Visualización de saldo pendiente
+  - [x] Cierre de cuentas
+  - [x] Historial de pagos
+
+#### ✅ Subtarea 2.7.3: Generación de Facturas y Pagos
+- **Estado**: ✅ COMPLETADO (Sesión 8)
+- **Componentes Creados**:
+  - `src/components/hosix/facturacion/FacturasGenerator.tsx` ✅ (385 líneas)
+  - `src/components/hosix/facturacion/FacturasList.tsx` ✅ (482 líneas)
+  - `src/hooks/useHosixFacturacion.ts` ✅ (642 líneas)
+
+- **Características FacturasGenerator**:
+  - [x] Seleccionar cuenta de facturación
+  - [x] Agregar múltiples líneas de factura
+  - [x] Seleccionar concepto predefinido o manual
+  - [x] Cálculo automático de subtotal, impuesto (15% IVA) y total
+  - [x] Validaciones completas
+  - [x] Generación automática de número de factura
+
+- **Características FacturasList**:
+  - [x] Listado de facturas emitidas
+  - [x] Visualización de detalles (líneas, totales)
+  - [x] Filtrado por estado (emitida, pagada, rechazada)
+  - [x] Búsqueda por número de factura
+  - [x] Registrar pagos con forma de pago
+  - [x] Rechazo de facturas con motivo
+  - [x] Actualización de saldo pendiente
+  - [x] Estados parcialmente pagada/pagada
+
+#### ✅ Página y Rutas
+- **Estado**: ✅ COMPLETADO (Sesión 8)
+- **Archivos Creados**:
+  - `src/pages/Hosix/Facturacion.tsx` ✅ (151 líneas)
+  - Actualizado: `src/App.tsx` con ruta `/hosix/facturacion`
+
+- **Características de la Página**:
+  - [x] Dashboard con estadísticas (aseguradoras, cuentas, facturas, total)
+  - [x] Tabs para acceder a cada módulo:
+    - [x] Gestión de Cuentas
+    - [x] Listado de Facturas
+    - [x] Generador de Facturas
+    - [x] Gestión de Aseguradoras
+    - [x] Gestión de Tarifas
+  - [x] Integración de 5 componentes principales
+  - [x] Indicadores visuales de estado
+  - [x] Responsive design
 
 ---
 

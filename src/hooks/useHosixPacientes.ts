@@ -126,6 +126,20 @@ export const useHosixPacientes = () => {
     },
   });
 
+  // Obtener historia clínica
+  const { data: historiaClinica = [], isLoading: isLoadingHistoria, error: errorHistoria } = useQuery({
+    queryKey: ['historia-clinica'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('hosix_historia_clinica')
+        .select('*')
+        .order('fecha_entrada', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Obtener detalle de paciente
   const obtenerPaciente = async (id: string) => {
     const { data, error } = await supabase

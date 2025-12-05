@@ -61,7 +61,12 @@ export default function CuentasManager() {
       return;
     }
 
-    crearCuenta(formData, {
+    const dataToSubmit = {
+      ...formData,
+      aseguradora_id: formData.aseguradora_id === 'sin-aseguradora' ? '' : formData.aseguradora_id,
+    };
+
+    crearCuenta(dataToSubmit, {
       onSuccess: () => {
         toast.success('Cuenta de facturación creada');
         setShowForm(false);

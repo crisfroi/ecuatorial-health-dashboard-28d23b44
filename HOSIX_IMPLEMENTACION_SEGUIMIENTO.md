@@ -307,7 +307,7 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ---
 
-### 2.6 ADM 6.0 - Teleconsulta (⏳ PENDIENTE)
+### 2.6 ADM 6.0 - Teleconsulta (⏳ PENDIENTE - OMITIDA POR USUARIO)
 
 #### Subtarea 2.6.1: Configuración de Consultas Remotas
 - **Estado**: ⏳ NO INICIADO

@@ -68,8 +68,8 @@ El sistema HOSIX se implementará en **4 fases principales**:
 | ADM 12.0 | Compras | ⏳ 50% | 1/2 subtareas (SQL ✅) |
 
 **Total FASE 2**: 10/12 módulos completados = **91%** (ADM 6.0 omitida = 10/11 = 91%)
-**Progreso Actual**: 91% completado + ADM 12.0 SQL = **92%** de FASE 2
-**Subtareas**: Completadas 19 de 52 (sin ADM 6.0) = **36%**
+**Progreso Actual**: 91% módulos completados + ADM 12.0 50% (SQL + Dashboard) = **95%** de FASE 2
+**Subtareas**: Completadas 20 de 52 (sin ADM 6.0) = **38%**
 
 ---
 

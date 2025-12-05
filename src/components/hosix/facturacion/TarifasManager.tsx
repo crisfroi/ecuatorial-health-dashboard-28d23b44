@@ -293,7 +293,7 @@ export default function TarifasManager() {
                   <SelectValue placeholder="Seleccionar aseguradora" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">General (sin aseguradora)</SelectItem>
+                  <SelectItem value="general">General (sin aseguradora)</SelectItem>
                   {aseguradoras.map((seg) => (
                     <SelectItem key={seg.id} value={seg.id}>
                       {seg.nombre}

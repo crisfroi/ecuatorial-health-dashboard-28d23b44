@@ -2,12 +2,11 @@ import React, { useState } from 'react'
 import { useHosixFarmacia } from '@/hooks/useHosixFarmacia'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { DispensacionesManager } from '@/components/hosix/farmacia/DispensacionesManager'
 
 export default function FarmaciaPage() {
-  const { dispensarios, dispensaciones, farmacovigilancia } = useHosixFarmacia()
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const { dispensarios = [], dispensaciones = [], farmacovigilancia = [] } = useHosixFarmacia()
+  const [activeTab, setActiveTab] = useState('dispensaciones')
 
   return (
       <div className="space-y-6">

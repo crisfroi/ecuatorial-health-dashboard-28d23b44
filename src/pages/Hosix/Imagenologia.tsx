@@ -2,12 +2,11 @@ import React, { useState } from 'react'
 import { useHosixImagenologia } from '@/hooks/useHosixImagenologia'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { ImagenologiaSolicitudesManager } from '@/components/hosix/imagenologia/SolicitudesManager'
 
 export default function ImagenologiaPage() {
-  const { modalidades, solicitudes, estudios, reportes } = useHosixImagenologia()
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const { modalidades = [], solicitudes = [], estudios = [], reportes = [] } = useHosixImagenologia()
+  const [activeTab, setActiveTab] = useState('solicitudes')
 
   return (
       <div className="space-y-6">

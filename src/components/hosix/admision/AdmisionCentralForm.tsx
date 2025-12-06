@@ -152,11 +152,18 @@ export default function AdmisionCentralForm({
         if (formData.servicioId && !data?.some(s => s.id === formData.servicioId)) {
           setFormData(prev => ({ ...prev, servicioId: '' }))
         }
-      } catch (error) {
-        console.error('Error cargando servicios:', error)
+      } catch (error: any) {
+        const errorMsg = error?.message || error?.details || 'Desconocido'
+        console.error('Error cargando servicios:', {
+          message: error?.message,
+          code: error?.code,
+          details: error?.details,
+          hint: error?.hint,
+          fullError: error
+        })
         toast({
-          title: 'Error',
-          description: 'No se pudieron cargar los servicios',
+          title: 'Error cargando servicios',
+          description: `No se pudieron cargar los servicios: ${errorMsg}`,
           variant: 'destructive'
         })
       } finally {

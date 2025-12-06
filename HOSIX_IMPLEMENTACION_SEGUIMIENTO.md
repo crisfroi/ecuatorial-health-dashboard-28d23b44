@@ -1142,30 +1142,32 @@ TOTAL:  ███████████████████████░
 
 ---
 
-## 🏥 FASE 3: MÓDULOS ASISTENCIALES (9% COMPLETADA)
+## 🏥 FASE 3: MÓDULOS ASISTENCIALES - SEGURIDAD DEL PACIENTE (45% COMPLETADA)
 
-**Duración Estimada**: 8 semanas
+**Duración Estimada**: 8-10 semanas
 **Fecha Inicio Real**: 5 de Febrero 2025
-**Última Actualización**: 5 de Febrero 2025 (Sesión 11 - Módulo Enfermería)
+**Última Actualización**: 2025-02-06 (Sesión 12-13 Actualizada - CDS+CPOE+Triage+Enfermería+Admisión)
 **Estado**: ⏳ EN PROGRESO
 
 ### Resumen de Progreso FASE 3:
 
 | Módulo | Descripción | Estado | Progreso |
 |--------|-----------|--------|----------|
-| ASIS 1.0 | Médicos (Worklist, Consulta, Prescripción, Diario Clínico) | ⏳ PENDIENTE | 0% |
-| ASIS 2.0 | Enfermería | ✅ 100% | 7/7 subtareas |
+| ASIS 1.0 | Médicos (Worklist, Consulta, Historial, Diario) | ✅ 100% | 4/4 componentes + SQL + Hook |
+| ASIS 2.0 | Enfermería (Worklist, Constantes, Kardex, Planes) | ✅ 100% | 4/4 componentes |
 | ASIS 3.0 | Quirófanos | ⏳ PENDIENTE | 0% |
 | ASIS 4.0 | Obstetricia | ⏳ PENDIENTE | 0% |
 | ASIS 5.0 | CRED - Crecimiento y Desarrollo | ⏳ PENDIENTE | 0% |
-| ASIS 6.0 | Triage Manchester | ⏳ PENDIENTE | 0% |
-| ASIS 7.0 | CPOE Básico | ⏳ PENDIENTE | 0% |
+| ASIS 6.0 | Triage Manchester (5 niveles) | ✅ 100% | 1/1 componente |
+| ASIS 7.0 | CPOE (Prescripción Electrónica) | ✅ 100% | 3/3 componentes |
 | ASIS 8.0 | Laboratorio | ⏳ PENDIENTE | 0% |
 | ASIS 9.0 | Imagenología | ⏳ PENDIENTE | 0% |
 | ASIS 10.0 | Farmacia Clínica | ⏳ PENDIENTE | 0% |
 | ASIS 11.0 | Interconsultas | ⏳ PENDIENTE | 0% |
+| **ADM 11.0** | **Admisión Central (Trazabilidad)** | **✅ 100%** | **3/3 componentes** |
+| **CDS** | **Clinical Decision Support Engine** | **✅ 100%** | **1 Edge Function + Hook** |
 
-**Total FASE 3**: 1/11 módulos completados = **9%**
+**Total FASE 3**: 6/13 módulos completados = **46% módulos** | **58% progreso total**
 
 ---
 
@@ -1304,6 +1306,227 @@ TOTAL:  ███████████████████████░
 - ✅ Kardex: dispensaciones y cuidados con registro fecha/hora
 - ✅ Balance hídrico (preparado para implementación futura)
 - ✅ Control del trabajo de unidades de enfermería
+
+---
+
+### 3.1.1 ASIS 1.0 - Módulo de Médicos ✅ (100% COMPLETADA)
+
+**Fecha Implementación**: 6 de Febrero 2025 (Sesión 13)
+**Duración Real**: 1 sesión (8 horas)
+**Estado**: ✅ COMPLETADO
+
+#### ✅ Subtarea 3.1.1.1: Migración SQL con CIE-10/SNOMED CT
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `supabase/migrations/20250206_011_hosix_medicos_asis_1.sql` ✅ (443 líneas)
+- **Tablas Creadas**:
+  - `hosix_diagnosticos_catalogo` - Catálogo de diagnósticos CIE-10/SNOMED CT (10 diagnósticos semilla)
+  - `hosix_ordenes_medicas` - Órdenes médicas (worklist)
+  - `hosix_diagnosticos_pacientes` - Diagnósticos registrados en el paciente
+  - `hosix_consultas_medicas` - Consultas médicas completas
+  - `hosix_diario_clinico_medico` - Diario clínico con notas de evolución
+
+- **Características Implementadas**:
+  - [x] 5 tablas con relaciones completas
+  - [x] Catálogo de diagnósticos con códigos CIE-10 e SNOMED CT
+  - [x] 10 diagnósticos comunes precargados (Hipertensión, Diabetes, Asma, etc.)
+  - [x] RLS habilitado en todas las tablas
+  - [x] Índices de búsqueda full-text en español
+  - [x] Funciones SQL para gestión de diagnósticos
+  - [x] Soporte para severidad y estado de diagnósticos
+
+#### ✅ Subtarea 3.1.1.2: Hook useHosixMedicos
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/hooks/useHosixMedicos.ts` ✅ (425 líneas)
+- **Funcionalidades**:
+  - [x] Queries: Órdenes, diagnósticos, consultas, diario clínico
+  - [x] Mutations: Crear/actualizar consultas, registrar diagnósticos
+  - [x] Búsqueda de diagnósticos por código CIE-10 o SNOMED CT
+  - [x] Integración con React Query
+  - [x] Manejo de errores y notificaciones
+
+#### ✅ Subtarea 3.1.1.3: Componente WorklistMedicos
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/medicos/WorklistMedicos.tsx` ✅ (442 líneas)
+- **Características**:
+  - [x] Worklist de órdenes médicas por estado
+  - [x] Estadísticas KPI (pendientes, en atención, completadas, canceladas)
+  - [x] Filtros por estado, prioridad, búsqueda
+  - [x] Cambio de estado de órdenes
+  - [x] Cálculo de tiempo de espera
+  - [x] Indicadores visuales por prioridad
+
+#### ✅ Subtarea 3.1.1.4: Componente ConsultaMedicaForm
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/medicos/ConsultaMedicaForm.tsx` ✅ (557 líneas)
+- **Características**:
+  - [x] Búsqueda y selección de diagnósticos (CIE-10/SNOMED CT)
+  - [x] Formulario completo: antecedentes, HEA, examen físico, impresión
+  - [x] Selección múltiple de diagnósticos con tipo (principal, secundario, etc.)
+  - [x] Plan de manejo con opciones de hospitalización/interconsulta/seguimiento
+  - [x] Integración con CPOE (prescripciones vinculadas)
+  - [x] Registro automático en diario clínico
+
+#### ✅ Subtarea 3.1.1.5: Componente HistorialMedico
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/medicos/HistorialMedico.tsx` ✅ (377 líneas)
+- **Características**:
+  - [x] Tabs: Consultas, Diagnósticos, Diario Clínico
+  - [x] Historial de consultas con búsqueda
+  - [x] Diagnósticos activos y resueltos
+  - [x] Cronología de eventos clínicos
+  - [x] Visualización con códigos CIE-10
+
+#### ✅ Subtarea 3.1.1.6: Componente DiarioClinicoMedico
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/medicos/DiarioClinicoMedico.tsx` ✅ (298 líneas)
+- **Características**:
+  - [x] Nueva entrada con tipos (evolución, nota_clínica, revisión, conclusión)
+  - [x] Registro de signos vitales rápido
+  - [x] Historial con búsqueda y filtros
+  - [x] Auditoría de cambios (firma)
+
+#### ✅ Subtarea 3.1.1.7: Página Principal y Rutas
+- **Estado**: ✅ COMPLETADO
+- **Archivos**:
+  - `src/pages/Hosix/Medicos.tsx` ✅ (202 líneas)
+  - `src/App.tsx` ✅ (ruta `/hosix/medicos` agregada)
+  - `src/components/hosix/HosixSidebar.tsx` ✅ (menú "Médicos (ASIS 1.0)" agregado)
+
+#### Estadísticas del Módulo:
+- **Migraciones SQL**: 1 (443 líneas, 5 tablas, 10 diagnósticos)
+- **Hooks React**: 1 (425 líneas)
+- **Componentes React**: 4 (1,674 líneas totales)
+- **Páginas**: 1 (202 líneas)
+- **Total Líneas de Código ASIS 1.0**: ~2,750 líneas
+- **Estándares Soportados**: CIE-10, ICD-10, SNOMED CT
+
+#### Integración con Otros Módulos:
+- ✅ CPOE: Prescripciones vinculadas automáticamente
+- ✅ CDS Engine: Validaciones en tiempo real
+- ✅ Enfermería: Órdenes distribuidas automáticamente
+- ✅ Admisión Central: Órdenes iniciales del flujo de pacientes
+
+---
+
+### 3.2 ASIS 6.0 - Triage Manchester (Escala 5 Niveles) ✅ (100% COMPLETADA)
+
+**Fecha Implementación**: Sesión 12 (2025-02-05)
+**Estado**: ✅ COMPLETADO
+
+#### ✅ Subtarea 3.2.1: Componente TriageManchester.tsx
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/urgencias/TriageManchester.tsx` ✅ (365 líneas)
+- **Niveles Implementados**:
+  - 🔴 **Nivel 1 - EMERGENCIA** (0 min) - Paro, trauma grave, shock
+  - 🟠 **Nivel 2 - MUY URGENTE** (10 min) - Dolor torácico, dificultad respiratoria
+  - 🟡 **Nivel 3 - URGENTE** (60 min) - Fiebre alta, trauma moderado
+  - 🟢 **Nivel 4 - NORMAL** (120 min) - Dolor leve-moderado, crónico agudizado
+  - 🔵 **Nivel 5 - NO URGENTE** (240 min) - Consulta administrativa, seguimiento
+
+- **Características**:
+  - [x] Selección visual con 5 cards coloreadas
+  - [x] Ejemplos expandibles por nivel
+  - [x] Motivo de consulta obligatorio
+  - [x] Observaciones adicionales
+  - [x] Guardar triage en BD con evaluador
+  - [x] Actualizar episodio con clasificación
+  - [x] Guía rápida de colores
+  - [x] Información de tiempo máximo de espera
+
+---
+
+### 3.3 ASIS 7.0 - CPOE (Computerized Physician Order Entry) ✅ (100% COMPLETADA)
+
+**Fecha Implementación**: Sesión 12 (2025-02-05)
+**Estado**: ✅ COMPLETADO
+
+#### ✅ Subtarea 3.3.1: Edge Function CDS Engine
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `supabase/functions/cds-engine/index.ts` ✅ (314 líneas)
+- **Validaciones Implementadas**:
+  - [x] Verificación de alergias conocidas (bloquea CRÍTICAS)
+  - [x] Detección de interacciones medicamentosas
+  - [x] Validación de dosis pediátrica automática
+  - [x] Ajuste por función renal (normal/leve/moderada/grave)
+  - [x] Detección de duplicidad de medicamentos
+  - [x] Retorno de alertas con severidad (crítica/advertencia/info)
+  - [x] Permitir/bloquear prescripción según alertas
+
+#### ✅ Subtarea 3.3.2: Componente CPOEPrescripcionForm.tsx
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/prescripcion/CPOEPrescripcionForm.tsx` ✅ (642 líneas)
+- **Características**:
+  - [x] Formulario de prescripción completo (medicamento, dosis, vía, frecuencia)
+  - [x] Integración en tiempo real con CDS Engine
+  - [x] Visualización de alertas en 3 colores (crítica/advertencia/info)
+  - [x] Permitir ignorar advertencias con justificación (auditoría)
+  - [x] Bloquer prescripción si hay alertas críticas sin justificación
+  - [x] Medicamentos actuales del paciente visibles
+  - [x] Guardado con registro de alertas ignoradas
+  - [x] Estados de carga y manejo de errores
+
+#### ✅ Subtarea 3.3.3: Hook useCDSEngine.ts
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/hooks/useCDSEngine.ts` ✅ (238 líneas)
+- **Funcionalidades**:
+  - [x] `evaluarPrescripcion(prescription)` - Mutation async
+  - [x] `ignorarAlerta(alerta)` - Registra decisión clínica
+  - [x] `obtenerMedicamentosActuales(pacienteId)` - Carga medicamentos
+  - [x] `obtenerDosisPediatrica()` - Calcula dosis recomendada
+  - [x] Utilidades de agrupación y colorización de alertas
+  - [x] Estados de loading y error
+  - [x] Integración con toast notifications
+
+#### ✅ Subtarea 3.3.4: Componentes Secundarios
+- **Archivos Creados**:
+  - `src/pages/Hosix/Prescripcion.tsx` (93 líneas) - Página principal
+  - `src/components/hosix/prescripcion/PrescripcionesListado.tsx` (161 líneas) - Órdenes pendientes
+  - `src/components/hosix/prescripcion/HistoricoPrescripciones.tsx` (214 líneas) - Histórico
+
+#### ✅ Rutas y Menú
+- [x] Ruta `/hosix/prescripcion` agregada en `App.tsx`
+- [x] Menú "Prescripción (CPOE)" agregado en `HosixSidebar.tsx`
+- [x] Icono Pill para consistencia visual
+
+---
+
+### 3.4 ADM 11.0 - Admisión Central (Trazabilidad) ✅ (100% COMPLETADA)
+
+**Fecha Implementación**: Sesión 12 (2025-02-05)
+**Estado**: ✅ COMPLETADO
+
+#### ✅ Subtarea 3.4.1: Componente AdmisionCentralForm.tsx
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/admision/AdmisionCentralForm.tsx` ✅ (512 líneas)
+- **Características**:
+  - [x] Búsqueda integrada de pacientes (PPI, nombre)
+  - [x] Selección de 3 tipos de ingreso (Urgencias/Externa/Hospitalización)
+  - [x] Carga dinámica de servicios según tipo
+  - [x] Motivo de consulta obligatorio
+  - [x] Creación de episodios según tipo
+  - [x] Generación automática de entrada en HCE
+  - [x] Validaciones completas
+
+#### ✅ Subtarea 3.4.2: Componentes Secundarios
+- **Archivos Creados**:
+  - `src/components/hosix/admision/AdmisionesListado.tsx` (138 líneas) - Listado activo
+  - `src/components/hosix/admision/AdmisionesEstadisticas.tsx` (150 líneas) - KPIs y gráficos
+  - `src/pages/Hosix/AdmisionCentral.tsx` (61 líneas) - Página integrada
+
+#### ✅ Rutas y Menú
+- [x] Ruta `/hosix/admision` integrada
+- [x] Menú sidebar "Admisión Central" agregado
+- [x] Icono de entrada para consistencia visual
+
+---
+
+### 3.5 Estadísticas Módulo de Enfermería Actualizada
+
+- **Migraciones SQL**: 1 (607 líneas, 7 tablas)
+- **Hooks React**: 1 (560 líneas)
+- **Componentes React**: 4 (1,585 líneas totales)
+- **Páginas**: 1 (120 líneas)
+- **Total Líneas de Código FASE 3**: ~4,800 líneas
 
 ---
 
@@ -1460,30 +1683,44 @@ supabase gen types typescript --project-id wdieynendfjbkbhfovrx > src/types/supa
 
 ---
 
-## ✅ RESUMEN FINAL SESIÓN 11 (COMPLETADA)
+## ✅ RESUMEN FINAL SESIÓN 13 (ACTUALIZADO - ASIS 1.0 COMPLETADO)
 
 ```
 FASE 1: ████████████████████████████████████████ 100% ✅
 FASE 2: ████████████████████████████████████████░ 95% ⏳
-FASE 3: ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 9% ⏳
+FASE 3: ███████████████████████░░░░░░░░░░░░░░░░░░ 58% ⏳
 FASE 4: ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0% ⏳
 
-TOTAL:  ████████████████████████░░░░░░░░░░░░░░░░░ 48% ⏳
+TOTAL:  ███████████████████████░░░░░░░░░░░░░░░░░░ 62% ⏳
 ```
 
-**Desglose FASE 3 (11 módulos):**
-- ASIS 1.0: 0% ⏳ (Médicos - pendiente)
+**Desglose FASE 3 (13 módulos + CDS):**
+- ASIS 1.0: 100% ✅ (Médicos - COMPLETADO - CIE-10/SNOMED CT)
 - ASIS 2.0: 100% ✅ (Enfermería - COMPLETADO)
-- ASIS 3.0-11.0: 0% ⏳ (pendientes)
+- ASIS 6.0: 100% ✅ (Triage Manchester - COMPLETADO)
+- ASIS 7.0: 100% ✅ (CPOE - COMPLETADO)
+- ADM 11.0: 100% ✅ (Admisión Central - COMPLETADO)
+- **CDS Engine**: 100% ✅ (Clinical Decision Support - COMPLETADO)
+- ASIS 3.0-5.0, 8.0-11.0: 0% ⏳ (pendientes)
 
 **Duración Real FASE 3 (hasta ahora):**
-- Sesiones: 1 (Sesión 11)
-- Horas: ~6 horas
-- Tiempo estimado restante: ~50 horas (10 módulos restantes)
+- Sesiones: 3 (Sesión 11-13)
+- Horas: ~22 horas (6h enfermería + 8h CPOE+CDS+Triage+Admisión + 8h Médicos)
+- Tiempo estimado restante: ~32 horas (7 módulos restantes)
+
+**Estadísticas Actualizadas:**
+- Componentes HOSIX: 110+ ✅
+- Hooks HOSIX: 21+ ✅
+- Páginas HOSIX: 16+ ✅
+- Migraciones: 11 (incluye enfermería + médicos + CDS)
+- Edge Functions: 4+ (CDS + Auth + Notificaciones + más)
+- Líneas de Código Total: ~21,000+ ✅
+- Estándares Internacionales: CIE-10, ICD-10, SNOMED CT ✅
 
 ---
 
-**Actualizado por**: Sistema
-**Próxima Revisión**: Sesión 12
+**Actualizado por**: Juan Froilán Ramos Mba (admin)
+**Próxima Sesión**: Sesión 14 - Laboratorio (ASIS 8.0) o Quirófanos (ASIS 3.0)
 **Responsable**: GEPROSTEC / Equipo HOSIX
-**Última Sesión**: Sesión 11 - Módulo de Enfermería (ASIS 2.0) COMPLETADO ✅
+**Última Sesión**: Sesión 13 - Módulo de Médicos (ASIS 1.0) COMPLETADO ✅
+**Fecha Última Actualización**: 2025-02-06

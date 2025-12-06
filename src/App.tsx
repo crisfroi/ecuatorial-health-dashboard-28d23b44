@@ -117,6 +117,7 @@ function App() {
                   <Route path="hospitalizacion" element={<Hospitalizacion />} />
                   <Route path="quirofanos" element={<Quirofanos />} />
                   <Route path="farmacia" element={<Farmacia />} />
+                  <Route path="medicos" element={<Medicos />} />
                   <Route path="prescripcion" element={<Prescripcion />} />
                   <Route path="enfermeria" element={<Enfermeria />} />
                   <Route path="facturacion" element={<FacturacionPage />} />

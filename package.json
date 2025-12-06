@@ -14,6 +14,12 @@
     "apply-migrations:cli": "supabase db push",
     "apply-migrations:psql": "bash scripts/apply-migrations-psql.sh",
     "apply-migrations:mcp": "node scripts/apply-migrations-mcp.js",
+    "apply-migrations:quick": "bash scripts/apply-migrations-quick.sh",
+    "test-migrations": "node scripts/test-migrations-advanced.js",
+    "test-migrations:verbose": "node scripts/test-migrations-advanced.js --verbose",
+    "test-migrations:report": "node scripts/test-migrations-advanced.js --report",
+    "test-migrations:json": "node scripts/test-migrations-advanced.js --json",
+    "test-migrations:apply": "node scripts/test-migrations-advanced.js --apply",
     "tauri:dev": "npm run build && tauri dev",
     "tauri:build": "npm run build && tauri build"
   },

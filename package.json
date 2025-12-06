@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "setup-mcp": "node scripts/setup-mcp.js",
+    "install-mcp-migrations": "node scripts/install-mcp-migrations.js",
     "apply-migrations": "node scripts/apply-migrations.js",
     "apply-migrations:cli": "supabase db push",
     "apply-migrations:psql": "bash scripts/apply-migrations-psql.sh",

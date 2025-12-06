@@ -41,6 +41,11 @@ import AdmisionCentral from "./pages/Hosix/AdmisionCentral";
 import Medicos from "./pages/Hosix/Medicos";
 import Configuracion from "./pages/Hosix/Configuracion";
 import BI from "./pages/Hosix/BI";
+import Obstetricia from "./pages/Hosix/Obstetricia";
+import CRED from "./pages/Hosix/CRED";
+import Laboratorio from "./pages/Hosix/Laboratorio";
+import Imagenologia from "./pages/Hosix/Imagenologia";
+import Interconsultas from "./pages/Hosix/Interconsultas";
 
 // Initialize ResizeObserver error handling
 initResizeObserverErrorHandling();

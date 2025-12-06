@@ -102,28 +102,73 @@ export const useHosixMedicos = () => {
     return useQuery({
       queryKey: ['ordenes_medicas', estado],
       queryFn: async () => {
-        const { data: medico } = await supabase
-          .from('profesionales_sanitarios')
-          .select('id')
-          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-          .single()
+        try {
+          const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-        if (!medico) return []
+          if (authError || !user?.id) {
+            console.warn('No authenticated user found for ordenes médicas query');
+            return []
+          }
 
-        let query = supabase
-          .from('hosix_ordenes_medicas')
-          .select('*')
-          .eq('medico_asignado_id', medico.id)
-          .order('fecha_creacion', { ascending: false })
+          const { data: medico, error: medicoError } = await supabase
+            .from('profesionales_sanitarios')
+            .select('id')
+            .eq('user_id', user.id)
+            .single()
 
-        if (estado) {
-          query = query.eq('estado', estado)
+          if (medicoError) {
+            console.error('Error fetching professional record:', {
+              code: medicoError.code,
+              message: medicoError.message,
+              details: medicoError.details,
+              hint: medicoError.hint
+            })
+            return []
+          }
+
+          if (!medico) {
+            console.warn('No professional record found for user:', user.id)
+            return []
+          }
+
+          let query = supabase
+            .from('hosix_ordenes_medicas')
+            .select('*')
+            .eq('medico_asignado_id', medico.id)
+            .order('fecha_creacion', { ascending: false })
+
+          if (estado) {
+            query = query.eq('estado', estado)
+          }
+
+          const { data, error } = await query
+
+          if (error) {
+            console.error('Error fetching medical orders:', {
+              code: error.code,
+              message: error.message,
+              details: error.details,
+              hint: error.hint
+            })
+            throw error
+          }
+
+          return (data || []) as OrdenMedica[]
+        } catch (err: any) {
+          console.error('Exception in useOrdenesMedicas:', {
+            message: err?.message,
+            code: err?.code,
+            details: err?.details,
+            fullError: err
+          })
+          throw err
         }
-
-        const { data, error } = await query
-        if (error) throw error
-        return (data || []) as OrdenMedica[]
       },
+      retry: (failureCount, error: any) => {
+        // Don't retry on auth or permission errors
+        if (error?.code === 'PGRST301' || error?.code === 'PGRST116') return false
+        return failureCount < 3
+      }
     })
   }
 

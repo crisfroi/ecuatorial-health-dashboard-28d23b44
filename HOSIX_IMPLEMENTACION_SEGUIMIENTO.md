@@ -17,7 +17,7 @@ El sistema HOSIX se implementará en **4 fases principales**:
 |------|-----------|--------|----------|
 | **FASE 1** | Infraestructura Base + Módulos Configuración | ✅ COMPLETADA | 100% |
 | **FASE 2** | Módulos Administrativos (ADM 1.0-12.0) | ✅ COMPLETADA | 95% |
-| **FASE 3** | Módulos Asistenciales (ASIS 1.0-11.0) | ⏳ EN PROGRESO | 9% |
+| **FASE 3** | Módulos Asistenciales (ASIS 1.0-15.0) + Seguridad del Paciente | ⏳ EN PROGRESO | 35% |
 | **FASE 4** | BI, Reportes, Optimización y Producción | ⏳ PENDIENTE | 0% |
 
 ---

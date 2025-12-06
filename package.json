@@ -20,6 +20,8 @@
     "test-migrations:report": "node scripts/test-migrations-advanced.js --report",
     "test-migrations:json": "node scripts/test-migrations-advanced.js --json",
     "test-migrations:apply": "node scripts/test-migrations-advanced.js --apply",
+    "compile-migrations": "node scripts/compile-migrations.js",
+    "compile-migrations:pending": "node scripts/compile-migrations.js --pending",
     "tauri:dev": "npm run build && tauri dev",
     "tauri:build": "npm run build && tauri build"
   },

@@ -152,11 +152,18 @@ export default function AdmisionCentralForm({
         if (formData.servicioId && !data?.some(s => s.id === formData.servicioId)) {
           setFormData(prev => ({ ...prev, servicioId: '' }))
         }
-      } catch (error) {
-        console.error('Error cargando servicios:', error)
+      } catch (error: any) {
+        const errorMsg = error?.message || error?.details || 'Desconocido'
+        console.error('Error cargando servicios:', {
+          message: error?.message,
+          code: error?.code,
+          details: error?.details,
+          hint: error?.hint,
+          fullError: error
+        })
         toast({
-          title: 'Error',
-          description: 'No se pudieron cargar los servicios',
+          title: 'Error cargando servicios',
+          description: `No se pudieron cargar los servicios: ${errorMsg}`,
           variant: 'destructive'
         })
       } finally {
@@ -238,6 +245,47 @@ export default function AdmisionCentralForm({
       if (error) throw error
 
       const episodioId = data?.[0]?.id
+
+      // ASIGNAR MÉDICO EN TURNO SI ES CONSULTA EXTERNA
+      if (formData.tipoIngreso === 'externa') {
+        try {
+          // Obtener médicos en turno del servicio
+          const { data: medicosEnTurno, error: errorMedicos } = await supabase
+            .from('profesionales_sanitarios')
+            .select('id, primer_nombre, primer_apellido')
+            .eq('servicio_id', formData.servicioId)
+            .eq('activo', true)
+            .eq('esta_en_turno', true)
+            .limit(1)
+
+          if (medicosEnTurno && medicosEnTurno.length > 0) {
+            const medico = medicosEnTurno[0]
+
+            // Crear orden médica para el médico asignado
+            const { error: errorOrden } = await supabase
+              .from('hosix_ordenes_medicas')
+              .insert([
+                {
+                  paciente_id: paciente.id,
+                  medico_asignado_id: medico.id,
+                  tipo_orden: 'consulta',
+                  estado: 'pendiente',
+                  prioridad: 'normal',
+                  motivo_consulta: formData.motivoConsulta,
+                  fecha_creacion: new Date().toISOString()
+                }
+              ])
+
+            if (!errorOrden) {
+              console.log(`✅ Médico asignado: ${medico.primer_nombre} ${medico.primer_apellido}`)
+            }
+          } else {
+            console.warn('⚠️ No hay médicos en turno disponibles para este servicio')
+          }
+        } catch (errorAssignment) {
+          console.warn('⚠️ Error al asignar médico (continuando con admisión):', errorAssignment)
+        }
+      }
 
       // Crear entrada en HCE
       await supabase

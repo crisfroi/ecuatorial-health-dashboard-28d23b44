@@ -25,7 +25,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import useHosixMedicos from '@/hooks/useHosixMedicos'
-import useProfesionales from '@/hooks/useProfesionales'
+import { useProfesionales } from '@/hooks/useProfesionales'
 import { Loader2, Clock, AlertCircle, CheckCircle2, Eye } from 'lucide-react'
 import {
   Dialog,
@@ -45,14 +45,14 @@ interface DetalleOrdenProps {
 
 export const WorklistMedicos: React.FC = () => {
   const { useOrdenesMedicas, actualizarEstadoOrdenMutation } = useHosixMedicos()
-  const { data: profesionales } = useProfesionales()
-  const [filtroEstado, setFiltroEstado] = useState<string>('')
-  const [filtroPrioridad, setFiltroPrioridad] = useState<string>('')
+  const { data: profesionales, error: profesionalesError } = useProfesionales()
+  const [filtroEstado, setFiltroEstado] = useState<string>('all')
+  const [filtroPrioridad, setFiltroPrioridad] = useState<string>('all')
   const [busqueda, setBusqueda] = useState<string>('')
   const [ordenSeleccionada, setOrdenSeleccionada] = useState<string | null>(null)
   const [dialogo, setDialogo] = useState(false)
 
-  const { data: ordenes = [], isLoading } = useOrdenesMedicas(filtroEstado)
+  const { data: ordenes = [], isLoading, error: ordenesError } = useOrdenesMedicas(filtroEstado === 'all' ? '' : filtroEstado)
 
   // Filtrar órdenes
   const ordenesFiltradas = ordenes.filter((orden) => {
@@ -61,7 +61,7 @@ export const WorklistMedicos: React.FC = () => {
       orden.motivo_consulta.toLowerCase().includes(busqueda.toLowerCase()) ||
       orden.id.toLowerCase().includes(busqueda.toLowerCase())
 
-    const coincidePrioridad = !filtroPrioridad || orden.prioridad === filtroPrioridad
+    const coincidePrioridad = filtroPrioridad === 'all' || orden.prioridad === filtroPrioridad
 
     return coincideBusqueda && coincidePrioridad
   })
@@ -110,6 +110,21 @@ export const WorklistMedicos: React.FC = () => {
 
   const handleCambiarEstado = (ordenId: string, nuevoEstado: string) => {
     actualizarEstadoOrdenMutation.mutate({ ordenId, nuevoEstado })
+  }
+
+  if (profesionalesError || ordenesError) {
+    const errorMessage = profesionalesError ?
+      `Error al cargar profesionales: ${(profesionalesError as any)?.message || 'Desconocido'}` :
+      `Error al cargar órdenes: ${(ordenesError as any)?.message || 'Desconocido'}`;
+
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <h3 className="font-semibold text-red-800">Error de Carga</h3>
+          <p className="text-sm text-red-700 mt-1">{errorMessage}</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -203,7 +218,7 @@ export const WorklistMedicos: React.FC = () => {
                   <SelectValue placeholder="Todos los estados" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="pendiente">Pendiente</SelectItem>
                   <SelectItem value="en_atención">En atención</SelectItem>
                   <SelectItem value="completada">Completada</SelectItem>
@@ -220,7 +235,7 @@ export const WorklistMedicos: React.FC = () => {
                   <SelectValue placeholder="Todas las prioridades" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   <SelectItem value="baja">Baja</SelectItem>
                   <SelectItem value="normal">Normal</SelectItem>
                   <SelectItem value="alta">Alta</SelectItem>
@@ -236,8 +251,8 @@ export const WorklistMedicos: React.FC = () => {
                 className="w-full h-10"
                 onClick={() => {
                   setBusqueda('')
-                  setFiltroEstado('')
-                  setFiltroPrioridad('')
+                  setFiltroEstado('all')
+                  setFiltroPrioridad('all')
                 }}
               >
                 Limpiar filtros

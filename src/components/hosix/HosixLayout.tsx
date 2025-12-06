@@ -31,4 +31,5 @@ const HosixLayout: React.FC = () => {
   );
 };
 
+export { HosixLayout };
 export default HosixLayout;

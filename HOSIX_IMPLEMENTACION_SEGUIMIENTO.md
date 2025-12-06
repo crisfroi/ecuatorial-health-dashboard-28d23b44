@@ -1309,6 +1309,105 @@ TOTAL:  ███████████████████████░
 
 ---
 
+### 3.1.1 ASIS 1.0 - Módulo de Médicos ✅ (100% COMPLETADA)
+
+**Fecha Implementación**: 6 de Febrero 2025 (Sesión 13)
+**Duración Real**: 1 sesión (8 horas)
+**Estado**: ✅ COMPLETADO
+
+#### ✅ Subtarea 3.1.1.1: Migración SQL con CIE-10/SNOMED CT
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `supabase/migrations/20250206_011_hosix_medicos_asis_1.sql` ✅ (443 líneas)
+- **Tablas Creadas**:
+  - `hosix_diagnosticos_catalogo` - Catálogo de diagnósticos CIE-10/SNOMED CT (10 diagnósticos semilla)
+  - `hosix_ordenes_medicas` - Órdenes médicas (worklist)
+  - `hosix_diagnosticos_pacientes` - Diagnósticos registrados en el paciente
+  - `hosix_consultas_medicas` - Consultas médicas completas
+  - `hosix_diario_clinico_medico` - Diario clínico con notas de evolución
+
+- **Características Implementadas**:
+  - [x] 5 tablas con relaciones completas
+  - [x] Catálogo de diagnósticos con códigos CIE-10 e SNOMED CT
+  - [x] 10 diagnósticos comunes precargados (Hipertensión, Diabetes, Asma, etc.)
+  - [x] RLS habilitado en todas las tablas
+  - [x] Índices de búsqueda full-text en español
+  - [x] Funciones SQL para gestión de diagnósticos
+  - [x] Soporte para severidad y estado de diagnósticos
+
+#### ✅ Subtarea 3.1.1.2: Hook useHosixMedicos
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/hooks/useHosixMedicos.ts` ✅ (425 líneas)
+- **Funcionalidades**:
+  - [x] Queries: Órdenes, diagnósticos, consultas, diario clínico
+  - [x] Mutations: Crear/actualizar consultas, registrar diagnósticos
+  - [x] Búsqueda de diagnósticos por código CIE-10 o SNOMED CT
+  - [x] Integración con React Query
+  - [x] Manejo de errores y notificaciones
+
+#### ✅ Subtarea 3.1.1.3: Componente WorklistMedicos
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/medicos/WorklistMedicos.tsx` ✅ (442 líneas)
+- **Características**:
+  - [x] Worklist de órdenes médicas por estado
+  - [x] Estadísticas KPI (pendientes, en atención, completadas, canceladas)
+  - [x] Filtros por estado, prioridad, búsqueda
+  - [x] Cambio de estado de órdenes
+  - [x] Cálculo de tiempo de espera
+  - [x] Indicadores visuales por prioridad
+
+#### ✅ Subtarea 3.1.1.4: Componente ConsultaMedicaForm
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/medicos/ConsultaMedicaForm.tsx` ✅ (557 líneas)
+- **Características**:
+  - [x] Búsqueda y selección de diagnósticos (CIE-10/SNOMED CT)
+  - [x] Formulario completo: antecedentes, HEA, examen físico, impresión
+  - [x] Selección múltiple de diagnósticos con tipo (principal, secundario, etc.)
+  - [x] Plan de manejo con opciones de hospitalización/interconsulta/seguimiento
+  - [x] Integración con CPOE (prescripciones vinculadas)
+  - [x] Registro automático en diario clínico
+
+#### ✅ Subtarea 3.1.1.5: Componente HistorialMedico
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/medicos/HistorialMedico.tsx` ✅ (377 líneas)
+- **Características**:
+  - [x] Tabs: Consultas, Diagnósticos, Diario Clínico
+  - [x] Historial de consultas con búsqueda
+  - [x] Diagnósticos activos y resueltos
+  - [x] Cronología de eventos clínicos
+  - [x] Visualización con códigos CIE-10
+
+#### ✅ Subtarea 3.1.1.6: Componente DiarioClinicoMedico
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/medicos/DiarioClinicoMedico.tsx` ✅ (298 líneas)
+- **Características**:
+  - [x] Nueva entrada con tipos (evolución, nota_clínica, revisión, conclusión)
+  - [x] Registro de signos vitales rápido
+  - [x] Historial con búsqueda y filtros
+  - [x] Auditoría de cambios (firma)
+
+#### ✅ Subtarea 3.1.1.7: Página Principal y Rutas
+- **Estado**: ✅ COMPLETADO
+- **Archivos**:
+  - `src/pages/Hosix/Medicos.tsx` ✅ (202 líneas)
+  - `src/App.tsx` ✅ (ruta `/hosix/medicos` agregada)
+  - `src/components/hosix/HosixSidebar.tsx` ✅ (menú "Médicos (ASIS 1.0)" agregado)
+
+#### Estadísticas del Módulo:
+- **Migraciones SQL**: 1 (443 líneas, 5 tablas, 10 diagnósticos)
+- **Hooks React**: 1 (425 líneas)
+- **Componentes React**: 4 (1,674 líneas totales)
+- **Páginas**: 1 (202 líneas)
+- **Total Líneas de Código ASIS 1.0**: ~2,750 líneas
+- **Estándares Soportados**: CIE-10, ICD-10, SNOMED CT
+
+#### Integración con Otros Módulos:
+- ✅ CPOE: Prescripciones vinculadas automáticamente
+- ✅ CDS Engine: Validaciones en tiempo real
+- ✅ Enfermería: Órdenes distribuidas automáticamente
+- ✅ Admisión Central: Órdenes iniciales del flujo de pacientes
+
+---
+
 ### 3.2 ASIS 6.0 - Triage Manchester (Escala 5 Niveles) ✅ (100% COMPLETADA)
 
 **Fecha Implementación**: Sesión 12 (2025-02-05)

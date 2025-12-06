@@ -1309,6 +1309,128 @@ TOTAL:  ███████████████████████░
 
 ---
 
+### 3.2 ASIS 6.0 - Triage Manchester (Escala 5 Niveles) ✅ (100% COMPLETADA)
+
+**Fecha Implementación**: Sesión 12 (2025-02-05)
+**Estado**: ✅ COMPLETADO
+
+#### ✅ Subtarea 3.2.1: Componente TriageManchester.tsx
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/urgencias/TriageManchester.tsx` ✅ (365 líneas)
+- **Niveles Implementados**:
+  - 🔴 **Nivel 1 - EMERGENCIA** (0 min) - Paro, trauma grave, shock
+  - 🟠 **Nivel 2 - MUY URGENTE** (10 min) - Dolor torácico, dificultad respiratoria
+  - 🟡 **Nivel 3 - URGENTE** (60 min) - Fiebre alta, trauma moderado
+  - 🟢 **Nivel 4 - NORMAL** (120 min) - Dolor leve-moderado, crónico agudizado
+  - 🔵 **Nivel 5 - NO URGENTE** (240 min) - Consulta administrativa, seguimiento
+
+- **Características**:
+  - [x] Selección visual con 5 cards coloreadas
+  - [x] Ejemplos expandibles por nivel
+  - [x] Motivo de consulta obligatorio
+  - [x] Observaciones adicionales
+  - [x] Guardar triage en BD con evaluador
+  - [x] Actualizar episodio con clasificación
+  - [x] Guía rápida de colores
+  - [x] Información de tiempo máximo de espera
+
+---
+
+### 3.3 ASIS 7.0 - CPOE (Computerized Physician Order Entry) ✅ (100% COMPLETADA)
+
+**Fecha Implementación**: Sesión 12 (2025-02-05)
+**Estado**: ✅ COMPLETADO
+
+#### ✅ Subtarea 3.3.1: Edge Function CDS Engine
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `supabase/functions/cds-engine/index.ts` ✅ (314 líneas)
+- **Validaciones Implementadas**:
+  - [x] Verificación de alergias conocidas (bloquea CRÍTICAS)
+  - [x] Detección de interacciones medicamentosas
+  - [x] Validación de dosis pediátrica automática
+  - [x] Ajuste por función renal (normal/leve/moderada/grave)
+  - [x] Detección de duplicidad de medicamentos
+  - [x] Retorno de alertas con severidad (crítica/advertencia/info)
+  - [x] Permitir/bloquear prescripción según alertas
+
+#### ✅ Subtarea 3.3.2: Componente CPOEPrescripcionForm.tsx
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/prescripcion/CPOEPrescripcionForm.tsx` ✅ (642 líneas)
+- **Características**:
+  - [x] Formulario de prescripción completo (medicamento, dosis, vía, frecuencia)
+  - [x] Integración en tiempo real con CDS Engine
+  - [x] Visualización de alertas en 3 colores (crítica/advertencia/info)
+  - [x] Permitir ignorar advertencias con justificación (auditoría)
+  - [x] Bloquer prescripción si hay alertas críticas sin justificación
+  - [x] Medicamentos actuales del paciente visibles
+  - [x] Guardado con registro de alertas ignoradas
+  - [x] Estados de carga y manejo de errores
+
+#### ✅ Subtarea 3.3.3: Hook useCDSEngine.ts
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/hooks/useCDSEngine.ts` ✅ (238 líneas)
+- **Funcionalidades**:
+  - [x] `evaluarPrescripcion(prescription)` - Mutation async
+  - [x] `ignorarAlerta(alerta)` - Registra decisión clínica
+  - [x] `obtenerMedicamentosActuales(pacienteId)` - Carga medicamentos
+  - [x] `obtenerDosisPediatrica()` - Calcula dosis recomendada
+  - [x] Utilidades de agrupación y colorización de alertas
+  - [x] Estados de loading y error
+  - [x] Integración con toast notifications
+
+#### ✅ Subtarea 3.3.4: Componentes Secundarios
+- **Archivos Creados**:
+  - `src/pages/Hosix/Prescripcion.tsx` (93 líneas) - Página principal
+  - `src/components/hosix/prescripcion/PrescripcionesListado.tsx` (161 líneas) - Órdenes pendientes
+  - `src/components/hosix/prescripcion/HistoricoPrescripciones.tsx` (214 líneas) - Histórico
+
+#### ✅ Rutas y Menú
+- [x] Ruta `/hosix/prescripcion` agregada en `App.tsx`
+- [x] Menú "Prescripción (CPOE)" agregado en `HosixSidebar.tsx`
+- [x] Icono Pill para consistencia visual
+
+---
+
+### 3.4 ADM 11.0 - Admisión Central (Trazabilidad) ✅ (100% COMPLETADA)
+
+**Fecha Implementación**: Sesión 12 (2025-02-05)
+**Estado**: ✅ COMPLETADO
+
+#### ✅ Subtarea 3.4.1: Componente AdmisionCentralForm.tsx
+- **Estado**: ✅ COMPLETADO
+- **Archivo**: `src/components/hosix/admision/AdmisionCentralForm.tsx` ✅ (512 líneas)
+- **Características**:
+  - [x] Búsqueda integrada de pacientes (PPI, nombre)
+  - [x] Selección de 3 tipos de ingreso (Urgencias/Externa/Hospitalización)
+  - [x] Carga dinámica de servicios según tipo
+  - [x] Motivo de consulta obligatorio
+  - [x] Creación de episodios según tipo
+  - [x] Generación automática de entrada en HCE
+  - [x] Validaciones completas
+
+#### ✅ Subtarea 3.4.2: Componentes Secundarios
+- **Archivos Creados**:
+  - `src/components/hosix/admision/AdmisionesListado.tsx` (138 líneas) - Listado activo
+  - `src/components/hosix/admision/AdmisionesEstadisticas.tsx` (150 líneas) - KPIs y gráficos
+  - `src/pages/Hosix/AdmisionCentral.tsx` (61 líneas) - Página integrada
+
+#### ✅ Rutas y Menú
+- [x] Ruta `/hosix/admision` integrada
+- [x] Menú sidebar "Admisión Central" agregado
+- [x] Icono de entrada para consistencia visual
+
+---
+
+### 3.5 Estadísticas Módulo de Enfermería Actualizada
+
+- **Migraciones SQL**: 1 (607 líneas, 7 tablas)
+- **Hooks React**: 1 (560 líneas)
+- **Componentes React**: 4 (1,585 líneas totales)
+- **Páginas**: 1 (120 líneas)
+- **Total Líneas de Código FASE 3**: ~4,800 líneas
+
+---
+
 ## 📚 GUÍA PARA DESARROLLADORES
 
 ### ¿Qué Leer para Entender el Proyecto?

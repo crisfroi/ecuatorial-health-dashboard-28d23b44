@@ -1153,7 +1153,7 @@ TOTAL:  ███████████████████████░
 
 | Módulo | Descripción | Estado | Progreso |
 |--------|-----------|--------|----------|
-| ASIS 1.0 | Médicos (Worklist, Consulta, Prescripción) | ⏳ PENDIENTE | 0% |
+| ASIS 1.0 | Médicos (Worklist, Consulta, Historial, Diario) | ✅ 100% | 4/4 componentes + SQL + Hook |
 | ASIS 2.0 | Enfermería (Worklist, Constantes, Kardex, Planes) | ✅ 100% | 4/4 componentes |
 | ASIS 3.0 | Quirófanos | ⏳ PENDIENTE | 0% |
 | ASIS 4.0 | Obstetricia | ⏳ PENDIENTE | 0% |
@@ -1167,7 +1167,7 @@ TOTAL:  ███████████████████████░
 | **ADM 11.0** | **Admisión Central (Trazabilidad)** | **✅ 100%** | **3/3 componentes** |
 | **CDS** | **Clinical Decision Support Engine** | **✅ 100%** | **1 Edge Function + Hook** |
 
-**Total FASE 3**: 5/13 módulos completados = **38% módulos** | **45% progreso total**
+**Total FASE 3**: 6/13 módulos completados = **46% módulos** | **58% progreso total**
 
 ---
 

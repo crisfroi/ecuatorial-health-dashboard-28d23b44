@@ -4,15 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
-import { HosixLayout } from '@/components/hosix/HosixLayout'
 
 export default function ObstetriciaPage() {
   const { gestaciones, controles, partos } = useHosixObstetricia()
   const [activeTab, setActiveTab] = useState('dashboard')
 
   return (
-    <HosixLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Obstetricia (ASIS 4.0)</h1>
           <Button>
@@ -147,6 +145,5 @@ export default function ObstetriciaPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </HosixLayout>
   )
 }

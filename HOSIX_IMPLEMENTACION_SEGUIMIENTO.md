@@ -634,7 +634,7 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ---
 
-### 2.12 ADM 12.0 - Compras/Licitaciones ⏳ (0% - EN DESARROLLO)
+### 2.12 ADM 12.0 - Compras/Licitaciones ✅ (100% COMPLETADA - SESIÓN 15)
 
 #### ✅ Subtarea 2.12.1: Migración SQL Completada
 - **Estado**: ✅ COMPLETADO (22 Enero 2025)
@@ -658,7 +658,7 @@ El sistema HOSIX se implementará en **4 fases principales**:
 - **Estado**: ✅ COMPLETADO (22 Enero 2025)
 - **Archivos Creados**:
   - `src/hooks/useHosixCompras.ts` ✅ (346 líneas) - Hook completo de gestión
-  - `src/pages/Hosix/Compras.tsx` ✅ (251 líneas) - Página dashboard integrada
+  - `src/pages/Hosix/Compras.tsx` ✅ (239 líneas) - Página dashboard integrada CON 5 TABS
   - Actualizado: `src/App.tsx` - Ruta `/hosix/compras` agregada
   - Actualizado: `src/components/hosix/HosixSidebar.tsx` - Menú "Compras" con icono
 
@@ -666,18 +666,27 @@ El sistema HOSIX se implementará en **4 fases principales**:
   - [x] Dashboard con KPIs (presupuesto, utilizado, disponible, adjudicaciones)
   - [x] Gráficos de licitaciones por estado (Recharts)
   - [x] Gráficos de presupuestos y disponibilidad
-  - [x] Tabs para Dashboard, Presupuestos, Licitaciones, Adjudicaciones
+  - [x] Tabs para Dashboard, Presupuestos, Licitaciones, Ofertas, Adjudicaciones
   - [x] Hook useHosixCompras con mutations CRUD
   - [x] Gestión de presupuestos con cálculo de disponibilidad
   - [x] Gestión de licitaciones, ofertas y adjudicaciones
   - [x] RLS policies integradas en backend
 
-#### ⏳ Subtarea 2.12.3: Componentes Managers (PENDIENTE)
-- Componentes detallados a crear (para sesiones futuras):
-  - `PresupuestosManager.tsx` - CRUD con validación de límites
-  - `LicitacionesManager.tsx` - Creación y seguimiento
-  - `OfertasManager.tsx` - Evaluación con puntuaciones
-  - `AdjudicacionesManager.tsx` - Registro y monitoreo
+#### ✅ Subtarea 2.12.3: Componentes Managers (COMPLETADO - SESIÓN 15)
+- **Estado**: ✅ COMPLETADO (6 Febrero 2025)
+- **Componentes Creados**:
+  - `PresupuestosManager.tsx` ✅ (256 líneas) - CRUD con validación de límites, gráficos de utilización
+  - `LicitacionesManager.tsx` ✅ (275 líneas) - Creación y seguimiento por estado
+  - `OfertasManager.tsx` ✅ (295 líneas) - Evaluación con puntuaciones (técnica + precio)
+  - `AdjudicacionesManager.tsx` ✅ (299 líneas) - Registro y monitoreo de adjudicaciones
+
+- **Características de Componentes**:
+  - [x] PresupuestosManager: Filtro por año fiscal, KPIs, gráfico de utilización, CRUD
+  - [x] LicitacionesManager: Estados dinámicos, filtros, gráficos de estado, fechas de apertura/cierre
+  - [x] OfertasManager: Puntuación combinada (60% técnica + 40% precio), ranking automático
+  - [x] AdjudicacionesManager: Estados vigente/ejecución/completada, supervisor asignado
+
+- **Total líneas ADM 12.0**: ~1,364 líneas de código
 
 ---
 

@@ -55,10 +55,11 @@ export default function HistoricoPrescripciones({
         if (error) throw error
         setPrescripciones(data || [])
       } catch (error) {
-        console.error('Error cargando histórico:', error)
+        const errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
+        console.error('Error cargando histórico:', errorMessage, error)
         toast({
           title: 'Error',
-          description: 'No se pudo cargar el histórico',
+          description: errorMessage || 'No se pudo cargar el histórico',
           variant: 'destructive'
         })
       } finally {

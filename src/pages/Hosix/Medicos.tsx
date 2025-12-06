@@ -4,6 +4,7 @@ import WorklistMedicos from '@/components/hosix/medicos/WorklistMedicos'
 import ConsultaMedicaForm from '@/components/hosix/medicos/ConsultaMedicaForm'
 import HistorialMedico from '@/components/hosix/medicos/HistorialMedico'
 import DiarioClinicoMedico from '@/components/hosix/medicos/DiarioClinicoMedico'
+import ListaEsperaMedicos from '@/components/hosix/medicos/ListaEsperaMedicos'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Stethoscope } from 'lucide-react'
 
@@ -47,8 +48,9 @@ export const MedicosPage: React.FC = () => {
 
         {/* Tabs Principales */}
         <Tabs defaultValue="worklist" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="worklist">Worklist</TabsTrigger>
+            <TabsTrigger value="espera">Lista Espera</TabsTrigger>
             <TabsTrigger value="consulta">Nueva Consulta</TabsTrigger>
             <TabsTrigger value="historial">Historial</TabsTrigger>
             <TabsTrigger value="diario">Diario Clínico</TabsTrigger>
@@ -59,7 +61,12 @@ export const MedicosPage: React.FC = () => {
             <WorklistMedicos />
           </TabsContent>
 
-          {/* TAB 2: NUEVA CONSULTA */}
+          {/* TAB 2: LISTA DE ESPERA */}
+          <TabsContent value="espera" className="space-y-4 mt-6">
+            <ListaEsperaMedicos />
+          </TabsContent>
+
+          {/* TAB 4: NUEVA CONSULTA */}
           <TabsContent value="consulta" className="space-y-4 mt-6">
             <Card>
               <CardHeader>
@@ -104,7 +111,7 @@ export const MedicosPage: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* TAB 3: HISTORIAL */}
+          {/* TAB 5: HISTORIAL */}
           <TabsContent value="historial" className="space-y-4 mt-6">
             <Card>
               <CardHeader>
@@ -136,7 +143,7 @@ export const MedicosPage: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* TAB 4: DIARIO CLÍNICO */}
+          {/* TAB 6: DIARIO CLÍNICO */}
           <TabsContent value="diario" className="space-y-4 mt-6">
             <Card>
               <CardHeader>

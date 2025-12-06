@@ -25,7 +25,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import useHosixMedicos from '@/hooks/useHosixMedicos'
-import useProfesionales from '@/hooks/useProfesionales'
+import { useProfesionales } from '@/hooks/useProfesionales'
 import { Loader2, Clock, AlertCircle, CheckCircle2, Eye } from 'lucide-react'
 import {
   Dialog,

@@ -1,268 +1,369 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
-import { toast } from 'sonner'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-interface Quirofano {
-  id: string
-  codigo: string
-  nombre: string
-  piso: number
-  area: string
-  capacidad_simultanea: number
-  especialidades: string[]
-  equipamiento: Record<string, any>
-  estado: string
-  created_at: string
-  updated_at: string
+export interface BloqueLista {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  numero_salas: number;
+  ubicacion: string | null;
+  responsable_id: string | null;
+  horario_inicio: string;
+  horario_fin: string;
+  dias_operacion: string;
+  activo: boolean;
 }
 
-interface ProgramacionQuirugia {
-  id: string
-  quirofano_id: string
-  paciente_id: string
-  cirugia_id?: string
-  tipo_cirugia: string
-  especialidad: string
-  descripcion?: string
-  diagnostico_preoperatorio?: string
-  cirujano_principal_id: string
-  anesteologo_id?: string
-  instrumentista_id?: string
-  circulante_id?: string
-  fecha_programada: string
-  duracion_estimada_minutos?: number
-  tipo_anestesia?: string
-  estado: string
-  prioridad: string
-  observaciones_preoperatorias?: string
-  created_at: string
-  updated_at: string
+export interface SalaQuirofano {
+  id: string;
+  bloque_id: string;
+  numero_sala: number;
+  nombre: string;
+  tipo_procedimiento: string | null;
+  capacidad_personal: number;
+  tiene_anestesia: boolean;
+  tiene_monitor_cardiaco: boolean;
+  tiene_aspiracion: boolean;
+  tiene_rayos_x: boolean;
+  tiene_laparoscopia: boolean;
+  estado: string;
+  ultima_desinfeccion: string | null;
+  proxima_mantencion: string | null;
+  activo: boolean;
 }
 
-interface HistorialQuirugia {
-  id: string
-  programacion_id: string
-  paciente_id: string
-  quirofano_id: string
-  fecha_hora_inicio: string
-  fecha_hora_fin?: string
-  duracion_real_minutos?: number
-  complicaciones_intraoperatorias?: string
-  hallazgos_quirurgicos?: string
-  producto_extraido?: Record<string, any>
-  estado_salida_quirofano?: string
-  diagnostico_postoperatorio?: string
-  reporte_quirurgico?: string
-  tiempo_recuperacion_estimado?: number
-  created_at: string
+export interface Programacion {
+  id: string;
+  sala_id: string;
+  paciente_id: string;
+  tipo_procedimiento: string;
+  descripcion_procedimiento: string | null;
+  diagnostico_principal: string | null;
+  cirujano_principal_id: string | null;
+  anestesiologo_id: string | null;
+  instrumentista_id: string | null;
+  circulante_id: string | null;
+  fecha_programada: string;
+  hora_entrada: string;
+  duracion_estimada: number | null;
+  estado: string;
+  observaciones: string | null;
+  prioridad: string;
+  created_at: string;
 }
 
-interface Conteo {
-  id: string
-  historial_id: string
-  conteo_gasas_esperadas: number
-  conteo_gasas_reales: number
-  conteo_gasas_ok: boolean
-  conteo_agujas_esperadas: number
-  conteo_agujas_reales: number
-  conteo_agujas_ok: boolean
-  conteo_instrumental_esperado: number
-  conteo_instrumental_real: number
-  conteo_instrumental_ok: boolean
-  observaciones?: string
-  responsable_id: string
-  fecha_conteo: string
-  created_at: string
+export interface DiarioQuirurgico {
+  id: string;
+  programacion_id: string;
+  sala_id: string;
+  paciente_id: string;
+  hora_inicio_real: string | null;
+  hora_fin_real: string | null;
+  duracion_real: number | null;
+  procedimiento_realizado: string | null;
+  hallazgos: string | null;
+  complicaciones: string | null;
+  evento_adverso: boolean;
+  descripcion_evento: string | null;
+  muestra_enviada: boolean;
+  observaciones_cirugia: string | null;
+  firma_cirujano: boolean;
+  created_at: string;
 }
 
-export const useHosixQuirofanos = () => {
-  const queryClient = useQueryClient()
+export function useHosixQuirofanos() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const quirofanosQuery = useQuery({
-    queryKey: ['hosix_quirofanos'],
-    queryFn: async () => {
+  // Obtener bloques quirúrgicos
+  const useBloquesQuery = () => {
+    return useQuery({
+      queryKey: ['bloques-quirofanos'],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from('hosix_quirofanos_bloques')
+          .select('*')
+          .eq('activo', true)
+          .order('nombre');
+        
+        if (error) throw error;
+        return (data || []) as BloqueLista[];
+      },
+    });
+  };
+
+  // Obtener salas por bloque
+  const useSalasQuery = (bloqueId?: string) => {
+    return useQuery({
+      queryKey: ['salas-quirofano', bloqueId],
+      queryFn: async () => {
+        let query = supabase
+          .from('hosix_quirofanos_salas')
+          .select('*')
+          .eq('activo', true);
+        
+        if (bloqueId) {
+          query = query.eq('bloque_id', bloqueId);
+        }
+        
+        const { data, error } = await query.order('numero_sala');
+        if (error) throw error;
+        return (data || []) as SalaQuirofano[];
+      },
+      enabled: !bloqueId || bloqueId !== undefined,
+    });
+  };
+
+  // Obtener programaciones próximas
+  const useProgramacionesQuery = (desde?: string, hasta?: string) => {
+    return useQuery({
+      queryKey: ['programaciones-quirofano', desde, hasta],
+      queryFn: async () => {
+        let query = supabase
+          .from('hosix_quirofanos_programaciones')
+          .select(`
+            *,
+            sala:hosix_quirofanos_salas(nombre, bloque_id),
+            paciente:hosix_pacientes(nombre_completo, numero_documento),
+            cirujano:profesionales_sanitarios!cirujano_principal_id(nombre_completo)
+          `)
+          .neq('estado', 'cancelada');
+        
+        if (desde) {
+          query = query.gte('fecha_programada', desde);
+        }
+        if (hasta) {
+          query = query.lte('fecha_programada', hasta);
+        }
+        
+        const { data, error } = await query
+          .order('fecha_programada', { ascending: true })
+          .order('hora_entrada', { ascending: true });
+        
+        if (error) throw error;
+        return data || [];
+      },
+    });
+  };
+
+  // Obtener diario quirúrgico (procedimientos realizados)
+  const useDiarioQuery = (pacienteId?: string, salId?: string) => {
+    return useQuery({
+      queryKey: ['diario-quirofano', pacienteId, salId],
+      queryFn: async () => {
+        let query = supabase
+          .from('hosix_quirofanos_diario')
+          .select(`
+            *,
+            programacion:hosix_quirofanos_programaciones(tipo_procedimiento),
+            sala:hosix_quirofanos_salas(nombre),
+            paciente:hosix_pacientes(nombre_completo)
+          `);
+        
+        if (pacienteId) {
+          query = query.eq('paciente_id', pacienteId);
+        }
+        if (salId) {
+          query = query.eq('sala_id', salId);
+        }
+        
+        const { data, error } = await query
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return (data || []) as DiarioQuirurgico[];
+      },
+      enabled: !pacienteId || !salId,
+    });
+  };
+
+  // Crear bloque quirúrgico
+  const crearBloqueMutation = useMutation({
+    mutationFn: async (bloque: Omit<BloqueLista, 'id'>) => {
       const { data, error } = await supabase
-        .from('hosix_quirofanos')
-        .select('*')
-        .order('piso, codigo')
-
-      if (error) throw error
-      return (data as Quirofano[]) || []
-    }
-  })
-
-  const programacionesQuery = useQuery({
-    queryKey: ['hosix_quirofanos_programacion'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('hosix_quirofanos_programacion')
-        .select(`
-          *,
-          quirofano:hosix_quirofanos(codigo, nombre),
-          paciente:hosix_pacientes(id, primer_nombre, primer_apellido),
-          cirujano:profesionales_sanitarios!cirujano_principal_id(nombres, apellidos)
-        `)
-        .order('fecha_programada', { ascending: false })
-
-      if (error) throw error
-      return (data as any[]) || []
-    }
-  })
-
-  const historialesQuery = useQuery({
-    queryKey: ['hosix_quirofanos_historiales'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('hosix_quirofanos_historiales')
-        .select(`
-          *,
-          quirofano:hosix_quirofanos(codigo, nombre),
-          paciente:hosix_pacientes(id, primer_nombre, primer_apellido)
-        `)
-        .order('fecha_hora_inicio', { ascending: false })
-
-      if (error) throw error
-      return (data as any[]) || []
-    }
-  })
-
-  const crearQuirofanoMutation = useMutation({
-    mutationFn: async (quirofano: Partial<Quirofano>) => {
-      const { data, error } = await supabase
-        .from('hosix_quirofanos')
-        .insert([quirofano])
+        .from('hosix_quirofanos_bloques')
+        .insert([bloque])
         .select()
-
-      if (error) throw error
-      return data[0]
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hosix_quirofanos'] })
-      toast.success('Quirófano creado exitosamente')
+      queryClient.invalidateQueries({ queryKey: ['bloques-quirofanos'] });
+      toast({
+        title: '✓ Bloque creado',
+        description: 'El bloque quirúrgico se creó correctamente',
+      });
     },
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`)
-    }
-  })
-
-  const actualizarQuirofanoMutation = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Quirofano> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('hosix_quirofanos')
-        .update(updates)
-        .eq('id', id)
-        .select()
-
-      if (error) throw error
-      return data[0]
+    onError: (error: any) => {
+      toast({
+        title: '✗ Error',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hosix_quirofanos'] })
-      toast.success('Quirófano actualizado')
-    },
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`)
-    }
-  })
+  });
 
+  // Crear programación
   const crearProgramacionMutation = useMutation({
-    mutationFn: async (programacion: Partial<ProgramacionQuirugia>) => {
+    mutationFn: async (prog: Omit<Programacion, 'id' | 'created_at'>) => {
       const { data, error } = await supabase
-        .from('hosix_quirofanos_programacion')
-        .insert([programacion])
+        .from('hosix_quirofanos_programaciones')
+        .insert([prog])
         .select()
-
-      if (error) throw error
-      return data[0]
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hosix_quirofanos_programacion'] })
-      toast.success('Cirugía programada exitosamente')
+      queryClient.invalidateQueries({ queryKey: ['programaciones-quirofano'] });
+      toast({
+        title: '✓ Programación creada',
+        description: 'La cirugía se programó correctamente',
+      });
     },
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`)
-    }
-  })
+    onError: (error: any) => {
+      toast({
+        title: '✗ Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
 
-  const cancelarProgramacionMutation = useMutation({
-    mutationFn: async (id: string) => {
+  // Actualizar estado de programación
+  const actualizarEstadoProgramacionMutation = useMutation({
+    mutationFn: async ({ id, estado }: { id: string; estado: string }) => {
       const { data, error } = await supabase
-        .from('hosix_quirofanos_programacion')
-        .update({ estado: 'cancelada' })
+        .from('hosix_quirofanos_programaciones')
+        .update({ estado, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
-
-      if (error) throw error
-      return data[0]
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hosix_quirofanos_programacion'] })
-      toast.success('Programación cancelada')
+    onSuccess: (_, { estado }) => {
+      queryClient.invalidateQueries({ queryKey: ['programaciones-quirofano'] });
+      toast({
+        title: '✓ Estado actualizado',
+        description: `Programación marcada como ${estado}`,
+      });
     },
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`)
-    }
-  })
+    onError: (error: any) => {
+      toast({
+        title: '✗ Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
 
-  const registrarHistorialMutation = useMutation({
-    mutationFn: async (historial: Partial<HistorialQuirugia>) => {
+  // Registrar diario quirúrgico
+  const registrarDiarioMutation = useMutation({
+    mutationFn: async (diario: Omit<DiarioQuirurgico, 'id' | 'created_at'>) => {
       const { data, error } = await supabase
-        .from('hosix_quirofanos_historiales')
-        .insert([historial])
+        .from('hosix_quirofanos_diario')
+        .insert([diario])
         .select()
-
-      if (error) throw error
-
-      if (historial.programacion_id) {
-        await supabase
-          .from('hosix_quirofanos_programacion')
-          .update({ estado: 'completada' })
-          .eq('id', historial.programacion_id)
-      }
-
-      return data[0]
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hosix_quirofanos_historiales'] })
-      queryClient.invalidateQueries({ queryKey: ['hosix_quirofanos_programacion'] })
-      toast.success('Historial quirúrgico registrado')
+      queryClient.invalidateQueries({ queryKey: ['diario-quirofano'] });
+      toast({
+        title: '✓ Diario quirúrgico registrado',
+        description: 'El procedimiento se registró correctamente',
+      });
     },
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`)
-    }
-  })
+    onError: (error: any) => {
+      toast({
+        title: '✗ Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
 
-  const registrarConteoMutation = useMutation({
-    mutationFn: async (conteo: Partial<Conteo>) => {
+  // Actualizar sala (estado, desinfección)
+  const actualizarSalaMutation = useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
       const { data, error } = await supabase
-        .from('hosix_quirofanos_conteos')
-        .insert([conteo])
+        .from('hosix_quirofanos_salas')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
         .select()
-
-      if (error) throw error
-      return data[0]
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['hosix_quirofanos_historiales'] })
-      toast.success('Conteo registrado')
+      queryClient.invalidateQueries({ queryKey: ['salas-quirofano'] });
+      toast({
+        title: '✓ Sala actualizada',
+      });
     },
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`)
-    }
-  })
+    onError: (error: any) => {
+      toast({
+        title: '✗ Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Cancelar programación
+  const cancelarProgramacionMutation = useMutation({
+    mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
+      const { data, error } = await supabase
+        .from('hosix_quirofanos_programaciones')
+        .update({
+          estado: 'cancelada',
+          motivo_cancelacion: motivo,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['programaciones-quirofano'] });
+      toast({
+        title: '✓ Programación cancelada',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: '✗ Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
 
   return {
-    quirofanos: quirofanosQuery.data || [],
-    quirofanosLoading: quirofanosQuery.isLoading,
-    programaciones: programacionesQuery.data || [],
-    programacionesLoading: programacionesQuery.isLoading,
-    historiales: historialesQuery.data || [],
-    historialesLoading: historialesQuery.isLoading,
-    crearQuirofano: crearQuirofanoMutation.mutate,
-    actualizarQuirofano: actualizarQuirofanoMutation.mutate,
-    crearProgramacion: crearProgramacionMutation.mutate,
-    cancelarProgramacion: cancelarProgramacionMutation.mutate,
-    registrarHistorial: registrarHistorialMutation.mutate,
-    registrarConteo: registrarConteoMutation.mutate
-  }
+    // Queries
+    useBloquesQuery,
+    useSalasQuery,
+    useProgramacionesQuery,
+    useDiarioQuery,
+    
+    // Mutations
+    crearBloqueMutation,
+    crearProgramacionMutation,
+    actualizarEstadoProgramacionMutation,
+    registrarDiarioMutation,
+    actualizarSalaMutation,
+    cancelarProgramacionMutation,
+  };
 }

@@ -1,10 +1,10 @@
 # HOSIX - Sistema de Gestión Hospitalaria Nacional
 ## Plan de Implementación y Seguimiento de Progreso
 
-> **Versión**: 5.0
+> **Versión**: 5.1
 > **Fecha Inicio**: 2025-01-15
-> **Última Actualización**: 2025-02-06 (Sesión 13 - FASE 3 COMPLETADA 100%)
-> **Estado General**: ✅ FASE 1 COMPLETADA | ✅ FASE 2 COMPLETADA (95%) | ✅ FASE 3 COMPLETADA (100%) | ⏳ FASE 4 PENDIENTE
+> **Última Actualización**: 2025-02-06 (Sesión 14 - FIX RECURSIÓN + MEJORAS)
+> **Estado General**: ✅ FASE 1 COMPLETADA | ✅ FASE 2 COMPLETADA (95%) | ✅ FASE 3 COMPLETADA (100% Operacional) | ⏳ FASE 4 PENDIENTE
 > **Proyecto**: Dashboard de Gestión Hospitalaria - GEPROSTEC
 
 ---
@@ -1527,6 +1527,109 @@ TOTAL:  ███████████████████████░
 - **Componentes React**: 4 (1,585 líneas totales)
 - **Páginas**: 1 (120 líneas)
 - **Total Líneas de Código FASE 3**: ~4,800 líneas
+
+---
+
+## 🔧 CORRECCIONES EN SESIÓN 14 (FIX RECURSIÓN DASHBOARDS + MEJORAS DE SERVICIOS)
+
+### Resumen Sesión 14:
+- **Fecha**: 2025-02-06
+- **Duración Estimada**: ~1.5 horas
+- **Tareas Completadas**:
+  1. ✅ Diagnosticado problema de recursión en dashboards anidados
+  2. ✅ Eliminado anidamiento innecesario de HosixLayout
+  3. ✅ Corregido error de carga de servicios (tabla hosix_servicios)
+  4. ✅ Actualización de logs de error mejorada en múltiples componentes
+  5. ✅ Actualización documento de seguimiento
+
+### Problemas Identificados y Solucionados:
+
+#### 1. **Recursión de Dashboards** ❌ → ✅
+**Problema**: Las páginas dentro de `/hosix/*` estaban usando `<HosixLayout>` nuevamente, creando un anidamiento infinito que mostraba "bucle espejo" en la UI.
+
+**Causa Raíz**:
+- La ruta en `App.tsx` ya envolvía con `<HosixLayout>`
+- Las páginas importaban y usaban `<HosixLayout>` nuevamente
+- Esto causaba: HosixLayout (header + sidebar) → Outlet → HosixLayout (header + sidebar nuevamente)
+
+**Solución Aplicada**:
+- ✅ `src/pages/Hosix/Interconsultas.tsx` - Removido `<HosixLayout>`
+- ✅ `src/pages/Hosix/Farmacia.tsx` - Removido `<HosixLayout>`
+- ✅ `src/pages/Hosix/Imagenologia.tsx` - Removido `<HosixLayout>`
+- ✅ `src/pages/Hosix/Laboratorio.tsx` - Removido `<HosixLayout>`
+
+**Cambios**:
+```jsx
+// ANTES (Incorrecto - causaba recursión)
+<HosixLayout>
+  <div className="space-y-6">
+    {/* contenido */}
+  </div>
+</HosixLayout>
+
+// DESPUÉS (Correcto - solo contenido)
+<div className="space-y-6">
+  {/* contenido */}
+</div>
+```
+
+#### 2. **Error Cargando Servicios** ❌ → ✅
+**Problema**: `Error cargando servicios: [object Object]` en AdmisionCentralForm
+
+**Causa Raíz**:
+- La tabla `hosix_servicios` existía pero faltaban 3 columnas de filtrado
+- El componente intentaba filtrar por `atiende_urgencias`, `atiende_hospitalizacion`, `atiende_externa`
+- Estas columnas no existían en la tabla
+
+**Solución Aplicada**:
+- ✅ Creada migración `supabase/migrations/20250122_012_hosix_servicios_tipos_ingreso.sql`
+- ✅ Agregadas 3 columnas BOOLEAN a `hosix_servicios`:
+  - `atiende_urgencias`
+  - `atiende_externa`
+  - `atiende_hospitalizacion`
+- ✅ Creado índice para optimizar filtrado
+- ✅ Poblados valores por defecto basado en `tipo_servicio` existente
+
+#### 3. **Mejora de Logs de Error** ❌ → ✅
+**Problema**: Múltiples componentes mostraban `[object Object]` en vez de mensajes de error reales
+
+**Componentes Corregidos**:
+- ✅ `src/components/hosix/prescripcion/PrescripcionesListado.tsx`
+- ✅ `src/components/hosix/admision/AdmisionesListado.tsx`
+- ✅ `src/components/hosix/prescripcion/HistoricoPrescripciones.tsx`
+
+**Patrón Aplicado**:
+```typescript
+// ANTES
+} catch (error) {
+  console.error('Error cargando X:', error)
+  toast({
+    description: 'No se pudo cargar X'
+  })
+}
+
+// DESPUÉS
+} catch (error) {
+  const errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
+  console.error('Error cargando X:', errorMessage, error)
+  toast({
+    description: errorMessage || 'No se pudo cargar X'
+  })
+}
+```
+
+### Progreso FASE 3:
+- **Estado Anterior**: ASIS 11.0, 10.0, 9.0, 8.0 con problemas de UI
+- **Estado Actual**: ✅ Todos los dashboards funcionan sin recursión
+- **Líneas de Código Modificadas**: ~50 líneas
+- **Migraciones SQL Nuevas**: 2 (CPOE + Servicios)
+- **Archivos Modificados**: 7 páginas + componentes
+
+### Métricas de Calidad:
+- ✅ Eliminada recursión visual (bucle espejo)
+- ✅ Completada cobertura de tablas necesarias
+- ✅ Mejorado manejo de errores con mensajes específicos
+- ✅ Todos los módulos ASIS 8.0-11.0 operacionales
 
 ---
 

@@ -44,10 +44,11 @@ export default function PrescripcionesListado({ onSelectPaciente }: Prescripcion
         if (error) throw error
         setOrdenes(data || [])
       } catch (error) {
-        console.error('Error cargando órdenes:', error)
+        const errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
+        console.error('Error cargando órdenes:', errorMessage, error)
         toast({
           title: 'Error',
-          description: 'No se pudieron cargar las órdenes',
+          description: errorMessage || 'No se pudieron cargar las órdenes',
           variant: 'destructive'
         })
       } finally {

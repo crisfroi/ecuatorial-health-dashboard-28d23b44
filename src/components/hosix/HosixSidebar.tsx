@@ -30,6 +30,7 @@ const HosixSidebar: React.FC<HosixSidebarProps> = ({ isOpen }) => {
 
   const menuItems = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/hosix' },
+    { label: 'Admisión Central', icon: Users, path: '/hosix/admision' },
     { label: 'Pacientes', icon: Users, path: '/hosix/pacientes' },
     { label: 'Urgencias', icon: AlertCircle, path: '/hosix/urgencias' },
     { label: 'Citas', icon: Calendar, path: '/hosix/citas' },

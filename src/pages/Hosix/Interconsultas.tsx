@@ -2,12 +2,11 @@ import React, { useState } from 'react'
 import { useHosixInterconsultas } from '@/hooks/useHosixInterconsultas'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { InterconsultasSolicitudesManager } from '@/components/hosix/interconsultas/SolicitudesManager'
 
 export default function InterconsultasPage() {
-  const { solicitudes, respuestas } = useHosixInterconsultas()
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const { solicitudes = [], respuestas = [] } = useHosixInterconsultas()
+  const [activeTab, setActiveTab] = useState('solicitudes')
 
   return (
       <div className="space-y-6">

@@ -131,6 +131,11 @@ function App() {
                   <Route path="suministros" element={<Suministros />} />
                   <Route path="almacenes" element={<Almacenes />} />
                   <Route path="compras" element={<ComprasPage />} />
+                  <Route path="obstetricia" element={<Obstetricia />} />
+                  <Route path="cred" element={<CRED />} />
+                  <Route path="laboratorio" element={<Laboratorio />} />
+                  <Route path="imagenologia" element={<Imagenologia />} />
+                  <Route path="interconsultas" element={<Interconsultas />} />
                   <Route path="configuracion" element={<Configuracion />} />
                   <Route path="bi" element={<BI />} />
                 </Route>

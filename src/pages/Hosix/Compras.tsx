@@ -2,22 +2,31 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useHosixCompras } from '@/hooks/useHosixCompras';
+import { PresupuestosManager } from '@/components/hosix/compras/PresupuestosManager';
+import { LicitacionesManager } from '@/components/hosix/compras/LicitacionesManager';
+import { OfertasManager } from '@/components/hosix/compras/OfertasManager';
+import { AdjudicacionesManager } from '@/components/hosix/compras/AdjudicacionesManager';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { DollarSign, FileText, TrendingUp, CheckCircle } from 'lucide-react';
 
 export default function ComprasPage() {
-  const { presupuestos, licitaciones, ofertas, adjudicaciones } = useHosixCompras();
+  const { usePresupuestosQuery, useLicitacionesQuery, useOfertasQuery, useAdjudicacionesQuery } = useHosixCompras();
+  const { data: presupuestos = [] } = usePresupuestosQuery();
+  const { data: licitaciones = [] } = useLicitacionesQuery();
+  const { data: ofertas = [] } = useOfertasQuery();
+  const { data: adjudicaciones = [] } = useAdjudicacionesQuery();
   const [selectedTab, setSelectedTab] = useState('dashboard');
 
-  const totalPresupuesto = presupuestos.reduce((sum, p) => sum + p.monto_total, 0);
-  const presupuestoUtilizado = presupuestos.reduce((sum, p) => sum + p.monto_utilizado, 0);
-  const presupuestoDisponible = presupuestos.reduce((sum, p) => sum + p.monto_disponible, 0);
+  // KPIs
+  const totalPresupuesto = presupuestos.reduce((sum: number, p: any) => sum + (p.monto_total || 0), 0);
+  const presupuestoUtilizado = presupuestos.reduce((sum: number, p: any) => sum + (p.monto_utilizado || 0), 0);
+  const presupuestoDisponible = presupuestos.reduce((sum: number, p: any) => sum + (p.monto_disponible || 0), 0);
 
   const licitacionesPorEstado = {
-    borrador: licitaciones.filter(l => l.estado === 'borrador').length,
-    publicada: licitaciones.filter(l => l.estado === 'publicada').length,
-    evaluacion: licitaciones.filter(l => l.estado === 'evaluacion').length,
-    adjudicada: licitaciones.filter(l => l.estado === 'adjudicada').length,
+    borrador: licitaciones.filter((l: any) => l.estado === 'borrador').length,
+    publicada: licitaciones.filter((l: any) => l.estado === 'publicada').length,
+    evaluacion: licitaciones.filter((l: any) => l.estado === 'evaluacion').length,
+    adjudicada: licitaciones.filter((l: any) => l.estado === 'adjudicada').length,
   };
 
   const estadoData = [
@@ -27,7 +36,7 @@ export default function ComprasPage() {
     { name: 'Adjudicada', value: licitacionesPorEstado.adjudicada },
   ];
 
-  const montoData = presupuestos.slice(0, 5).map(p => ({
+  const montoData = presupuestos.slice(0, 5).map((p: any) => ({
     nombre: p.numero_presupuesto,
     total: p.monto_total,
     utilizado: p.monto_utilizado,
@@ -39,7 +48,7 @@ export default function ComprasPage() {
       <div className="container mx-auto py-8 px-4">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Gestión de Compras</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Gestión de Compras (ADM 12.0)</h1>
           <p className="text-gray-600">Presupuestos, licitaciones, ofertas y adjudicaciones</p>
         </div>
 
@@ -47,7 +56,10 @@ export default function ComprasPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Presupuesto Total</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Presupuesto Total
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">
@@ -68,7 +80,7 @@ export default function ComprasPage() {
                 ${(presupuestoUtilizado / 1000).toFixed(0)}K
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                {((presupuestoUtilizado / totalPresupuesto) * 100).toFixed(0)}% del total
+                {totalPresupuesto > 0 ? ((presupuestoUtilizado / totalPresupuesto) * 100).toFixed(0) : 0}% del total
               </p>
             </CardContent>
           </Card>
@@ -82,21 +94,24 @@ export default function ComprasPage() {
                 ${(presupuestoDisponible / 1000).toFixed(0)}K
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                {((presupuestoDisponible / totalPresupuesto) * 100).toFixed(0)}% restante
+                {totalPresupuesto > 0 ? (100 - ((presupuestoUtilizado / totalPresupuesto) * 100)).toFixed(0) : 0}% restante
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Adjudicaciones</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                Adjudicaciones
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-600">
                 {adjudicaciones.length}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                {adjudicaciones.filter(a => a.estado === 'adjudicada').length} completadas
+                {adjudicaciones.filter((a: any) => a.estado === 'vigente').length} vigentes
               </p>
             </CardContent>
           </Card>
@@ -104,10 +119,11 @@ export default function ComprasPage() {
 
         {/* Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="presupuestos">Presupuestos</TabsTrigger>
             <TabsTrigger value="licitaciones">Licitaciones</TabsTrigger>
+            <TabsTrigger value="ofertas">Ofertas</TabsTrigger>
             <TabsTrigger value="adjudicaciones">Adjudicaciones</TabsTrigger>
           </TabsList>
 
@@ -198,50 +214,22 @@ export default function ComprasPage() {
 
           {/* Presupuestos Tab */}
           <TabsContent value="presupuestos">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestión de Presupuestos</CardTitle>
-                <CardDescription>CRUD de presupuestos por centro de coste (Componente: PresupuestosManager.tsx)</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center text-gray-500 py-8">
-                  <p>Componente PresupuestosManager.tsx - Pendiente de implementación</p>
-                  <p className="text-sm mt-2">Funcionalidades: Crear, editar, eliminar presupuestos y monitorear disponibilidad</p>
-                </div>
-              </CardContent>
-            </Card>
+            <PresupuestosManager />
           </TabsContent>
 
           {/* Licitaciones Tab */}
           <TabsContent value="licitaciones">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestión de Licitaciones</CardTitle>
-                <CardDescription>Creación y seguimiento de licitaciones (Componente: LicitacionesManager.tsx)</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center text-gray-500 py-8">
-                  <p>Componentes LicitacionesManager.tsx + OfertasManager.tsx - Pendiente de implementación</p>
-                  <p className="text-sm mt-2">Funcionalidades: Crear licitaciones, registrar ofertas de proveedores, evaluar ofertas</p>
-                </div>
-              </CardContent>
-            </Card>
+            <LicitacionesManager />
+          </TabsContent>
+
+          {/* Ofertas Tab */}
+          <TabsContent value="ofertas">
+            <OfertasManager />
           </TabsContent>
 
           {/* Adjudicaciones Tab */}
           <TabsContent value="adjudicaciones">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestión de Adjudicaciones</CardTitle>
-                <CardDescription>Registro de adjudicaciones (Componente: AdjudicacionesManager.tsx)</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center text-gray-500 py-8">
-                  <p>Componente AdjudicacionesManager.tsx - Pendiente de implementación</p>
-                  <p className="text-sm mt-2">Funcionalidades: Registrar adjudicaciones, monitorear ejecución, completar procesos</p>
-                </div>
-              </CardContent>
-            </Card>
+            <AdjudicacionesManager />
           </TabsContent>
         </Tabs>
       </div>

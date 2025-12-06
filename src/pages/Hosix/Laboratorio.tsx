@@ -2,12 +2,11 @@ import React, { useState } from 'react'
 import { useHosixLaboratorio } from '@/hooks/useHosixLaboratorio'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { SolicitudesManager } from '@/components/hosix/laboratorio/SolicitudesManager'
 
 export default function LaboratorioPage() {
-  const { pruebas, solicitudes, resultados } = useHosixLaboratorio()
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const { pruebas = [], solicitudes = [], resultados = [] } = useHosixLaboratorio()
+  const [activeTab, setActiveTab] = useState('solicitudes')
 
   return (
       <div className="space-y-6">

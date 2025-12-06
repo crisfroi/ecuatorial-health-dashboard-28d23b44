@@ -36,6 +36,8 @@ import Suministros from "./pages/Hosix/Suministros";
 import Almacenes from "./pages/Hosix/Almacenes";
 import ComprasPage from "./pages/Hosix/Compras";
 import Enfermeria from "./pages/Hosix/Enfermeria";
+import Prescripcion from "./pages/Hosix/Prescripcion";
+import AdmisionCentral from "./pages/Hosix/AdmisionCentral";
 import Configuracion from "./pages/Hosix/Configuracion";
 import BI from "./pages/Hosix/BI";
 
@@ -107,12 +109,14 @@ function App() {
                 <Route path="/hosix/login" element={<HosixLogin />} />
                 <Route path="/hosix" element={<HosixLayout />}>
                   <Route index element={<HosixDashboard />} />
+                  <Route path="admision" element={<AdmisionCentral />} />
                   <Route path="pacientes" element={<Pacientes />} />
                   <Route path="urgencias" element={<Urgencias />} />
                   <Route path="citas" element={<Citas />} />
                   <Route path="hospitalizacion" element={<Hospitalizacion />} />
                   <Route path="quirofanos" element={<Quirofanos />} />
                   <Route path="farmacia" element={<Farmacia />} />
+                  <Route path="prescripcion" element={<Prescripcion />} />
                   <Route path="enfermeria" element={<Enfermeria />} />
                   <Route path="facturacion" element={<FacturacionPage />} />
                   <Route path="cajas" element={<CajasPage />} />

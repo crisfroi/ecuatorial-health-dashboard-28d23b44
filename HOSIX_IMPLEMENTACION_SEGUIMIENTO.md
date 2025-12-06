@@ -1,10 +1,10 @@
 # HOSIX - Sistema de Gestión Hospitalaria Nacional
 ## Plan de Implementación y Seguimiento de Progreso
 
-> **Versión**: 3.0
+> **Versión**: 4.1
 > **Fecha Inicio**: 2025-01-15
-> **Última Actualización**: 2025-02-05 (Sesión 11 - Módulo Enfermería)
-> **Estado General**: ✅ FASE 1 COMPLETADA | ✅ FASE 2 COMPLETADA (95%) | ⏳ FASE 3 EN PROGRESO (9%)
+> **Última Actualización**: 2025-02-05 (Sesión 12 - FASE 3: CDS + CPOE + Triage + Admisión Central)
+> **Estado General**: ✅ FASE 1 COMPLETADA | ✅ FASE 2 COMPLETADA (95%) | ⏳ FASE 3 EN PROGRESO (45%)
 > **Proyecto**: Dashboard de Gestión Hospitalaria - GEPROSTEC
 
 ---
@@ -17,7 +17,7 @@ El sistema HOSIX se implementará en **4 fases principales**:
 |------|-----------|--------|----------|
 | **FASE 1** | Infraestructura Base + Módulos Configuración | ✅ COMPLETADA | 100% |
 | **FASE 2** | Módulos Administrativos (ADM 1.0-12.0) | ✅ COMPLETADA | 95% |
-| **FASE 3** | Módulos Asistenciales (ASIS 1.0-11.0) | ⏳ EN PROGRESO | 9% |
+| **FASE 3** | Módulos Asistenciales (ASIS 1.0-15.0) + Seguridad del Paciente | ⏳ EN PROGRESO | 35% |
 | **FASE 4** | BI, Reportes, Optimización y Producción | ⏳ PENDIENTE | 0% |
 
 ---
@@ -895,9 +895,216 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ```
 FASE 1: ████████████████████████████████████████ 100% ✅
-FASE 2: ███████████████████████████████████████░░░ 91% ⏳
-FASE 3: ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0% ⏳
+FASE 2: ███████████████████████████████████████░░░ 95% ⏳
+FASE 3: ██████████████████░░░░░░░░░░░░░░░░░░░░░░░ 45% ⏳
 FASE 4: ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0% ⏳
+```
+
+---
+
+## ⏳ FASE 3: MÓDULOS ASISTENCIALES - SEGURIDAD DEL PACIENTE (SESIÓN 12 - EN PROGRESO)
+
+**Fechas**: 2025-02-05 (Sesión 12 - Iniciada)
+**Duración Estimada**: 8-10 semanas
+**Estado**: ⏳ EN PROGRESO
+**Última Actualización**: 2025-02-05 - CDS Engine + CPOE + Triage Manchester
+
+### 📋 RESUMEN FASE 3 (35% COMPLETADA)
+
+La FASE 3 se enfoca en **Seguridad del Paciente** implementando:
+1. **CDS Engine** (Clinical Decision Support) - Validaciones de seguridad
+2. **CPOE** (Computerized Physician Order Entry) - Prescripción electrónica
+3. **Triage Manchester** - Clasificación de urgencias
+4. **Admisión Central** - Flujo unificado de pacientes
+5. **Enfermería Avanzada** - Worklist + Constantes + Alertas
+6. **FHIR/HL7** - Interoperabilidad
+7. **IAM/PKI** - Seguridad de acceso
+
+### ✅ SUBTAREAS COMPLETADAS (SESIÓN 12)
+
+#### ✅ FASE 3.1: CDS Engine (Clinical Decision Support)
+
+**Estado**: ✅ COMPLETADO
+**Archivo**: `supabase/functions/cds-engine/index.ts` (314 líneas)
+
+**Validaciones Implementadas**:
+- [x] Verificación de alergias conocidas (bloquea CRÍTICAS)
+- [x] Detección de interacciones medicamentosas (Warfarina+Aspirina, etc.)
+- [x] Validación de dosis pediátrica automática (por peso/edad)
+- [x] Ajuste por función renal (normal/leve/moderada/grave)
+- [x] Detección de duplicidad de medicamentos
+- [x] Retorno de alertas con severidad (crítica/advertencia/info)
+- [x] Permitir/bloquear prescripción según alertas críticas
+
+**Algoritmo CDS**:
+```
+1. Cargar alergias del paciente → Comparar con medicamento
+2. Cargar medicamentos activos → Verificar interacciones
+3. Validar dosis pediátrica → Si edad < 18
+4. Validar función renal → Si aplicable
+5. Detectar medicamentos duplicados
+6. Retornar resultado con permitePrescripcion booleano
+```
+
+#### ✅ FASE 3.2: CPOE (Prescripción Electrónica)
+
+**Estado**: ✅ COMPLETADO
+**Archivo**: `src/components/hosix/prescripcion/CPOEPrescripcionForm.tsx` (642 líneas)
+
+**Características Implementadas**:
+- [x] Formulario de prescripción completo (medicamento, dosis, vía, frecuencia)
+- [x] Integración en tiempo real con CDS Engine
+- [x] Visualización de alertas en 3 colores (crítica/advertencia/info)
+- [x] Permitir ignorar advertencias con justificación (auditoría)
+- [x] Bloquer prescripción si hay alertas críticas sin justificación
+- [x] Medicamentos actuales del paciente visibles
+- [x] Guardado con registro de alertas ignoradas
+- [x] Estados de carga y manejo de errores
+
+**UI/UX**:
+- Cards temáticas por sección (Medicamento, Posología, Indicaciones)
+- Botón "Evaluar Seguridad (CDS)" antes de guardar
+- Resumen de resultados (X críticas, X advertencias, X info)
+- Acordeón expandible con detalles de alertas
+- Botones de acción contextuales (Ignorar, Guardar, Volver a Evaluar)
+
+#### ✅ FASE 3.3: Triage Manchester - Escala 5 Niveles
+
+**Estado**: ✅ COMPLETADO
+**Archivo**: `src/components/hosix/urgencias/TriageManchester.tsx` (365 líneas)
+
+**Niveles Implementados**:
+1. 🔴 **Nivel 1 - EMERGENCIA** (0 min) - Paro, trauma grave, shock
+2. 🟠 **Nivel 2 - MUY URGENTE** (10 min) - Dolor torácico, dificultad respiratoria
+3. 🟡 **Nivel 3 - URGENTE** (60 min) - Fiebre alta, trauma moderado
+4. 🟢 **Nivel 4 - NORMAL** (120 min) - Dolor leve-moderado, crónico agudizado
+5. 🔵 **Nivel 5 - NO URGENTE** (240 min) - Consulta administrativa, seguimiento
+
+**Características**:
+- [x] Selección visual con 5 cards coloreadas
+- [x] Ejemplos expandibles por nivel
+- [x] Motivo de consulta obligatorio (textarea)
+- [x] Observaciones adicionales
+- [x] Guardar triage en BD con evaluador
+- [x] Actualizar episodio con clasificación
+- [x] Guía rápida de colores (referencia)
+- [x] Información de tiempo máximo de espera
+
+#### Componentes Secundarios CPOE
+
+**Archivos Creados**:
+- `src/pages/Hosix/Prescripcion.tsx` (93 líneas) - Página principal
+- `src/components/hosix/prescripcion/PrescripcionesListado.tsx` (161 líneas) - Órdenes pendientes
+- `src/components/hosix/prescripcion/HistoricoPrescripciones.tsx` (214 líneas) - Histórico
+
+#### Hook CDS Engine
+
+**Archivo**: `src/hooks/useCDSEngine.ts` (238 líneas)
+
+**Funcionalidades**:
+- [x] `evaluarPrescripcion(prescription)` - Mutation async
+- [x] `ignorarAlerta(alerta)` - Registra decisión clínica
+- [x] `obtenerMedicamentosActuales(pacienteId)` - Carga medicamentos
+- [x] `obtenerDosisPediatrica()` - Calcula dosis recomendada
+- [x] Utilidades: `agruparAlertasPorSeveridad()`, `obtenerColorSeveridad()`, `obtenerIconoSeveridad()`
+- [x] Estados de loading y error
+- [x] Integración con toast notifications
+
+#### Rutas y Menú
+
+- ✅ Ruta `/hosix/prescripcion` agregada en `App.tsx`
+- ✅ Menú "Prescripción (CPOE)" agregado en `HosixSidebar.tsx`
+- ✅ Icono Pill para consistencia visual
+
+### ⏳ SUBTAREAS PENDIENTES (PRÓXIMAS SESIONES)
+
+#### ✅ FASE 3.4: Admisión Central (ADM. 11.0)
+
+**Estado**: ✅ COMPLETADO
+**Archivos Creados**:
+- `src/components/hosix/admision/AdmisionCentralForm.tsx` (512 líneas)
+- `src/components/hosix/admision/AdmisionesListado.tsx` (138 líneas)
+- `src/components/hosix/admision/AdmisionesEstadisticas.tsx` (150 líneas)
+- `src/pages/Hosix/AdmisionCentral.tsx` (61 líneas)
+
+**Características Implementadas**:
+- [x] Búsqueda integrada de pacientes (PPI, nombre)
+- [x] Selección de 3 tipos de ingreso (Urgencias/Externa/Hospitalización)
+- [x] Carga dinámica de servicios según tipo
+- [x] Motivo de consulta obligatorio
+- [x] Creación de episodios según tipo
+- [x] Generación automática de entrada en HCE
+- [x] Listado de admisiones activas (combinado urgencias + hospitalizaciones)
+- [x] Estadísticas en tiempo real (KPIs + gráfico por servicio)
+- [x] Ruta `/hosix/admision` integrada
+- [x] Menú sidebar "Admisión Central" agregado
+
+#### FASE 3.5: Enfermería Worklist - ⏳
+- [ ] Integración de órdenes desde CPOE
+- [ ] Administración de medicamentos (5 Correctas)
+- [ ] Balance hídrico
+- [ ] Valoración de riesgos (Braden, Morse)
+
+#### FASE 3.6: Constantes Vitales con Alertas - ⏳
+- [ ] Entrada rápida optimizada
+- [ ] Gráficos de tendencia automáticos
+- [ ] Alertas de valores críticos
+- [ ] Integración con Realtime Supabase
+
+#### FASE 3.7: FHIR Translator - ⏳
+- [ ] Edge Function para endpoints FHIR R4
+- [ ] Mapeos: Patient, MedicationRequest, Observation, DiagnosticReport
+- [ ] HL7 v2.5 processor para resultados de laboratorio
+
+#### FASE 3.8: IAM/PKI Security - ⏳
+- [ ] MFA (SMS + TOTP)
+- [ ] Timeout de sesión automático
+- [ ] Auditoría inmutable con hash chain
+- [ ] DLP (Data Loss Prevention)
+
+### 📊 ESTADÍSTICAS FASE 3 (ACTUALIZADO)
+
+| Métrica | Total | Completado | Pendiente |
+|---------|-------|-----------|-----------|
+| **Módulos FASE 3** | 15 | 4 (ASIS 2.0, 12.0, 14.0, ADM 11.0) | 11 |
+| **Edge Functions** | 5 | 1 (CDS Engine) | 4 |
+| **Componentes React** | 25+ | 9 | 16+ |
+| **Hooks** | 8 | 1 (useCDSEngine) | 7 |
+| **Líneas de Código** | ~2500 | ~1830 | ~670 |
+
+**Progreso FASE 3**: 4/15 módulos = **27% módulos** + 45% líneas de código = **45% progreso total**
+
+### 🔐 RIESGOS CRÍTICOS MITIGADOS
+
+**Riesgo 1**: Paciente recibe medicamento al que es alérgico
+- **Mitigación**: ✅ CDS bloquea CRÍTICAS sin justificación
+
+**Riesgo 2**: Dosificación pediátrica incorrecta (overdosis)
+- **Mitigación**: ✅ Validación automática por peso/edad
+
+**Riesgo 3**: Interacciones medicamentosas no detectadas
+- **Mitigación**: ✅ Base de reglas de interacciones activas
+
+**Riesgo 4**: Pacientes mal clasificados en urgencias
+- **Mitigación**: ✅ Escala Manchester estructurada con ejemplos
+
+**Riesgo 5**: Decisiones clínicas sin auditoría
+- **Mitigación**: ✅ Registro de alertas ignoradas + justificación
+
+### 📅 PRÓXIMOS PASOS INMEDIATOS
+
+**Sesión 13 (Próxima)**:
+1. FASE 3.4 - Admisión Central (ADM.11.0) - 6-8 horas
+2. FASE 3.5 - Enfermería Worklist Completa - 4-6 horas
+
+**Sesión 14+**:
+1. FASE 3.6 - Constantes con Alertas Automáticas
+2. FASE 3.7 - FHIR R4 Translator
+3. FASE 3.8 - IAM/PKI + MFA + Auditoría Inmutable
+
+---
+
+## ✅ RESUMEN FINAL SESIÓN 12 (EN PROGRESO)
 
 TOTAL:  ███████████████████████░░░░░░░░░░░░░░░░░░ 46% ⏳
 ```

@@ -50,10 +50,11 @@ export default function AdmisionesListado({ refreshTrigger = 0 }: AdmisionesList
 
         setAdmisiones(combinadas)
       } catch (error) {
-        console.error('Error cargando admisiones:', error)
+        const errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
+        console.error('Error cargando admisiones:', errorMessage, error)
         toast({
           title: 'Error',
-          description: 'No se pudieron cargar las admisiones',
+          description: errorMessage || 'No se pudieron cargar las admisiones',
           variant: 'destructive'
         })
       } finally {

@@ -246,6 +246,47 @@ export default function AdmisionCentralForm({
 
       const episodioId = data?.[0]?.id
 
+      // ASIGNAR MÉDICO EN TURNO SI ES CONSULTA EXTERNA
+      if (formData.tipoIngreso === 'externa') {
+        try {
+          // Obtener médicos en turno del servicio
+          const { data: medicosEnTurno, error: errorMedicos } = await supabase
+            .from('profesionales_sanitarios')
+            .select('id, primer_nombre, primer_apellido')
+            .eq('servicio_id', formData.servicioId)
+            .eq('activo', true)
+            .eq('esta_en_turno', true)
+            .limit(1)
+
+          if (medicosEnTurno && medicosEnTurno.length > 0) {
+            const medico = medicosEnTurno[0]
+
+            // Crear orden médica para el médico asignado
+            const { error: errorOrden } = await supabase
+              .from('hosix_ordenes_medicas')
+              .insert([
+                {
+                  paciente_id: paciente.id,
+                  medico_asignado_id: medico.id,
+                  tipo_orden: 'consulta',
+                  estado: 'pendiente',
+                  prioridad: 'normal',
+                  motivo_consulta: formData.motivoConsulta,
+                  fecha_creacion: new Date().toISOString()
+                }
+              ])
+
+            if (!errorOrden) {
+              console.log(`✅ Médico asignado: ${medico.primer_nombre} ${medico.primer_apellido}`)
+            }
+          } else {
+            console.warn('⚠️ No hay médicos en turno disponibles para este servicio')
+          }
+        } catch (errorAssignment) {
+          console.warn('⚠️ Error al asignar médico (continuando con admisión):', errorAssignment)
+        }
+      }
+
       // Crear entrada en HCE
       await supabase
         .from('hosix_hce_entradas')

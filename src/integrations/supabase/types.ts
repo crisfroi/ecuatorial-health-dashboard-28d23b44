@@ -2421,6 +2421,216 @@ export type Database = {
         }
         Relationships: []
       }
+      hosix_consultas_medicas: {
+        Row: {
+          alergias: string[] | null
+          antecedentes_familiares: string | null
+          antecedentes_personales: string | null
+          cita_id: string | null
+          created_at: string | null
+          diagnosticos_principales: string[] | null
+          diagnosticos_secundarios: string[] | null
+          enfermedad_actual: string | null
+          episodio_id: string | null
+          exploracion_fisica: Json | null
+          fecha_consulta: string
+          fecha_firma: string | null
+          fecha_proximo_control: string | null
+          firmado: boolean | null
+          id: string
+          medicamentos_actuales: Json | null
+          medico_id: string
+          motivo_consulta: string | null
+          observaciones: string | null
+          ordenes_imagenologia: Json | null
+          ordenes_laboratorio: Json | null
+          ordenes_otros: Json | null
+          paciente_id: string
+          plan_terapeutico: string | null
+          prescripciones: string[] | null
+          requiere_control: boolean | null
+          servicio_id: string | null
+          tipo_episodio: string | null
+          tratamientos_prescritos: string[] | null
+          updated_at: string | null
+          worklist_id: string | null
+        }
+        Insert: {
+          alergias?: string[] | null
+          antecedentes_familiares?: string | null
+          antecedentes_personales?: string | null
+          cita_id?: string | null
+          created_at?: string | null
+          diagnosticos_principales?: string[] | null
+          diagnosticos_secundarios?: string[] | null
+          enfermedad_actual?: string | null
+          episodio_id?: string | null
+          exploracion_fisica?: Json | null
+          fecha_consulta?: string
+          fecha_firma?: string | null
+          fecha_proximo_control?: string | null
+          firmado?: boolean | null
+          id?: string
+          medicamentos_actuales?: Json | null
+          medico_id: string
+          motivo_consulta?: string | null
+          observaciones?: string | null
+          ordenes_imagenologia?: Json | null
+          ordenes_laboratorio?: Json | null
+          ordenes_otros?: Json | null
+          paciente_id: string
+          plan_terapeutico?: string | null
+          prescripciones?: string[] | null
+          requiere_control?: boolean | null
+          servicio_id?: string | null
+          tipo_episodio?: string | null
+          tratamientos_prescritos?: string[] | null
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Update: {
+          alergias?: string[] | null
+          antecedentes_familiares?: string | null
+          antecedentes_personales?: string | null
+          cita_id?: string | null
+          created_at?: string | null
+          diagnosticos_principales?: string[] | null
+          diagnosticos_secundarios?: string[] | null
+          enfermedad_actual?: string | null
+          episodio_id?: string | null
+          exploracion_fisica?: Json | null
+          fecha_consulta?: string
+          fecha_firma?: string | null
+          fecha_proximo_control?: string | null
+          firmado?: boolean | null
+          id?: string
+          medicamentos_actuales?: Json | null
+          medico_id?: string
+          motivo_consulta?: string | null
+          observaciones?: string | null
+          ordenes_imagenologia?: Json | null
+          ordenes_laboratorio?: Json | null
+          ordenes_otros?: Json | null
+          paciente_id?: string
+          plan_terapeutico?: string | null
+          prescripciones?: string[] | null
+          requiere_control?: boolean | null
+          servicio_id?: string | null
+          tipo_episodio?: string | null
+          tratamientos_prescritos?: string[] | null
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_consultas_medicas_cita_id_fkey"
+            columns: ["cita_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_citas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_consultas_medicas_medico_id_fkey"
+            columns: ["medico_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_consultas_medicas_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_consultas_medicas_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_servicios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_consultas_medicas_worklist_id_fkey"
+            columns: ["worklist_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_medicos_worklist"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosix_cuestionarios: {
+        Row: {
+          aplicado_por: string | null
+          consulta_id: string | null
+          created_at: string | null
+          episodio_id: string | null
+          fecha_aplicacion: string
+          id: string
+          interpretacion: string | null
+          nombre_cuestionario: string
+          observaciones: string | null
+          paciente_id: string
+          puntuacion_total: number | null
+          respuestas: Json
+          tipo_cuestionario: string | null
+          tipo_episodio: string | null
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          aplicado_por?: string | null
+          consulta_id?: string | null
+          created_at?: string | null
+          episodio_id?: string | null
+          fecha_aplicacion?: string
+          id?: string
+          interpretacion?: string | null
+          nombre_cuestionario: string
+          observaciones?: string | null
+          paciente_id: string
+          puntuacion_total?: number | null
+          respuestas?: Json
+          tipo_cuestionario?: string | null
+          tipo_episodio?: string | null
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          aplicado_por?: string | null
+          consulta_id?: string | null
+          created_at?: string | null
+          episodio_id?: string | null
+          fecha_aplicacion?: string
+          id?: string
+          interpretacion?: string | null
+          nombre_cuestionario?: string
+          observaciones?: string | null
+          paciente_id?: string
+          puntuacion_total?: number | null
+          respuestas?: Json
+          tipo_cuestionario?: string | null
+          tipo_episodio?: string | null
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_cuestionarios_aplicado_por_fkey"
+            columns: ["aplicado_por"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_cuestionarios_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hosix_departamentos: {
         Row: {
           activo: boolean | null
@@ -2458,6 +2668,92 @@ export type Database = {
             columns: ["centro_salud_id"]
             isOneToOne: false
             referencedRelation: "centros_salud"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosix_diagnosticos: {
+        Row: {
+          certeza: string | null
+          codigo_cie10: string | null
+          codigo_cie10_id: string | null
+          consulta_id: string | null
+          created_at: string | null
+          descripcion_diagnostico: string
+          episodio_id: string | null
+          fecha_diagnostico: string
+          id: string
+          medico_id: string | null
+          observaciones: string | null
+          paciente_id: string
+          tipo_diagnostico: string | null
+          tipo_episodio: string | null
+          updated_at: string | null
+          worklist_id: string | null
+        }
+        Insert: {
+          certeza?: string | null
+          codigo_cie10?: string | null
+          codigo_cie10_id?: string | null
+          consulta_id?: string | null
+          created_at?: string | null
+          descripcion_diagnostico: string
+          episodio_id?: string | null
+          fecha_diagnostico?: string
+          id?: string
+          medico_id?: string | null
+          observaciones?: string | null
+          paciente_id: string
+          tipo_diagnostico?: string | null
+          tipo_episodio?: string | null
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Update: {
+          certeza?: string | null
+          codigo_cie10?: string | null
+          codigo_cie10_id?: string | null
+          consulta_id?: string | null
+          created_at?: string | null
+          descripcion_diagnostico?: string
+          episodio_id?: string | null
+          fecha_diagnostico?: string
+          id?: string
+          medico_id?: string | null
+          observaciones?: string | null
+          paciente_id?: string
+          tipo_diagnostico?: string | null
+          tipo_episodio?: string | null
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_diagnosticos_codigo_cie10_id_fkey"
+            columns: ["codigo_cie10_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_codificacion_cie10"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_diagnosticos_medico_id_fkey"
+            columns: ["medico_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_diagnosticos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_diagnosticos_worklist_id_fkey"
+            columns: ["worklist_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_medicos_worklist"
             referencedColumns: ["id"]
           },
         ]
@@ -2511,6 +2807,721 @@ export type Database = {
             columns: ["prescripcion_id"]
             isOneToOne: false
             referencedRelation: "hosix_prescripciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosix_drug_interactions: {
+        Row: {
+          created_at: string | null
+          descripcion: string
+          evidencia_nivel: string | null
+          fuente: string | null
+          id: string
+          mecanismo_accion: string | null
+          medicamento1_id: string
+          medicamento2_id: string
+          recomendacion: string | null
+          severidad: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descripcion: string
+          evidencia_nivel?: string | null
+          fuente?: string | null
+          id?: string
+          mecanismo_accion?: string | null
+          medicamento1_id: string
+          medicamento2_id: string
+          recomendacion?: string | null
+          severidad: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descripcion?: string
+          evidencia_nivel?: string | null
+          fuente?: string | null
+          id?: string
+          mecanismo_accion?: string | null
+          medicamento1_id?: string
+          medicamento2_id?: string
+          recomendacion?: string | null
+          severidad?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_drug_interactions_medicamento1_id_fkey"
+            columns: ["medicamento1_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_medicamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_drug_interactions_medicamento2_id_fkey"
+            columns: ["medicamento2_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_medicamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosix_enfermeria_balance_hidrico: {
+        Row: {
+          balance_acumulado: number | null
+          balance_diario: number | null
+          created_at: string | null
+          eliminacion_drenajes: number | null
+          eliminacion_heces: number | null
+          eliminacion_orina: number | null
+          eliminacion_otros: number | null
+          eliminacion_sonda: number | null
+          episodio_id: string | null
+          fecha: string
+          id: string
+          ingesta_oral: number | null
+          ingesta_otros: number | null
+          ingesta_sonda: number | null
+          ingesta_venosa: number | null
+          observaciones: string | null
+          paciente_id: string
+          registrado_por: string | null
+          tipo_episodio: string | null
+          total_eliminacion: number | null
+          total_ingesta: number | null
+          turno: string | null
+          updated_at: string | null
+          worklist_id: string | null
+        }
+        Insert: {
+          balance_acumulado?: number | null
+          balance_diario?: number | null
+          created_at?: string | null
+          eliminacion_drenajes?: number | null
+          eliminacion_heces?: number | null
+          eliminacion_orina?: number | null
+          eliminacion_otros?: number | null
+          eliminacion_sonda?: number | null
+          episodio_id?: string | null
+          fecha?: string
+          id?: string
+          ingesta_oral?: number | null
+          ingesta_otros?: number | null
+          ingesta_sonda?: number | null
+          ingesta_venosa?: number | null
+          observaciones?: string | null
+          paciente_id: string
+          registrado_por?: string | null
+          tipo_episodio?: string | null
+          total_eliminacion?: number | null
+          total_ingesta?: number | null
+          turno?: string | null
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Update: {
+          balance_acumulado?: number | null
+          balance_diario?: number | null
+          created_at?: string | null
+          eliminacion_drenajes?: number | null
+          eliminacion_heces?: number | null
+          eliminacion_orina?: number | null
+          eliminacion_otros?: number | null
+          eliminacion_sonda?: number | null
+          episodio_id?: string | null
+          fecha?: string
+          id?: string
+          ingesta_oral?: number | null
+          ingesta_otros?: number | null
+          ingesta_sonda?: number | null
+          ingesta_venosa?: number | null
+          observaciones?: string | null
+          paciente_id?: string
+          registrado_por?: string | null
+          tipo_episodio?: string | null
+          total_eliminacion?: number | null
+          total_ingesta?: number | null
+          turno?: string | null
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_enfermeria_balance_hidrico_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_balance_hidrico_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_balance_hidrico_worklist_id_fkey"
+            columns: ["worklist_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_enfermeria_worklist"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosix_enfermeria_constantes: {
+        Row: {
+          alertas: string[] | null
+          created_at: string | null
+          episodio_id: string | null
+          fecha_registro: string
+          frecuencia_cardiaca: number | null
+          frecuencia_respiratoria: number | null
+          glucosa_capilar: number | null
+          id: string
+          imc: number | null
+          observaciones: string | null
+          paciente_id: string
+          peso_kg: number | null
+          presion_arterial_diastolica: number | null
+          presion_arterial_sistolica: number | null
+          registrado_por: string | null
+          saturacion_oxigeno: number | null
+          signos_adicionales: Json | null
+          talla_cm: number | null
+          temperatura_celsius: number | null
+          tipo_episodio: string | null
+          updated_at: string | null
+          worklist_id: string | null
+        }
+        Insert: {
+          alertas?: string[] | null
+          created_at?: string | null
+          episodio_id?: string | null
+          fecha_registro?: string
+          frecuencia_cardiaca?: number | null
+          frecuencia_respiratoria?: number | null
+          glucosa_capilar?: number | null
+          id?: string
+          imc?: number | null
+          observaciones?: string | null
+          paciente_id: string
+          peso_kg?: number | null
+          presion_arterial_diastolica?: number | null
+          presion_arterial_sistolica?: number | null
+          registrado_por?: string | null
+          saturacion_oxigeno?: number | null
+          signos_adicionales?: Json | null
+          talla_cm?: number | null
+          temperatura_celsius?: number | null
+          tipo_episodio?: string | null
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Update: {
+          alertas?: string[] | null
+          created_at?: string | null
+          episodio_id?: string | null
+          fecha_registro?: string
+          frecuencia_cardiaca?: number | null
+          frecuencia_respiratoria?: number | null
+          glucosa_capilar?: number | null
+          id?: string
+          imc?: number | null
+          observaciones?: string | null
+          paciente_id?: string
+          peso_kg?: number | null
+          presion_arterial_diastolica?: number | null
+          presion_arterial_sistolica?: number | null
+          registrado_por?: string | null
+          saturacion_oxigeno?: number | null
+          signos_adicionales?: Json | null
+          talla_cm?: number | null
+          temperatura_celsius?: number | null
+          tipo_episodio?: string | null
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_enfermeria_constantes_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_constantes_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_constantes_worklist_id_fkey"
+            columns: ["worklist_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_enfermeria_worklist"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosix_enfermeria_diario: {
+        Row: {
+          contenido: string
+          created_at: string | null
+          datos_estructurados: Json | null
+          episodio_id: string | null
+          fecha_firma: string | null
+          fecha_hora: string
+          firmado: boolean | null
+          id: string
+          modelo_predefinido_id: string | null
+          modelo_predefinido_nombre: string | null
+          paciente_id: string
+          registrado_por: string | null
+          tipo_anotacion: string | null
+          tipo_episodio: string | null
+          titulo: string | null
+          updated_at: string | null
+          worklist_id: string | null
+        }
+        Insert: {
+          contenido: string
+          created_at?: string | null
+          datos_estructurados?: Json | null
+          episodio_id?: string | null
+          fecha_firma?: string | null
+          fecha_hora?: string
+          firmado?: boolean | null
+          id?: string
+          modelo_predefinido_id?: string | null
+          modelo_predefinido_nombre?: string | null
+          paciente_id: string
+          registrado_por?: string | null
+          tipo_anotacion?: string | null
+          tipo_episodio?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Update: {
+          contenido?: string
+          created_at?: string | null
+          datos_estructurados?: Json | null
+          episodio_id?: string | null
+          fecha_firma?: string | null
+          fecha_hora?: string
+          firmado?: boolean | null
+          id?: string
+          modelo_predefinido_id?: string | null
+          modelo_predefinido_nombre?: string | null
+          paciente_id?: string
+          registrado_por?: string | null
+          tipo_anotacion?: string | null
+          tipo_episodio?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_enfermeria_diario_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_diario_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_diario_worklist_id_fkey"
+            columns: ["worklist_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_enfermeria_worklist"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosix_enfermeria_evaluaciones: {
+        Row: {
+          alergias: string[] | null
+          antecedentes_relevantes: string | null
+          created_at: string | null
+          episodio_id: string | null
+          escala_braden: number | null
+          escala_glasgow: number | null
+          escala_norton: number | null
+          estado_nutricional: string | null
+          evaluado_por: string | null
+          fecha_evaluacion: string
+          id: string
+          medicamentos_actuales: Json | null
+          motivo_ingreso: string | null
+          movilidad: string | null
+          nivel_dependencia: string | null
+          observaciones: string | null
+          paciente_id: string
+          plan_cuidados_inicial: string | null
+          tipo_episodio: string | null
+          updated_at: string | null
+          worklist_id: string | null
+        }
+        Insert: {
+          alergias?: string[] | null
+          antecedentes_relevantes?: string | null
+          created_at?: string | null
+          episodio_id?: string | null
+          escala_braden?: number | null
+          escala_glasgow?: number | null
+          escala_norton?: number | null
+          estado_nutricional?: string | null
+          evaluado_por?: string | null
+          fecha_evaluacion?: string
+          id?: string
+          medicamentos_actuales?: Json | null
+          motivo_ingreso?: string | null
+          movilidad?: string | null
+          nivel_dependencia?: string | null
+          observaciones?: string | null
+          paciente_id: string
+          plan_cuidados_inicial?: string | null
+          tipo_episodio?: string | null
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Update: {
+          alergias?: string[] | null
+          antecedentes_relevantes?: string | null
+          created_at?: string | null
+          episodio_id?: string | null
+          escala_braden?: number | null
+          escala_glasgow?: number | null
+          escala_norton?: number | null
+          estado_nutricional?: string | null
+          evaluado_por?: string | null
+          fecha_evaluacion?: string
+          id?: string
+          medicamentos_actuales?: Json | null
+          motivo_ingreso?: string | null
+          movilidad?: string | null
+          nivel_dependencia?: string | null
+          observaciones?: string | null
+          paciente_id?: string
+          plan_cuidados_inicial?: string | null
+          tipo_episodio?: string | null
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_enfermeria_evaluaciones_evaluado_por_fkey"
+            columns: ["evaluado_por"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_evaluaciones_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_evaluaciones_worklist_id_fkey"
+            columns: ["worklist_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_enfermeria_worklist"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosix_enfermeria_kardex: {
+        Row: {
+          created_at: string | null
+          descripcion_cuidado: string | null
+          dosis: string | null
+          episodio_id: string | null
+          estado: string | null
+          fecha_hora: string
+          hora_programada: string | null
+          hora_real: string | null
+          id: string
+          medicamento_id: string | null
+          medicamento_texto: string | null
+          motivo_omision: string | null
+          observaciones: string | null
+          paciente_id: string
+          plan_cuidado_id: string | null
+          prescripcion_id: string | null
+          registrado_por: string | null
+          respuesta_paciente: string | null
+          tipo_cuidado: string | null
+          tipo_episodio: string | null
+          tipo_registro: string
+          updated_at: string | null
+          via_administracion: string | null
+          worklist_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descripcion_cuidado?: string | null
+          dosis?: string | null
+          episodio_id?: string | null
+          estado?: string | null
+          fecha_hora?: string
+          hora_programada?: string | null
+          hora_real?: string | null
+          id?: string
+          medicamento_id?: string | null
+          medicamento_texto?: string | null
+          motivo_omision?: string | null
+          observaciones?: string | null
+          paciente_id: string
+          plan_cuidado_id?: string | null
+          prescripcion_id?: string | null
+          registrado_por?: string | null
+          respuesta_paciente?: string | null
+          tipo_cuidado?: string | null
+          tipo_episodio?: string | null
+          tipo_registro: string
+          updated_at?: string | null
+          via_administracion?: string | null
+          worklist_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descripcion_cuidado?: string | null
+          dosis?: string | null
+          episodio_id?: string | null
+          estado?: string | null
+          fecha_hora?: string
+          hora_programada?: string | null
+          hora_real?: string | null
+          id?: string
+          medicamento_id?: string | null
+          medicamento_texto?: string | null
+          motivo_omision?: string | null
+          observaciones?: string | null
+          paciente_id?: string
+          plan_cuidado_id?: string | null
+          prescripcion_id?: string | null
+          registrado_por?: string | null
+          respuesta_paciente?: string | null
+          tipo_cuidado?: string | null
+          tipo_episodio?: string | null
+          tipo_registro?: string
+          updated_at?: string | null
+          via_administracion?: string | null
+          worklist_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_enfermeria_kardex_medicamento_id_fkey"
+            columns: ["medicamento_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_medicamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_kardex_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_kardex_plan_cuidado_id_fkey"
+            columns: ["plan_cuidado_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_enfermeria_planes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_kardex_prescripcion_id_fkey"
+            columns: ["prescripcion_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_prescripciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_kardex_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_kardex_worklist_id_fkey"
+            columns: ["worklist_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_enfermeria_worklist"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosix_enfermeria_planes: {
+        Row: {
+          caracteristicas_definitorias: string[] | null
+          codigo_nanda: string | null
+          creado_por: string | null
+          created_at: string | null
+          diagnostico_enfermeria: string
+          episodio_id: string | null
+          estado: string | null
+          factores_relacionados: string[] | null
+          fecha_fin: string | null
+          fecha_inicio: string | null
+          id: string
+          intervenciones: Json | null
+          nombre_plan: string | null
+          objetivos: Json | null
+          paciente_id: string
+          tipo_episodio: string | null
+          tipo_plan: string
+          updated_at: string | null
+          worklist_id: string | null
+        }
+        Insert: {
+          caracteristicas_definitorias?: string[] | null
+          codigo_nanda?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          diagnostico_enfermeria: string
+          episodio_id?: string | null
+          estado?: string | null
+          factores_relacionados?: string[] | null
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          intervenciones?: Json | null
+          nombre_plan?: string | null
+          objetivos?: Json | null
+          paciente_id: string
+          tipo_episodio?: string | null
+          tipo_plan: string
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Update: {
+          caracteristicas_definitorias?: string[] | null
+          codigo_nanda?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          diagnostico_enfermeria?: string
+          episodio_id?: string | null
+          estado?: string | null
+          factores_relacionados?: string[] | null
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          intervenciones?: Json | null
+          nombre_plan?: string | null
+          objetivos?: Json | null
+          paciente_id?: string
+          tipo_episodio?: string | null
+          tipo_plan?: string
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_enfermeria_planes_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_planes_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_planes_worklist_id_fkey"
+            columns: ["worklist_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_enfermeria_worklist"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosix_enfermeria_worklist: {
+        Row: {
+          created_at: string | null
+          enfermera_asignada_id: string | null
+          episodio_id: string | null
+          estado: string | null
+          fecha_asignacion: string | null
+          id: string
+          observaciones: string | null
+          paciente_id: string
+          prioridad: string | null
+          requiere_atencion_continua: boolean | null
+          servicio_id: string | null
+          tipo_episodio: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          enfermera_asignada_id?: string | null
+          episodio_id?: string | null
+          estado?: string | null
+          fecha_asignacion?: string | null
+          id?: string
+          observaciones?: string | null
+          paciente_id: string
+          prioridad?: string | null
+          requiere_atencion_continua?: boolean | null
+          servicio_id?: string | null
+          tipo_episodio: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          enfermera_asignada_id?: string | null
+          episodio_id?: string | null
+          estado?: string | null
+          fecha_asignacion?: string | null
+          id?: string
+          observaciones?: string | null
+          paciente_id?: string
+          prioridad?: string | null
+          requiere_atencion_continua?: boolean | null
+          servicio_id?: string | null
+          tipo_episodio?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_enfermeria_worklist_enfermera_asignada_id_fkey"
+            columns: ["enfermera_asignada_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_worklist_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_enfermeria_worklist_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_servicios"
             referencedColumns: ["id"]
           },
         ]
@@ -2960,6 +3971,124 @@ export type Database = {
           },
         ]
       }
+      hosix_interconsultas: {
+        Row: {
+          antecedentes_relevantes: string | null
+          created_at: string | null
+          episodio_id: string | null
+          estado: string | null
+          fecha_limite_respuesta: string | null
+          fecha_respuesta: string | null
+          fecha_solicitud: string | null
+          id: string
+          medico_destino_id: string | null
+          medico_solicitante_id: string | null
+          motivo_interconsulta: string
+          paciente_id: string
+          pregunta_clinica: string | null
+          recomendaciones: string | null
+          requiere_seguimiento: boolean | null
+          respuesta_medica: string | null
+          servicio_destino_id: string
+          servicio_solicitante_id: string | null
+          tipo_episodio: string | null
+          updated_at: string | null
+          urgencia: string | null
+          worklist_id: string | null
+        }
+        Insert: {
+          antecedentes_relevantes?: string | null
+          created_at?: string | null
+          episodio_id?: string | null
+          estado?: string | null
+          fecha_limite_respuesta?: string | null
+          fecha_respuesta?: string | null
+          fecha_solicitud?: string | null
+          id?: string
+          medico_destino_id?: string | null
+          medico_solicitante_id?: string | null
+          motivo_interconsulta: string
+          paciente_id: string
+          pregunta_clinica?: string | null
+          recomendaciones?: string | null
+          requiere_seguimiento?: boolean | null
+          respuesta_medica?: string | null
+          servicio_destino_id: string
+          servicio_solicitante_id?: string | null
+          tipo_episodio?: string | null
+          updated_at?: string | null
+          urgencia?: string | null
+          worklist_id?: string | null
+        }
+        Update: {
+          antecedentes_relevantes?: string | null
+          created_at?: string | null
+          episodio_id?: string | null
+          estado?: string | null
+          fecha_limite_respuesta?: string | null
+          fecha_respuesta?: string | null
+          fecha_solicitud?: string | null
+          id?: string
+          medico_destino_id?: string | null
+          medico_solicitante_id?: string | null
+          motivo_interconsulta?: string
+          paciente_id?: string
+          pregunta_clinica?: string | null
+          recomendaciones?: string | null
+          requiere_seguimiento?: boolean | null
+          respuesta_medica?: string | null
+          servicio_destino_id?: string
+          servicio_solicitante_id?: string | null
+          tipo_episodio?: string | null
+          updated_at?: string | null
+          urgencia?: string | null
+          worklist_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_interconsultas_medico_destino_id_fkey"
+            columns: ["medico_destino_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_interconsultas_medico_solicitante_id_fkey"
+            columns: ["medico_solicitante_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_interconsultas_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_interconsultas_servicio_destino_id_fkey"
+            columns: ["servicio_destino_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_servicios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_interconsultas_servicio_solicitante_id_fkey"
+            columns: ["servicio_solicitante_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_servicios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_interconsultas_worklist_id_fkey"
+            columns: ["worklist_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_medicos_worklist"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hosix_kpis_reportes: {
         Row: {
           created_at: string | null
@@ -3081,6 +4210,63 @@ export type Database = {
           },
         ]
       }
+      hosix_mapas_dentales: {
+        Row: {
+          consulta_id: string | null
+          creado_por: string | null
+          created_at: string | null
+          dientes: Json
+          fecha_actualizacion: string | null
+          fecha_creacion: string | null
+          id: string
+          observaciones: string | null
+          paciente_id: string
+          tipo_mapa: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          consulta_id?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          dientes?: Json
+          fecha_actualizacion?: string | null
+          fecha_creacion?: string | null
+          id?: string
+          observaciones?: string | null
+          paciente_id: string
+          tipo_mapa?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          consulta_id?: string | null
+          creado_por?: string | null
+          created_at?: string | null
+          dientes?: Json
+          fecha_actualizacion?: string | null
+          fecha_creacion?: string | null
+          id?: string
+          observaciones?: string | null
+          paciente_id?: string
+          tipo_mapa?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_mapas_dentales_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_mapas_dentales_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hosix_medicamentos: {
         Row: {
           activo: boolean | null
@@ -3089,6 +4275,7 @@ export type Database = {
           concentracion: string | null
           controlado: boolean | null
           created_at: string | null
+          drugbank_id: string | null
           familia: string | null
           forma_farmaceutica: string | null
           grupo: string | null
@@ -3107,6 +4294,7 @@ export type Database = {
           concentracion?: string | null
           controlado?: boolean | null
           created_at?: string | null
+          drugbank_id?: string | null
           familia?: string | null
           forma_farmaceutica?: string | null
           grupo?: string | null
@@ -3125,6 +4313,7 @@ export type Database = {
           concentracion?: string | null
           controlado?: boolean | null
           created_at?: string | null
+          drugbank_id?: string | null
           familia?: string | null
           forma_farmaceutica?: string | null
           grupo?: string | null
@@ -3137,6 +4326,79 @@ export type Database = {
           via_administracion?: string | null
         }
         Relationships: []
+      }
+      hosix_medicos_worklist: {
+        Row: {
+          created_at: string | null
+          episodio_id: string | null
+          estado: string | null
+          fecha_asignacion: string | null
+          id: string
+          medico_asignado_id: string | null
+          motivo_consulta: string | null
+          observaciones: string | null
+          paciente_id: string
+          prioridad: string | null
+          requiere_seguimiento: boolean | null
+          servicio_id: string | null
+          tipo_episodio: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          episodio_id?: string | null
+          estado?: string | null
+          fecha_asignacion?: string | null
+          id?: string
+          medico_asignado_id?: string | null
+          motivo_consulta?: string | null
+          observaciones?: string | null
+          paciente_id: string
+          prioridad?: string | null
+          requiere_seguimiento?: boolean | null
+          servicio_id?: string | null
+          tipo_episodio: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          episodio_id?: string | null
+          estado?: string | null
+          fecha_asignacion?: string | null
+          id?: string
+          medico_asignado_id?: string | null
+          motivo_consulta?: string | null
+          observaciones?: string | null
+          paciente_id?: string
+          prioridad?: string | null
+          requiere_seguimiento?: boolean | null
+          servicio_id?: string | null
+          tipo_episodio?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_medicos_worklist_medico_asignado_id_fkey"
+            columns: ["medico_asignado_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_medicos_worklist_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_medicos_worklist_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_servicios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hosix_pacientes: {
         Row: {
@@ -4345,6 +5607,98 @@ export type Database = {
             columns: ["aseguradora_id"]
             isOneToOne: false
             referencedRelation: "hosix_aseguradoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosix_tratamientos: {
+        Row: {
+          created_at: string | null
+          descripcion: string
+          diagnostico_id: string | null
+          duracion_dias: number | null
+          efectividad: string | null
+          episodio_id: string | null
+          estado: string | null
+          fecha_fin: string | null
+          fecha_inicio: string | null
+          id: string
+          indicaciones: string | null
+          medico_id: string | null
+          paciente_id: string
+          resultado: string | null
+          tipo_episodio: string | null
+          tipo_tratamiento: string
+          updated_at: string | null
+          worklist_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descripcion: string
+          diagnostico_id?: string | null
+          duracion_dias?: number | null
+          efectividad?: string | null
+          episodio_id?: string | null
+          estado?: string | null
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          indicaciones?: string | null
+          medico_id?: string | null
+          paciente_id: string
+          resultado?: string | null
+          tipo_episodio?: string | null
+          tipo_tratamiento: string
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descripcion?: string
+          diagnostico_id?: string | null
+          duracion_dias?: number | null
+          efectividad?: string | null
+          episodio_id?: string | null
+          estado?: string | null
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          indicaciones?: string | null
+          medico_id?: string | null
+          paciente_id?: string
+          resultado?: string | null
+          tipo_episodio?: string | null
+          tipo_tratamiento?: string
+          updated_at?: string | null
+          worklist_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosix_tratamientos_diagnostico_id_fkey"
+            columns: ["diagnostico_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_diagnosticos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_tratamientos_medico_id_fkey"
+            columns: ["medico_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_tratamientos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosix_tratamientos_worklist_id_fkey"
+            columns: ["worklist_id"]
+            isOneToOne: false
+            referencedRelation: "hosix_medicos_worklist"
             referencedColumns: ["id"]
           },
         ]
@@ -6695,6 +8049,16 @@ export type Database = {
           provincia: string
           sector: string
           total_profesionales: number
+        }[]
+      }
+      buscar_interacciones_medicamento: {
+        Args: { p_medicamento_id: string }
+        Returns: {
+          descripcion: string
+          medicamento_id: string
+          medicamento_nombre: string
+          recomendacion: string
+          severidad: string
         }[]
       }
       calcular_edad: { Args: { birth_date: string }; Returns: number }

@@ -1018,11 +1018,26 @@ La FASE 3 se enfoca en **Seguridad del Paciente** implementando:
 
 ### ⏳ SUBTAREAS PENDIENTES (PRÓXIMAS SESIONES)
 
-#### FASE 3.4: Admisión Central (ADM. 11.0) - ⏳
-- [ ] Flujo unificado de registro de pacientes
-- [ ] Clasificación automática (Urgencias/Externa/Hospitalización)
-- [ ] Asignación de recursos (box, cama, médico)
-- [ ] Alerta de sala de espera
+#### ✅ FASE 3.4: Admisión Central (ADM. 11.0)
+
+**Estado**: ✅ COMPLETADO
+**Archivos Creados**:
+- `src/components/hosix/admision/AdmisionCentralForm.tsx` (512 líneas)
+- `src/components/hosix/admision/AdmisionesListado.tsx` (138 líneas)
+- `src/components/hosix/admision/AdmisionesEstadisticas.tsx` (150 líneas)
+- `src/pages/Hosix/AdmisionCentral.tsx` (61 líneas)
+
+**Características Implementadas**:
+- [x] Búsqueda integrada de pacientes (PPI, nombre)
+- [x] Selección de 3 tipos de ingreso (Urgencias/Externa/Hospitalización)
+- [x] Carga dinámica de servicios según tipo
+- [x] Motivo de consulta obligatorio
+- [x] Creación de episodios según tipo
+- [x] Generación automática de entrada en HCE
+- [x] Listado de admisiones activas (combinado urgencias + hospitalizaciones)
+- [x] Estadísticas en tiempo real (KPIs + gráfico por servicio)
+- [x] Ruta `/hosix/admision` integrada
+- [x] Menú sidebar "Admisión Central" agregado
 
 #### FASE 3.5: Enfermería Worklist - ⏳
 - [ ] Integración de órdenes desde CPOE

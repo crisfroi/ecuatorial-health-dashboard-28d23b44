@@ -22,6 +22,62 @@ El sistema HOSIX se implementará en **4 fases principales**:
 
 ---
 
+## 🚀 SESIÓN 16 - RESUMEN DE CAMBIOS (2025-02-06 - EN PROGRESO)
+
+**Tareas en progreso:**
+
+### ⏳ ASIS 11.0 - Interconsultas (60% - Migración SQL COMPLETADA)
+- **Migración SQL**: `20250206_014_hosix_interconsultas_asis_11.sql` ✅ CREADA (416 líneas)
+  - **6 tablas principales**:
+    - `hosix_interconsultas_especialidades` - Catálogo de 20 especialidades
+    - `hosix_interconsultas` - Solicitudes de interconsulta con generación automática de número
+    - `hosix_interconsultas_respuestas` - Respuestas de especialistas
+    - `hosix_interconsultas_seguimiento` - Seguimiento de recomendaciones
+    - `hosix_interconsultas_referrals` - Derivaciones entre instituciones
+    - `hosix_interconsultas_comunicaciones` - Comunicación entre profesionales
+  - **Características SQL**:
+    - [x] Catálogo de 20 especialidades con tiempos de respuesta
+    - [x] Generación automática de número (INTC-YYYY-00001)
+    - [x] Triggers para cálculo automático de fechas límite
+    - [x] Triggers para actualización de estado al responder
+    - [x] 17 índices de performance optimizados
+    - [x] RLS policies para seguridad de acceso
+    - [x] 2 vistas útiles (pendientes y respondidas)
+    - [x] Funciones SQL para cálculos automáticos
+
+- **Componentes React**: ⏳ PENDIENTES
+  - `SolicitudesManager.tsx` - YA EXISTE (necesita actualización)
+  - `RespuestasManager.tsx` - PENDIENTE
+  - `SeguimientoManager.tsx` - PENDIENTE
+  - `ComunicacionesManager.tsx` - PENDIENTE
+
+- **Hook**: `useHosixInterconsultas.ts` - YA EXISTE
+
+**Estado de Aplicación de Migraciones**:
+- ✅ Migración SQL creada en `/supabase/migrations/20250206_014_hosix_interconsultas_asis_11.sql`
+- ⏳ Pendiente: Aplicar en Supabase usando MCP (manual o CLI)
+- ✅ Componentes React existentes: `src/components/hosix/interconsultas/SolicitudesManager.tsx`
+
+### ⏳ ASIS 9.0 - Farmacia (40% - Componentes COMPLETADOS)
+- **Componente**: `DispensacionesManager.tsx` ✅ CREADO
+  - [x] Estadísticas de dispensarios operativos
+  - [x] Dispensaciones del día
+  - [x] Listado con búsqueda y filtros
+  - [x] Integración con hook `useHosixFarmacia`
+
+- **Hook**: `useHosixFarmacia.ts` - YA EXISTE
+
+- **Migración SQL**: ✅ YA EXISTE
+  - `20250116_004_hosix_hospitalizacion_quirofanos_farmacia.sql` contiene tablas de farmacia
+
+**Próximas subtareas**:
+1. Aplicar migración de interconsultaciones en Supabase
+2. Completar componentes de interconsultaciones (Respuestas, Seguimiento, Comunicaciones)
+3. Crear página principal ASIS 11.0
+4. Actualizar página de Farmacia con dispensarios y control
+
+---
+
 ## 🚀 SESIÓN 15 - RESUMEN DE CAMBIOS (2025-02-06)
 
 **Completado en esta sesión:**

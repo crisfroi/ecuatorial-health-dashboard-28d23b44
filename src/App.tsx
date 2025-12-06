@@ -41,6 +41,11 @@ import AdmisionCentral from "./pages/Hosix/AdmisionCentral";
 import Medicos from "./pages/Hosix/Medicos";
 import Configuracion from "./pages/Hosix/Configuracion";
 import BI from "./pages/Hosix/BI";
+import Obstetricia from "./pages/Hosix/Obstetricia";
+import CRED from "./pages/Hosix/CRED";
+import Laboratorio from "./pages/Hosix/Laboratorio";
+import Imagenologia from "./pages/Hosix/Imagenologia";
+import Interconsultas from "./pages/Hosix/Interconsultas";
 
 // Initialize ResizeObserver error handling
 initResizeObserverErrorHandling();
@@ -126,6 +131,11 @@ function App() {
                   <Route path="suministros" element={<Suministros />} />
                   <Route path="almacenes" element={<Almacenes />} />
                   <Route path="compras" element={<ComprasPage />} />
+                  <Route path="obstetricia" element={<Obstetricia />} />
+                  <Route path="cred" element={<CRED />} />
+                  <Route path="laboratorio" element={<Laboratorio />} />
+                  <Route path="imagenologia" element={<Imagenologia />} />
+                  <Route path="interconsultas" element={<Interconsultas />} />
                   <Route path="configuracion" element={<Configuracion />} />
                   <Route path="bi" element={<BI />} />
                 </Route>

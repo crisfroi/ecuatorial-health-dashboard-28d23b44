@@ -4,14 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
-import { HosixLayout } from '@/components/hosix/HosixLayout'
 
 export default function FarmaciaPage() {
   const { dispensarios, dispensaciones, farmacovigilancia } = useHosixFarmacia()
   const [activeTab, setActiveTab] = useState('dashboard')
 
   return (
-    <HosixLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Farmacia Clínica (ASIS 10.0)</h1>
@@ -144,6 +142,5 @@ export default function FarmaciaPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </HosixLayout>
-  )
-}
+    )
+  }

@@ -45,14 +45,14 @@ interface DetalleOrdenProps {
 
 export const WorklistMedicos: React.FC = () => {
   const { useOrdenesMedicas, actualizarEstadoOrdenMutation } = useHosixMedicos()
-  const { data: profesionales } = useProfesionales()
+  const { data: profesionales, error: profesionalesError } = useProfesionales()
   const [filtroEstado, setFiltroEstado] = useState<string>('all')
   const [filtroPrioridad, setFiltroPrioridad] = useState<string>('all')
   const [busqueda, setBusqueda] = useState<string>('')
   const [ordenSeleccionada, setOrdenSeleccionada] = useState<string | null>(null)
   const [dialogo, setDialogo] = useState(false)
 
-  const { data: ordenes = [], isLoading } = useOrdenesMedicas(filtroEstado === 'all' ? '' : filtroEstado)
+  const { data: ordenes = [], isLoading, error: ordenesError } = useOrdenesMedicas(filtroEstado === 'all' ? '' : filtroEstado)
 
   // Filtrar órdenes
   const ordenesFiltradas = ordenes.filter((orden) => {
@@ -110,6 +110,21 @@ export const WorklistMedicos: React.FC = () => {
 
   const handleCambiarEstado = (ordenId: string, nuevoEstado: string) => {
     actualizarEstadoOrdenMutation.mutate({ ordenId, nuevoEstado })
+  }
+
+  if (profesionalesError || ordenesError) {
+    const errorMessage = profesionalesError ?
+      `Error al cargar profesionales: ${(profesionalesError as any)?.message || 'Desconocido'}` :
+      `Error al cargar órdenes: ${(ordenesError as any)?.message || 'Desconocido'}`;
+
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <h3 className="font-semibold text-red-800">Error de Carga</h3>
+          <p className="text-sm text-red-700 mt-1">{errorMessage}</p>
+        </div>
+      </div>
+    );
   }
 
   return (

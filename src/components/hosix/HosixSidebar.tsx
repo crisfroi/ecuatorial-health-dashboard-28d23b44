@@ -36,6 +36,7 @@ const HosixSidebar: React.FC<HosixSidebarProps> = ({ isOpen }) => {
     { label: 'Hospitalización', icon: Hospital, path: '/hosix/hospitalizacion' },
     { label: 'Quirófanos', icon: Stethoscope, path: '/hosix/quirofanos' },
     { label: 'Farmacia', icon: Pill, path: '/hosix/farmacia' },
+    { label: 'Prescripción (CPOE)', icon: Pill, path: '/hosix/prescripcion' },
     { label: 'Enfermería', icon: Heart, path: '/hosix/enfermeria' },
     { label: 'Facturación', icon: DollarSign, path: '/hosix/facturacion' },
     { label: 'Cajas', icon: Vault, path: '/hosix/cajas' },

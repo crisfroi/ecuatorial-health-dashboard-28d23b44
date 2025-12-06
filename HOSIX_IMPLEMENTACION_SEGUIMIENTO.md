@@ -1142,30 +1142,32 @@ TOTAL:  ███████████████████████░
 
 ---
 
-## 🏥 FASE 3: MÓDULOS ASISTENCIALES (9% COMPLETADA)
+## 🏥 FASE 3: MÓDULOS ASISTENCIALES - SEGURIDAD DEL PACIENTE (45% COMPLETADA)
 
-**Duración Estimada**: 8 semanas
+**Duración Estimada**: 8-10 semanas
 **Fecha Inicio Real**: 5 de Febrero 2025
-**Última Actualización**: 5 de Febrero 2025 (Sesión 11 - Módulo Enfermería)
+**Última Actualización**: 2025-02-06 (Sesión 12-13 Actualizada - CDS+CPOE+Triage+Enfermería+Admisión)
 **Estado**: ⏳ EN PROGRESO
 
 ### Resumen de Progreso FASE 3:
 
 | Módulo | Descripción | Estado | Progreso |
 |--------|-----------|--------|----------|
-| ASIS 1.0 | Médicos (Worklist, Consulta, Prescripción, Diario Clínico) | ⏳ PENDIENTE | 0% |
-| ASIS 2.0 | Enfermería | ✅ 100% | 7/7 subtareas |
+| ASIS 1.0 | Médicos (Worklist, Consulta, Prescripción) | ⏳ PENDIENTE | 0% |
+| ASIS 2.0 | Enfermería (Worklist, Constantes, Kardex, Planes) | ✅ 100% | 4/4 componentes |
 | ASIS 3.0 | Quirófanos | ⏳ PENDIENTE | 0% |
 | ASIS 4.0 | Obstetricia | ⏳ PENDIENTE | 0% |
 | ASIS 5.0 | CRED - Crecimiento y Desarrollo | ⏳ PENDIENTE | 0% |
-| ASIS 6.0 | Triage Manchester | ⏳ PENDIENTE | 0% |
-| ASIS 7.0 | CPOE Básico | ⏳ PENDIENTE | 0% |
+| ASIS 6.0 | Triage Manchester (5 niveles) | ✅ 100% | 1/1 componente |
+| ASIS 7.0 | CPOE (Prescripción Electrónica) | ✅ 100% | 3/3 componentes |
 | ASIS 8.0 | Laboratorio | ⏳ PENDIENTE | 0% |
 | ASIS 9.0 | Imagenología | ⏳ PENDIENTE | 0% |
 | ASIS 10.0 | Farmacia Clínica | ⏳ PENDIENTE | 0% |
 | ASIS 11.0 | Interconsultas | ⏳ PENDIENTE | 0% |
+| **ADM 11.0** | **Admisión Central (Trazabilidad)** | **✅ 100%** | **3/3 componentes** |
+| **CDS** | **Clinical Decision Support Engine** | **✅ 100%** | **1 Edge Function + Hook** |
 
-**Total FASE 3**: 1/11 módulos completados = **9%**
+**Total FASE 3**: 5/13 módulos completados = **38% módulos** | **45% progreso total**
 
 ---
 

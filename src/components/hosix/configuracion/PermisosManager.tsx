@@ -7,7 +7,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useHosixUsers } from '@/hooks/useHosixUsers';
 import { useHosixPermisos } from '@/hooks/useHosixPermisos';
 import { AlertCircle, Save, Shield } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/hosixClient';
 
 interface PermisoModulo {
   perfil_id: string;

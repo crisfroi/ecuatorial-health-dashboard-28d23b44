@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
-import { supabase } from '@/integrations/supabase/client'
+import { supabase } from '@/integrations/supabase/hosixClient'
 import { AlertTriangle, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 
 interface TriageChessterProps {

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DollarSign, Building2, TrendingUp, FileText } from 'lucide-react';
+import { DollarSign, Building2, TrendingUp, FileText, Network } from 'lucide-react';
 import AseguradorasList from '@/components/hosix/facturacion/AseguradorasList';
 import TarifasManager from '@/components/hosix/facturacion/TarifasManager';
 import CuentasManager from '@/components/hosix/facturacion/CuentasManager';
 import FacturasGenerator from '@/components/hosix/facturacion/FacturasGenerator';
 import FacturasList from '@/components/hosix/facturacion/FacturasList';
+import IntegracionHosix from '@/components/hosix/facturacion/IntegracionHosix';
 import { useHosixFacturacion } from '@/hooks/useHosixFacturacion';
 
 export default function Facturacion() {
@@ -96,7 +97,7 @@ export default function Facturacion() {
 
         {/* Tabs de Gestión */}
         <Tabs defaultValue="cuentas" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="grid w-full grid-cols-6 mb-6">
             <TabsTrigger value="cuentas" className="gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Cuentas</span>
@@ -116,6 +117,10 @@ export default function Facturacion() {
             <TabsTrigger value="tarifas" className="gap-2">
               <DollarSign className="h-4 w-4" />
               <span className="hidden sm:inline">Tarifas</span>
+            </TabsTrigger>
+            <TabsTrigger value="integracion" className="gap-2">
+              <Network className="h-4 w-4" />
+              <span className="hidden sm:inline">Integración</span>
             </TabsTrigger>
           </TabsList>
 
@@ -142,6 +147,11 @@ export default function Facturacion() {
           {/* Tab: Tarifas */}
           <TabsContent value="tarifas" className="space-y-4">
             <TarifasManager />
+          </TabsContent>
+
+          {/* Tab: Integración HOSIX */}
+          <TabsContent value="integracion" className="space-y-4">
+            <IntegracionHosix />
           </TabsContent>
         </Tabs>
       </div>

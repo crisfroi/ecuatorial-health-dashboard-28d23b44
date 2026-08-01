@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+﻿import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/hosixClient';
 import { useToast } from '@/components/ui/use-toast';
 
 export interface HosixUser {
@@ -31,7 +31,7 @@ export const useHosixAuth = () => {
     isAuthenticated: false,
   });
 
-  // Restaurar sesión al montar
+  // Restaurar sesiÃ³n al montar
   useEffect(() => {
     const restoreSession = async () => {
       try {
@@ -49,7 +49,7 @@ export const useHosixAuth = () => {
               });
               return;
             } else {
-              // Sesión expirada
+              // SesiÃ³n expirada
               localStorage.removeItem('hosix_session');
             }
           }
@@ -73,10 +73,10 @@ export const useHosixAuth = () => {
       }
 
       if (!password) {
-        throw new Error('Contraseña requerida');
+        throw new Error('ContraseÃ±a requerida');
       }
 
-      console.log('🔐 Iniciando login HOSIX para usuario:', username);
+      console.log('ðŸ” Iniciando login HOSIX para usuario:', username);
 
       // Llamar a la edge function hosix-auth-login
       const { data, error } = await supabase.functions.invoke('hosix-auth-login', {
@@ -86,15 +86,15 @@ export const useHosixAuth = () => {
         },
       });
 
-      console.log('📡 Respuesta de edge function:', { success: data?.success, error });
+      console.log('ðŸ“¡ Respuesta de edge function:', { success: data?.success, error });
 
       if (error) {
-        console.error('❌ Error en edge function:', error);
+        console.error('âŒ Error en edge function:', error);
         throw new Error(error.message || 'Error al conectar con el servidor');
       }
 
       if (!data?.success || !data?.user) {
-        throw new Error(data?.error || 'Usuario o contraseña incorrectos');
+        throw new Error(data?.error || 'Usuario o contraseÃ±a incorrectos');
       }
 
       const user: HosixUser = {
@@ -107,7 +107,7 @@ export const useHosixAuth = () => {
         activo: true,
       };
 
-      // Crear sesión
+      // Crear sesiÃ³n
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 8);
 
@@ -124,14 +124,14 @@ export const useHosixAuth = () => {
       });
 
       toast({
-        title: '¡Bienvenido!',
+        title: 'Â¡Bienvenido!',
         description: `Bienvenido ${user.nombre_completo}`,
       });
 
       return user;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al iniciar sesión';
-      console.error('🔴 Error en login:', errorMessage, err);
+      const errorMessage = err instanceof Error ? err.message : 'Error al iniciar sesiÃ³n';
+      console.error('ðŸ”´ Error en login:', errorMessage, err);
 
       setAuthState(prev => ({
         ...prev,
@@ -160,8 +160,8 @@ export const useHosixAuth = () => {
       });
 
       toast({
-        title: 'Sesión cerrada',
-        description: 'Ha cerrado sesión correctamente',
+        title: 'SesiÃ³n cerrada',
+        description: 'Ha cerrado sesiÃ³n correctamente',
       });
 
       navigate('/hosix/login');
@@ -184,3 +184,4 @@ export const useHosixAuth = () => {
     requireLogin,
   };
 };
+

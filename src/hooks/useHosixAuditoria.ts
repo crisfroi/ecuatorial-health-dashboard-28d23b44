@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/hosixClient';
 import { useHosixAuth } from './useHosixAuth';
 
 export interface RegistroAuditoria {

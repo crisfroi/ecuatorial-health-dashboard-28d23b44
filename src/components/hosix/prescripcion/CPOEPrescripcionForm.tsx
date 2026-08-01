@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
-import { supabase } from '@/integrations/supabase/client'
+import { supabase } from '@/integrations/supabase/hosixClient'
 import { useCDSEngine, agruparAlertasPorSeveridad, obtenerColorSeveridad, obtenerIconoSeveridad, Alert as CDSAlert } from '@/hooks/useCDSEngine'
 import { AlertTriangle, AlertCircle, CheckCircle, Zap } from 'lucide-react'
 

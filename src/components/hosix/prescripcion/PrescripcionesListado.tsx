@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { supabase } from '@/integrations/supabase/client'
+import { supabase } from '@/integrations/supabase/hosixClient'
 import { useToast } from '@/components/ui/use-toast'
 import { AlertCircle, Loader } from 'lucide-react'
 

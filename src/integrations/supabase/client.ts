@@ -28,6 +28,10 @@ console.log('✅ Supabase client initialized with:', {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Native fetch captured BEFORE any wrapping, to avoid infinite recursion
+const nativeFetch: typeof fetch =
+  typeof window !== 'undefined' ? window.fetch.bind(window) : fetch;
+
 const resilientFetch: typeof fetch = async (input, init = {}) => {
   const maxAttempts = 3;
   const baseTimeoutMs = 12000;
@@ -37,7 +41,7 @@ const resilientFetch: typeof fetch = async (input, init = {}) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), baseTimeoutMs * (attempt + 1));
     try {
-      const resp = await fetch(input, {
+      const resp = await nativeFetch(input, {
         ...init,
         cache: 'no-store',
         keepalive: true,

@@ -48,20 +48,16 @@ export function useGenerateCarnet() {
           headers['Authorization'] = `Bearer ${session.access_token}`;
         }
 
-        // Construir URL de la edge function
+        // Construir URL de la edge function (acepta GET con ?id=, no POST)
         const supabaseUrl = 'https://wdieynendfjbkbhfovrx.supabase.co';
-        const functionUrl = `${supabaseUrl}/functions/v1/generar-carnet-profesional`;
+        const functionUrl = `${supabaseUrl}/functions/v1/generar-carnet-profesional?id=${encodeURIComponent(profesionalId)}`;
 
         console.log(`🌐 Llamando a edge function: ${functionUrl}`);
 
         // Llamar a la edge function para generar el carnet
         const response = await fetch(functionUrl, {
-          method: 'POST',
+          method: 'GET',
           headers,
-          body: JSON.stringify({
-            profesional_id: profesionalId,
-            force_regenerate: false
-          })
         });
 
         console.log(`📡 Respuesta HTTP: ${response.status}`);

@@ -1,6 +1,6 @@
 
 import { useMutation } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export function useGenerateCarnet() {
@@ -41,6 +41,7 @@ export function useGenerateCarnet() {
         
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
+          'apikey': SUPABASE_PUBLISHABLE_KEY,
         };
 
         if (session?.access_token) {

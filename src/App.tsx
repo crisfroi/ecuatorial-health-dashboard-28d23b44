@@ -10,7 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import ProfessionalRegistrationEntry from "./pages/ProfessionalRegistrationEntry";
 import PublicSearch from "./pages/PublicSearch";
 import NotFound from "./pages/NotFound";
-import SolicitudEstablecimiento from "./pages/SolicitudEstablecimiento";
+import EstablishmentRegistrationEntry from "./pages/EstablishmentRegistrationEntry";
 import DynamicForms from "./pages/DynamicForms";
 import PublicForm from "./pages/PublicForm";
 import Auth from "./pages/Auth";
@@ -44,79 +44,10 @@ import CRED from "./pages/Hosix/CRED";
 import Laboratorio from "./pages/Hosix/Laboratorio";
 import Imagenologia from "./pages/Hosix/Imagenologia";
 import Interconsultas from "./pages/Hosix/Interconsultas";
-
 initResizeObserverErrorHandling();
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: (failureCount, error: any) => {
-        if (error?.message?.includes('auth') || error?.message?.includes('unauthorized')) return false;
-        return failureCount < 3;
-      },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: true,
-    },
-    mutations: { retry: 1 },
-  },
-});
-
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
-        <AuthProvider defaultRole="SUPER_ADMINISTRADOR">
-          <TooltipProvider>
-            <Toaster /><Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/old-home" element={<Index />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/register" element={<ProfessionalRegistrationEntry />} />
-                <Route path="/search" element={<PublicSearch />} />
-                <Route path="/solicitud-establecimiento" element={<SolicitudEstablecimiento />} />
-                <Route path="/dynamic-forms" element={<DynamicForms />} />
-                <Route path="/form/:publicUrl" element={<PublicForm />} />
-                <Route path="/hosix/login" element={<HosixLogin />} />
-                <Route path="/hosix" element={<HosixLayout />}>
-                  <Route index element={<HosixDashboard />} />
-                  <Route path="admision" element={<AdmisionCentral />} />
-                  <Route path="pacientes" element={<Pacientes />} />
-                  <Route path="urgencias" element={<Urgencias />} />
-                  <Route path="citas" element={<Citas />} />
-                  <Route path="hospitalizacion" element={<Hospitalizacion />} />
-                  <Route path="quirofanos" element={<Quirofanos />} />
-                  <Route path="farmacia" element={<Farmacia />} />
-                  <Route path="medicos" element={<Medicos />} />
-                  <Route path="prescripcion" element={<Prescripcion />} />
-                  <Route path="enfermeria" element={<Enfermeria />} />
-                  <Route path="facturacion" element={<FacturacionPage />} />
-                  <Route path="cajas" element={<CajasPage />} />
-                  <Route path="recobros" element={<RecobrosPage />} />
-                  <Route path="suministros" element={<Suministros />} />
-                  <Route path="almacenes" element={<Almacenes />} />
-                  <Route path="compras" element={<ComprasPage />} />
-                  <Route path="obstetricia" element={<Obstetricia />} />
-                  <Route path="cred" element={<CRED />} />
-                  <Route path="laboratorio" element={<Laboratorio />} />
-                  <Route path="imagenologia" element={<Imagenologia />} />
-                  <Route path="interconsultas" element={<Interconsultas />} />
-                  <Route path="configuracion" element={<Configuracion />} />
-                  <Route path="bi" element={<BI />} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </AuthProvider>
-      </ErrorBoundary>
-    </QueryClientProvider>
-  );
-}
-
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: (failureCount, error: any) => { if (error?.message?.includes('auth') || error?.message?.includes('unauthorized')) return false; return failureCount < 3; }, retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), staleTime: 5 * 60 * 1000, gcTime: 10 * 60 * 1000, refetchOnWindowFocus: false, refetchOnReconnect: true }, mutations: { retry: 1 } } });
+function App() { return <QueryClientProvider client={queryClient}><ErrorBoundary><AuthProvider defaultRole="SUPER_ADMINISTRADOR"><TooltipProvider><Toaster/><Sonner/><BrowserRouter><Routes>
+<Route path="/" element={<Home/>}/><Route path="/old-home" element={<Index/>}/><Route path="/auth" element={<Auth/>}/><Route path="/dashboard" element={<Dashboard/>}/><Route path="/register" element={<ProfessionalRegistrationEntry/>}/><Route path="/search" element={<PublicSearch/>}/><Route path="/solicitud-establecimiento" element={<EstablishmentRegistrationEntry/>}/><Route path="/dynamic-forms" element={<DynamicForms/>}/><Route path="/form/:publicUrl" element={<PublicForm/>}/><Route path="/hosix/login" element={<HosixLogin/>}/>
+<Route path="/hosix" element={<HosixLayout/>}><Route index element={<HosixDashboard/>}/><Route path="admision" element={<AdmisionCentral/>}/><Route path="pacientes" element={<Pacientes/>}/><Route path="urgencias" element={<Urgencias/>}/><Route path="citas" element={<Citas/>}/><Route path="hospitalizacion" element={<Hospitalizacion/>}/><Route path="quirofanos" element={<Quirofanos/>}/><Route path="farmacia" element={<Farmacia/>}/><Route path="medicos" element={<Medicos/>}/><Route path="prescripcion" element={<Prescripcion/>}/><Route path="enfermeria" element={<Enfermeria/>}/><Route path="facturacion" element={<FacturacionPage/>}/><Route path="cajas" element={<CajasPage/>}/><Route path="recobros" element={<RecobrosPage/>}/><Route path="suministros" element={<Suministros/>}/><Route path="almacenes" element={<Almacenes/>}/><Route path="compras" element={<ComprasPage/>}/><Route path="obstetricia" element={<Obstetricia/>}/><Route path="cred" element={<CRED/>}/><Route path="laboratorio" element={<Laboratorio/>}/><Route path="imagenologia" element={<Imagenologia/>}/><Route path="interconsultas" element={<Interconsultas/>}/><Route path="configuracion" element={<Configuracion/>}/><Route path="bi" element={<BI/>}/></Route><Route path="*" element={<NotFound/>}/>
+</Routes></BrowserRouter></TooltipProvider></AuthProvider></ErrorBoundary></QueryClientProvider>; }
 export default App;

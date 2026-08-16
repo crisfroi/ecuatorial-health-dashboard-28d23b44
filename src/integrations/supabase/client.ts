@@ -37,6 +37,16 @@ const resilientFetch: typeof fetch = async (input, init = {}) => {
   const baseTimeoutMs = 12000;
   let lastError: any = null;
 
+  // IMPORTANT: when `input` is already a Request object (as the Supabase SDK does
+  // internally to attach `apikey`/`Authorization`), passing a fresh `init.headers`
+  // to fetch() REPLACES the Request's original headers instead of merging them
+  // (per the Fetch spec). That was silently dropping the apikey header on every
+  // call, causing "No API key found in request" 401 errors. We merge explicitly
+  // here so headers already present on `input` are preserved.
+  const mergedHeaders = new Headers(input instanceof Request ? input.headers : undefined);
+  new Headers(init.headers || {}).forEach((value, key) => mergedHeaders.set(key, value));
+  mergedHeaders.set('X-Client-Info', 'guinea-salud-dashboard');
+
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), baseTimeoutMs * (attempt + 1));
@@ -46,10 +56,7 @@ const resilientFetch: typeof fetch = async (input, init = {}) => {
         cache: 'no-store',
         keepalive: true,
         signal: controller.signal,
-        headers: {
-          ...(init.headers || {}),
-          'X-Client-Info': 'guinea-salud-dashboard',
-        },
+        headers: mergedHeaders,
         mode: 'cors',
       } as RequestInit);
 

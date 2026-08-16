@@ -97,6 +97,13 @@ export const rootSupabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLIS
     headers: {
       'X-Client-Info': 'guinea-salud-dashboard',
     },
+    // IMPORTANT: pass resilientFetch explicitly instead of relying only on the
+    // global window.fetch override below. supabase-js resolves its fetch
+    // reference at client-construction time, which happens before that
+    // override runs — so without this, rootSupabase could silently keep using
+    // the pre-override native fetch reference in some bundling/runtime orders,
+    // making the apikey-preserving fix in resilientFetch a no-op for it.
+    fetch: resilientFetch,
   },
   db: {
     schema: 'public',

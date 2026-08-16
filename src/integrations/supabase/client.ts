@@ -41,7 +41,7 @@ const resilientFetch: typeof fetch = async (input, init = {}) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), baseTimeoutMs * (attempt + 1));
     try {
-      const resp = await fetch(input, {
+      const resp = await nativeFetch(input, {
         ...init,
         cache: 'no-store',
         keepalive: true,

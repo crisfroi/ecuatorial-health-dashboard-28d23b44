@@ -1,605 +1,66 @@
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Building2, Eye, Edit, Save, X, RefreshCw, FileImage, Download } from "lucide-react";
-import { useSolicitudesEstablecimientosQuery, useSolicitudesEstablecimientos } from "@/hooks/useSolicitudesEstablecimientos";
-import { useToast } from "@/hooks/use-toast";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
-import EstablishmentRequestLetter from "@/components/registration/EstablishmentRequestLetter";
-import EstablishmentApprovalResolution from "@/components/registration/EstablishmentApprovalResolution";
+import React,{useEffect,useMemo,useState} from 'react';
+import {Card,CardContent,CardHeader,CardTitle} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {Table,TableBody,TableCell,TableHead,TableHeader,TableRow} from '@/components/ui/table';
+import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
+import {Textarea} from '@/components/ui/textarea';
+import {Input} from '@/components/ui/input';
+import {Tabs,TabsContent,TabsList,TabsTrigger} from '@/components/ui/tabs';
+import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
+import {Building2,Eye,Save,X,RefreshCw,ClipboardCheck,ReceiptText,Search,CalendarDays} from 'lucide-react';
+import {useSolicitudesEstablecimientosQuery,useSolicitudesEstablecimientos} from '@/hooks/useSolicitudesEstablecimientos';
+import {useToast} from '@/hooks/use-toast';
+import {supabase} from '@/integrations/supabase/client';
 
-interface SolicitudesEstablecimientosProps {
-  userRole: string;
-  defaultEstado?: string;
-}
+interface Props{userRole:string;defaultEstado?:string;}
+const ESTADOS=['Pendiente','Revisando','Pendiente de Firma','Autorizado','Rechazado'];
+const INSPECCION_ESTADOS=['Programada','En curso','Finalizada','Con incidencias','Cerrada'];
 
-const SolicitudesEstablecimientos = ({ userRole, defaultEstado = "Pendiente" }: SolicitudesEstablecimientosProps) => {
-  const [estadoFiltro, setEstadoFiltro] = useState(defaultEstado);
-  const [editandoEstados, setEditandoEstados] = useState<Record<string, string>>({});
-  const [motivosRechazo, setMotivosRechazo] = useState<Record<string, string>>({});
-  const [notasRevision, setNotasRevision] = useState<Record<string, string>>({});
-  const [solicitudSeleccionada, setSolicitudSeleccionada] = useState<any>(null);
+const statusClass=(estado:string)=>estado==='Autorizado'?'bg-green-100 text-green-800 border-green-300':estado==='Rechazado'?'bg-red-100 text-red-800 border-red-300':estado==='Pendiente de Firma'?'bg-orange-100 text-orange-800 border-orange-300':estado==='Revisando'?'bg-blue-100 text-blue-800 border-blue-300':'bg-yellow-100 text-yellow-800 border-yellow-300';
 
-  const { toast } = useToast();
-  const { data: solicitudes = [], isLoading, refetch } = useSolicitudesEstablecimientosQuery({ estado: estadoFiltro === "todos" ? undefined : estadoFiltro });
-  const { actualizarEstadoMutation } = useSolicitudesEstablecimientos();
+const SolicitudesEstablecimientos=({userRole,defaultEstado='Pendiente'}:Props)=>{
+ const {toast}=useToast();
+ const [estadoFiltro,setEstadoFiltro]=useState(defaultEstado);
+ const [selected,setSelected]=useState<any>(null);
+ const [editState,setEditState]=useState<Record<string,string>>({});
+ const [rejectReason,setRejectReason]=useState<Record<string,string>>({});
+ const [reviewNotes,setReviewNotes]=useState<Record<string,string>>({});
+ const [search,setSearch]=useState('');
+ const {data:solicitudes=[],isLoading,refetch}=useSolicitudesEstablecimientosQuery({estado:estadoFiltro==='todos'?undefined:estadoFiltro});
+ const {actualizarEstadoMutation}=useSolicitudesEstablecimientos();
+ const [inspections,setInspections]=useState<any[]>([]); const [inspectionLoading,setInspectionLoading]=useState(false); const [inspectionForm,setInspectionForm]=useState<any>({establecimiento_id:'',tipo_inspeccion:'Inicial',fecha_programada:'',estado:'Programada',observaciones:''});
+ const [notes,setNotes]=useState<any[]>([]); const [noteId,setNoteId]=useState(''); const [noteForm,setNoteForm]=useState<any>({monto:'',moneda:'XAF',cuenta_tesoreria:'',concepto_codigo:'',concepto_descripcion:''}); const [notesLoading,setNotesLoading]=useState(false); const [savingNote,setSavingNote]=useState(false);
+ const isMinisterial=/MINISTERIAL|SUPER_ADMINISTRADOR|ADMIN/i.test(userRole||'');
+ const filtered=useMemo(()=>{const q=search.trim().toLowerCase();return (solicitudes||[]).filter((s:any)=>!q||[s.numero_solicitud,s.nombre_establecimiento,s.director_responsable,s.provincia,s.distrito_sanitario].some(v=>String(v||'').toLowerCase().includes(q)));},[solicitudes,search]);
 
-  const getStatusColor = (estado: string) => {
-    switch (estado) {
-      case "Pendiente":
-        return "bg-yellow-100 text-yellow-800 border-yellow-300";
-      case "Revisando":
-        return "bg-blue-100 text-blue-800 border-blue-300";
-      case "Pendiente de Firma":
-        return "bg-orange-100 text-orange-800 border-orange-300";
-      case "Autorizado":
-        return "bg-green-100 text-green-800 border-green-300";
-      case "Rechazado":
-        return "bg-red-100 text-red-800 border-red-300";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-300";
-    }
-  };
+ const loadInspections=async()=>{setInspectionLoading(true);try{const {data,error}=await supabase.from('inspecciones_establecimientos').select('*').order('created_at',{ascending:false}).limit(100);if(error)throw error;setInspections(data||[]);}catch(e:any){toast({title:'No se pudieron cargar las inspecciones',description:e.message||'Error de base de datos',variant:'destructive'});}finally{setInspectionLoading(false);}};
+ const loadNotes=async()=>{setNotesLoading(true);try{const {data,error}=await supabase.from('notas_ingreso').select('id,numero_nota,tipo_solicitud,solicitud_id,concepto_codigo,concepto_descripcion,monto,moneda,cuenta_tesoreria,beneficiario_nombre,beneficiario_documento,pdf_url,created_at').order('created_at',{ascending:false}).limit(100);if(error)throw error;setNotes(data||[]);}catch(e:any){toast({title:'No se pudieron cargar las notas',description:e.message||'Error de base de datos',variant:'destructive'});}finally{setNotesLoading(false);}};
+ useEffect(()=>{loadInspections();if(isMinisterial)loadNotes();},[isMinisterial]);
+ useEffect(()=>{const n=notes.find(x=>x.id===noteId);if(n)setNoteForm({monto:n.monto??'',moneda:n.moneda||'XAF',cuenta_tesoreria:n.cuenta_tesoreria||'',concepto_codigo:n.concepto_codigo||'',concepto_descripcion:n.concepto_descripcion||''});},[noteId,notes]);
+ const saveState=async(id:string)=>{const estado=editState[id];if(!estado)return;if(estado==='Rechazado'&&!rejectReason[id]?.trim()){toast({title:'Motivo requerido',description:'Debe indicar el motivo del rechazo.',variant:'destructive'});return;}try{await actualizarEstadoMutation.mutateAsync({id,estado,motivo_rechazo:estado==='Rechazado'?rejectReason[id]:undefined,notas_revision:reviewNotes[id]});setEditState(p=>{const n={...p};delete n[id];return n});await refetch();toast({title:'Estado actualizado',description:`La solicitud pasó a “${estado}”.`});}catch(e:any){toast({title:'Error',description:e.message||'No se pudo actualizar el estado.',variant:'destructive'});}};
+ const saveInspection=async()=>{if(!inspectionForm.establecimiento_id){toast({title:'Establecimiento requerido',description:'Seleccione un establecimiento antes de programar la inspección.',variant:'destructive'});return;}try{const {error}=await supabase.from('inspecciones_establecimientos').insert({establecimiento_id:inspectionForm.establecimiento_id,tipo_inspeccion:inspectionForm.tipo_inspeccion,fecha_programada:inspectionForm.fecha_programada||null,estado:'Programada',observaciones:inspectionForm.observaciones||null});if(error)throw error;toast({title:'Inspección programada',description:'La inspección se ha registrado correctamente.'});setInspectionForm({establecimiento_id:'',tipo_inspeccion:'Inicial',fecha_programada:'',estado:'Programada',observaciones:''});loadInspections();}catch(e:any){toast({title:'Error al registrar inspección',description:e.message||'No se pudo guardar la inspección.',variant:'destructive'});}};
+ const updateInspection=async(id:string,estado:string)=>{try{const {error}=await supabase.from('inspecciones_establecimientos').update({estado}).eq('id',id);if(error)throw error;loadInspections();}catch(e:any){toast({title:'Error',description:e.message||'No se pudo actualizar la inspección.',variant:'destructive'});}};
+ const saveNote=async()=>{if(!noteId)return;setSavingNote(true);try{const monto=Number(noteForm.monto);if(!Number.isFinite(monto)||monto<0)throw new Error('El importe debe ser un número válido.');if(!noteForm.cuenta_tesoreria.trim())throw new Error('La cuenta de Tesorería es obligatoria.');const {error}=await supabase.from('notas_ingreso').update({monto,moneda:noteForm.moneda,cuenta_tesoreria:noteForm.cuenta_tesoreria.trim(),concepto_codigo:noteForm.concepto_codigo.trim()||null,concepto_descripcion:noteForm.concepto_descripcion.trim()||null}).eq('id',noteId);if(error)throw error;toast({title:'Parámetros actualizados',description:'Los parámetros de la Nota de Ingreso han sido guardados desde el panel ministerial.'});loadNotes();}catch(e:any){toast({title:'No se pudo guardar',description:e.message||'Error al actualizar la Nota de Ingreso.',variant:'destructive'});}finally{setSavingNote(false);}};
 
-  const getOpcionesEstado = (estadoActual: string) => {
-    const opciones = ["Revisando", "Pendiente de Firma", "Autorizado", "Rechazado"];
-    
-    if (estadoActual === "Pendiente") return opciones;
-    if (estadoActual === "Revisando") return ["Pendiente de Firma", "Autorizado", "Rechazado"];
-    if (estadoActual === "Pendiente de Firma") return ["Autorizado", "Rechazado"];
-    
-    return [];
-  };
-
-  const handleEditarEstado = (id: string, estadoActual: string) => {
-    setEditandoEstados(prev => ({ ...prev, [id]: estadoActual }));
-    setMotivosRechazo(prev => {
-      const nuevos = { ...prev };
-      delete nuevos[id];
-      return nuevos;
-    });
-    setNotasRevision(prev => {
-      const nuevas = { ...prev };
-      delete nuevas[id];
-      return nuevas;
-    });
-  };
-
-  const handleGuardarEstado = async (id: string) => {
-    const nuevoEstado = editandoEstados[id];
-    if (!nuevoEstado) return;
-
-    if (nuevoEstado === "Rechazado" && !motivosRechazo[id]) {
-      toast({
-        title: "Motivo de Rechazo Requerido",
-        description: "Debe introducir un motivo si el estado es 'Rechazado'.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await actualizarEstadoMutation.mutateAsync({
-        id,
-        estado: nuevoEstado,
-        motivo_rechazo: nuevoEstado === "Rechazado" ? motivosRechazo[id] : undefined,
-        notas_revision: notasRevision[id],
-      });
-
-      setEditandoEstados(prev => {
-        const nuevos = { ...prev };
-        delete nuevos[id];
-        return nuevos;
-      });
-      setMotivosRechazo(prev => {
-        const nuevos = { ...prev };
-        delete nuevos[id];
-        return nuevos;
-      });
-      setNotasRevision(prev => {
-        const nuevas = { ...prev };
-        delete nuevas[id];
-        return nuevas;
-      });
-    } catch (error) {
-      console.error("Error actualizando estado:", error);
-    }
-  };
-
-  const handleCancelarEdicion = (id: string) => {
-    setEditandoEstados(prev => {
-      const nuevos = { ...prev };
-      delete nuevos[id];
-      return nuevos;
-    });
-    setMotivosRechazo(prev => {
-      const nuevos = { ...prev };
-      delete nuevos[id];
-      return nuevos;
-    });
-    setNotasRevision(prev => {
-      const nuevas = { ...prev };
-      delete nuevas[id];
-      return nuevas;
-    });
-  };
-
-  const formatearFecha = (fecha?: string) => {
-    if (!fecha) return "N/A";
-    return new Date(fecha).toLocaleDateString("es-ES");
-  };
-
-  if (isLoading) {
-    return <div className="flex justify-center p-8">Cargando solicitudes...</div>;
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Header con filtros */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Building2 className="h-6 w-6" />
-              <span>Gestión de Solicitudes de Establecimientos</span>
-            </div>
-            <Button onClick={() => refetch()} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Actualizar
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-4">
-            <Select value={estadoFiltro} onValueChange={setEstadoFiltro}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="Pendiente">Pendiente</SelectItem>
-                <SelectItem value="Revisando">Revisando</SelectItem>
-                <SelectItem value="Pendiente de Firma">Pendiente de Firma</SelectItem>
-                <SelectItem value="Autorizado">Autorizado</SelectItem>
-                <SelectItem value="Rechazado">Rechazado</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="text-sm text-gray-600">
-              Total: {solicitudes.length} solicitudes
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tabla de solicitudes */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nº Solicitud</TableHead>
-                <TableHead>Establecimiento</TableHead>
-                <TableHead>Categoría</TableHead>
-                <TableHead>Provincia</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Fecha Solicitud</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(solicitudes || []).filter(Boolean).map((solicitud: any) => (
-                <TableRow key={solicitud.id}>
-                  <TableCell className="font-mono text-sm">
-                    {solicitud.numero_solicitud}
-                    {solicitud.numero_registro && (
-                      <div className="text-xs text-green-600">
-                        Reg: {solicitud.numero_registro}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{solicitud.nombre_establecimiento}</div>
-                      <div className="text-sm text-gray-500">{solicitud.director_responsable}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{solicitud.categoria}</TableCell>
-                  <TableCell>{solicitud.provincia}</TableCell>
-                  <TableCell>
-                    {editandoEstados[solicitud.id] ? (
-                      <div className="space-y-2">
-                        <Select
-                          value={editandoEstados[solicitud.id]}
-                          onValueChange={(value) =>
-                            setEditandoEstados(prev => ({ ...prev, [solicitud.id]: value }))
-                          }
-                        >
-                          <SelectTrigger className="w-40">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {getOpcionesEstado(((solicitud as any)?.estado || 'Pendiente')).map((opcion) => (
-                              <SelectItem key={opcion} value={opcion}>
-                                {opcion}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        
-                        {editandoEstados[solicitud.id] === "Rechazado" && (
-                          <Textarea
-                            placeholder="Motivo del rechazo..."
-                            value={motivosRechazo[solicitud.id] || ""}
-                            onChange={(e) =>
-                              setMotivosRechazo(prev => ({ ...prev, [solicitud.id]: e.target.value }))
-                            }
-                            className="text-sm"
-                          />
-                        )}
-                        
-                        <Textarea
-                          placeholder="Notas de revisión (opcional)..."
-                          value={notasRevision[solicitud.id] || ""}
-                          onChange={(e) =>
-                            setNotasRevision(prev => ({ ...prev, [solicitud.id]: e.target.value }))
-                          }
-                          className="text-sm"
-                        />
-
-                        <div className="flex space-x-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleGuardarEstado(solicitud.id)}
-                            disabled={actualizarEstadoMutation.isPending}
-                          >
-                            <Save className="h-3 w-3 mr-1" />
-                            Guardar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleCancelarEdicion(solicitud.id)}
-                          >
-                            <X className="h-3 w-3 mr-1" />
-                            Cancelar
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <Badge className={getStatusColor(((solicitud as any)?.estado || 'Pendiente'))}>
-                        {(solicitud as any)?.estado || 'Pendiente'}
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>{formatearFecha((solicitud as any)?.fecha_solicitud)}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setSolicitudSeleccionada(solicitud)}
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            Ver
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle className="flex items-center justify-between w-full">
-                              <span>Solicitud {solicitudSeleccionada?.numero_solicitud || ''}</span>
-                              <div className="flex items-center gap-2">
-                                <Badge className={getStatusColor(solicitudSeleccionada?.estado || 'Pendiente')}>{solicitudSeleccionada?.estado}</Badge>
-                                {/* Acciones r��pidas estilo ministerial */}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex items-center gap-2"
-                                  onClick={() => solicitudSeleccionada && handleEditarEstado(solicitudSeleccionada.id, solicitudSeleccionada.estado || 'Pendiente')}
-                                >
-                                  <Edit className="h-3 w-3" /> Editar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-                                  onClick={async () => {
-                                    await actualizarEstadoMutation.mutateAsync({ id: solicitudSeleccionada!.id, estado: 'Autorizado' });
-                                    await refetch();
-                                  }}
-                                >
-                                  <Save className="h-3 w-3" /> Autorizar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  className="flex items-center gap-2"
-                                  onClick={async () => {
-                                    await actualizarEstadoMutation.mutateAsync({ id: solicitudSeleccionada!.id, estado: 'Pendiente de Firma' });
-                                    await refetch();
-                                  }}
-                                >
-                                  <Save className="h-3 w-3" /> Pendiente de Firma
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="flex items-center gap-2"
-                                  onClick={async () => {
-                                    const motivo = window.prompt('Motivo de rechazo:');
-                                    if (motivo && motivo.trim()) {
-                                      await actualizarEstadoMutation.mutateAsync({ id: solicitudSeleccionada!.id, estado: 'Rechazado', motivo_rechazo: motivo.trim() });
-                                      await refetch();
-                                    }
-                                  }}
-                                >
-                                  <X className="h-3 w-3" /> Rechazar
-                                </Button>
-                                {/* Menú adicional */}
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm">
-                                      Más
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                      onClick={async () => {
-                                        const el = document.getElementById('est-letter-print');
-                                        if (!el) return;
-                                        const canvas = await html2canvas(el as HTMLElement, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-                                        const imgData = canvas.toDataURL('image/png');
-                                        const pdf = new jsPDF('p', 'mm', 'a4');
-                                        const imgWidth = 210;
-                                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                                        let heightLeft = imgHeight;
-                                        let position = 0;
-                                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                                        heightLeft -= 297;
-                                        while (heightLeft > 0) {
-                                          position = heightLeft - imgHeight;
-                                          pdf.addPage();
-                                          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                                          heightLeft -= 297;
-                                        }
-                                        pdf.save(`carta-solicitud-establecimiento-${solicitudSeleccionada?.numero_solicitud || solicitudSeleccionada?.id || 'solicitud'}.pdf`);
-                                      }}
-                                    >
-                                      Carta de Solicitud (PDF)
-                                    </DropdownMenuItem>
-                                    {((solicitudSeleccionada?.estado === 'Pendiente de Firma' || solicitudSeleccionada?.estado === 'Autorizado')) && (
-                                      <DropdownMenuItem
-                                        onClick={async () => {
-                                          const el = document.getElementById('est-resolution-print');
-                                          if (!el) return;
-                                          const canvas = await html2canvas(el as HTMLElement, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-                                          const imgData = canvas.toDataURL('image/png');
-                                          const pdf = new jsPDF('p', 'mm', 'a4');
-                                          const imgWidth = 210;
-                                          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                                          let heightLeft = imgHeight;
-                                          let position = 0;
-                                          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                                          heightLeft -= 297;
-                                          while (heightLeft > 0) {
-                                            position = heightLeft - imgHeight;
-                                            pdf.addPage();
-                                            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                                            heightLeft -= 297;
-                                          }
-                                          pdf.save(`resolucion-alta-establecimiento-${solicitudSeleccionada?.numero_solicitud || solicitudSeleccionada?.id || 'solicitud'}.pdf`);
-                                        }}
-                                      >
-                                        Resolución de Aprobación (PDF)
-                                      </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuItem asChild>
-                                      <a href={`data:text/plain,${encodeURIComponent(JSON.stringify(solicitudSeleccionada, null, 2))}`} download={`solicitud_${solicitudSeleccionada?.numero_solicitud || solicitudSeleccionada?.id}.json`}>
-                                        Descargar JSON
-                                      </a>
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </DialogTitle>
-                          </DialogHeader>
-                          {solicitudSeleccionada && (
-                            <div className="space-y-6">
-                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                <Card className="lg:col-span-1">
-                                  <CardHeader>
-                                    <CardTitle>Información General</CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2 text-sm">
-                                    <div><strong>Nombre:</strong> {solicitudSeleccionada.nombre_establecimiento}</div>
-                                    <div><strong>Categoría:</strong> {solicitudSeleccionada.categoria}</div>
-                                    <div><strong>Tipo:</strong> {solicitudSeleccionada.tipo_servicio}</div>
-                                    <div><strong>Director:</strong> {solicitudSeleccionada.director_responsable}</div>
-                                    <div><strong>Teléfono:</strong> {solicitudSeleccionada.telefono || '—'}</div>
-                                    <div><strong>Email:</strong> {solicitudSeleccionada.email || '—'}</div>
-                                    <div><strong>NIF:</strong> {solicitudSeleccionada.nif || '—'}</div>
-                                  </CardContent>
-                                </Card>
-                                <Card className="lg:col-span-1">
-                                  <CardHeader>
-                                    <CardTitle>Ubicación</CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2 text-sm">
-                                    <div><strong>Provincia:</strong> {solicitudSeleccionada.provincia}</div>
-                                    <div><strong>Distrito Sanitario:</strong> {solicitudSeleccionada.distrito_sanitario || '—'}</div>
-                                    <div><strong>Dirección:</strong> {solicitudSeleccionada.direccion}</div>
-                                  </CardContent>
-                                </Card>
-                                <Card className="lg:col-span-1">
-                                  <CardHeader>
-                                    <CardTitle>Registro</CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2 text-sm">
-                                    <div><strong>Nº Solicitud:</strong> {solicitudSeleccionada.numero_solicitud || '—'}</div>
-                                    <div><strong>Nº Registro:</strong> {solicitudSeleccionada.numero_registro || '—'}</div>
-                                    <div><strong>Fecha Solicitud:</strong> {formatearFecha(solicitudSeleccionada.fecha_solicitud)}</div>
-                                    <div><strong>Fecha Revisión:</strong> {formatearFecha(solicitudSeleccionada.fecha_revision)}</div>
-                                  </CardContent>
-                                </Card>
-                              </div>
-
-                              {solicitudSeleccionada.fotos_establecimiento?.length > 0 && (
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle>Fotos del Establecimiento</CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                      {solicitudSeleccionada.fotos_establecimiento.map((foto: string, index: number) => (
-                                        <img
-                                          key={index}
-                                          src={foto}
-                                          alt={`Foto ${index + 1}`}
-                                          className="w-full h-40 object-cover rounded border"
-                                        />
-                                      ))}
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              )}
-
-                              {(solicitudSeleccionada.personal_apertura || solicitudSeleccionada.asesor_tecnico) && (
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle>Plan de Personal y Asesor Técnico</CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-3 text-sm">
-                                    {solicitudSeleccionada.personal_apertura?.categorias && Object.keys(solicitudSeleccionada.personal_apertura.categorias).length > 0 && (
-                                      <div>
-                                        <div className="font-medium">Personal requerido:</div>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1">
-                                          {Object.entries(solicitudSeleccionada.personal_apertura.categorias).map(([k, v]: any) => (
-                                            <div key={k} className="bg-gray-50 rounded p-2">
-                                              <span className="text-xs uppercase text-gray-500">{k}</span>
-                                              <div className="text-lg font-bold">{v as number}</div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {Array.isArray(solicitudSeleccionada.personal_apertura?.personas) && solicitudSeleccionada.personal_apertura.personas.length > 0 && (
-                                      <div>
-                                        <div className="font-medium mb-1">Listado de personal:</div>
-                                        <div className="space-y-1">
-                                          {solicitudSeleccionada.personal_apertura.personas.map((p: any, i: number) => (
-                                            <div key={i} className="flex justify-between border rounded p-2">
-                                              <div>
-                                                <div className="font-medium">{p.nombre}</div>
-                                                {p.categoria && <div className="text-xs text-gray-500">{p.categoria}</div>}
-                                              </div>
-                                              <div className="text-sm">{p.telefono}</div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {(solicitudSeleccionada.asesor_tecnico?.nombre || solicitudSeleccionada.asesor_tecnico?.formacion || solicitudSeleccionada.asesor_tecnico?.telefono) && (
-                                      <div>
-                                        <div className="font-medium mb-1">Asesor Técnico</div>
-                                        <div className="text-sm">
-                                          {solicitudSeleccionada.asesor_tecnico?.nombre} {solicitudSeleccionada.asesor_tecnico?.formacion ? `• ${solicitudSeleccionada.asesor_tecnico.formacion}` : ''} {solicitudSeleccionada.asesor_tecnico?.telefono ? `• ${solicitudSeleccionada.asesor_tecnico.telefono}` : ''}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </CardContent>
-                                </Card>
-                              )}
-
-                              {/* Contenido fuera de pantalla para generación de PDF (no usar display:none) */}
-                              <div style={{ position: 'fixed', left: '-10000px', top: 0, opacity: 0, pointerEvents: 'none', width: '210mm', minHeight: '297mm', zIndex: -1 }}>
-                                <div id="est-letter-print" style={{ backgroundColor: '#ffffff' }}>
-                                  <EstablishmentRequestLetter solicitud={solicitudSeleccionada} />
-                                </div>
-                                <div id="est-resolution-print" style={{ backgroundColor: '#ffffff' }}>
-                                  <EstablishmentApprovalResolution solicitud={solicitudSeleccionada} />
-                                </div>
-                              </div>
-
-                              {solicitudSeleccionada.documentos_adicionales?.length > 0 && (
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle>Documentos Adicionales</CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <div className="space-y-2">
-                                      {solicitudSeleccionada.documentos_adicionales.map((doc: string, index: number) => (
-                                        <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                                          <span className="text-sm">Documento {index + 1}</span>
-                                          <Button size="sm" variant="outline" asChild>
-                                            <a href={doc} target="_blank" rel="noopener noreferrer">
-                                              <Download className="h-3 w-3 mr-1" />
-                                              Descargar
-                                            </a>
-                                          </Button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              )}
-
-                              {solicitudSeleccionada.observaciones && (
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle>Observaciones</CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <p className="text-sm bg-gray-50 p-3 rounded">{solicitudSeleccionada.observaciones}</p>
-                                  </CardContent>
-                                </Card>
-                              )}
-
-                              {solicitudSeleccionada.motivo_rechazo && (
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle className="text-red-600">Motivo de Rechazo</CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <p className="text-sm bg-red-50 p-3 rounded">{solicitudSeleccionada.motivo_rechazo}</p>
-                                  </CardContent>
-                                </Card>
-                              )}
-                            </div>
-                          )}
-                        </DialogContent>
-                      </Dialog>
-
-                      {!editandoEstados[(solicitud as any).id] &&
-                       getOpcionesEstado(((solicitud as any)?.estado || 'Pendiente')).length > 0 && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditarEstado((solicitud as any).id, ((solicitud as any)?.estado || 'Pendiente'))}
-                        >
-                          <Edit className="h-3 w-3 mr-1" />
-                          Editar
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
+ if(isLoading)return <div className="flex justify-center p-8"><RefreshCw className="animate-spin mr-2"/>Cargando solicitudes...</div>;
+ return <div className="space-y-6">
+  <Tabs defaultValue="solicitudes" className="space-y-5">
+   <TabsList className="grid w-full grid-cols-3"><TabsTrigger value="solicitudes"><Building2 className="w-4 h-4 mr-2"/>Solicitudes de Establecimientos</TabsTrigger><TabsTrigger value="inspecciones"><ClipboardCheck className="w-4 h-4 mr-2"/>Inspecciones</TabsTrigger>{isMinisterial&&<TabsTrigger value="notas"><ReceiptText className="w-4 h-4 mr-2"/>Notas de Ingreso</TabsTrigger>}</TabsList>
+   <TabsContent value="solicitudes" className="space-y-5">
+    <Card><CardHeader><CardTitle className="flex items-center justify-between"><span className="flex items-center gap-2"><Building2 className="w-5 h-5"/>Gestión completa de Solicitudes de Establecimientos</span><Button variant="outline" size="sm" onClick={()=>refetch()}><RefreshCw className="w-4 h-4 mr-2"/>Actualizar</Button></CardTitle></CardHeader><CardContent><div className="flex flex-col md:flex-row gap-3"><Select value={estadoFiltro} onValueChange={setEstadoFiltro}><SelectTrigger className="w-full md:w-56"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="todos">Todos los estados</SelectItem>{ESTADOS.map(x=><SelectItem key={x} value={x}>{x}</SelectItem>)}</SelectContent></Select><div className="relative flex-1"><Search className="w-4 h-4 absolute left-3 top-3 text-gray-400"/><Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por solicitud, establecimiento, responsable o provincia" className="pl-9"/></div></div></CardContent></Card>
+    <Card><CardContent className="p-0"><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Nº Solicitud</TableHead><TableHead>Establecimiento</TableHead><TableHead>Categoría</TableHead><TableHead>Provincia</TableHead><TableHead>Estado</TableHead><TableHead>Fecha</TableHead><TableHead>Acciones</TableHead></TableRow></TableHeader><TableBody>{filtered.map((s:any)=><TableRow key={s.id}><TableCell className="font-mono">{s.numero_solicitud}<div className="text-xs text-gray-500">{s.numero_registro||''}</div></TableCell><TableCell><div className="font-medium">{s.nombre_establecimiento}</div><div className="text-xs text-gray-500">{s.director_responsable}</div></TableCell><TableCell>{s.categoria||'—'}</TableCell><TableCell>{s.provincia||'—'}</TableCell><TableCell>{editState[s.id]!==undefined?<div className="space-y-2 min-w-[190px]"><Select value={editState[s.id]} onValueChange={v=>setEditState(p=>({...p,[s.id]:v}))}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{ESTADOS.map(x=><SelectItem key={x} value={x}>{x}</SelectItem>)}</SelectContent></Select>{editState[s.id]==='Rechazado'&&<Textarea value={rejectReason[s.id]||''} onChange={e=>setRejectReason(p=>({...p,[s.id]:e.target.value}))} placeholder="Motivo del rechazo"/>}<Textarea value={reviewNotes[s.id]||''} onChange={e=>setReviewNotes(p=>({...p,[s.id]:e.target.value}))} placeholder="Notas de revisión (opcional)"/><div className="flex gap-2"><Button size="sm" onClick={()=>saveState(s.id)} disabled={actualizarEstadoMutation.isPending}><Save className="w-3 h-3 mr-1"/>Guardar</Button><Button size="sm" variant="outline" onClick={()=>setEditState(p=>{const n={...p};delete n[s.id];return n})}><X className="w-3 h-3 mr-1"/>Cancelar</Button></div></div>:<div className="flex items-center gap-2"><Badge className={statusClass(s.estado||'Pendiente')}>{s.estado||'Pendiente'}</Badge><Button size="sm" variant="outline" onClick={()=>setEditState(p=>({...p,[s.id]:s.estado||'Pendiente'}))}>Editar</Button></div>}</TableCell><TableCell>{s.fecha_solicitud?new Date(s.fecha_solicitud).toLocaleDateString('es-ES'):'—'}</TableCell><TableCell><Button size="sm" variant="outline" onClick={()=>setSelected(s)}><Eye className="w-3 h-3 mr-1"/>Ver</Button></TableCell></TableRow>)}</TableBody></Table></div></CardContent></Card>
+   </TabsContent>
+   <TabsContent value="inspecciones" className="space-y-5">
+    <Card><CardHeader><CardTitle className="flex items-center gap-2"><ClipboardCheck className="w-5 h-5"/>Sistema de Inspección de Establecimientos</CardTitle></CardHeader><CardContent><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3"><Select value={inspectionForm.establecimiento_id} onValueChange={v=>setInspectionForm((p:any)=>({...p,establecimiento_id:v}))}><SelectTrigger><SelectValue placeholder="Establecimiento"/></SelectTrigger><SelectContent>{(solicitudes||[]).map((s:any)=><SelectItem key={s.id} value={s.id}>{s.nombre_establecimiento}</SelectItem>)}</SelectContent></Select><Select value={inspectionForm.tipo_inspeccion} onValueChange={v=>setInspectionForm((p:any)=>({...p,tipo_inspeccion:v}))}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{['Inicial','Seguimiento','Extraordinaria','Renovación'].map(x=><SelectItem key={x} value={x}>{x}</SelectItem>)}</SelectContent></Select><Input type="datetime-local" value={inspectionForm.fecha_programada} onChange={e=>setInspectionForm((p:any)=>({...p,fecha_programada:e.target.value}))}/><Button onClick={saveInspection}><CalendarDays className="w-4 h-4 mr-2"/>Programar</Button></div><Textarea className="mt-3" value={inspectionForm.observaciones} onChange={e=>setInspectionForm((p:any)=>({...p,observaciones:e.target.value}))} placeholder="Observaciones iniciales de la inspección"/></CardContent></Card>
+    <Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Nº Inspección</TableHead><TableHead>Tipo</TableHead><TableHead>Fecha</TableHead><TableHead>Estado</TableHead><TableHead>Resultado</TableHead></TableRow></TableHeader><TableBody>{inspectionLoading?<TableRow><TableCell colSpan={5} className="text-center p-6">Cargando...</TableCell></TableRow>:inspections.map(i=><TableRow key={i.id}><TableCell className="font-mono">{i.numero_inspeccion||i.id.slice(0,8)}</TableCell><TableCell>{i.tipo_inspeccion}</TableCell><TableCell>{i.fecha_programada?new Date(i.fecha_programada).toLocaleString('es-ES'):'—'}</TableCell><TableCell><Select value={i.estado||'Programada'} onValueChange={v=>updateInspection(i.id,v)}><SelectTrigger className="w-40"><SelectValue/></SelectTrigger><SelectContent>{INSPECCION_ESTADOS.map(x=><SelectItem key={x} value={x}>{x}</SelectItem>)}</SelectContent></Select></TableCell><TableCell>{i.resultado||'Pendiente'}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+   </TabsContent>
+   {isMinisterial&&<TabsContent value="notas" className="space-y-5">
+    <Card><CardHeader><CardTitle className="flex items-center justify-between"><span className="flex items-center gap-2"><ReceiptText className="w-5 h-5"/>Parámetros ministeriales de Notas de Ingreso</span><Button variant="outline" size="sm" onClick={loadNotes}><RefreshCw className="w-4 h-4 mr-2"/>Actualizar</Button></CardTitle></CardHeader><CardContent><p className="text-sm text-gray-600 mb-4">Estos parámetros son editables únicamente desde el panel ministerial. La generación de la Nota de Ingreso y su PDF siguen siendo los existentes.</p><div className="grid grid-cols-1 md:grid-cols-2 gap-3"><Select value={noteId} onValueChange={setNoteId}><SelectTrigger><SelectValue placeholder={notesLoading?'Cargando notas...':'Seleccione una Nota de Ingreso'}/></SelectTrigger><SelectContent>{notes.map(n=><SelectItem key={n.id} value={n.id}>{n.numero_nota} · {n.beneficiario_nombre||'Beneficiario'} · {n.tipo_solicitud||'Solicitud'}</SelectItem>)}</SelectContent></Select><div className="border rounded-lg p-3 text-sm text-gray-600">{noteId?(notes.find(n=>n.id===noteId)?.pdf_url?'PDF de la nota disponible':'La nota está registrada; el PDF se generará según el flujo existente.'):'Seleccione una nota para editar sus parámetros.'}</div></div></CardContent></Card>
+    {noteId&&<Card><CardHeader><CardTitle>Editar parámetros de la Nota de Ingreso</CardTitle></CardHeader><CardContent><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label className="text-sm font-medium">Importe</label><Input type="number" min="0" step="0.01" value={noteForm.monto} onChange={e=>setNoteForm((p:any)=>({...p,monto:e.target.value}))}/></div><div><label className="text-sm font-medium">Moneda</label><Input value={noteForm.moneda} onChange={e=>setNoteForm((p:any)=>({...p,moneda:e.target.value.toUpperCase()}))}/></div><div><label className="text-sm font-medium">Cuenta de Tesorería</label><Input value={noteForm.cuenta_tesoreria} onChange={e=>setNoteForm((p:any)=>({...p,cuenta_tesoreria:e.target.value}))} placeholder="Cuenta / código presupuestario"/></div><div><label className="text-sm font-medium">Código de concepto</label><Input value={noteForm.concepto_codigo} onChange={e=>setNoteForm((p:any)=>({...p,concepto_codigo:e.target.value}))}/></div><div className="md:col-span-2"><label className="text-sm font-medium">Descripción del concepto</label><Textarea value={noteForm.concepto_descripcion} onChange={e=>setNoteForm((p:any)=>({...p,concepto_descripcion:e.target.value}))}/></div></div><div className="flex justify-end mt-5"><Button onClick={saveNote} disabled={savingNote}>{savingNote?'Guardando...':<><Save className="w-4 h-4 mr-2"/>Guardar parámetros ministeriales</>}</Button></div></CardContent></Card>}
+   </TabsContent>}
+  </Tabs>
+  <Dialog open={!!selected} onOpenChange={()=>setSelected(null)}><DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Solicitud de establecimiento {selected?.numero_solicitud}</DialogTitle></DialogHeader>{selected&&<div className="space-y-5"><div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"><div><b>Establecimiento:</b> {selected.nombre_establecimiento}</div><div><b>Categoría:</b> {selected.categoria}</div><div><b>Tipo de servicio:</b> {selected.tipo_servicio}</div><div><b>Provincia:</b> {selected.provincia}</div><div><b>Distrito sanitario:</b> {selected.distrito_sanitario}</div><div><b>Director responsable:</b> {selected.director_responsable}</div><div><b>Teléfono:</b> {selected.telefono}</div><div><b>Email:</b> {selected.email}</div><div><b>NIF:</b> {selected.nif}</div><div><b>Documento responsable:</b> {selected.numero_documento}</div><div><b>Número de camas:</b> {selected.numero_camas??'—'}</div><div><b>Servicios:</b> {Array.isArray(selected.servicios_ofrecidos)?selected.servicios_ofrecidos.join(', '):'—'}</div></div><div className="border-t pt-4"><h4 className="font-semibold mb-2">Flujo de aprobación</h4><div className="flex items-center gap-2"><Badge className={statusClass(selected.estado||'Pendiente')}>{selected.estado||'Pendiente'}</Badge><Button onClick={()=>{setEditState(p=>({...p,[selected.id]:selected.estado||'Pendiente'}));setSelected(null);}}>Editar estado</Button></div></div></div>}</DialogContent></Dialog>
+ </div>;
 };
-
 export default SolicitudesEstablecimientos;

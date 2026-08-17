@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="430" viewBox="0 0 900 430" role="img" aria-labelledby="title desc">
+<title id="title">Sello profesional Guinea Ecuatorial Salud</title>
+<desc id="desc">Sello rectangular con cruz de Guinea Salud, número profesional y nombre.</desc>
+<defs>
+ <linearGradient id="crossGlow" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".48" stop-color="#a9e9ec"/><stop offset="1" stop-color="#edfafd"/></linearGradient>
+ <linearGradient id="teal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3e9ab0"/><stop offset="1" stop-color="#2d8da5"/></linearGradient>
+</defs>
+<rect x="8" y="8" width="884" height="414" rx="18" fill="#fff" stroke="#167f94" stroke-width="5"/>
+<rect x="22" y="22" width="856" height="386" rx="12" fill="none" stroke="#a8cfd5" stroke-width="2"/>
+<g transform="translate(58 83)">
+ <rect x="116" y="0" width="112" height="112" rx="31" fill="url(#teal)"/>
+ <path d="M0 116 C0 94 18 76 40 76 H118 C146 76 168 98 168 126 V170 H44 C20 170 0 150 0 126Z" fill="url(#crossGlow)"/>
+ <path d="M168 126 C168 98 190 76 218 76 H228 V294 C228 316 210 334 188 334 H168Z" fill="url(#crossGlow)"/>
+</g>
+<g font-family="Arial,Helvetica,sans-serif" fill="#123d46">
+ <text x="330" y="88" font-size="25" font-weight="700" letter-spacing="1.2">REPÚBLICA DE GUINEA ECUATORIAL</text>
+ <text x="330" y="124" font-size="23" font-weight="700" fill="#167f94">MINISTERIO DE SANIDAD E INFRAESTRUCTURAS SANITARIAS</text>
+ <line x1="330" y1="151" x2="835" y2="151" stroke="#b6d6db" stroke-width="2"/>
+ <text x="330" y="194" font-size="17" fill="#5b747b">SELLO PROFESIONAL SANITARIO</text>
+ <text x="330" y="247" font-size="34" font-weight="700" id="professionalName">NOMBRE DEL PROFESIONAL</text>
+ <text x="330" y="292" font-size="21" fill="#55727a">ID / NÚMERO PROFESIONAL</text>
+ <text x="330" y="328" font-size="30" font-weight="700" fill="#167f94" id="professionalId">PROF-000000</text>
+ <text x="330" y="366" font-size="14" fill="#6a8086">Documento oficial · Guinea Ecuatorial Salud</text>
+</g>
+</svg>

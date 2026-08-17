@@ -1,6 +1,8 @@
 import React from "react";
 // Importar el tipo Profesional actualizado
-import type { Profesional } from '@/hooks/useProfesionales'; 
+import type { Profesional } from '@/hooks/useProfesionales';
+import { useSelloProfesional, useSelloExpediente } from '@/hooks/useSellos';
+import SelloDisplay from '@/components/registration/SelloDisplay';
 
 interface ApprovalLetterProps {
   professional: Profesional; // Usamos el tipo Profesional
@@ -9,8 +11,17 @@ interface ApprovalLetterProps {
 
 // Renombrado de formData a professional para consistencia con el hook
 const ApprovalLetter = ({ professional, documentDate }: ApprovalLetterProps) => {
+  const { data: selloProfesional } = useSelloProfesional(
+    professional.id,
+    professional.id_profesional_unico,
+  );
+  const { data: selloExpediente } = useSelloExpediente(
+    professional.id,
+    (professional as any).codigo_expediente,
+  );
 
   // La variable 'today' se reemplaza por 'documentDate'
+
 
   return (
     // ID esencial para la captura con html2canvas

@@ -153,7 +153,34 @@ const ProfessionalCardInfo = ({ professional, daysUntilRenewal, isRenewalSoon }:
             <AlertTriangle className="inline w-4 h-4 mr-1 text-orange-500" /> Carnet no disponible para descarga.
           </div>
         )}
+
+        {(selloProfesional || selloExpediente) && (
+          <>
+            <Separator />
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-2 flex items-center gap-1">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                Sellos auditables
+              </p>
+              <div className="flex flex-wrap items-start justify-center gap-6">
+                <SelloDisplay
+                  sello={selloProfesional}
+                  titulo="Sello profesional"
+                  size={110}
+                  nombreArchivo={`sello-profesional-${professional.id_profesional_unico || professional.id}`}
+                />
+                <SelloDisplay
+                  sello={selloExpediente}
+                  titulo="Sello de expediente"
+                  size={110}
+                  nombreArchivo={`sello-expediente-${(professional as any).codigo_expediente || professional.id}`}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
+
     </Card>
   );
 };

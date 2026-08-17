@@ -1,6 +1,8 @@
 import React from "react";
 // Importar el tipo Profesional actualizado
-import type { Profesional } from '@/hooks/useProfesionales'; 
+import type { Profesional } from '@/hooks/useProfesionales';
+import { useSelloProfesional, useSelloExpediente } from '@/hooks/useSellos';
+import SelloDisplay from '@/components/registration/SelloDisplay';
 
 interface ApprovalLetterProps {
   professional: Profesional; // Usamos el tipo Profesional
@@ -9,8 +11,17 @@ interface ApprovalLetterProps {
 
 // Renombrado de formData a professional para consistencia con el hook
 const ApprovalLetter = ({ professional, documentDate }: ApprovalLetterProps) => {
+  const { data: selloProfesional } = useSelloProfesional(
+    professional.id,
+    professional.id_profesional_unico,
+  );
+  const { data: selloExpediente } = useSelloExpediente(
+    professional.id,
+    (professional as any).codigo_expediente,
+  );
 
   // La variable 'today' se reemplaza por 'documentDate'
+
 
   return (
     // ID esencial para la captura con html2canvas
@@ -196,7 +207,7 @@ const ApprovalLetter = ({ professional, documentDate }: ApprovalLetterProps) => 
         </p>
       </div>
 
-      {/* Firmas */}
+      {/* Firmas y sellos */}
       <div className="mt-8 grid grid-cols-2 gap-8">
         <div className="text-center">
           <div className="border-t border-black w-48 mx-auto mb-2 mt-16"></div>
@@ -211,6 +222,14 @@ const ApprovalLetter = ({ professional, documentDate }: ApprovalLetterProps) => 
           <p className="text-sm">República de Guinea Ecuatorial</p>
         </div>
       </div>
+
+      {(selloProfesional || selloExpediente) && (
+        <div className="mt-6 flex items-start justify-center gap-12">
+          <SelloDisplay sello={selloExpediente} titulo="Sello de expediente" compact size={100} />
+          <SelloDisplay sello={selloProfesional} titulo="Sello profesional" compact size={100} />
+        </div>
+      )}
+
 
       {/* Pie de página */}
       <div className="mt-8 text-xs text-gray-600 text-center border-t pt-4">

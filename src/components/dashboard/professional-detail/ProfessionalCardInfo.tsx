@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { CreditCard, Calendar, Download, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Profesional } from '@/hooks/useProfesionales';
+import { useSelloProfesional, useSelloExpediente } from '@/hooks/useSellos';
+import SelloDisplay from '@/components/registration/SelloDisplay';
 
 interface ProfessionalCardInfoProps {
   professional: Profesional;
@@ -13,6 +15,15 @@ interface ProfessionalCardInfoProps {
 
 const ProfessionalCardInfo = ({ professional, daysUntilRenewal, isRenewalSoon }: ProfessionalCardInfoProps) => {
   const { toast } = useToast();
+  const { data: selloProfesional } = useSelloProfesional(
+    professional.id,
+    professional.id_profesional_unico,
+  );
+  const { data: selloExpediente } = useSelloExpediente(
+    professional.id,
+    (professional as any).codigo_expediente,
+  );
+
 
   const handleDownloadCarnet = async () => {
     if (!professional.url_carnet) {
@@ -142,7 +153,34 @@ const ProfessionalCardInfo = ({ professional, daysUntilRenewal, isRenewalSoon }:
             <AlertTriangle className="inline w-4 h-4 mr-1 text-orange-500" /> Carnet no disponible para descarga.
           </div>
         )}
+
+        {(selloProfesional || selloExpediente) && (
+          <>
+            <Separator />
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-2 flex items-center gap-1">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                Sellos auditables
+              </p>
+              <div className="flex flex-wrap items-start justify-center gap-6">
+                <SelloDisplay
+                  sello={selloProfesional}
+                  titulo="Sello profesional"
+                  size={110}
+                  nombreArchivo={`sello-profesional-${professional.id_profesional_unico || professional.id}`}
+                />
+                <SelloDisplay
+                  sello={selloExpediente}
+                  titulo="Sello de expediente"
+                  size={110}
+                  nombreArchivo={`sello-expediente-${(professional as any).codigo_expediente || professional.id}`}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
+
     </Card>
   );
 };

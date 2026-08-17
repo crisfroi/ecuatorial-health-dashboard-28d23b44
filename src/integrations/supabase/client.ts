@@ -2,32 +2,208 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { supabase as hosixSupabase, getConnectionStatus as getHosixConnectionStatus } from './hosixClient';
+
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://wdieynendfjbkbhfovrx.supabase.co";
-export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkaWV5bmVuZGZqYmtiaGZvdnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3ODI5MjEsImV4cCI6MjA2NjM1ODkyMX0.yFnLHavy8wVjlg3sAI2mEG-XGDCV5FSr7OQsMefxL8";
-if (!SUPABASE_URL) throw new Error('Missing VITE_SUPABASE_URL environment variable');
-if (!SUPABASE_PUBLISHABLE_KEY) throw new Error('Missing VITE_SUPABASE_ANON_KEY environment variable');
-const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
-const nativeFetch: typeof fetch = typeof window!=='undefined' ? window.fetch.bind(window) : fetch;
-const resilientFetch: typeof fetch = async (input, init={})=>{
-  const maxAttempts=3, baseTimeoutMs=12000; let lastError:any=null;
-  const mergedHeaders=new Headers(input instanceof Request ? input.headers : undefined);
-  new Headers(init.headers||{}).forEach((value,key)=>mergedHeaders.set(key,value));
-  mergedHeaders.set('X-Client-Info','guinea-salud-dashboard');
-  try { const type=typeof window!=='undefined'?window.localStorage.getItem('professional_request_type'):null; if(type) mergedHeaders.set('X-Renaprosa-Request-Type',type); } catch(_) {}
-  try { const type=typeof window!=='undefined'?window.localStorage.getItem('establishment_request_type'):null; if(type) mergedHeaders.set('X-Renaprosa-Establishment-Type',type); } catch(_) {}
-  for(let attempt=0;attempt<maxAttempts;attempt++){
-    const controller=new AbortController(); const timeout=setTimeout(()=>controller.abort(),baseTimeoutMs*(attempt+1));
-    try { const resp=await nativeFetch(input,{...init,cache:'no-store',keepalive:true,signal:controller.signal,headers:mergedHeaders,mode:'cors'} as RequestInit); clearTimeout(timeout); if([429,502,503,504].includes(resp.status)){lastError=new Error(`HTTP ${resp.status}`);await sleep(300*(attempt+1));continue;} return resp; }
-    catch(err:any){clearTimeout(timeout);lastError=err;if(attempt<maxAttempts-1){await sleep(300*(attempt+1));continue;}throw err;}
+export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkaWV5bmVuZGZqYmtiaGZvdnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3ODI5MjEsImV4cCI6MjA2NjM1ODkyMX0.yFnLHavy8wzVjlg3sAI2mEG-XGDCV5FSr7OQsMefxL8";
+
+// Validate environment variables
+if (!SUPABASE_URL) {
+  console.error('❌ VITE_SUPABASE_URL is not defined');
+  throw new Error('Missing VITE_SUPABASE_URL environment variable');
+}
+
+if (!SUPABASE_PUBLISHABLE_KEY) {
+  console.error('❌ VITE_SUPABASE_ANON_KEY is not defined');
+  throw new Error('Missing VITE_SUPABASE_ANON_KEY environment variable');
+}
+
+console.log('✅ Supabase client initialized with:', {
+  url: SUPABASE_URL,
+  hasKey: SUPABASE_PUBLISHABLE_KEY ? 'Yes' : 'No',
+  keyLength: SUPABASE_PUBLISHABLE_KEY?.length || 0
+});
+
+// Import the supabase client like this:
+// import { supabase } from "@/integrations/supabase/client";
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Native fetch captured BEFORE any wrapping, to avoid infinite recursion
+const nativeFetch: typeof fetch =
+  typeof window !== 'undefined' ? window.fetch.bind(window) : fetch;
+
+const resilientFetch: typeof fetch = async (input, init = {}) => {
+  const maxAttempts = 3;
+  const baseTimeoutMs = 12000;
+  let lastError: any = null;
+
+  // IMPORTANT: when `input` is already a Request object (as the Supabase SDK does
+  // internally to attach `apikey`/`Authorization`), passing a fresh `init.headers`
+  // to fetch() REPLACES the Request's original headers instead of merging them
+  // (per the Fetch spec). That was silently dropping the apikey header on every
+  // call, causing "No API key found in request" 401 errors. We merge explicitly
+  // here so headers already present on `input` are preserved.
+  const mergedHeaders = new Headers(input instanceof Request ? input.headers : undefined);
+  new Headers(init.headers || {}).forEach((value, key) => mergedHeaders.set(key, value));
+  mergedHeaders.set('X-Client-Info', 'guinea-salud-dashboard');
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), baseTimeoutMs * (attempt + 1));
+    try {
+      const resp = await nativeFetch(input, {
+        ...init,
+        cache: 'no-store',
+        keepalive: true,
+        signal: controller.signal,
+        headers: mergedHeaders,
+        mode: 'cors',
+      } as RequestInit);
+
+      clearTimeout(timeout);
+
+      // Retry on transient server/network statuses
+      if ([429, 502, 503, 504].includes(resp.status)) {
+        lastError = new Error(`HTTP ${resp.status}`);
+        await sleep(300 * (attempt + 1));
+        continue;
+      }
+      return resp;
+    } catch (err: any) {
+      clearTimeout(timeout);
+      lastError = err;
+      const msg = (err?.name === 'AbortError') ? 'Timeout' : (err?.message || 'Failed to fetch');
+      console.warn(`resilientFetch attempt ${attempt + 1}/${maxAttempts} -> ${msg}`);
+      if (attempt < maxAttempts - 1) {
+        await sleep(300 * (attempt + 1));
+        continue;
+      }
+      throw err;
+    }
   }
-  throw lastError||new Error('Unknown fetch error');
+  throw lastError || new Error('Unknown fetch error');
 };
-export const rootSupabase=createClient<Database>(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true,storageKey:'supabase.auth.token',storage:window.localStorage,flowType:'pkce'},global:{headers:{'X-Client-Info':'guinea-salud-dashboard'},fetch:resilientFetch},db:{schema:'public'},realtime:{params:{eventsPerSecond:10}}});
-const isHosixPath=()=>typeof window!=='undefined'&&window.location.pathname.startsWith('/hosix'); const getCurrentSupabase=()=>isHosixPath()?hosixSupabase:rootSupabase;
-export const supabase=new Proxy(rootSupabase,{get(target,prop,receiver){const current=getCurrentSupabase();const value=Reflect.get(current,prop,current);return typeof value==='function'?value.bind(current):value;}}) as typeof rootSupabase;
-let connectionAttempts=0; const MAX_CONNECTION_ATTEMPTS=5;
-rootSupabase.auth.onAuthStateChange((event,session)=>{console.log('🔐 Auth state changed:',event,session?.user?.id?'User logged in':'No user');if(event==='SIGNED_IN')connectionAttempts=0;});
-export const executeSupabaseQuery=async<T>(queryFn:()=>Promise<{data:T|null;error:any}>,context='Unknown query')=>{try{const start=Date.now();const result=await queryFn();console.log(`⏱️ Query "${context}" completed in ${Date.now()-start}ms`);if(result.error)connectionAttempts++;else connectionAttempts=0;return result;}catch(error:any){connectionAttempts++;return{data:null,error:{message:error.message||'Unknown error',details:error.stack||error.toString(),hint:'Check network connectivity and Supabase configuration',code:error.code||'QUERY_EXCEPTION'}};}};
-const getRootConnectionStatus=()=>({attempts:connectionAttempts,isHealthy:connectionAttempts<MAX_CONNECTION_ATTEMPTS,maxAttempts:MAX_CONNECTION_ATTEMPTS});
-export const getConnectionStatus=()=>isHosixPath()?getHosixConnectionStatus():getRootConnectionStatus();
-try{if(typeof window!=='undefined'&&typeof window.fetch==='function'){(window as any).originalFetch=window.fetch;(window as any).fetch=resilientFetch;}}catch(e){console.warn('Could not replace global fetch:',e);}
+
+export const rootSupabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    storageKey: 'supabase.auth.token',
+    storage: window.localStorage,
+    flowType: 'pkce',
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'guinea-salud-dashboard',
+    },
+    // IMPORTANT: pass resilientFetch explicitly instead of relying only on the
+    // global window.fetch override below. supabase-js resolves its fetch
+    // reference at client-construction time, which happens before that
+    // override runs — so without this, rootSupabase could silently keep using
+    // the pre-override native fetch reference in some bundling/runtime orders,
+    // making the apikey-preserving fix in resilientFetch a no-op for it.
+    fetch: resilientFetch,
+  },
+  db: {
+    schema: 'public',
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
+});
+
+const isHosixPath = () => typeof window !== 'undefined' && window.location.pathname.startsWith('/hosix');
+const getCurrentSupabase = () => (isHosixPath() ? hosixSupabase : rootSupabase);
+
+// The shared "supabase" export dynamically routes HOSIX traffic to the separate
+// HOSIX Supabase client when the browser pathname is under /hosix.
+export const supabase = new Proxy(rootSupabase, {
+  get(target, prop, receiver) {
+    const current = getCurrentSupabase();
+    const value = Reflect.get(current, prop, current);
+    return typeof value === 'function' ? value.bind(current) : value;
+  },
+}) as typeof rootSupabase;
+
+// Enhanced connection monitoring
+let connectionAttempts = 0;
+const MAX_CONNECTION_ATTEMPTS = 5;
+
+// Add connection event listeners
+rootSupabase.auth.onAuthStateChange((event, session) => {
+  console.log('🔐 Auth state changed:', event, session?.user?.id ? 'User logged in' : 'No user');
+
+  if (event === 'SIGNED_IN') {
+    connectionAttempts = 0; // Reset on successful auth
+  }
+});
+
+// Create a wrapper for better error handling
+export const executeSupabaseQuery = async <T>(
+  queryFn: () => Promise<{ data: T | null; error: any }>,
+  context: string = 'Unknown query'
+): Promise<{ data: T | null; error: any }> => {
+  try {
+    console.log(`🔍 Executing Supabase query: ${context}`);
+    const startTime = Date.now();
+
+    const result = await queryFn();
+
+    const duration = Date.now() - startTime;
+    console.log(`⏱️ Query "${context}" completed in ${duration}ms`);
+
+    if (result.error) {
+      console.error(`❌ Query "${context}" failed:`, result.error);
+      connectionAttempts++;
+
+      if (connectionAttempts >= MAX_CONNECTION_ATTEMPTS) {
+        console.error(`🚨 Max connection attempts (${MAX_CONNECTION_ATTEMPTS}) reached for context: ${context}`);
+      }
+    } else {
+      connectionAttempts = 0; // Reset on success
+    }
+
+    return result;
+  } catch (error: any) {
+    console.error(`💥 Query "${context}" threw exception:`, error);
+    connectionAttempts++;
+
+    // Convert exceptions to Supabase-like error format
+    return {
+      data: null,
+      error: {
+        message: error.message || 'Unknown error',
+        details: error.stack || error.toString(),
+        hint: 'Check network connectivity and Supabase configuration',
+        code: error.code || 'QUERY_EXCEPTION'
+      }
+    };
+  }
+};
+
+const getRootConnectionStatus = () => ({
+  attempts: connectionAttempts,
+  isHealthy: connectionAttempts < MAX_CONNECTION_ATTEMPTS,
+  maxAttempts: MAX_CONNECTION_ATTEMPTS,
+});
+
+export const getConnectionStatus = () => {
+  if (isHosixPath()) {
+    return getHosixConnectionStatus();
+  }
+  return getRootConnectionStatus();
+};
+
+// In browser environments, replace global fetch with the resilientFetch wrapper so Supabase uses it
+try {
+  if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
+    (window as any).originalFetch = window.fetch;
+    (window as any).fetch = resilientFetch;
+    console.log('✅ Global fetch replaced with resilientFetch for enhanced Supabase resilience');
+  }
+} catch (e) {
+  console.warn('⚠️ Could not replace global fetch with resilientFetch:', e);
+}

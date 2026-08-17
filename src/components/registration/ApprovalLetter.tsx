@@ -196,7 +196,7 @@ const ApprovalLetter = ({ professional, documentDate }: ApprovalLetterProps) => 
         </p>
       </div>
 
-      {/* Firmas */}
+      {/* Firmas y sellos */}
       <div className="mt-8 grid grid-cols-2 gap-8">
         <div className="text-center">
           <div className="border-t border-black w-48 mx-auto mb-2 mt-16"></div>
@@ -211,6 +211,14 @@ const ApprovalLetter = ({ professional, documentDate }: ApprovalLetterProps) => 
           <p className="text-sm">República de Guinea Ecuatorial</p>
         </div>
       </div>
+
+      {(selloProfesional || selloExpediente) && (
+        <div className="mt-6 flex items-start justify-center gap-12">
+          <SelloDisplay sello={selloExpediente} titulo="Sello de expediente" compact size={100} />
+          <SelloDisplay sello={selloProfesional} titulo="Sello profesional" compact size={100} />
+        </div>
+      )}
+
 
       {/* Pie de página */}
       <div className="mt-8 text-xs text-gray-600 text-center border-t pt-4">
